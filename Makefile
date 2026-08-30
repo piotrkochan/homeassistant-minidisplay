@@ -1,7 +1,7 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 
-.PHONY: build build-all package clean check size
+.PHONY: build build-all package clean check size card-build card-check
 
 build:
 	cd firmware && $(PIO) run
@@ -29,3 +29,9 @@ check:
 
 size: build
 	$(PIO) run --project-dir firmware --target size
+
+card-build:
+	npm --prefix integration/card run build
+
+card-check:
+	npm --prefix integration/card run check

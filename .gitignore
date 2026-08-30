@@ -8,6 +8,8 @@ firmware/managed_components/
 firmware/sdkconfig.defaults
 dist/
 node_modules/
+integration/card/.vite/
+*.tsbuildinfo
 coverage/
 .coverage
 .pytest_cache/
