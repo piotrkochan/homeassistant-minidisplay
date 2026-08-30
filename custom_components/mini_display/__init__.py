@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -29,11 +30,32 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(FRONTEND_URL, str(card_path), cache_headers=False)]
         )
-        frontend.add_extra_js_url(hass, FRONTEND_URL)
+        await _async_register_lovelace_card(hass)
     websocket_api.async_register_command(hass, websocket_list_displays)
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_set_dashboard)
     return True
+
+
+async def _async_register_lovelace_card(hass: HomeAssistant) -> None:
+    """Make the bundled card available in the Lovelace card picker."""
+    lovelace = hass.data.get("lovelace")
+    resources = getattr(lovelace, "resources", None)
+    if resources is None and isinstance(lovelace, dict):
+        resources = lovelace.get("resources")
+
+    if isinstance(resources, ResourceStorageCollection):
+        await resources.async_get_info()
+        if not any(
+            item.get("url", "").split("?", 1)[0] == FRONTEND_URL
+            for item in resources.async_items()
+        ):
+            await resources.async_create_item(
+                {"res_type": "module", "url": FRONTEND_URL}
+            )
+        return
+
+    frontend.add_extra_js_url(hass, FRONTEND_URL)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
