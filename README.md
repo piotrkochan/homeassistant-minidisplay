@@ -1,25 +1,63 @@
-# Zoltko / JUZIPi SD PRO
+# Home Assistant Mini-Display
 
-Custom firmware project for the yellow JUZIPi SD PRO smart weather clock.
+Firmware and Home Assistant integration for small 240x240 Wi-Fi displays.
 
-## Confirmed hardware
+## Supported firmware profiles
 
-- MCU: ESP8266
-- Flash: 4 MB, DIO, 40 MHz
-- Display: 240 x 240 color TFT (controller and GPIO mapping under verification)
-- Stock web UI: `http://10.0.13.2/`
-- Stock OTA endpoint: `POST /update_ota`
-- Stock OTA filename must start with `SDP`
+| Firmware file | Device | Status |
+| --- | --- | --- |
+| `home-assistant-mini-display-sdpro.bin` | JUZIPi SD PRO | Tested |
+| `home-assistant-mini-display-geekmagic-smalltv-nocs.bin` | GeekMagic SmallTV, no-CS profile | Build supported; not tested - testers needed |
+| `home-assistant-mini-display-geekmagic-smalltv-cs15.bin` | GeekMagic SmallTV / Ultra, CS15 profile | Build supported; not tested - testers needed |
+| `home-assistant-mini-display-geekmagic-smalltv-esp32c2-ota.bin` | GeekMagic SmallTV ESP32-C2 / ESP8684 | Build supported; not tested - testers needed |
+| `home-assistant-mini-display-geekmagic-smalltv-pro-ota.bin` | GeekMagic SmallTV Pro ESP32, 8 MB | Build supported; not tested - testers needed |
 
-## Safety
+ESP32 releases also contain `factory.bin` images for the first serial/USB flash.
+Use `ota.bin` only through an existing compatible OTA updater.
 
-Do not upload a custom image until display pins, boot pins, flash layout, Wi-Fi
-recovery, and OTA recovery have been verified. Stock firmware is retained in
-`stock/` for rollback.
+## Planned devices
+
+These devices do not have a firmware build yet:
+
+| Device | MCU | Status |
+| --- | --- | --- |
+| Generic ESP12F + ST7789 240x240 clock | ESP8266 | Pinout must be identified - testers needed |
+| NM-TV-154 | ESP32 | Not supported yet - testers needed |
+
+Do not flash based only on enclosure or product name. Confirm MCU, pinout and
+flash layout first.
+
+## Pinouts
+
+- [JUZIPi SD PRO](notes/pinout-sdpro.md)
+- [GeekMagic SmallTV no-CS](notes/pinout-geekmagic-smalltv-nocs.md)
+- [GeekMagic SmallTV / Ultra CS15](notes/pinout-geekmagic-smalltv-cs15.md)
+- [GeekMagic SmallTV ESP32-C2](notes/pinout-geekmagic-smalltv-esp32c2.md)
+- [GeekMagic SmallTV Pro](notes/pinout-geekmagic-smalltv-pro.md)
+
+## Builds
+
+```bash
+make build-all
+```
+
+- `sdpro` — no CS, BGR, inverted
+- `geekmagic_smalltv_nocs` — no CS, BGR, inverted
+- `geekmagic_smalltv_cs15` — CS GPIO15, RGB, not inverted
+- `geekmagic_smalltv_esp32c2` - ESP32-C2, no CS, RGB
+- `geekmagic_smalltv_pro` - ESP32, 8 MB, no CS, RGB
 
 ## Directories
 
-- `firmware/` - custom PlatformIO firmware
-- `notes/` - hardware and reverse-engineering notes
-- `stock/` - original vendor firmware and checksums
+- `dashboard/` — JSON Schema
+- `firmware/` — PlatformIO firmware
+- `custom_components/zoltko/` - Home Assistant integration and frontend
+- `integration/` - integration requirements and development notes
+- `notes/` — hardware and development notes
 
+## Related projects
+
+- https://github.com/JUZIPi-tech/SD_PRO
+- https://github.com/adrienbrault/geekmagic-hacs
+- https://github.com/bvweerd/geekmagic-tv-esp8266
+- https://github.com/giovi321/smalltv-mod

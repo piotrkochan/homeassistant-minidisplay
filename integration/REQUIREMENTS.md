@@ -1,4 +1,4 @@
-# Zoltko Home Assistant integration requirements
+# Home Assistant Mini-Display integration requirements
 
 ## 1. Purpose
 

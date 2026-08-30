@@ -1,12 +1,13 @@
 {
   "domain": "zoltko",
-  "name": "Zoltko Display",
-  "codeowners": [],
+  "name": "Home Assistant Mini-Display",
+  "codeowners": ["@piotrkochan"],
   "config_flow": true,
   "dependencies": ["frontend", "http", "websocket_api"],
-  "documentation": "https://github.com/piotr/zoltko",
+  "documentation": "https://github.com/piotrkochan/homeassistant-minidisplay",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/piotrkochan/homeassistant-minidisplay/issues",
   "requirements": [],
   "version": "0.1.0",
   "zeroconf": ["_zoltko._tcp.local."]

@@ -3,6 +3,9 @@
 .pio/
 firmware/.pio/
 firmware/.vscode/
+firmware/.dummy/
+firmware/managed_components/
+firmware/sdkconfig.defaults
 dist/
 node_modules/
 coverage/

@@ -86,7 +86,7 @@ class ZoltkoDashboardCard extends HTMLElement {
         </div>`
       : `<div class="screen empty"><div><strong>240 × 240</strong><br><small>${escapeHtml(id)}</small></div></div>`;
     this.innerHTML = `
-      <ha-card header="Zoltko">
+      <ha-card header="Home Assistant Mini-Display">
         <style>
           .wrap{padding:16px}.screen{box-sizing:border-box;width:240px;height:240px;margin:auto;padding:6px;background:#090b10;color:#fff;border-radius:12px;display:flex;flex-direction:column;gap:4px;overflow:hidden}.empty{display:grid;place-items:center;text-align:center}.screen h3{font-size:13px;line-height:16px;text-align:center;margin:0}.screen section{min-height:0;display:flex;flex-direction:column}.screen section>label{font-size:9px;color:#aaa}.row{display:flex;gap:4px;min-height:0;flex:1}.z-card{background:#20242d;border-radius:6px;min-width:0;flex:1;padding:5px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}.z-card small{font-size:9px;color:#bbb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.z-card strong{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar{height:4px;background:#3d424e;border-radius:2px;margin-top:4px}.bar i{display:block;height:100%;background:#42a5f5;border-radius:2px}
         </style>
@@ -193,7 +193,7 @@ if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, ZoltkoDas
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TAG,
-  name: "Zoltko Dashboard Card",
+  name: "Home Assistant Mini-Display",
   description: "Configure and preview a physical Zoltko display",
   preview: true,
 });

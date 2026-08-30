@@ -1,4 +1,4 @@
-# Zoltko Home Assistant integration
+# Home Assistant Mini-Display integration
 
 Early development tree for a local, MQTT-free Home Assistant integration and
 bundled Lovelace card.

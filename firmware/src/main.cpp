@@ -1,20 +1,46 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#if defined(ESP8266)
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
+#include <Updater.h>
+#else
+#include <ESPmDNS.h>
+#include <WebServer.h>
+#include <WiFi.h>
+#include <Update.h>
+#endif
 #include <LittleFS.h>
 #include <WiFiUdp.h>
-#include <Updater.h>
-#include <TFT_eSPI.h>
+#include "DisplayCompat.h"
 
 namespace {
 
 constexpr uint32_t kConfigMagic = 0x53445031;
 constexpr size_t kEepromSize = 512;
 constexpr uint32_t kConnectTimeoutMs = 20000;
-constexpr char kFirmwareVersion[] = "0.3.0-dev";
+#ifndef MINI_DISPLAY_VERSION
+#define MINI_DISPLAY_VERSION "0.3.0-dev"
+#endif
+constexpr char kFirmwareVersion[] = MINI_DISPLAY_VERSION;
+#if defined(HARDWARE_PROFILE_GEEKMAGIC_ESP32C2)
+constexpr char kHardwareProfile[] = "geekmagic-smalltv-esp32c2";
+constexpr char kHardwareModel[] = "GeekMagic SmallTV (ESP32-C2)";
+#elif defined(HARDWARE_PROFILE_GEEKMAGIC_PRO)
+constexpr char kHardwareProfile[] = "geekmagic-smalltv-pro";
+constexpr char kHardwareModel[] = "GeekMagic SmallTV Pro";
+#elif defined(HARDWARE_PROFILE_GEEKMAGIC_NOCS)
+constexpr char kHardwareProfile[] = "geekmagic-smalltv-nocs";
+constexpr char kHardwareModel[] = "GeekMagic SmallTV (no CS)";
+#elif defined(HARDWARE_PROFILE_GEEKMAGIC_CS15)
+constexpr char kHardwareProfile[] = "geekmagic-smalltv-cs15";
+constexpr char kHardwareModel[] = "GeekMagic SmallTV / Ultra (CS15)";
+#else
+constexpr char kHardwareProfile[] = "juzipi-sd-pro";
+constexpr char kHardwareModel[] = "JUZIPi SD PRO";
+#endif
 constexpr char kDashboardPath[] = "/dashboard.json";
 constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
@@ -32,8 +58,12 @@ struct DeviceConfig {
 };
 
 DeviceConfig config{};
+#if defined(ESP8266)
 ESP8266WebServer server(80);
-TFT_eSPI display;
+#else
+WebServer server(80);
+#endif
+MiniDisplay display;
 uint32_t connectStartedAt = 0;
 bool accessPointRunning = false;
 bool routesReady = false;
@@ -94,7 +124,12 @@ void saveConfig() {
 
 String deviceSuffix() {
   char suffix[7];
+#if defined(ESP8266)
   snprintf(suffix, sizeof(suffix), "%06X", ESP.getChipId());
+#else
+  snprintf(suffix, sizeof(suffix), "%06X",
+           static_cast<uint32_t>(ESP.getEfuseMac()));
+#endif
   return String(suffix);
 }
 
@@ -151,9 +186,15 @@ void applyBacklight() {
     digitalWrite(TFT_BL, !TFT_BACKLIGHT_ON);
     return;
   }
+  #if defined(ESP8266)
   analogWriteRange(100);
   const int pwm = TFT_BACKLIGHT_ON == LOW ? 100 - displayBrightness
                                           : displayBrightness;
+  #else
+  analogWriteResolution(TFT_BL, 8);
+  const int brightness = map(displayBrightness, 0, 100, 0, 255);
+  const int pwm = TFT_BACKLIGHT_ON == LOW ? 255 - brightness : brightness;
+  #endif
   analogWrite(TFT_BL, pwm);
 }
 
@@ -485,8 +526,9 @@ void sendApiInfo() {
   if (!apiAuthenticated()) return;
   StaticJsonDocument<384> document;
   document["deviceId"] = "sdpro-" + deviceSuffix();
-  document["name"] = "Zoltko";
-  document["model"] = "JUZIPi SD PRO";
+  document["name"] = "Home Assistant Mini-Display";
+  document["model"] = kHardwareModel;
+  document["hardwareProfile"] = kHardwareProfile;
   document["firmwareVersion"] = kFirmwareVersion;
   document["apiVersion"] = 1;
   document["width"] = 240;
@@ -754,8 +796,12 @@ void receiveUpdate() {
   if (!server.authenticate("admin", config.otaPassword)) return;
   HTTPUpload &upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
+#if defined(ESP8266)
     WiFiUDP::stopAll();
     Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000);
+#else
+    Update.begin(UPDATE_SIZE_UNKNOWN);
+#endif
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     Update.write(upload.buf, upload.currentSize);
   } else if (upload.status == UPLOAD_FILE_END) {
@@ -792,7 +838,11 @@ void connectToWiFi() {
   }
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
+#if defined(ESP8266)
   WiFi.hostname(("sdpro-" + deviceSuffix()).c_str());
+#else
+  WiFi.setHostname(("mini-display-" + deviceSuffix()).c_str());
+#endif
   WiFi.begin(config.ssid, config.wifiPassword);
   connectStartedAt = millis();
 }
@@ -823,7 +873,7 @@ void startMdns() {
   MDNS.addService("zoltko", "tcp", 80);
   MDNS.addServiceTxt("zoltko", "tcp", "api", "1");
   MDNS.addServiceTxt("zoltko", "tcp", "id", "sdpro-" + deviceSuffix());
-  MDNS.addServiceTxt("zoltko", "tcp", "model", "sd-pro");
+  MDNS.addServiceTxt("zoltko", "tcp", "model", kHardwareProfile);
   mdnsReady = true;
 }
 
@@ -832,7 +882,7 @@ void startMdns() {
 void setup() {
   Serial.begin(115200);
   Serial.println();
-  Serial.printf("Zoltko firmware %s\n", kFirmwareVersion);
+  Serial.printf("Home Assistant Mini-Display firmware %s\n", kFirmwareVersion);
   loadConfig();
   filesystemReady = LittleFS.begin();
   configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
@@ -849,7 +899,9 @@ void setup() {
 void loop() {
   server.handleClient();
   startMdns();
+#if defined(ESP8266)
   if (mdnsReady) MDNS.update();
+#endif
   if (pageRotationAuto && dashboardPageCount > 1 &&
       millis() - pageShownAt >= dashboardPages[activePageIndex].durationMs) {
     activePageIndex = (activePageIndex + 1) % dashboardPageCount;

@@ -1,0 +1,117 @@
+#pragma once
+
+#if defined(ESP8266)
+
+#include <TFT_eSPI.h>
+using MiniDisplay = TFT_eSPI;
+
+#else
+
+#include <Arduino_GFX_Library.h>
+#include <Fonts/FreeMono12pt7b.h>
+#include <Fonts/FreeMono18pt7b.h>
+#include <Fonts/FreeMono24pt7b.h>
+#include <Fonts/FreeMono9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSans24pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSansBold18pt7b.h>
+#include <Fonts/FreeSansBold24pt7b.h>
+#include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSerif12pt7b.h>
+#include <Fonts/FreeSerif18pt7b.h>
+#include <Fonts/FreeSerif24pt7b.h>
+#include <Fonts/FreeSerif9pt7b.h>
+#include <SPI.h>
+
+constexpr uint16_t TFT_BLACK = 0x0000;
+constexpr uint16_t TFT_WHITE = 0xFFFF;
+constexpr uint16_t TFT_RED = 0xF800;
+constexpr uint16_t TFT_GREEN = 0x07E0;
+constexpr uint16_t TFT_BLUE = 0x001F;
+constexpr uint16_t TFT_CYAN = 0x07FF;
+constexpr uint16_t TFT_YELLOW = 0xFFE0;
+constexpr uint16_t TFT_ORANGE = 0xFD20;
+constexpr uint16_t TFT_DARKGREY = 0x7BEF;
+constexpr uint16_t TFT_LIGHTGREY = 0xC618;
+
+enum TextDatum : uint8_t { TL_DATUM, TC_DATUM, MC_DATUM };
+
+class MiniDisplay {
+ public:
+  void init() {
+    bus_ = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI,
+                             GFX_NOT_DEFINED, &SPI);
+    gfx_ = new Arduino_ST7789(bus_, TFT_RST, 0, true, TFT_WIDTH, TFT_HEIGHT,
+                              0, 0, 0, 80);
+    gfx_->begin(SPI_FREQUENCY);
+    gfx_->setTextWrap(false);
+  }
+
+  void setRotation(uint8_t rotation) { gfx_->setRotation(rotation); }
+  void fillScreen(uint16_t color) { gfx_->fillScreen(color); }
+  void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+    gfx_->fillRect(x, y, w, h, color);
+  }
+  void fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,
+                     int16_t radius, uint16_t color) {
+    gfx_->fillRoundRect(x, y, w, h, radius, color);
+  }
+  uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) {
+    return gfx_->color565(red, green, blue);
+  }
+  void setTextDatum(TextDatum datum) { datum_ = datum; }
+  void setTextColor(uint16_t foreground, uint16_t background) {
+    foreground_ = foreground;
+    background_ = background;
+    gfx_->setTextColor(foreground, background);
+  }
+  void setFreeFont(const GFXfont *font) {
+    font_ = font;
+    textSize_ = 1;
+    gfx_->setTextSize(1);
+    gfx_->setFont(font);
+  }
+  int16_t textWidth(const String &text) const {
+    int16_t x, y;
+    uint16_t width, height;
+    gfx_->getTextBounds(text, 0, 0, &x, &y, &width, &height);
+    return width;
+  }
+  int16_t fontHeight() const { return font_ ? font_->yAdvance : 8 * textSize_; }
+  int16_t drawString(const String &text, int16_t x, int16_t y,
+                     uint8_t builtinFont = 0) {
+    if (builtinFont) {
+      font_ = nullptr;
+      textSize_ = builtinFont >= 4 ? 3 : 2;
+      gfx_->setFont(nullptr);
+      gfx_->setTextSize(textSize_);
+    }
+    int16_t x1, y1;
+    uint16_t width, height;
+    gfx_->getTextBounds(text, 0, 0, &x1, &y1, &width, &height);
+    int16_t left = x;
+    int16_t top = y;
+    if (datum_ == TC_DATUM) left -= width / 2;
+    if (datum_ == MC_DATUM) {
+      left -= width / 2;
+      top -= height / 2;
+    }
+    gfx_->setCursor(left - x1, top - y1);
+    gfx_->print(text);
+    return width;
+  }
+
+ private:
+  Arduino_DataBus *bus_ = nullptr;
+  Arduino_GFX *gfx_ = nullptr;
+  const GFXfont *font_ = nullptr;
+  TextDatum datum_ = TL_DATUM;
+  uint8_t textSize_ = 1;
+  uint16_t foreground_ = TFT_WHITE;
+  uint16_t background_ = TFT_BLACK;
+};
+
+#endif

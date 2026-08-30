@@ -1,0 +1,61 @@
+name: Build release firmware
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install PlatformIO
+        run: python -m pip install platformio==6.1.19
+
+      - name: Set firmware version
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${RELEASE_VERSION#v}"
+          sed -i "s/#define MINI_DISPLAY_VERSION \"0.3.0-dev\"/#define MINI_DISPLAY_VERSION \"${VERSION}\"/" firmware/src/main.cpp
+
+      - name: Build all firmware variants
+        run: make PIO=pio build-all
+
+      - name: Add version to artifact names
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${RELEASE_VERSION#v}"
+          for FILE in dist/*.bin; do
+            mv "$FILE" "${FILE%.bin}-${VERSION}.bin"
+          done
+
+      - name: Store build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: home-assistant-mini-display-${{ github.ref_name }}
+          path: dist/*.bin
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          generate_release_notes: true
+          files: dist/*.bin
