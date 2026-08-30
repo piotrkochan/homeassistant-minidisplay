@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
@@ -30,15 +33,20 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(FRONTEND_URL, str(card_path), cache_headers=False)]
         )
-        await _async_register_lovelace_card(hass)
+        await _async_register_lovelace_card(hass, card_path)
     websocket_api.async_register_command(hass, websocket_list_displays)
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_set_dashboard)
     return True
 
 
-async def _async_register_lovelace_card(hass: HomeAssistant) -> None:
+async def _async_register_lovelace_card(
+    hass: HomeAssistant, card_path: Path
+) -> None:
     """Make the bundled card available in the Lovelace card picker."""
+    card_bytes = await hass.async_add_executor_job(card_path.read_bytes)
+    content_hash = hashlib.sha256(card_bytes).hexdigest()[:12]
+    resource_url = f"{FRONTEND_URL}?v={content_hash}"
     lovelace = hass.data.get("lovelace")
     resources = getattr(lovelace, "resources", None)
     if resources is None and isinstance(lovelace, dict):
@@ -46,14 +54,22 @@ async def _async_register_lovelace_card(hass: HomeAssistant) -> None:
 
     if isinstance(resources, ResourceStorageCollection):
         await resources.async_get_info()
-        resource_url = f"{FRONTEND_URL}?rev=lit-editor-1"
-        if not any(item.get("url") == resource_url for item in resources.async_items()):
+        current_found = False
+        for item in list(resources.async_items()):
+            item_url = item.get("url", "")
+            if item_url.split("?", 1)[0] != FRONTEND_URL:
+                continue
+            if item_url == resource_url and not current_found:
+                current_found = True
+                continue
+            await resources.async_delete_item(item["id"])
+        if not current_found:
             await resources.async_create_item(
                 {"res_type": "module", "url": resource_url}
             )
         return
 
-    frontend.add_extra_js_url(hass, FRONTEND_URL)
+    frontend.add_extra_js_url(hass, resource_url)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
