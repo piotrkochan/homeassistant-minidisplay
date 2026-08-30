@@ -46,12 +46,10 @@ async def _async_register_lovelace_card(hass: HomeAssistant) -> None:
 
     if isinstance(resources, ResourceStorageCollection):
         await resources.async_get_info()
-        if not any(
-            item.get("url", "").split("?", 1)[0] == FRONTEND_URL
-            for item in resources.async_items()
-        ):
+        resource_url = f"{FRONTEND_URL}?rev=visual-editor-1"
+        if not any(item.get("url") == resource_url for item in resources.async_items()):
             await resources.async_create_item(
-                {"res_type": "module", "url": FRONTEND_URL}
+                {"res_type": "module", "url": resource_url}
             )
         return
 
