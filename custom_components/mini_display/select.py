@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
 
-from .entity import ZoltkoEntity
+from .entity import MiniDisplayEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    async_add_entities([ZoltkoPageSelect(hass.data["zoltko"][entry.entry_id]["coordinator"])])
+    async_add_entities([MiniDisplayPageSelect(hass.data["mini_display"][entry.entry_id]["coordinator"])])
 
 
-class ZoltkoPageSelect(ZoltkoEntity, SelectEntity):
+class MiniDisplayPageSelect(MiniDisplayEntity, SelectEntity):
     _attr_name = "Active page"
 
     def __init__(self, coordinator) -> None:

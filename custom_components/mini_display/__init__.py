@@ -1,4 +1,4 @@
-"""Zoltko local display integration."""
+"""MiniDisplay local display integration."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import ZoltkoClient
+from .api import MiniDisplayClient
 from .const import (
     CONF_API_TOKEN,
     DOMAIN,
@@ -17,14 +17,14 @@ from .const import (
     FRONTEND_URL,
     PLATFORMS,
 )
-from .coordinator import ZoltkoCoordinator
-from .dashboard import DashboardValidationError, ZoltkoDashboardManager
+from .coordinator import MiniDisplayCoordinator
+from .dashboard import DashboardValidationError, MiniDisplayDashboardManager
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register frontend assets and integration WebSocket commands once."""
     hass.data.setdefault(DOMAIN, {})
-    card_path = FRONTEND_DIR / "zoltko-dashboard-card.js"
+    card_path = FRONTEND_DIR / "mini-display-dashboard-card.js"
     if card_path.exists():
         await hass.http.async_register_static_paths(
             [StaticPathConfig(FRONTEND_URL, str(card_path), cache_headers=False)]
@@ -38,15 +38,15 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up one configured display."""
-    client = ZoltkoClient(
+    client = MiniDisplayClient(
         async_get_clientsession(hass),
         entry.data[CONF_HOST],
         entry.data[CONF_API_TOKEN],
         entry.data[CONF_PORT],
     )
-    coordinator = ZoltkoCoordinator(hass, entry, client)
+    coordinator = MiniDisplayCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-    dashboard = ZoltkoDashboardManager(hass, entry.entry_id, client)
+    dashboard = MiniDisplayDashboardManager(hass, entry.entry_id, client)
     await dashboard.async_load()
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
@@ -66,7 +66,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unloaded
 
 
-@websocket_api.websocket_command({"type": "zoltko/displays"})
+@websocket_api.websocket_command({"type": "mini_display/displays"})
 @websocket_api.async_response
 async def websocket_list_displays(hass, connection, msg) -> None:
     """Return configured displays for the bundled Lovelace card editor."""
@@ -85,27 +85,27 @@ async def websocket_list_displays(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command(
-    {"type": "zoltko/dashboard/get", "config_entry_id": str}
+    {"type": "mini_display/dashboard/get", "config_entry_id": str}
 )
 @websocket_api.async_response
 async def websocket_get_dashboard(hass, connection, msg) -> None:
     """Return the canonical dashboard stored for one display."""
     runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
     if runtime is None:
-        connection.send_error(msg["id"], "not_found", "Zoltko display not found")
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
     connection.send_result(msg["id"], runtime["dashboard"].dashboard)
 
 
 @websocket_api.websocket_command(
-    {"type": "zoltko/dashboard/set", "config_entry_id": str, "dashboard": dict}
+    {"type": "mini_display/dashboard/set", "config_entry_id": str, "dashboard": dict}
 )
 @websocket_api.async_response
 async def websocket_set_dashboard(hass, connection, msg) -> None:
     """Validate, send, and persist one physical dashboard."""
     runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
     if runtime is None:
-        connection.send_error(msg["id"], "not_found", "Zoltko display not found")
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
     try:
         await runtime["dashboard"].async_apply(msg["dashboard"])

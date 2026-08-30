@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zoltko.local/schema/dashboard.schema.json",
-  "title": "Zoltko dashboard",
+  "$id": "https://mini-display.local/schema/dashboard.schema.json",
+  "title": "MiniDisplay dashboard",
   "description": "Semantic dashboard format for a 240x240 display. The renderer calculates all geometry; documents never contain pixel positions or dimensions.",
   "type": "object",
   "additionalProperties": false,

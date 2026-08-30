@@ -1,28 +1,28 @@
-"""Command buttons for a Zoltko display."""
+"""Command buttons for a MiniDisplay display."""
 
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 
-from .entity import ZoltkoEntity
+from .entity import MiniDisplayEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    coordinator = hass.data["zoltko"][entry.entry_id]["coordinator"]
+    coordinator = hass.data["mini_display"][entry.entry_id]["coordinator"]
     async_add_entities(
         [
-            ZoltkoCommandButton(coordinator, "next_page", "Next page", "next"),
-            ZoltkoCommandButton(
+            MiniDisplayCommandButton(coordinator, "next_page", "Next page", "next"),
+            MiniDisplayCommandButton(
                 coordinator, "previous_page", "Previous page", "previous"
             ),
-            ZoltkoCommandButton(coordinator, "reload_dashboard", "Reload dashboard", "reload"),
-            ZoltkoRestartButton(coordinator),
+            MiniDisplayCommandButton(coordinator, "reload_dashboard", "Reload dashboard", "reload"),
+            MiniDisplayRestartButton(coordinator),
         ]
     )
 
 
-class ZoltkoCommandButton(ZoltkoEntity, ButtonEntity):
+class MiniDisplayCommandButton(MiniDisplayEntity, ButtonEntity):
     def __init__(self, coordinator, key: str, name: str, command: str) -> None:
         super().__init__(coordinator, key)
         self._attr_name = name
@@ -33,7 +33,7 @@ class ZoltkoCommandButton(ZoltkoEntity, ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
-class ZoltkoRestartButton(ZoltkoEntity, ButtonEntity):
+class MiniDisplayRestartButton(MiniDisplayEntity, ButtonEntity):
     _attr_name = "Restart"
     _attr_entity_category = EntityCategory.CONFIG
 

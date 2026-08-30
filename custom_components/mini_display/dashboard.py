@@ -11,10 +11,10 @@ from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
 
-from .api import ZoltkoClient
+from .api import MiniDisplayClient
 
 STORE_VERSION = 1
-STORE_KEY_PREFIX = "zoltko.dashboard"
+STORE_KEY_PREFIX = "mini_display.dashboard"
 DATA_BATCH_DELAY_SECONDS = 0.25
 
 
@@ -102,14 +102,14 @@ def serialize_state(state: State | None) -> dict[str, Any]:
     }
 
 
-class ZoltkoDashboardManager:
+class MiniDisplayDashboardManager:
     """Own one display dashboard and its entity subscriptions."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         entry_id: str,
-        client: ZoltkoClient,
+        client: MiniDisplayClient,
     ) -> None:
         self.hass = hass
         self.entry_id = entry_id

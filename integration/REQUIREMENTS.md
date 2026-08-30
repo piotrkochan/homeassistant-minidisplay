@@ -4,9 +4,9 @@
 
 The project provides one installable Home Assistant package containing:
 
-- a custom integration named `zoltko`;
-- a Lovelace card named `custom:zoltko-dashboard-card`;
-- a visual editor for dashboards rendered by a physical Zoltko display;
+- a custom integration named `mini_display`;
+- a Lovelace card named `custom:mini-display-dashboard-card`;
+- a visual editor for dashboards rendered by a physical MiniDisplay display;
 - entities for display control and diagnostics.
 
 The package must not require MQTT. Home Assistant communicates directly with
@@ -31,7 +31,7 @@ those fields and subscribes to the referenced states.
 
 The backend must:
 
-- discover displays through Zeroconf/mDNS service `_zoltko._tcp.local.`;
+- discover displays through Zeroconf/mDNS service `_mini-display._tcp.local.`;
 - also allow manual setup using a host name or IP address;
 - create exactly one config entry per stable device ID;
 - verify device identity and API compatibility before creating an entry;
@@ -49,15 +49,15 @@ The backend must:
 
 The bundled frontend must register:
 
-- `zoltko-dashboard-card`;
-- `zoltko-dashboard-card-editor`;
+- `mini-display-dashboard-card`;
+- `mini-display-dashboard-card-editor`;
 - an entry in `window.customCards`.
 
 The Lovelace card configuration contains only card presentation options and a
 Home Assistant config entry ID:
 
 ```yaml
-type: custom:zoltko-dashboard-card
+type: custom:mini-display-dashboard-card
 config_entry_id: 01J...
 show_preview: true
 ```
@@ -67,7 +67,7 @@ and updates it through authenticated Home Assistant WebSocket commands.
 
 The editor must eventually support:
 
-- selecting one configured Zoltko display;
+- selecting one configured MiniDisplay display;
 - adding, deleting, duplicating, enabling, disabling, and ordering pages;
 - setting page `durationSeconds`;
 - adding, deleting, duplicating, and ordering rows;
@@ -106,7 +106,7 @@ POST /api/v1/restart
 ```json
 {
   "deviceId": "sdpro-a1b2c3",
-  "name": "Zoltko",
+  "name": "MiniDisplay",
   "model": "JUZIPi SD PRO",
   "firmwareVersion": "0.3.0",
   "apiVersion": 1,
@@ -201,7 +201,7 @@ errors:
 
 ## 6. Home Assistant device and entities
 
-Each config entry creates one HA device with manufacturer `Zoltko`, model,
+Each config entry creates one HA device with manufacturer `MiniDisplay`, model,
 firmware version, and network connection information.
 
 Required entities:
@@ -229,7 +229,7 @@ all entities.
 Firmware advertises:
 
 ```text
-service: _zoltko._tcp.local.
+service: _mini-display._tcp.local.
 port: 80
 TXT api=1
 TXT id=sdpro-a1b2c3
@@ -351,7 +351,7 @@ firmware validators.
 - A display can be added through HA UI and appears as one device.
 - Display power, brightness, page selection, and buttons work through entities.
 - The bundled card appears in the Lovelace picker without copying files.
-- The card is linked to a selected Zoltko config entry.
+- The card is linked to a selected MiniDisplay config entry.
 - The editor reads and writes documents conforming to the canonical schema.
 - HA automatically forwards referenced entity changes to the display.
 - The display continues showing its last dashboard while HA is offline.

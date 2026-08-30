@@ -1,4 +1,4 @@
-"""Async local HTTP client for Zoltko displays."""
+"""Async local HTTP client for MiniDisplay displays."""
 
 from __future__ import annotations
 
@@ -10,19 +10,19 @@ from aiohttp import ClientError, ClientResponseError, ClientSession, ClientTimeo
 from .const import API_VERSION, REQUEST_TIMEOUT_SECONDS
 
 
-class ZoltkoApiError(Exception):
-    """Base error raised by the Zoltko API client."""
+class MiniDisplayApiError(Exception):
+    """Base error raised by the MiniDisplay API client."""
 
 
-class ZoltkoAuthError(ZoltkoApiError):
+class MiniDisplayAuthError(MiniDisplayApiError):
     """Authentication failed."""
 
 
-class ZoltkoConnectionError(ZoltkoApiError):
+class MiniDisplayConnectionError(MiniDisplayApiError):
     """The display could not be reached."""
 
 
-class ZoltkoInvalidResponseError(ZoltkoApiError):
+class MiniDisplayInvalidResponseError(MiniDisplayApiError):
     """The display returned an incompatible response."""
 
 
@@ -40,7 +40,7 @@ class DeviceInfo:
     capabilities: tuple[str, ...]
 
 
-class ZoltkoClient:
+class MiniDisplayClient:
     """Bounded asynchronous client for API version 1."""
 
     def __init__(
@@ -72,25 +72,25 @@ class ZoltkoClient:
                 timeout=self._timeout,
             ) as response:
                 if response.status in (401, 403):
-                    raise ZoltkoAuthError("Display rejected API credentials")
+                    raise MiniDisplayAuthError("Display rejected API credentials")
                 response.raise_for_status()
                 if not expect_json or response.status == 204:
                     return {}
                 payload = await response.json(content_type=None)
                 if not isinstance(payload, dict):
-                    raise ZoltkoInvalidResponseError("Expected a JSON object")
+                    raise MiniDisplayInvalidResponseError("Expected a JSON object")
                 return payload
-        except ZoltkoApiError:
+        except MiniDisplayApiError:
             raise
         except (ClientError, TimeoutError) as err:
-            raise ZoltkoConnectionError(str(err)) from err
+            raise MiniDisplayConnectionError(str(err)) from err
 
     async def async_get_info(self) -> DeviceInfo:
         payload = await self._request("GET", "/info")
         try:
             info = DeviceInfo(
                 device_id=str(payload["deviceId"]),
-                name=str(payload.get("name", "Zoltko")),
+                name=str(payload.get("name", "Home Assistant Mini-Display")),
                 model=str(payload["model"]),
                 firmware_version=str(payload["firmwareVersion"]),
                 api_version=int(payload["apiVersion"]),
@@ -99,9 +99,9 @@ class ZoltkoClient:
                 capabilities=tuple(str(item) for item in payload.get("capabilities", [])),
             )
         except (KeyError, TypeError, ValueError) as err:
-            raise ZoltkoInvalidResponseError("Invalid /info response") from err
+            raise MiniDisplayInvalidResponseError("Invalid /info response") from err
         if info.api_version != API_VERSION:
-            raise ZoltkoInvalidResponseError(
+            raise MiniDisplayInvalidResponseError(
                 f"Unsupported API version {info.api_version}; expected {API_VERSION}"
             )
         return info
@@ -140,4 +140,3 @@ class ZoltkoClient:
         await self._request(
             "PATCH", "/data", json={"values": values}, expect_json=False
         )
-

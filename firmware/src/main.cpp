@@ -204,7 +204,7 @@ void showCurrentPage() {
   display.setTextDatum(MC_DATUM);
   display.setTextColor(TFT_WHITE, TFT_BLACK);
   if (dashboardPageCount == 0) {
-    display.drawString("ZOLTKO", 120, 92, 4);
+    display.drawString("MINI-DISPLAY", 120, 92, 4);
     display.setTextColor(TFT_YELLOW, TFT_BLACK);
     display.drawString("WAITING FOR DASHBOARD", 120, 135, 2);
     return;
@@ -868,12 +868,12 @@ void showDisplayTest() {
 
 void startMdns() {
   if (mdnsReady || WiFi.status() != WL_CONNECTED) return;
-  const String host = "zoltko-" + deviceSuffix();
+  const String host = "mini-display-" + deviceSuffix();
   if (!MDNS.begin(host.c_str())) return;
-  MDNS.addService("zoltko", "tcp", 80);
-  MDNS.addServiceTxt("zoltko", "tcp", "api", "1");
-  MDNS.addServiceTxt("zoltko", "tcp", "id", "sdpro-" + deviceSuffix());
-  MDNS.addServiceTxt("zoltko", "tcp", "model", kHardwareProfile);
+  MDNS.addService("mini-display", "tcp", 80);
+  MDNS.addServiceTxt("mini-display", "tcp", "api", "1");
+  MDNS.addServiceTxt("mini-display", "tcp", "id", "mini-display-" + deviceSuffix());
+  MDNS.addServiceTxt("mini-display", "tcp", "model", kHardwareProfile);
   mdnsReady = true;
 }
 

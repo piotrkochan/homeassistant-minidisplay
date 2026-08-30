@@ -1,5 +1,5 @@
-const CARD_TAG = "zoltko-dashboard-card";
-const EDITOR_TAG = "zoltko-dashboard-card-editor";
+const CARD_TAG = "mini-display-dashboard-card";
+const EDITOR_TAG = "mini-display-dashboard-card-editor";
 
 const escapeHtml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -7,10 +7,10 @@ const escapeHtml = (value) => String(value ?? "")
   .replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;");
 
-class ZoltkoDashboardCard extends HTMLElement {
+class MiniDisplayDashboardCard extends HTMLElement {
   setConfig(config) {
     if (!config.config_entry_id) {
-      throw new Error("Select a Zoltko display");
+      throw new Error("Select a Mini-Display");
     }
     this._config = config;
     this._render();
@@ -44,7 +44,7 @@ class ZoltkoDashboardCard extends HTMLElement {
     this._loadedFor = id;
     try {
       this._dashboard = await this._hass.callWS({
-        type: "zoltko/dashboard/get",
+        type: "mini_display/dashboard/get",
         config_entry_id: id,
       });
       this._error = "";
@@ -95,7 +95,7 @@ class ZoltkoDashboardCard extends HTMLElement {
   }
 }
 
-class ZoltkoDashboardCardEditor extends HTMLElement {
+class MiniDisplayDashboardCardEditor extends HTMLElement {
   setConfig(config) {
     this._config = config;
     this._render();
@@ -110,7 +110,7 @@ class ZoltkoDashboardCardEditor extends HTMLElement {
   async _loadDisplays() {
     if (!this._hass || !this._config) return;
     try {
-      this._displays = await this._hass.callWS({ type: "zoltko/displays" });
+      this._displays = await this._hass.callWS({ type: "mini_display/displays" });
       this._render();
     } catch (err) {
       this._error = String(err);
@@ -123,7 +123,7 @@ class ZoltkoDashboardCardEditor extends HTMLElement {
     if (!this._hass || !id) return;
     try {
       const dashboard = await this._hass.callWS({
-        type: "zoltko/dashboard/get",
+        type: "mini_display/dashboard/get",
         config_entry_id: id,
       });
       this._dashboardText = JSON.stringify(dashboard || {
@@ -142,7 +142,7 @@ class ZoltkoDashboardCardEditor extends HTMLElement {
     try {
       const dashboard = JSON.parse(this.querySelector("textarea").value);
       await this._hass.callWS({
-        type: "zoltko/dashboard/set",
+        type: "mini_display/dashboard/set",
         config_entry_id: this._config.config_entry_id,
         dashboard,
       });
@@ -172,12 +172,12 @@ class ZoltkoDashboardCardEditor extends HTMLElement {
     const displays = this._displays || [];
     this.innerHTML = `
       <div style="display:grid;gap:8px">
-        <label for="zoltko-display">Display</label>
-        <select id="zoltko-display">
+        <label for="mini_display-display">Display</label>
+        <select id="mini_display-display">
           <option value="">Select display</option>
           ${displays.map((display) => `<option value="${display.config_entry_id}" ${display.config_entry_id === this._config.config_entry_id ? "selected" : ""}>${display.title}${display.available ? "" : " (offline)"}</option>`).join("")}
         </select>
-        ${this._config.config_entry_id ? `<label for="zoltko-json">Dashboard JSON</label><textarea id="zoltko-json" rows="18" style="font:12px monospace;width:100%;box-sizing:border-box">${escapeHtml(this._dashboardText || "")}</textarea><button id="zoltko-apply" type="button">Apply to display</button>` : ""}
+        ${this._config.config_entry_id ? `<label for="mini_display-json">Dashboard JSON</label><textarea id="mini_display-json" rows="18" style="font:12px monospace;width:100%;box-sizing:border-box">${escapeHtml(this._dashboardText || "")}</textarea><button id="mini_display-apply" type="button">Apply to display</button>` : ""}
         ${this._error ? `<div style="color:var(--error-color)">${escapeHtml(this._error)}</div>` : ""}
         ${this._message ? `<div style="color:var(--success-color)">${escapeHtml(this._message)}</div>` : ""}
         <small>Visual page, row, and card controls will replace the temporary JSON editor.</small>
@@ -187,13 +187,13 @@ class ZoltkoDashboardCardEditor extends HTMLElement {
   }
 }
 
-if (!customElements.get(CARD_TAG)) customElements.define(CARD_TAG, ZoltkoDashboardCard);
-if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, ZoltkoDashboardCardEditor);
+if (!customElements.get(CARD_TAG)) customElements.define(CARD_TAG, MiniDisplayDashboardCard);
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, MiniDisplayDashboardCardEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TAG,
   name: "Home Assistant Mini-Display",
-  description: "Configure and preview a physical Zoltko display",
+  description: "Configure and preview a physical Mini-Display",
   preview: true,
 });

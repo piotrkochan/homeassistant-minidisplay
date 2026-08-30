@@ -1,4 +1,4 @@
-"""State coordinator for a Zoltko display."""
+"""State coordinator for a MiniDisplay display."""
 
 from __future__ import annotations
 
@@ -9,15 +9,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import ZoltkoApiError, ZoltkoClient
+from .api import MiniDisplayApiError, MiniDisplayClient
 from .const import DEFAULT_SCAN_INTERVAL_SECONDS, DOMAIN
 
 
-class ZoltkoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class MiniDisplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Poll status while commands are sent directly through the same client."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, client: ZoltkoClient
+        self, hass: HomeAssistant, entry: ConfigEntry, client: MiniDisplayClient
     ) -> None:
         super().__init__(
             hass,
@@ -34,6 +34,6 @@ class ZoltkoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.device_info is None:
                 self.device_info = await self.client.async_get_info()
             return await self.client.async_get_status()
-        except ZoltkoApiError as err:
+        except MiniDisplayApiError as err:
             raise UpdateFailed(str(err)) from err
 

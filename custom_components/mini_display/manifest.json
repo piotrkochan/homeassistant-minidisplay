@@ -1,5 +1,5 @@
 {
-  "domain": "zoltko",
+  "domain": "mini_display",
   "name": "Home Assistant Mini-Display",
   "codeowners": ["@piotrkochan"],
   "config_flow": true,
@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/piotrkochan/homeassistant-minidisplay/issues",
   "requirements": [],
   "version": "0.1.0",
-  "zeroconf": ["_zoltko._tcp.local."]
+  "zeroconf": ["_mini-display._tcp.local."]
 }

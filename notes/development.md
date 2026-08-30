@@ -6,7 +6,7 @@ The repository-local Python environment lives in `.venv/` and contains
 PlatformIO. It is intentionally ignored by Git.
 
 ```bash
-cd /var/home/piotr/cc/zoltko
+cd /path/to/homeassistant-minidisplay
 source .venv/bin/activate
 make build
 ```

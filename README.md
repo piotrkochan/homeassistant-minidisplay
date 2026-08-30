@@ -51,7 +51,7 @@ make build-all
 
 - `dashboard/` — JSON Schema
 - `firmware/` — PlatformIO firmware
-- `custom_components/zoltko/` - Home Assistant integration and frontend
+- `custom_components/mini_display/` - Home Assistant integration and frontend
 - `integration/` - integration requirements and development notes
 - `notes/` — hardware and development notes
 

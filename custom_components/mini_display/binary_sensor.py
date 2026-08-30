@@ -5,14 +5,14 @@ from __future__ import annotations
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.const import EntityCategory
 
-from .entity import ZoltkoEntity
+from .entity import MiniDisplayEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    async_add_entities([ZoltkoConnectivity(hass.data["zoltko"][entry.entry_id]["coordinator"])])
+    async_add_entities([MiniDisplayConnectivity(hass.data["mini_display"][entry.entry_id]["coordinator"])])
 
 
-class ZoltkoConnectivity(ZoltkoEntity, BinarySensorEntity):
+class MiniDisplayConnectivity(MiniDisplayEntity, BinarySensorEntity):
     _attr_name = "Connectivity"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC

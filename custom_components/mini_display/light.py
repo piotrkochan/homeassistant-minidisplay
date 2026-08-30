@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 
-from .entity import ZoltkoEntity
+from .entity import MiniDisplayEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    async_add_entities([ZoltkoDisplayLight(hass.data["zoltko"][entry.entry_id]["coordinator"])])
+    async_add_entities([MiniDisplayDisplayLight(hass.data["mini_display"][entry.entry_id]["coordinator"])])
 
 
-class ZoltkoDisplayLight(ZoltkoEntity, LightEntity):
+class MiniDisplayDisplayLight(MiniDisplayEntity, LightEntity):
     _attr_name = "Display"
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}

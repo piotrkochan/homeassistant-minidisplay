@@ -1,4 +1,4 @@
-"""Config flow for local Zoltko displays."""
+"""Config flow for local MiniDisplay displays."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
-    ZoltkoAuthError,
-    ZoltkoClient,
-    ZoltkoConnectionError,
-    ZoltkoInvalidResponseError,
+    MiniDisplayAuthError,
+    MiniDisplayClient,
+    MiniDisplayConnectionError,
+    MiniDisplayInvalidResponseError,
 )
 from .const import CONF_API_TOKEN, CONF_DEVICE_ID, DEFAULT_PORT, DOMAIN
 
 
-class ZoltkoConfigFlow(ConfigFlow, domain=DOMAIN):
+class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
     """Set up one display from UI or Zeroconf discovery."""
 
     VERSION = 1
@@ -45,7 +45,7 @@ class ZoltkoConfigFlow(ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_HOST, default=self._discovered_host or "zoltko.local"
+                    CONF_HOST, default=self._discovered_host or "mini-display.local"
                 ): str,
                 vol.Required(CONF_PORT, default=self._discovered_port): int,
                 vol.Required(CONF_API_TOKEN): str,
@@ -68,7 +68,7 @@ class ZoltkoConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_user()
 
     async def _async_validate(self, user_input: dict[str, Any]):
-        client = ZoltkoClient(
+        client = MiniDisplayClient(
             async_get_clientsession(self.hass),
             user_input[CONF_HOST],
             user_input[CONF_API_TOKEN],
@@ -76,11 +76,11 @@ class ZoltkoConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         try:
             info = await client.async_get_info()
-        except ZoltkoAuthError:
+        except MiniDisplayAuthError:
             return {"base": "invalid_auth"}
-        except ZoltkoConnectionError:
+        except MiniDisplayConnectionError:
             return {"base": "cannot_connect"}
-        except ZoltkoInvalidResponseError:
+        except MiniDisplayInvalidResponseError:
             return {"base": "unsupported_device"}
         data = {
             CONF_HOST: user_input[CONF_HOST],
@@ -89,4 +89,3 @@ class ZoltkoConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_DEVICE_ID: info.device_id,
         }
         return info, data
-
