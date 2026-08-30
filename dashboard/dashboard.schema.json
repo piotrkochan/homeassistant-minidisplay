@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zoltko.local/schema/dashboard.schema.json",
+  "title": "Zoltko dashboard",
+  "description": "Semantic dashboard format for a 240x240 display. The renderer calculates all geometry; documents never contain pixel positions or dimensions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "pages"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "version": { "const": 1 },
+    "defaults": { "$ref": "#/$defs/defaults" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/page" }
+    }
+  },
+  "$defs": {
+    "color": {
+      "description": "RGB color in #RRGGBB form or a renderer theme token.",
+      "oneOf": [
+        { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        { "enum": ["background", "surface", "primary", "secondary", "accent", "success", "warning", "error", "muted"] }
+      ]
+    },
+    "source": {
+      "description": "Logical value key supplied by MQTT or another data adapter.",
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": { "$ref": "#/$defs/color" },
+        "foreground": { "$ref": "#/$defs/color" },
+        "accent": { "$ref": "#/$defs/color" },
+        "border": { "$ref": "#/$defs/color" },
+        "borderStyle": { "enum": ["none", "solid"] },
+        "radius": { "enum": ["none", "small", "medium", "large"] },
+        "emphasis": { "enum": ["normal", "strong"] },
+        "fontFamily": {
+          "enum": ["sans", "sans-bold", "mono", "serif"],
+          "default": "sans"
+        },
+        "fontSize": {
+          "enum": ["auto", "small", "medium", "large", "xlarge"],
+          "default": "auto"
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pageDurationSeconds": { "type": "integer", "minimum": 1, "maximum": 86400, "default": 10 },
+        "showRowTitle": { "type": "boolean", "default": true },
+        "theme": { "type": "string", "minLength": 1, "maxLength": 32, "default": "dark" },
+        "style": { "$ref": "#/$defs/style" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rows"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+        "title": { "type": "string", "maxLength": 48 },
+        "showTitle": { "type": "boolean", "default": true },
+        "durationSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+        "enabled": { "type": "boolean", "default": true },
+        "style": { "$ref": "#/$defs/style" },
+        "rows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "description": "Rows automatically share available height. Row weight may adjust their relative share.",
+          "items": { "$ref": "#/$defs/row" }
+        }
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cards"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 32 },
+        "showTitle": { "type": "boolean" },
+        "weight": { "type": "integer", "minimum": 1, "maximum": 4, "default": 1 },
+        "gap": { "enum": ["none", "small", "medium"], "default": "small" },
+        "style": { "$ref": "#/$defs/style" },
+        "cards": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Cards automatically receive equal width: 1 card uses 100%, 2 use 50% each, 3 use one third each.",
+          "items": { "$ref": "#/$defs/card" }
+        }
+      }
+    },
+    "cardBase": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+        "title": { "type": "string", "maxLength": 32 },
+        "subtitle": { "type": "string", "maxLength": 48 },
+        "icon": { "type": "string", "maxLength": 48 },
+        "style": { "$ref": "#/$defs/style" },
+        "titleStyle": { "$ref": "#/$defs/style" },
+        "valueStyle": { "$ref": "#/$defs/style" }
+      }
+    },
+    "numberCard": {
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/cardBase" },
+        {
+          "type": "object",
+          "required": ["type", "source"],
+          "properties": {
+            "type": { "const": "number" },
+            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "title": { "type": "string", "maxLength": 32 },
+            "subtitle": { "type": "string", "maxLength": 48 },
+            "icon": { "type": "string", "maxLength": 48 },
+            "style": { "$ref": "#/$defs/style" },
+            "source": { "$ref": "#/$defs/source" },
+            "unit": { "type": "string", "maxLength": 12 },
+            "decimals": { "type": "integer", "minimum": 0, "maximum": 3, "default": 1 },
+            "minimum": { "type": "number" },
+            "maximum": { "type": "number" },
+            "showCurrent": { "type": "boolean", "default": true },
+            "showMinimum": { "type": "boolean", "default": false },
+            "showMaximum": { "type": "boolean", "default": false },
+            "progress": { "enum": ["none", "bar", "ring"], "default": "none" },
+            "clampProgress": { "type": "boolean", "default": true }
+          }
+        }
+      ]
+    },
+    "textCard": {
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/cardBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "text" },
+            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "title": { "type": "string", "maxLength": 32 },
+            "subtitle": { "type": "string", "maxLength": 48 },
+            "icon": { "type": "string", "maxLength": 48 },
+            "style": { "$ref": "#/$defs/style" },
+            "source": { "$ref": "#/$defs/source" },
+            "text": { "type": "string", "maxLength": 128 },
+            "align": { "enum": ["start", "center", "end"], "default": "start" },
+            "wrap": { "type": "boolean", "default": true },
+            "maxLines": { "type": "integer", "minimum": 1, "maximum": 6, "default": 3 },
+            "overflow": { "enum": ["clip", "ellipsis", "scroll"], "default": "ellipsis" }
+          },
+          "anyOf": [
+            { "required": ["source"] },
+            { "required": ["text"] }
+          ]
+        }
+      ]
+    },
+    "clockCard": {
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/cardBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "clock" },
+            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "title": { "type": "string", "maxLength": 32 },
+            "subtitle": { "type": "string", "maxLength": 48 },
+            "icon": { "type": "string", "maxLength": 48 },
+            "style": { "$ref": "#/$defs/style" },
+            "format": { "enum": ["24h", "12h"], "default": "24h" },
+            "showSeconds": { "type": "boolean", "default": false },
+            "showDate": { "type": "boolean", "default": true },
+            "dateFormat": { "type": "string", "maxLength": 24, "default": "%d.%m.%Y" },
+            "timezone": { "type": "string", "maxLength": 64, "default": "local" }
+          }
+        }
+      ]
+    },
+    "statusCard": {
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/cardBase" },
+        {
+          "type": "object",
+          "required": ["type", "source"],
+          "properties": {
+            "type": { "const": "status" },
+            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "title": { "type": "string", "maxLength": 32 },
+            "subtitle": { "type": "string", "maxLength": 48 },
+            "icon": { "type": "string", "maxLength": 48 },
+            "style": { "$ref": "#/$defs/style" },
+            "source": { "$ref": "#/$defs/source" },
+            "onText": { "type": "string", "maxLength": 24, "default": "On" },
+            "offText": { "type": "string", "maxLength": 24, "default": "Off" },
+            "onColor": { "$ref": "#/$defs/color" },
+            "offColor": { "$ref": "#/$defs/color" }
+          }
+        }
+      ]
+    },
+    "card": {
+      "oneOf": [
+        { "$ref": "#/$defs/numberCard" },
+        { "$ref": "#/$defs/textCard" },
+        { "$ref": "#/$defs/clockCard" },
+        { "$ref": "#/$defs/statusCard" }
+      ]
+    }
+  }
+}

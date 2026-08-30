@@ -1,0 +1,13 @@
+{
+  "domain": "zoltko",
+  "name": "Zoltko Display",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "websocket_api"],
+  "documentation": "https://github.com/piotr/zoltko",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0",
+  "zeroconf": ["_zoltko._tcp.local."]
+}

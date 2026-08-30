@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect a Zoltko display",
+        "description": "Enter the local address and API token shown by the display.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "api_token": "API token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the display",
+      "invalid_auth": "Invalid API token",
+      "unsupported_device": "Unsupported device or API version"
+    },
+    "abort": {
+      "already_configured": "This display is already configured",
+      "invalid_discovery_info": "Discovery did not contain a stable device ID"
+    }
+  }
+}
