@@ -17,7 +17,7 @@ let ht = class {
     return this.cssText;
   }
 };
-const mt = (e) => new ht(typeof e == "string" ? e : e + "", void 0, Z), J = (e, ...t) => {
+const $t = (e) => new ht(typeof e == "string" ? e : e + "", void 0, Z), J = (e, ...t) => {
   const s = e.length === 1 ? e[0] : t.reduce((i, r, o) => i + ((n) => {
     if (n._$cssResult$ === !0) return n.cssText;
     if (typeof n == "number") return n;
@@ -33,7 +33,7 @@ const mt = (e) => new ht(typeof e == "string" ? e : e + "", void 0, Z), J = (e, 
 }, et = F ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let s = "";
   for (const i of t.cssRules) s += i.cssText;
-  return mt(s);
+  return $t(s);
 })(e) : e;
 const { is: vt, defineProperty: _t, getOwnPropertyDescriptor: wt, getOwnPropertyNames: xt, getOwnPropertySymbols: At, getPrototypeOf: St } = Object, B = globalThis, st = B.trustedTypes, Et = st ? st.emptyScript : "", Ct = B.reactiveElementPolyfillSupport, M = (e, t) => e, j = { toAttribute(e, t) {
   switch (t) {
@@ -259,8 +259,8 @@ const Tt = (e, t) => {
   let r, o = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", n = T;
   for (let l = 0; l < s; l++) {
     const a = e[l];
-    let p, u, c = -1, y = 0;
-    for (; y < a.length && (n.lastIndex = y, u = n.exec(a), u !== null); ) y = n.lastIndex, n === T ? u[1] === "!--" ? n = nt : u[1] !== void 0 ? n = at : u[2] !== void 0 ? (gt.test(u[2]) && (r = RegExp("</" + u[2], "g")), n = _) : u[3] !== void 0 && (n = _) : n === _ ? u[0] === ">" ? (n = r ?? T, c = -1) : u[1] === void 0 ? c = -2 : (c = n.lastIndex - u[2].length, p = u[1], n = u[3] === void 0 ? _ : u[3] === '"' ? dt : lt) : n === dt || n === lt ? n = _ : n === nt || n === at ? n = T : (n = _, r = void 0);
+    let p, u, c = -1, m = 0;
+    for (; m < a.length && (n.lastIndex = m, u = n.exec(a), u !== null); ) m = n.lastIndex, n === T ? u[1] === "!--" ? n = nt : u[1] !== void 0 ? n = at : u[2] !== void 0 ? (gt.test(u[2]) && (r = RegExp("</" + u[2], "g")), n = _) : u[3] !== void 0 && (n = _) : n === _ ? u[0] === ">" ? (n = r ?? T, c = -1) : u[1] === void 0 ? c = -2 : (c = n.lastIndex - u[2].length, p = u[1], n = u[3] === void 0 ? _ : u[3] === '"' ? dt : lt) : n === dt || n === lt ? n = _ : n === nt || n === at ? n = T : (n = _, r = void 0);
     const b = n === _ && e[l + 1].startsWith("/>") ? " " : "";
     o += n === T ? a + kt : c >= 0 ? (i.push(p), a.slice(0, c) + pt + a.slice(c) + v + b) : a + v + (c === -2 ? l : b);
   }
@@ -279,15 +279,15 @@ class N {
     for (; (r = w.nextNode()) !== null && a.length < l; ) {
       if (r.nodeType === 1) {
         if (r.hasAttributes()) for (const c of r.getAttributeNames()) if (c.endsWith(pt)) {
-          const y = u[n++], b = r.getAttribute(c).split(v), H = /([.?@])?(.*)/.exec(y);
+          const m = u[n++], b = r.getAttribute(c).split(v), H = /([.?@])?(.*)/.exec(m);
           a.push({ type: 1, index: o, name: H[2], strings: b, ctor: H[1] === "." ? Dt : H[1] === "?" ? Ut : H[1] === "@" ? Nt : I }), r.removeAttribute(c);
         } else c.startsWith(v) && (a.push({ type: 6, index: o }), r.removeAttribute(c));
         if (gt.test(r.tagName)) {
-          const c = r.textContent.split(v), y = c.length - 1;
-          if (y > 0) {
+          const c = r.textContent.split(v), m = c.length - 1;
+          if (m > 0) {
             r.textContent = L ? L.emptyScript : "";
-            for (let b = 0; b < y; b++) r.append(c[b], D()), w.nextNode(), a.push({ type: 2, index: ++o });
-            r.append(c[y], D());
+            for (let b = 0; b < m; b++) r.append(c[b], D()), w.nextNode(), a.push({ type: 2, index: ++o });
+            r.append(c[m], D());
           }
         }
       } else if (r.nodeType === 8) if (r.data === ut) a.push({ type: 2, index: o });
@@ -539,7 +539,7 @@ var It = Object.defineProperty, Wt = Object.getOwnPropertyDescriptor, E = (e, t,
     (n = e[o]) && (r = (i ? n(t, s, r) : n(r)) || r);
   return i && r && It(t, s, r), r;
 };
-let $ = class extends x {
+let y = class extends x {
   constructor() {
     super(...arguments), this.page = 0, this.autoRotate = !1, this.now = /* @__PURE__ */ new Date(), this.autoPage = 0, this.pageShownAt = Date.now();
   }
@@ -566,32 +566,32 @@ let $ = class extends x {
     })}</div></div>`)}</div>` : d`<div class="screen loading" aria-label="Loading display preview"></div>`;
   }
 };
-$.styles = J`
+y.styles = J`
     :host{display:block;width:240px;max-width:100%}.screen{box-sizing:border-box;width:100%;aspect-ratio:1;padding:6px;background:#090b10;color:white;border-radius:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.22)}
     .loading{background:linear-gradient(110deg,#090b10 30%,#181c24 45%,#090b10 60%);background-size:220% 100%;animation:loading 1.4s linear infinite}h3{font:700 13px sans-serif;text-align:center;margin:0}.row{display:grid;gap:4px;min-height:0;flex:1}.group{display:flex;flex-direction:column;min-height:0}.title{font:9px sans-serif;color:#aaa}.card{min-width:0;padding:5px;background:#20242d;border-radius:6px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;text-align:center}.card small{font:9px sans-serif;color:#bbb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.value{font:700 14px sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar{height:4px;background:#3d424e;border-radius:2px;margin-top:4px}.bar i{display:block;height:100%;background:#42a5f5;border-radius:2px}.ring{width:42px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:3px auto}.ring:after{content:"";width:30px;aspect-ratio:1;border-radius:50%;background:var(--ring-bg,#20242d)}
     @keyframes loading{to{background-position:-220% 0}}@media(prefers-reduced-motion:reduce){.loading{animation:none}}
   `;
 E([
   S({ attribute: !1 })
-], $.prototype, "dashboard", 2);
+], y.prototype, "dashboard", 2);
 E([
   S({ attribute: !1 })
-], $.prototype, "hass", 2);
+], y.prototype, "hass", 2);
 E([
   S({ type: Number })
-], $.prototype, "page", 2);
+], y.prototype, "page", 2);
 E([
   S({ type: Boolean })
-], $.prototype, "autoRotate", 2);
+], y.prototype, "autoRotate", 2);
 E([
   f()
-], $.prototype, "now", 2);
+], y.prototype, "now", 2);
 E([
   f()
-], $.prototype, "autoPage", 2);
-$ = E([
+], y.prototype, "autoPage", 2);
+y = E([
   Y("mini-display-preview")
-], $);
+], y);
 var Vt = Object.defineProperty, qt = Object.getOwnPropertyDescriptor, W = (e, t, s, i) => {
   for (var r = i > 1 ? void 0 : i ? qt(t, s) : t, o = e.length - 1, n; o >= 0; o--)
     (n = e[o]) && (r = (i ? n(t, s, r) : n(r)) || r);
@@ -648,8 +648,8 @@ W([
 O = W([
   Y("mini-display-dashboard-card")
 ], O);
-const q = (e = "number") => e === "clock" ? { type: e, format: "24h", showDate: !0 } : e === "text" ? { type: e, text: "Text" } : e === "status" ? { type: e, source: "", onText: "On", offText: "Off" } : { type: e, source: "", progress: "none" }, yt = () => ({ weight: 1, gap: "small", cards: [q("clock")] }), $t = (e) => ({ id: `page_${e}`, title: `Page ${e}`, durationSeconds: 10, enabled: !0, rows: [yt()] }), Ft = () => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, pages: [$t(1)] });
-var Zt = Object.defineProperty, Jt = Object.getOwnPropertyDescriptor, m = (e, t, s, i) => {
+const q = (e = "number") => e === "clock" ? { type: e, format: "24h", showDate: !0 } : e === "text" ? { type: e, text: "Text" } : e === "status" ? { type: e, source: "", onText: "On", offText: "Off" } : { type: e, source: "", progress: "none" }, mt = () => ({ weight: 1, gap: "small", cards: [q("clock")] }), yt = (e) => ({ id: `page_${e}`, title: `Page ${e}`, durationSeconds: 10, enabled: !0, rows: [mt()] }), Ft = () => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, pages: [yt(1)] });
+var Zt = Object.defineProperty, Jt = Object.getOwnPropertyDescriptor, $ = (e, t, s, i) => {
   for (var r = i > 1 ? void 0 : i ? Jt(t, s) : t, o = e.length - 1, n; o >= 0; o--)
     (n = e[o]) && (r = (i ? n(t, s, r) : n(r)) || r);
   return i && r && Zt(t, s, r), r;
@@ -774,7 +774,7 @@ let g = class extends x {
     return d`<main class="editor"><div class="topbar"><label>Display<select .value=${this.config.config_entry_id} @change=${(t) => this.selectDisplay(t.target.value)}><option value="">Select display</option>${this.displays.map((t) => d`<option value=${t.config_entry_id}>${t.title}${t.available ? "" : " (offline)"}</option>`)}</select></label><div class="sync ${this.syncState}" role="status" aria-live="polite"><i></i><span>${this.syncMessage}</span></div></div>${e ? d`<nav class="tabs" aria-label="Dashboard pages">${this.dashboard.pages.map((t, s) => d`<button class=${s === this.pageIndex ? "active" : ""} @click=${() => {
       this.showPage(s);
     }}>${t.title || t.id}</button>`)}<button @click=${() => {
-      this.dashboard.pages.push($t(this.dashboard.pages.length + 1)), this.pageIndex = this.dashboard.pages.length - 1, this.selected = { row: 0, card: 0 }, this.changed();
+      this.dashboard.pages.push(yt(this.dashboard.pages.length + 1)), this.pageIndex = this.dashboard.pages.length - 1, this.selected = { row: 0, card: 0 }, this.changed();
     }}>Add page</button></nav><details class="page-settings"><summary>Page settings</summary><div class="grid">${this.field("Page ID", e.id, (t) => {
       e.id = t, this.changed();
     })}${this.field("Title", e.title, (t) => {
@@ -784,39 +784,39 @@ let g = class extends x {
     }, "number")}${this.checkbox("Show title", e.showTitle !== !1, (t) => {
       e.showTitle = t, this.changed();
     })}</div></details><div class="rows">${e.rows.map((t, s) => this.rowEditor(t, s))}</div>${e.rows.length < 6 ? d`<button class="add" @click=${() => {
-      e.rows.push(yt()), this.changed();
+      e.rows.push(mt()), this.changed();
     }}>Add row</button>` : h}` : h}</main>`;
   }
 };
 g.styles = J`
-    :host{display:block;color:var(--primary-text-color)}*{box-sizing:border-box}.editor{display:grid;gap:16px;min-width:0}.topbar,.row-head,.card-head,.sync{display:flex;align-items:center;justify-content:space-between;gap:8px}.sync{justify-content:flex-start;min-height:20px;font-size:12px;color:var(--secondary-text-color)}.sync i{width:8px;height:8px;border-radius:50%;background:var(--disabled-text-color)}.sync.syncing i{background:var(--warning-color)}.sync.success i{background:var(--success-color)}.sync.error{color:var(--error-color)}.sync.error i{background:var(--error-color)}.tabs,.card-tabs{display:flex;gap:8px;overflow:auto;padding:2px}.tabs button,.card-tabs button{white-space:nowrap}.tabs button.active,.card-tabs button.active{background:var(--primary-color);color:var(--text-primary-color);border-color:var(--primary-color)}.page-settings,.row-panel,.card-settings{padding:12px;border:1px solid var(--divider-color);border-radius:12px}.page-settings[open],.card-settings{display:grid;gap:12px}.page-settings>summary{font-weight:600}.rows{display:grid;gap:12px}.row-panel{display:grid;gap:12px;background:color-mix(in srgb,var(--card-background-color),var(--primary-color) 2%)}.row-title{display:flex;align-items:center;gap:8px}.row-title small{color:var(--secondary-text-color)}.card-settings{border-color:var(--primary-color);background:var(--card-background-color)}.hint{grid-column:1/-1;margin:0;color:var(--secondary-text-color);font-size:12px;line-height:1.5}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.check{display:flex;align-items:center;gap:8px;color:var(--primary-text-color)}.check input{min-height:auto;width:18px;height:18px}label{display:grid;gap:5px;font-size:12px;color:var(--secondary-text-color)}input,select,button{min-height:40px;padding:8px 11px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}button{cursor:pointer}button.add{width:100%;border-style:dashed;color:var(--primary-color)}button:disabled{opacity:.45;cursor:default}.menu{position:relative}.menu>summary{list-style:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;cursor:pointer}.menu>summary::-webkit-details-marker{display:none}.menu>summary:hover{background:var(--secondary-background-color)}.menu-popover{position:absolute;right:0;z-index:5;width:160px;padding:6px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:var(--ha-card-box-shadow);display:grid}.menu-popover button{border:0;text-align:left}.menu-popover .danger{color:var(--error-color)}details>summary{cursor:pointer}.style{padding-top:4px}ha-form{display:block}
+    :host{display:block;color:var(--primary-text-color)}*{box-sizing:border-box}.editor{display:grid;gap:16px;min-width:0}.topbar,.row-head,.card-head,.sync{display:flex;align-items:center;justify-content:space-between;gap:8px}.sync{justify-content:flex-start;min-height:20px;font-size:12px;color:var(--secondary-text-color)}.sync i{width:8px;height:8px;border-radius:50%;background:var(--disabled-text-color)}.sync.syncing i{background:var(--warning-color)}.sync.success i{background:var(--success-color)}.sync.error{color:var(--error-color)}.sync.error i{background:var(--error-color)}.tabs,.card-tabs{display:flex;gap:8px;overflow:auto;padding:2px}.tabs button,.card-tabs button{white-space:nowrap}.tabs button.active,.card-tabs button.active{background:var(--primary-color);color:var(--text-primary-color);border-color:var(--primary-color)}.page-settings,.row-panel,.card-settings{padding:12px;border:1px solid var(--divider-color);border-radius:12px}.page-settings[open],.card-settings{display:grid;gap:12px}.page-settings>summary{font-weight:600}.rows{display:grid;gap:12px}.row-panel{display:grid;gap:12px;background:color-mix(in srgb,var(--card-background-color),var(--primary-color) 2%)}.row-title{display:flex;align-items:center;gap:8px}.row-title small{color:var(--secondary-text-color)}.card-settings{border-color:var(--primary-color);background:var(--card-background-color)}.hint{grid-column:1/-1;margin:0;color:var(--secondary-text-color);font-size:12px;line-height:1.5}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid>ha-form{grid-column:1/-1;display:block;width:100%;min-width:0}.check{display:flex;align-items:center;gap:8px;color:var(--primary-text-color)}.check input{min-height:auto;width:18px;height:18px}label{display:grid;gap:5px;font-size:12px;color:var(--secondary-text-color)}input,select,button{min-height:40px;padding:8px 11px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px;font:inherit}input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}button{cursor:pointer}button.add{width:100%;border-style:dashed;color:var(--primary-color)}button:disabled{opacity:.45;cursor:default}.menu{position:relative}.menu>summary{list-style:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;cursor:pointer}.menu>summary::-webkit-details-marker{display:none}.menu>summary:hover{background:var(--secondary-background-color)}.menu-popover{position:absolute;right:0;z-index:5;width:160px;padding:6px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:var(--ha-card-box-shadow);display:grid}.menu-popover button{border:0;text-align:left}.menu-popover .danger{color:var(--error-color)}details>summary{cursor:pointer}.style{padding-top:4px}ha-form{display:block;width:100%;min-width:0}
     @media(max-width:600px){.grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){.tile{transition:none}}
   `;
-m([
+$([
   S({ attribute: !1 })
 ], g.prototype, "hass", 2);
-m([
+$([
   f()
 ], g.prototype, "config", 2);
-m([
+$([
   f()
 ], g.prototype, "dashboard", 2);
-m([
+$([
   f()
 ], g.prototype, "displays", 2);
-m([
+$([
   f()
 ], g.prototype, "pageIndex", 2);
-m([
+$([
   f()
 ], g.prototype, "selected", 2);
-m([
+$([
   f()
 ], g.prototype, "syncState", 2);
-m([
+$([
   f()
 ], g.prototype, "syncMessage", 2);
-g = m([
+g = $([
   Y("mini-display-dashboard-card-editor")
 ], g);
 window.customCards ??= [];
