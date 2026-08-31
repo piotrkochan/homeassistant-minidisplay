@@ -615,7 +615,7 @@ void receiveApiDashboard() {
     return;
   }
   LittleFS.remove(kDashboardBackupPath);
-  showCurrentPage();
+  if (server.arg("render") != "false") showCurrentPage();
   server.send(204);
 }
 
@@ -628,6 +628,7 @@ void receiveApiData() {
   }
   StaticJsonDocument<128> filter;
   filter["values"] = true;
+  filter["render"] = true;
   DynamicJsonDocument document(4096);
   const auto error = deserializeJson(document, body,
       DeserializationOption::Filter(filter));
@@ -644,7 +645,7 @@ void receiveApiData() {
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = value["available"] | false;
   }
-  showCurrentPage();
+  if (document["render"] | true) showCurrentPage();
   server.send(204);
 }
 

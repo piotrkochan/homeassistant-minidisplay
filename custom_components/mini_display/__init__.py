@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import voluptuous as vol
+
 from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
@@ -37,6 +39,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_list_displays)
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_set_dashboard)
+    websocket_api.async_register_command(hass, websocket_show_page)
     return True
 
 
@@ -134,7 +137,12 @@ async def websocket_get_dashboard(hass, connection, msg) -> None:
 
 
 @websocket_api.websocket_command(
-    {"type": "mini_display/dashboard/set", "config_entry_id": str, "dashboard": dict}
+    {
+        "type": "mini_display/dashboard/set",
+        "config_entry_id": str,
+        "dashboard": dict,
+        vol.Optional("page_id"): str,
+    }
 )
 @websocket_api.async_response
 async def websocket_set_dashboard(hass, connection, msg) -> None:
@@ -144,10 +152,26 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
         connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
     try:
-        await runtime["dashboard"].async_apply(msg["dashboard"])
+        await runtime["dashboard"].async_apply(
+            msg["dashboard"], msg.get("page_id")
+        )
     except DashboardValidationError as err:
         connection.send_error(
             msg["id"], "invalid_dashboard", f"{err.path}: {err}"
         )
         return
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/page/show", "config_entry_id": str, "page_id": str}
+)
+@websocket_api.async_response
+async def websocket_show_page(hass, connection, msg) -> None:
+    """Show a page while it is being edited."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    await runtime["coordinator"].client.async_set_page(msg["page_id"])
     connection.send_result(msg["id"], {"accepted": True})

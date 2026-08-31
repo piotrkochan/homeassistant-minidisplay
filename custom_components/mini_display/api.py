@@ -131,12 +131,22 @@ class MiniDisplayClient:
     async def async_restart(self) -> None:
         await self._request("POST", "/restart", json={}, expect_json=False)
 
-    async def async_put_dashboard(self, dashboard: dict[str, Any]) -> None:
+    async def async_put_dashboard(
+        self, dashboard: dict[str, Any], *, render: bool = True
+    ) -> None:
         await self._request(
-            "PUT", "/dashboard", json=dashboard, expect_json=False
+            "PUT",
+            f"/dashboard?render={'true' if render else 'false'}",
+            json=dashboard,
+            expect_json=False,
         )
 
-    async def async_patch_values(self, values: dict[str, Any]) -> None:
+    async def async_patch_values(
+        self, values: dict[str, Any], *, render: bool = True
+    ) -> None:
         await self._request(
-            "PATCH", "/data", json={"values": values}, expect_json=False
+            "PATCH",
+            "/data",
+            json={"values": values, "render": render},
+            expect_json=False,
         )

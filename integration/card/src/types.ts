@@ -31,7 +31,7 @@ export type DisplayCard = {
 };
 
 export type DisplayRow = { title?: string; showTitle?: boolean; weight?: number; gap?: "none" | "small" | "medium"; cards: DisplayCard[] };
-export type DisplayPage = { id: string; title?: string; durationSeconds?: number; enabled?: boolean; rows: DisplayRow[] };
+export type DisplayPage = { id: string; title?: string; showTitle?: boolean; durationSeconds?: number; enabled?: boolean; rows: DisplayRow[] };
 export type Dashboard = { version: 1; defaults?: Record<string, unknown>; pages: DisplayPage[] };
 export type CardConfig = { config_entry_id: string; show_preview?: boolean };
 export type Display = { config_entry_id: string; title: string; available: boolean };

@@ -43,7 +43,7 @@ export class MiniDisplayPreview extends LitElement {
   render() {
     const page = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
     if (!page) return html`<div class="screen loading" aria-label="Loading display preview"></div>`;
-    return html`<div class="screen">${page.title ? html`<h3>${page.title}</h3>` : null}${page.rows.map(row => html`<div class="group" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title">${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${row.cards.length},minmax(0,1fr))">${row.cards.map(card => {
+    return html`<div class="screen">${page.title && page.showTitle !== false ? html`<h3>${page.title}</h3>` : null}${page.rows.map(row => html`<div class="group" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title">${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${row.cards.length},minmax(0,1fr))">${row.cards.map(card => {
       const raw = card.source ? this.hass?.states[card.source]?.state ?? "—" : card.text ?? "—";
       const numeric = Number(raw); const min = card.minimum ?? 0; const max = card.maximum ?? 100; const progress = Number.isFinite(numeric) && max > min ? Math.max(0,Math.min(100,(numeric-min)/(max-min)*100)) : 0;
       const family = {sans:"sans-serif","sans-bold":"sans-serif",mono:"monospace",serif:"serif"}[card.valueStyle?.fontFamily ?? "sans"];

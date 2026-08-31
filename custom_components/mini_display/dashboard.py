@@ -130,13 +130,25 @@ class MiniDisplayDashboardManager:
         self.dashboard = validate_dashboard(stored)
         self._replace_subscriptions()
 
-    async def async_apply(self, document: dict[str, Any]) -> None:
+    async def async_apply(
+        self, document: dict[str, Any], active_page_id: str | None = None
+    ) -> None:
         validated = validate_dashboard(document)
-        await self.client.async_put_dashboard(validated)
+        new_sources = extract_sources(validated)
+        if new_sources:
+            values = {
+                entity_id: serialize_state(self.hass.states.get(entity_id))
+                for entity_id in new_sources
+            }
+            await self.client.async_patch_values(values, render=False)
+        await self.client.async_put_dashboard(
+            validated, render=active_page_id is None
+        )
+        if active_page_id is not None:
+            await self.client.async_set_page(active_page_id)
         self.dashboard = validated
         await self._store.async_save(validated)
         self._replace_subscriptions()
-        await self.async_send_snapshot()
 
     async def async_send_snapshot(self) -> None:
         if not self.sources:
@@ -181,4 +193,3 @@ class MiniDisplayDashboardManager:
             self._unsubscribe_states()
         if self._cancel_batch is not None:
             self._cancel_batch()
-
