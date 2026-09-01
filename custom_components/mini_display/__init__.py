@@ -7,7 +7,7 @@ from pathlib import Path
 
 import voluptuous as vol
 
-from homeassistant.components import frontend, websocket_api
+from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.config_entries import ConfigEntry
@@ -21,6 +21,9 @@ from .const import (
     DOMAIN,
     FRONTEND_DIR,
     FRONTEND_URL,
+    LEGACY_FRONTEND_URL,
+    PANEL_URL_PATH,
+    PANEL_WEB_COMPONENT,
     PLATFORMS,
 )
 from .coordinator import MiniDisplayCoordinator
@@ -30,12 +33,13 @@ from .dashboard import DashboardValidationError, MiniDisplayDashboardManager
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register frontend assets and integration WebSocket commands once."""
     hass.data.setdefault(DOMAIN, {})
-    card_path = FRONTEND_DIR / "mini-display-dashboard-card.js"
-    if card_path.exists():
+    panel_path = FRONTEND_DIR / "mini-display-panel.js"
+    if panel_path.exists():
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(FRONTEND_URL, str(card_path), cache_headers=False)]
+            [StaticPathConfig(FRONTEND_URL, str(panel_path), cache_headers=False)]
         )
-        await _async_register_lovelace_card(hass, card_path)
+        await _async_register_frontend_panel(hass, panel_path)
+        await _async_remove_legacy_lovelace_card(hass)
     websocket_api.async_register_command(hass, websocket_list_displays)
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_set_dashboard)
@@ -43,13 +47,27 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
-async def _async_register_lovelace_card(
-    hass: HomeAssistant, card_path: Path
+async def _async_register_frontend_panel(
+    hass: HomeAssistant, panel_path: Path
 ) -> None:
-    """Make the bundled card available in the Lovelace card picker."""
-    card_bytes = await hass.async_add_executor_job(card_path.read_bytes)
-    content_hash = hashlib.sha256(card_bytes).hexdigest()[:12]
+    """Register the display manager as an administrator-only sidebar panel."""
+    panel_bytes = await hass.async_add_executor_job(panel_path.read_bytes)
+    content_hash = hashlib.sha256(panel_bytes).hexdigest()[:12]
     resource_url = f"{FRONTEND_URL}?v={content_hash}"
+    await panel_custom.async_register_panel(
+        hass,
+        webcomponent_name=PANEL_WEB_COMPONENT,
+        frontend_url_path=PANEL_URL_PATH,
+        module_url=resource_url,
+        sidebar_title="Mini Displays",
+        sidebar_icon="mdi:monitor-dashboard",
+        embed_iframe=False,
+        require_admin=True,
+    )
+
+
+async def _async_remove_legacy_lovelace_card(hass: HomeAssistant) -> None:
+    """Remove the resource created by versions that shipped a Lovelace card."""
     lovelace = hass.data.get("lovelace")
     resources = getattr(lovelace, "resources", None)
     if resources is None and isinstance(lovelace, dict):
@@ -57,22 +75,10 @@ async def _async_register_lovelace_card(
 
     if isinstance(resources, ResourceStorageCollection):
         await resources.async_get_info()
-        current_found = False
         for item in list(resources.async_items()):
             item_url = item.get("url", "")
-            if item_url.split("?", 1)[0] != FRONTEND_URL:
-                continue
-            if item_url == resource_url and not current_found:
-                current_found = True
-                continue
-            await resources.async_delete_item(item["id"])
-        if not current_found:
-            await resources.async_create_item(
-                {"res_type": "module", "url": resource_url}
-            )
-        return
-
-    frontend.add_extra_js_url(hass, resource_url)
+            if item_url.split("?", 1)[0] == LEGACY_FRONTEND_URL:
+                await resources.async_delete_item(item["id"])
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -108,7 +114,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 @websocket_api.websocket_command({"type": "mini_display/displays"})
 @websocket_api.async_response
 async def websocket_list_displays(hass, connection, msg) -> None:
-    """Return configured displays for the bundled Lovelace card editor."""
+    """Return configured displays for the management panel."""
     displays = []
     for entry in hass.config_entries.async_entries(DOMAIN):
         runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id)

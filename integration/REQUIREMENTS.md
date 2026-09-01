@@ -5,7 +5,7 @@
 The project provides one installable Home Assistant package containing:
 
 - a custom integration named `mini_display`;
-- a Lovelace card named `custom:mini-display-dashboard-card`;
+- an administrator-only Home Assistant custom panel named `Mini Displays`;
 - a visual editor for dashboards rendered by a physical MiniDisplay display;
 - entities for display control and diagnostics.
 
@@ -41,29 +41,22 @@ The backend must:
   `source` fields;
 - send an initial state snapshot after setup and after every dashboard change;
 - send subsequent state changes in bounded batches;
-- expose WebSocket commands used by the Lovelace editor;
+- expose WebSocket commands used by the management panel;
 - make connection failures visible without blocking Home Assistant startup;
 - preserve the last valid dashboard when a new configuration is invalid.
 
-### 3.2 Lovelace card and editor
+### 3.2 Management panel and editor
 
 The bundled frontend must register:
 
-- `mini-display-dashboard-card`;
-- `mini-display-dashboard-card-editor`;
-- an entry in `window.customCards`.
+- `mini-display-panel` as a Home Assistant custom panel;
+- `mini-display-editor` inside that panel;
+- an administrator-only `Mini Displays` sidebar entry at `/mini-display`.
 
-The Lovelace card configuration contains only card presentation options and a
-Home Assistant config entry ID:
-
-```yaml
-type: custom:mini-display-dashboard-card
-config_entry_id: 01J...
-show_preview: true
-```
-
-The physical dashboard remains stored by the integration. The card retrieves
-and updates it through authenticated Home Assistant WebSocket commands.
+The physical dashboard remains stored by the integration. The panel lists all
+MiniDisplay config entries and retrieves or updates the selected display through
+authenticated Home Assistant WebSocket commands. No Lovelace card or dashboard
+resource is required.
 
 The editor must eventually support:
 
@@ -80,8 +73,9 @@ The editor must eventually support:
 - an explicit **Apply to display** action;
 - clear errors identifying the page, row, card, and invalid field.
 
-The first implementation may provide a read-only preview and device selector,
-then add the complete visual editor incrementally.
+The panel must remain usable on desktop and mobile Home Assistant clients. The
+240x240 preview may use a sticky side column on wide screens and move above the
+editor on narrow screens.
 
 ### 3.3 Display firmware API
 
@@ -279,11 +273,10 @@ clearly marks it as pending. Version 1 may reject writes while offline instead.
 
 ## 10. Frontend distribution
 
-The integration serves its built JavaScript from an authenticated HA static
-path. Development may initially use automatic frontend module registration.
-Before release, loading must be tested on cold browser sessions because custom
-resource loading order can affect cards. A normal Lovelace module resource is
-the preferred release mechanism when it provides more deterministic loading.
+The integration serves its built JavaScript from a local HA static path and
+registers it through `panel_custom`. Loading must be tested on cold browser
+sessions. The package removes any Lovelace resource left by versions that
+shipped the editor as a card.
 
 The package is delivered as one HACS integration repository. Users must not
 copy JavaScript files manually.
@@ -321,7 +314,7 @@ Backend tests must cover:
 
 Frontend tests must cover:
 
-- card registration;
+- custom panel registration;
 - device selection;
 - WebSocket loading and saving;
 - page rotation fields;
@@ -340,7 +333,7 @@ firmware validators.
 2. Firmware API v1 with authentication, info, status, display, and page calls.
 3. Dashboard upload, persistence, and schema validation.
 4. Entity-source subscriptions and partial data updates.
-5. Bundled Lovelace card with device selection and read-only preview.
+5. Bundled management panel with device selection and read-only preview.
 6. Full visual page/row/card editor.
 7. Zeroconf discovery and pairing flow.
 8. HACS packaging, migrations, tests, and documentation.
@@ -350,8 +343,8 @@ firmware validators.
 - Installation requires no MQTT broker.
 - A display can be added through HA UI and appears as one device.
 - Display power, brightness, page selection, and buttons work through entities.
-- The bundled card appears in the Lovelace picker without copying files.
-- The card is linked to a selected MiniDisplay config entry.
+- The bundled panel appears in the sidebar without copying files.
+- The panel can select every configured MiniDisplay config entry.
 - The editor reads and writes documents conforming to the canonical schema.
 - HA automatically forwards referenced entity changes to the display.
 - The display continues showing its last dashboard while HA is offline.

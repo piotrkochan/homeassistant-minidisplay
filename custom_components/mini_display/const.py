@@ -17,4 +17,7 @@ DEFAULT_SCAN_INTERVAL_SECONDS = 30
 REQUEST_TIMEOUT_SECONDS = 5
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
-FRONTEND_URL = "/mini_display/frontend/mini-display-dashboard-card.js"
+FRONTEND_URL = "/mini_display/frontend/mini-display-panel.js"
+LEGACY_FRONTEND_URL = "/mini_display/frontend/mini-display-dashboard-card.js"
+PANEL_URL_PATH = "mini-display"
+PANEL_WEB_COMPONENT = "mini-display-panel"
