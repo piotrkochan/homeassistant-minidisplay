@@ -99,6 +99,7 @@ struct DashboardValue {
 
 DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
+CachedPage transitionPages[2]{};
 
 bool renderDashboardPage();
 bool renderDashboardPage(const JsonObjectConst *changedValues);
@@ -291,18 +292,21 @@ uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
   return 0;
 }
 
-void selectBestFont(const String &text, JsonVariantConst style, int16_t width,
-                    int16_t height) {
+const GFXfont *selectBestFont(const String &text, JsonVariantConst style,
+                              int16_t width, int16_t height) {
   const char *family = style["fontFamily"] | "sans";
   int8_t size = requestedFontSize(style, height);
   while (size > 0) {
-    display.setFreeFont(fontFor(family, size));
+    const GFXfont *font = fontFor(family, size);
+    display.setFreeFont(font);
     if (display.textWidth(text) <= width - 6 && display.fontHeight() <= height) {
-      return;
+      return font;
     }
     --size;
   }
-  display.setFreeFont(fontFor(family, 0));
+  const GFXfont *font = fontFor(family, 0);
+  display.setFreeFont(font);
+  return font;
 }
 
 void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
@@ -472,6 +476,194 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   }
 }
 
+bool cacheText(CachedPage &page, const String &value, const GFXfont *font,
+               uint8_t datum, int16_t x, int16_t y, uint16_t foreground,
+               uint16_t background) {
+  if (page.textCount >= kMaxPageTexts) return false;
+  CachedText &text = page.texts[page.textCount++];
+  text.x = x;
+  text.y = y;
+  display.setFreeFont(font);
+  text.boundsWidth = display.textWidth(value);
+  text.boundsHeight = display.fontHeight();
+  const bool centeredX = datum == TC_DATUM || datum == MC_DATUM ||
+                         datum == BC_DATUM;
+  const bool rightX = datum == TR_DATUM || datum == MR_DATUM ||
+                      datum == BR_DATUM;
+  const bool centeredY = datum == ML_DATUM || datum == MC_DATUM ||
+                         datum == MR_DATUM;
+  const bool bottomY = datum == BL_DATUM || datum == BC_DATUM ||
+                       datum == BR_DATUM;
+  text.boundsX = centeredX ? x - text.boundsWidth / 2
+                           : rightX ? x - text.boundsWidth : x;
+  text.boundsY = centeredY ? y - text.boundsHeight / 2
+                           : bottomY ? y - text.boundsHeight : y;
+  text.foreground = foreground;
+  text.background = background;
+  text.font = font;
+  text.datum = datum;
+  strlcpy(text.value, value.c_str(), sizeof(text.value));
+  return true;
+}
+
+bool cachePositionedText(CachedPage &page, String value,
+                         JsonVariantConst style, int16_t x, int16_t y,
+                         int16_t width, int16_t height, uint16_t foreground,
+                         uint16_t background) {
+  const char *horizontal = style["horizontalAlign"] | "center";
+  const char *vertical = style["verticalAlign"] | "middle";
+  const bool left = strcmp(horizontal, "left") == 0;
+  const bool right = strcmp(horizontal, "right") == 0;
+  const bool top = strcmp(vertical, "top") == 0;
+  const bool bottom = strcmp(vertical, "bottom") == 0;
+  const uint8_t datum = top
+                            ? (left ? TL_DATUM : right ? TR_DATUM : TC_DATUM)
+                            : bottom
+                                  ? (left ? BL_DATUM
+                                          : right ? BR_DATUM : BC_DATUM)
+                                  : (left ? ML_DATUM
+                                          : right ? MR_DATUM : MC_DATUM);
+  const GFXfont *font = selectBestFont(value, style, width, height);
+  while (value.length() > 1 && display.textWidth(value) > width - 8) {
+    value.remove(value.length() - 1);
+  }
+  const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
+  const int16_t textY = top ? y + 3 : bottom ? y + height - 3 : y + height / 2;
+  return cacheText(page, value, font, datum, textX, textY, foreground,
+                   background);
+}
+
+bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
+               int16_t width, int16_t height) {
+  if (page.cardCount >= kMaxPageCards) return false;
+  JsonObjectConst colorMapping;
+  const char *source = card["source"];
+  DashboardValue *sourceValue = findValue(source, false);
+  if (sourceValue != nullptr && sourceValue->available) {
+    findCardMapping(card, "colorMappings", String(sourceValue->state),
+                    colorMapping);
+  }
+  JsonVariantConst backgroundValue = colorMapping["background"];
+  if (backgroundValue.isNull()) backgroundValue = card["style"]["background"];
+  JsonVariantConst foregroundValue = colorMapping["foreground"];
+  if (foregroundValue.isNull()) foregroundValue = card["style"]["foreground"];
+  const uint16_t background =
+      parseColor(backgroundValue, display.color565(30, 34, 42));
+  const uint16_t foreground = parseColor(foregroundValue, TFT_WHITE);
+
+  CachedCard &cachedCard = page.cards[page.cardCount++];
+  cachedCard.x = x;
+  cachedCard.y = y;
+  cachedCard.width = width;
+  cachedCard.height = height;
+  cachedCard.background = background;
+
+  const char *title = card["title"];
+  int16_t contentY = y;
+  int16_t contentHeight = height;
+  if (title && title[0] && height >= 28) {
+    String clipped(title);
+    JsonVariantConst titleStyle = card["titleStyle"];
+    if (titleStyle.isNull()) titleStyle = card["style"];
+    const GFXfont *font = selectBestFont(clipped, titleStyle, width, 18);
+    while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
+      clipped.remove(clipped.length() - 1);
+    }
+    if (!cacheText(page, clipped, font, TL_DATUM, x + 4, y + 2,
+                   TFT_LIGHTGREY, background)) {
+      return false;
+    }
+    contentY += 21;
+    contentHeight -= 21;
+  }
+
+  const char *progressType = card["progress"] | "none";
+  const bool hasProgress = strcmp(progressType, "none") != 0;
+  if (hasProgress && contentHeight >= 20) contentHeight -= 9;
+  JsonVariantConst valueStyle = card["valueStyle"];
+  if (valueStyle.isNull()) valueStyle = card["style"];
+  if (!cachePositionedText(page, cardValue(card), valueStyle, x, contentY,
+                           width, contentHeight, foreground, background)) {
+    return false;
+  }
+
+  if (hasProgress) {
+    const float minimum = card["minimum"] | 0.0F;
+    const float maximum = card["maximum"] | 100.0F;
+    const float current = sourceValue ? atof(sourceValue->state) : minimum;
+    const float ratio = maximum > minimum
+                            ? constrain((current - minimum) /
+                                            (maximum - minimum),
+                                        0.0F, 1.0F)
+                            : 0.0F;
+    CachedProgress &progress = page.progress[page.progressCount++];
+    progress.x = x + 5;
+    progress.y = y + height - 8;
+    progress.width = width - 10;
+    progress.fillWidth = static_cast<int16_t>(progress.width * ratio);
+    progress.background = TFT_DARKGREY;
+    progress.foreground = parseColor(card["style"]["accent"], TFT_CYAN);
+  }
+  return true;
+}
+
+bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
+  memset(&page, 0, sizeof(page));
+  page.background = parseColor(source["style"]["background"], TFT_BLACK);
+  JsonArrayConst rows = source["rows"].as<JsonArrayConst>();
+  int16_t top = 1;
+  const char *pageTitle = source["title"];
+  const bool showPageTitle = source["showTitle"] | true;
+  if (showPageTitle && pageTitle && pageTitle[0]) {
+    if (!cacheText(page, String(pageTitle), &FreeSansBold9pt7b, TC_DATUM, 120,
+                   top, TFT_WHITE, page.background)) {
+      return false;
+    }
+    top += 21;
+  }
+
+  uint16_t totalWeight = 0;
+  for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
+  if (totalWeight == 0 || rows.size() == 0) return false;
+  const int16_t gap = 4;
+  const int16_t availableHeight = 236 - top - gap * (rows.size() - 1);
+  int16_t rowY = top;
+  uint16_t consumedWeight = 0;
+  for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
+    JsonObjectConst row = rows[rowIndex];
+    const uint16_t weight = row["weight"] | 1;
+    consumedWeight += weight;
+    const int16_t nextY = rowIndex + 1 == rows.size()
+                              ? 236
+                              : top + availableHeight * consumedWeight /
+                                          totalWeight +
+                                    gap * rowIndex;
+    int16_t rowHeight = nextY - rowY;
+    const char *rowTitle = row["title"];
+    const bool showTitle = row["showTitle"] | true;
+    if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
+      if (!cacheText(page, String(rowTitle), &FreeSans9pt7b, TL_DATUM, 4,
+                     rowY, TFT_LIGHTGREY, page.background)) {
+        return false;
+      }
+      rowY += 17;
+      rowHeight -= 17;
+    }
+    JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
+    if (cards.size() == 0) return false;
+    const int16_t cardWidth = (236 - gap * (cards.size() - 1)) / cards.size();
+    int16_t cardX = 2;
+    for (JsonObjectConst card : cards) {
+      if (!cacheCard(page, card, cardX, rowY, cardWidth, rowHeight)) {
+        return false;
+      }
+      cardX += cardWidth + gap;
+    }
+    rowY = nextY + gap;
+  }
+  return true;
+}
+
 bool drawDashboardPage(JsonObjectConst page,
                        const JsonObjectConst *changedValues,
                        int16_t offsetX = 0, int16_t offsetY = 0,
@@ -564,11 +756,6 @@ bool renderDashboardPage(const JsonObjectConst *changedValues) {
                            changedValues, pixelShiftX, pixelShiftY);
 }
 
-bool drawTransitionPage(JsonObjectConst page, int16_t offsetX, int16_t offsetY,
-                        bool clear) {
-  return drawDashboardPage(page, nullptr, offsetX, offsetY, clear);
-}
-
 void showPageWithTransition(uint8_t nextPageIndex) {
   if (nextPageIndex >= dashboardPageCount || nextPageIndex == activePageIndex) {
     return;
@@ -584,22 +771,34 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     showCurrentPage();
     return;
   }
-  DynamicJsonDocument document(12288);
-  const auto error = deserializeJson(document, file);
-  file.close();
-  JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
-  if (error || activePageIndex >= pages.size() || nextPageIndex >= pages.size()) {
+  bool cached = false;
+  {
+    // Release the JSON allocation before the RGB565 compositor band is
+    // created. Both cannot safely coexist in the ESP8266 heap.
+    DynamicJsonDocument document(12288);
+    const auto error = deserializeJson(document, file);
+    file.close();
+    JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
+    if (!error && activePageIndex < pages.size() &&
+        nextPageIndex < pages.size()) {
+      cached = cacheDashboardPage(
+                   pages[activePageIndex].as<JsonObjectConst>(),
+                   transitionPages[0]) &&
+               cacheDashboardPage(pages[nextPageIndex].as<JsonObjectConst>(),
+                                  transitionPages[1]);
+    }
+  }
+  if (!cached) {
     activePageIndex = nextPageIndex;
     showCurrentPage();
     return;
   }
-  JsonObjectConst currentPage = pages[activePageIndex].as<JsonObjectConst>();
-  JsonObjectConst nextPage = pages[nextPageIndex].as<JsonObjectConst>();
   const PageTransitionConfig &transition =
       dashboardPages[activePageIndex].transition;
   PageTransitionRenderer renderer(display, displayOn, displayBrightness,
-                                  drawTransitionPage, applyBacklight);
-  renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
+                                  applyBacklight);
+  renderer.render(transitionPages[0], transitionPages[1], transition,
+                  pixelShiftX, pixelShiftY);
   activePageIndex = nextPageIndex;
   pageShownAt = millis();
 }
