@@ -51,6 +51,7 @@ constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
+constexpr uint8_t kMaxPixelShift = 10;
 constexpr uint32_t kPixelShiftIntervalMs = 60000;
 
 struct DeviceConfig {
@@ -139,7 +140,9 @@ void loadDisplaySettings() {
   const int brightness = document["brightness"] | 100;
   const int pixelShift = document["pixelShift"] | 0;
   if (brightness >= 0 && brightness <= 100) displayBrightness = brightness;
-  if (pixelShift >= 0 && pixelShift <= 4) displayPixelShift = pixelShift;
+  if (pixelShift >= 0 && pixelShift <= kMaxPixelShift) {
+    displayPixelShift = pixelShift;
+  }
   updatePixelShift();
   pixelShiftAt = millis();
 }
@@ -1093,9 +1096,9 @@ void receiveApiDisplay() {
   }
   if (document.containsKey("pixelShift")) {
     const int value = document["pixelShift"].as<int>();
-    if (value < 0 || value > 4) {
+    if (value < 0 || value > kMaxPixelShift) {
       sendJsonError(422, F("invalid_pixel_shift"),
-                    F("Pixel shift must be 0-4"));
+                    F("Pixel shift must be 0-10"));
       return;
     }
     settingsChanged = settingsChanged || displayPixelShift != value;

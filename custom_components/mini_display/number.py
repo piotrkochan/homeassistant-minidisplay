@@ -54,7 +54,7 @@ class MiniDisplayPixelShiftNumber(MiniDisplayEntity, NumberEntity):
     _attr_name = "Pixel shift"
     _attr_icon = "mdi:move-resize"
     _attr_native_min_value = 0
-    _attr_native_max_value = 4
+    _attr_native_max_value = 10
     _attr_native_step = 1
     _attr_native_unit_of_measurement = "px"
     _attr_mode = NumberMode.SLIDER
