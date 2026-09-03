@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -54,6 +55,7 @@ class MiniDisplayClient:
         self._base_url = f"http://{host}:{port}/api/v1"
         self._headers = {"Authorization": f"Bearer {api_token}"}
         self._timeout = ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
+        self._request_lock = asyncio.Lock()
 
     async def _request(
         self,
@@ -63,27 +65,30 @@ class MiniDisplayClient:
         json: dict[str, Any] | None = None,
         expect_json: bool = True,
     ) -> dict[str, Any]:
-        try:
-            async with self._session.request(
-                method,
-                f"{self._base_url}{path}",
-                headers=self._headers,
-                json=json,
-                timeout=self._timeout,
-            ) as response:
-                if response.status in (401, 403):
-                    raise MiniDisplayAuthError("Display rejected API credentials")
-                response.raise_for_status()
-                if not expect_json or response.status == 204:
-                    return {}
-                payload = await response.json(content_type=None)
-                if not isinstance(payload, dict):
-                    raise MiniDisplayInvalidResponseError("Expected a JSON object")
-                return payload
-        except MiniDisplayApiError:
-            raise
-        except (ClientError, TimeoutError) as err:
-            raise MiniDisplayConnectionError(str(err)) from err
+        async with self._request_lock:
+            try:
+                async with self._session.request(
+                    method,
+                    f"{self._base_url}{path}",
+                    headers=self._headers,
+                    json=json,
+                    timeout=self._timeout,
+                ) as response:
+                    if response.status in (401, 403):
+                        raise MiniDisplayAuthError("Display rejected API credentials")
+                    response.raise_for_status()
+                    if not expect_json or response.status == 204:
+                        return {}
+                    payload = await response.json(content_type=None)
+                    if not isinstance(payload, dict):
+                        raise MiniDisplayInvalidResponseError(
+                            "Expected a JSON object"
+                        )
+                    return payload
+            except MiniDisplayApiError:
+                raise
+            except (ClientError, TimeoutError) as err:
+                raise MiniDisplayConnectionError(str(err)) from err
 
     async def async_get_info(self) -> DeviceInfo:
         payload = await self._request("GET", "/info")

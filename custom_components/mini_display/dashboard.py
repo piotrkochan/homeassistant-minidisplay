@@ -13,12 +13,12 @@ from homeassistant.core import Event, HomeAssistant, State, callback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.storage import Store
 
-from .api import MiniDisplayClient
+from .api import MiniDisplayApiError, MiniDisplayClient
+from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 
 STORE_VERSION = 1
 STORE_KEY_PREFIX = "mini_display.scenes"
 LEGACY_STORE_KEY_PREFIX = "mini_display.dashboard"
-DATA_BATCH_DELAY_SECONDS = 0.25
 SCENE_DOCUMENT_VERSION = 1
 DEFAULT_SCENE_ID = "default"
 DEFAULT_SCENE_NAME = "Default"
@@ -38,7 +38,8 @@ COLOR_TOKENS = {
 }
 PREVIEW_TIMEOUT_SECONDS = 300
 TRANSITION_TYPES = {
-    "none", "random", "slide", "bounce", "fade", "wipe", "dissolve"
+    "none", "random", "slide", "bounce", "fade", "wipe", "dissolve",
+    "curtain", "blinds", "mosaic", "doors", "spiral"
 }
 TRANSITION_DIRECTIONS = {"left", "right", "up", "down"}
 TRANSITION_SPEEDS = {"slow", "normal", "fast"}
@@ -444,10 +445,12 @@ class MiniDisplayDashboardManager:
         hass: HomeAssistant,
         entry_id: str,
         client: MiniDisplayClient,
+        data_batch_interval: float = DEFAULT_DATA_BATCH_INTERVAL_SECONDS,
     ) -> None:
         self.hass = hass
         self.entry_id = entry_id
         self.client = client
+        self.data_batch_interval = data_batch_interval
         self.scenes: dict[str, dict[str, Any]] = {}
         self.active_scene_id = DEFAULT_SCENE_ID
         self.default_scene_id = DEFAULT_SCENE_ID
@@ -467,6 +470,8 @@ class MiniDisplayDashboardManager:
         self._cancel_batch: Callable[[], None] | None = None
         self._cancel_preview: Callable[[], None] | None = None
         self._pending_sources: set[str] = set()
+        self._flush_in_progress = False
+        self._last_rendered_dashboard: dict[str, Any] | None = None
 
     async def async_load(self) -> None:
         stored = await self._store.async_load()
@@ -734,10 +739,9 @@ class MiniDisplayDashboardManager:
             }
             await self.client.async_patch_values(values, render=False)
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
+        self._last_rendered_dashboard = rendered
         if active_page_id is not None:
             await self.client.async_set_page(active_page_id)
-        else:
-            await self.client.async_set_page("auto")
 
     async def _async_save(self) -> None:
         """Persist all scenes for this display."""
@@ -783,26 +787,45 @@ class MiniDisplayDashboardManager:
         self._pending_sources.add(entity_id)
         if self._cancel_batch is None:
             self._cancel_batch = async_call_later(
-                self.hass, DATA_BATCH_DELAY_SECONDS, self._flush_pending
+                self.hass, self.data_batch_interval, self._flush_pending
             )
 
     async def _flush_pending(self, _now: datetime) -> None:
         self._cancel_batch = None
+        if self._flush_in_progress:
+            return
+        self._flush_in_progress = True
         pending, self._pending_sources = self._pending_sources, set()
         values = {
             entity_id: serialize_state(self.hass.states.get(entity_id))
             for entity_id in pending
         }
-        if pending & self.visibility_sources:
-            shown_dashboard = (
-                self.preview_dashboard
-                if self.preview_scene_id is not None
-                else self.scenes[self.active_scene_id]["dashboard"]
-            )
-            if shown_dashboard is not None:
-                await self._async_send_dashboard(shown_dashboard, self.preview_page_id)
-        elif values:
-            await self.client.async_patch_values(values)
+        try:
+            if pending & self.visibility_sources:
+                shown_dashboard = (
+                    self.preview_dashboard
+                    if self.preview_scene_id is not None
+                    else self.scenes[self.active_scene_id]["dashboard"]
+                )
+                if shown_dashboard is not None:
+                    rendered = render_dashboard(shown_dashboard, self.hass)
+                    if rendered != self._last_rendered_dashboard:
+                        await self._async_send_dashboard(
+                            shown_dashboard, self.preview_page_id
+                        )
+                    elif values:
+                        await self.client.async_patch_values(values)
+            elif values:
+                await self.client.async_patch_values(values)
+        except MiniDisplayApiError:
+            self._pending_sources.update(pending)
+            _LOGGER.debug("Mini-Display data update delayed; display unavailable")
+        finally:
+            self._flush_in_progress = False
+            if self._pending_sources and self._cancel_batch is None:
+                self._cancel_batch = async_call_later(
+                    self.hass, self.data_batch_interval, self._flush_pending
+                )
 
     def close(self) -> None:
         if self._unsubscribe_states is not None:

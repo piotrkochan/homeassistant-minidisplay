@@ -6,8 +6,9 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -16,7 +17,14 @@ from .api import (
     MiniDisplayConnectionError,
     MiniDisplayInvalidResponseError,
 )
-from .const import CONF_API_TOKEN, CONF_DEVICE_ID, DEFAULT_PORT, DOMAIN
+from .const import (
+    CONF_API_TOKEN,
+    CONF_DATA_BATCH_INTERVAL,
+    CONF_DEVICE_ID,
+    DEFAULT_DATA_BATCH_INTERVAL_SECONDS,
+    DEFAULT_PORT,
+    DOMAIN,
+)
 
 
 class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -27,6 +35,12 @@ class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._discovered_host: str | None = None
         self._discovered_port = DEFAULT_PORT
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry) -> OptionsFlow:
+        """Return per-display integration options."""
+        return MiniDisplayOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -89,3 +103,26 @@ class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_DEVICE_ID: info.device_id,
         }
         return info, data
+
+
+class MiniDisplayOptionsFlow(OptionsFlow):
+    """Configure update batching for one display."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+        current = self.config_entry.options.get(
+            CONF_DATA_BATCH_INTERVAL, DEFAULT_DATA_BATCH_INTERVAL_SECONDS
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_DATA_BATCH_INTERVAL, default=current
+                    ): vol.All(vol.Coerce(float), vol.Range(min=0.5, max=10.0))
+                }
+            ),
+        )

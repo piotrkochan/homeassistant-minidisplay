@@ -17,9 +17,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .api import MiniDisplayClient
+from .api import MiniDisplayApiError, MiniDisplayClient
 from .const import (
     CONF_API_TOKEN,
+    CONF_DATA_BATCH_INTERVAL,
+    DEFAULT_DATA_BATCH_INTERVAL_SECONDS,
     DOMAIN,
     FRONTEND_DIR,
     FRONTEND_URL,
@@ -108,7 +110,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     coordinator = MiniDisplayCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-    dashboard = MiniDisplayDashboardManager(hass, entry.entry_id, client)
+    dashboard = MiniDisplayDashboardManager(
+        hass,
+        entry.entry_id,
+        client,
+        entry.options.get(
+            CONF_DATA_BATCH_INTERVAL, DEFAULT_DATA_BATCH_INTERVAL_SECONDS
+        ),
+    )
     await dashboard.async_load()
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
@@ -116,7 +125,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     await _async_reconcile_scenes(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload one display after its options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -295,6 +310,11 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
     except DashboardValidationError as err:
         connection.send_error(
             msg["id"], "invalid_dashboard", f"{err.path}: {err}"
+        )
+        return
+    except MiniDisplayApiError:
+        connection.send_error(
+            msg["id"], "display_unavailable", "Mini-Display did not respond"
         )
         return
     async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)

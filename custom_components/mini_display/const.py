@@ -8,11 +8,13 @@ DOMAIN = "mini_display"
 PLATFORMS = ["binary_sensor", "button", "light", "number", "select", "sensor"]
 
 CONF_API_TOKEN = "api_token"
+CONF_DATA_BATCH_INTERVAL = "data_batch_interval"
 CONF_DEVICE_ID = "device_id"
 
 API_VERSION = 1
 DEFAULT_NAME = "Home Assistant Mini-Display"
 DEFAULT_PORT = 80
+DEFAULT_DATA_BATCH_INTERVAL_SECONDS = 1.0
 DEFAULT_SCAN_INTERVAL_SECONDS = 30
 REQUEST_TIMEOUT_SECONDS = 5
 

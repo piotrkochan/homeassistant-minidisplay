@@ -20,5 +20,16 @@
       "already_configured": "This display is already configured",
       "invalid_discovery_info": "Discovery did not contain a stable device ID"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Mini-Display update settings",
+        "description": "Control how often changed Home Assistant entities are sent to this display.",
+        "data": {
+          "data_batch_interval": "Entity update interval (seconds)"
+        }
+      }
+    }
   }
 }
