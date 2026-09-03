@@ -15,6 +15,7 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
+#include "PageTransitionRenderer.h"
 
 namespace {
 
@@ -48,6 +49,7 @@ constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
+constexpr uint32_t kPixelShiftIntervalMs = 60000;
 
 struct DeviceConfig {
   uint32_t magic;
@@ -71,6 +73,11 @@ bool filesystemReady = false;
 bool mdnsReady = false;
 bool displayOn = true;
 uint8_t displayBrightness = 100;
+uint8_t displayPixelShift = 0;
+int8_t pixelShiftX = 0;
+int8_t pixelShiftY = 0;
+uint8_t pixelShiftStep = 0;
+uint32_t pixelShiftAt = 0;
 bool pageRotationAuto = true;
 uint8_t activePageIndex = 0;
 uint32_t pageShownAt = 0;
@@ -78,19 +85,11 @@ uint32_t pageShownAt = 0;
 struct DashboardPage {
   char id[33];
   uint32_t durationMs;
-};
-
-struct PageTransitionConfig {
-  char type[10];
-  char direction[6];
-  char speed[7];
-  char intensity[7];
-  char tileSize[7];
+  PageTransitionConfig transition;
 };
 
 DashboardPage dashboardPages[kMaxPages]{};
 uint8_t dashboardPageCount = 0;
-PageTransitionConfig pageTransition{"none", "left", "normal", "subtle", "medium"};
 
 struct DashboardValue {
   char source[65];
@@ -562,122 +561,12 @@ bool renderDashboardPage(const JsonObjectConst *changedValues) {
   JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
   if (activePageIndex >= pages.size()) return false;
   return drawDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
-                           changedValues);
+                           changedValues, pixelShiftX, pixelShiftY);
 }
 
-uint8_t transitionFrames() {
-  if (strcmp(pageTransition.speed, "fast") == 0) return 7;
-  if (strcmp(pageTransition.speed, "slow") == 0) return 15;
-  return 10;
-}
-
-uint16_t transitionDelayMs() {
-  if (strcmp(pageTransition.speed, "fast") == 0) return 18;
-  if (strcmp(pageTransition.speed, "slow") == 0) return 42;
-  return 28;
-}
-
-void transitionOffset(float distance, int16_t &x, int16_t &y) {
-  x = 0;
-  y = 0;
-  if (strcmp(pageTransition.direction, "right") == 0) x = distance;
-  else if (strcmp(pageTransition.direction, "up") == 0) y = -distance;
-  else if (strcmp(pageTransition.direction, "down") == 0) y = distance;
-  else x = -distance;
-}
-
-void animateFade(JsonObjectConst nextPage, uint8_t frames, uint16_t waitMs) {
-  if (!displayOn || displayBrightness == 0) {
-    drawDashboardPage(nextPage, nullptr);
-    return;
-  }
-  const uint8_t originalBrightness = displayBrightness;
-  const uint8_t minimumBrightness =
-      strcmp(pageTransition.intensity, "strong") == 0
-          ? 0
-          : max<uint8_t>(1, originalBrightness / 4);
-  for (uint8_t step = 1; step <= frames; ++step) {
-    displayBrightness = originalBrightness -
-        (originalBrightness - minimumBrightness) * step / frames;
-    applyBacklight();
-    delay(waitMs);
-    yield();
-  }
-  drawDashboardPage(nextPage, nullptr);
-  for (uint8_t step = 1; step <= frames; ++step) {
-    displayBrightness = minimumBrightness +
-        (originalBrightness - minimumBrightness) * step / frames;
-    applyBacklight();
-    delay(waitMs);
-    yield();
-  }
-  displayBrightness = originalBrightness;
-  applyBacklight();
-}
-
-void animateMotion(JsonObjectConst currentPage, JsonObjectConst nextPage,
-                   uint8_t frames, uint16_t waitMs, bool bounce) {
-  const float overshoot = strcmp(pageTransition.intensity, "strong") == 0
-                              ? 1.7F
-                              : 0.9F;
-  for (uint8_t step = 1; step <= frames; ++step) {
-    const float progress = static_cast<float>(step) / frames;
-    float incomingProgress = progress;
-    if (bounce) {
-      const float shifted = progress - 1.0F;
-      incomingProgress = 1.0F + (overshoot + 1.0F) * shifted * shifted * shifted +
-                         overshoot * shifted * shifted;
-    }
-    int16_t oldX, oldY, newX, newY;
-    transitionOffset(240.0F * progress, oldX, oldY);
-    transitionOffset(-240.0F * (1.0F - incomingProgress), newX, newY);
-    display.fillScreen(TFT_BLACK);
-    drawDashboardPage(currentPage, nullptr, oldX, oldY, false);
-    drawDashboardPage(nextPage, nullptr, newX, newY, false);
-    delay(waitMs);
-    yield();
-  }
-}
-
-void animateWipe(JsonObjectConst nextPage, uint8_t frames, uint16_t waitMs) {
-  for (uint8_t step = 1; step <= frames; ++step) {
-    drawDashboardPage(nextPage, nullptr);
-    const int16_t hidden = 240 * (frames - step) / frames;
-    if (strcmp(pageTransition.direction, "right") == 0) {
-      display.fillRect(240 - hidden, 0, hidden, 240, TFT_BLACK);
-    } else if (strcmp(pageTransition.direction, "up") == 0) {
-      display.fillRect(0, 0, 240, hidden, TFT_BLACK);
-    } else if (strcmp(pageTransition.direction, "down") == 0) {
-      display.fillRect(0, 240 - hidden, 240, hidden, TFT_BLACK);
-    } else {
-      display.fillRect(0, 0, hidden, 240, TFT_BLACK);
-    }
-    delay(waitMs);
-    yield();
-  }
-}
-
-void animateDissolve(JsonObjectConst nextPage, uint8_t frames,
-                     uint16_t waitMs) {
-  const uint8_t tile = strcmp(pageTransition.tileSize, "small") == 0
-                           ? 8
-                           : strcmp(pageTransition.tileSize, "large") == 0
-                                 ? 24
-                                 : 16;
-  for (uint8_t step = 1; step <= frames; ++step) {
-    drawDashboardPage(nextPage, nullptr);
-    for (uint16_t y = 0; y < 240; y += tile) {
-      for (uint16_t x = 0; x < 240; x += tile) {
-        const uint8_t order = ((x / tile) * 13 + (y / tile) * 7) % frames;
-        if (order >= step) {
-          display.fillRect(x, y, min<uint16_t>(tile, 240 - x),
-                           min<uint16_t>(tile, 240 - y), TFT_BLACK);
-        }
-      }
-    }
-    delay(waitMs);
-    yield();
-  }
+bool drawTransitionPage(JsonObjectConst page, int16_t offsetX, int16_t offsetY,
+                        bool clear) {
+  return drawDashboardPage(page, nullptr, offsetX, offsetY, clear);
 }
 
 void showPageWithTransition(uint8_t nextPageIndex) {
@@ -706,35 +595,27 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   }
   JsonObjectConst currentPage = pages[activePageIndex].as<JsonObjectConst>();
   JsonObjectConst nextPage = pages[nextPageIndex].as<JsonObjectConst>();
-  const uint8_t frames = transitionFrames();
-  const uint16_t waitMs = transitionDelayMs();
-  if (strcmp(pageTransition.type, "fade") == 0) {
-    animateFade(nextPage, frames, waitMs);
-  } else if (strcmp(pageTransition.type, "slide") == 0) {
-    animateMotion(currentPage, nextPage, frames, waitMs, false);
-  } else if (strcmp(pageTransition.type, "bounce") == 0) {
-    animateMotion(currentPage, nextPage, frames, waitMs, true);
-  } else if (strcmp(pageTransition.type, "wipe") == 0) {
-    animateWipe(nextPage, frames, waitMs);
-  } else if (strcmp(pageTransition.type, "dissolve") == 0) {
-    animateDissolve(nextPage, frames, waitMs);
-  }
+  const PageTransitionConfig &transition =
+      dashboardPages[activePageIndex].transition;
+  PageTransitionRenderer renderer(display, displayOn, displayBrightness,
+                                  drawTransitionPage, applyBacklight);
+  renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
   activePageIndex = nextPageIndex;
   pageShownAt = millis();
-  drawDashboardPage(nextPage, nullptr);
 }
 
 bool loadDashboardMetadata(Stream &stream) {
-  StaticJsonDocument<256> filter;
+  StaticJsonDocument<512> filter;
   filter["version"] = true;
   filter["pages"][0]["id"] = true;
   filter["pages"][0]["durationSeconds"] = true;
+  filter["pages"][0]["transition"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["type"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["source"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
   filter["transition"] = true;
 
-  DynamicJsonDocument document(4096);
+  DynamicJsonDocument document(6144);
   const auto error = deserializeJson(
       document, stream, DeserializationOption::Filter(filter));
   if (error || document["version"].as<int>() != 1 ||
@@ -748,45 +629,9 @@ bool loadDashboardMetadata(Stream &stream) {
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
 
   DashboardPage parsed[kMaxPages]{};
-  PageTransitionConfig parsedTransition{
-      "none", "left", "normal", "subtle", "medium"};
-  JsonObject transition = document["transition"].as<JsonObject>();
-  if (!transition.isNull()) {
-    const char *type = transition["type"] | "none";
-    const char *direction = transition["direction"] | "left";
-    const char *speed = transition["speed"] | "normal";
-    const char *intensity = transition["intensity"] | "subtle";
-    const char *tileSize = transition["tileSize"] | "medium";
-    const bool validType = strcmp(type, "none") == 0 ||
-                           strcmp(type, "slide") == 0 ||
-                           strcmp(type, "bounce") == 0 ||
-                           strcmp(type, "fade") == 0 ||
-                           strcmp(type, "wipe") == 0 ||
-                           strcmp(type, "dissolve") == 0;
-    const bool validDirection = strcmp(direction, "left") == 0 ||
-                                strcmp(direction, "right") == 0 ||
-                                strcmp(direction, "up") == 0 ||
-                                strcmp(direction, "down") == 0;
-    const bool validSpeed = strcmp(speed, "slow") == 0 ||
-                            strcmp(speed, "normal") == 0 ||
-                            strcmp(speed, "fast") == 0;
-    const bool validIntensity = strcmp(intensity, "subtle") == 0 ||
-                                strcmp(intensity, "strong") == 0;
-    const bool validTileSize = strcmp(tileSize, "small") == 0 ||
-                               strcmp(tileSize, "medium") == 0 ||
-                               strcmp(tileSize, "large") == 0;
-    if (!validType || !validDirection || !validSpeed || !validIntensity ||
-        !validTileSize) {
-      return false;
-    }
-    strlcpy(parsedTransition.type, type, sizeof(parsedTransition.type));
-    strlcpy(parsedTransition.direction, direction,
-            sizeof(parsedTransition.direction));
-    strlcpy(parsedTransition.speed, speed, sizeof(parsedTransition.speed));
-    strlcpy(parsedTransition.intensity, intensity,
-            sizeof(parsedTransition.intensity));
-    strlcpy(parsedTransition.tileSize, tileSize,
-            sizeof(parsedTransition.tileSize));
+  PageTransitionConfig legacyTransition;
+  if (!PageTransitionRenderer::parse(document["transition"], legacyTransition)) {
+    return false;
   }
   uint8_t count = 0;
   for (JsonObject page : pages) {
@@ -796,6 +641,12 @@ bool loadDashboardMetadata(Stream &stream) {
     const uint32_t seconds = page["durationSeconds"] | defaultSeconds;
     if (seconds == 0 || seconds > 86400) return false;
     parsed[count].durationMs = seconds * 1000UL;
+    if (page["transition"].isNull()) {
+      parsed[count].transition = legacyTransition;
+    } else if (!PageTransitionRenderer::parse(page["transition"],
+                                              parsed[count].transition)) {
+      return false;
+    }
     JsonArray rows = page["rows"].as<JsonArray>();
     if (rows.size() == 0 || rows.size() > 6) return false;
     for (JsonObject row : rows) {
@@ -816,7 +667,6 @@ bool loadDashboardMetadata(Stream &stream) {
     ++count;
   }
   memcpy(dashboardPages, parsed, sizeof(parsed));
-  pageTransition = parsedTransition;
   dashboardPageCount = count;
   if (activePageIndex >= dashboardPageCount) activePageIndex = 0;
   pageShownAt = millis();
@@ -846,6 +696,7 @@ void sendApiInfo() {
   JsonArray capabilities = document.createNestedArray("capabilities");
   capabilities.add("dashboard-v1");
   capabilities.add("brightness");
+  capabilities.add("pixel-shift");
   capabilities.add("page-control");
   String body;
   serializeJson(document, body);
@@ -858,6 +709,7 @@ void sendApiStatus() {
   document["connected"] = WiFi.status() == WL_CONNECTED;
   document["displayOn"] = displayOn;
   document["brightness"] = displayBrightness;
+  document["pixelShift"] = displayPixelShift;
   document["page"] = dashboardPageCount ? dashboardPages[activePageIndex].id : "";
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
   document["uptimeSeconds"] = millis() / 1000UL;
@@ -925,7 +777,11 @@ void receiveApiDashboard() {
     return;
   }
   LittleFS.remove(kDashboardBackupPath);
-  if (server.arg("render") != "false") showCurrentPage();
+  if (server.arg("render") != "false") {
+    pageRotationAuto = true;
+    pageShownAt = millis();
+    showCurrentPage();
+  }
   server.send(204);
 }
 
@@ -977,6 +833,20 @@ void receiveApiDisplay() {
       return;
     }
     displayBrightness = value;
+  }
+  if (document.containsKey("pixelShift")) {
+    const int value = document["pixelShift"].as<int>();
+    if (value < 0 || value > 4) {
+      sendJsonError(422, F("invalid_pixel_shift"),
+                    F("Pixel shift must be 0-4"));
+      return;
+    }
+    displayPixelShift = value;
+    pixelShiftStep = 0;
+    pixelShiftX = 0;
+    pixelShiftY = 0;
+    pixelShiftAt = millis();
+    showCurrentPage();
   }
   applyBacklight();
   server.send(204);
@@ -1227,6 +1097,16 @@ void loop() {
   if (pageRotationAuto && dashboardPageCount > 1 &&
       millis() - pageShownAt >= dashboardPages[activePageIndex].durationMs) {
     showPageWithTransition((activePageIndex + 1) % dashboardPageCount);
+  }
+  if (displayPixelShift > 0 &&
+      millis() - pixelShiftAt >= kPixelShiftIntervalMs) {
+    static constexpr int8_t kShiftX[] = {0, -1, 0, 1, 1, 1, 0, -1};
+    static constexpr int8_t kShiftY[] = {-1, -1, -1, -1, 0, 1, 1, 1};
+    pixelShiftStep = (pixelShiftStep + 1) % 8;
+    pixelShiftX = kShiftX[pixelShiftStep] * displayPixelShift;
+    pixelShiftY = kShiftY[pixelShiftStep] * displayPixelShift;
+    pixelShiftAt = millis();
+    showCurrentPage();
   }
   if (configValid() && WiFi.status() != WL_CONNECTED && !accessPointRunning &&
       millis() - connectStartedAt >= kConnectTimeoutMs) {

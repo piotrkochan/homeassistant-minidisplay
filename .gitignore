@@ -1,5 +1,6 @@
 .venv/
 .platformio/
+.platformio-core/
 .pio/
 firmware/.pio/
 firmware/.vscode/

@@ -37,7 +37,9 @@ COLOR_TOKENS = {
     "success", "warning", "error", "muted",
 }
 PREVIEW_TIMEOUT_SECONDS = 300
-TRANSITION_TYPES = {"none", "slide", "bounce", "fade", "wipe", "dissolve"}
+TRANSITION_TYPES = {
+    "none", "random", "slide", "bounce", "fade", "wipe", "dissolve"
+}
 TRANSITION_DIRECTIONS = {"left", "right", "up", "down"}
 TRANSITION_SPEEDS = {"slow", "normal", "fast"}
 
@@ -58,7 +60,9 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
         raise DashboardValidationError("Dashboard must be an object")
     if document.get("version") != 1:
         raise DashboardValidationError("Only schema version 1 is supported", "/version")
-    _validate_transition(document.get("transition"), "/transition")
+    document = deepcopy(document)
+    legacy_transition = document.pop("transition", None)
+    _validate_transition(legacy_transition, "/transition")
     pages = document.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= 16:
         raise DashboardValidationError("Dashboard requires 1-16 pages", "/pages")
@@ -73,6 +77,9 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
         if page_id in seen_pages:
             raise DashboardValidationError("Page id must be unique", f"{page_path}/id")
         seen_pages.add(page_id)
+        if "transition" not in page and legacy_transition is not None:
+            page["transition"] = deepcopy(legacy_transition)
+        _validate_transition(page.get("transition"), f"{page_path}/transition")
         duration = page.get("durationSeconds")
         if duration is not None and (not isinstance(duration, int) or not 1 <= duration <= 86400):
             raise DashboardValidationError("durationSeconds must be 1-86400", f"{page_path}/durationSeconds")
@@ -404,13 +411,13 @@ def default_dashboard() -> dict[str, Any]:
     return {
         "version": 1,
         "defaults": {"pageDurationSeconds": 10, "theme": "dark"},
-        "transition": {"type": "none"},
         "pages": [
             {
                 "id": "page_1",
                 "title": "Page 1",
                 "durationSeconds": 10,
                 "enabled": True,
+                "transition": {"type": "none"},
                 "rows": [
                     {
                         "weight": 1,
@@ -729,6 +736,8 @@ class MiniDisplayDashboardManager:
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
         if active_page_id is not None:
             await self.client.async_set_page(active_page_id)
+        else:
+            await self.client.async_set_page("auto")
 
     async def _async_save(self) -> None:
         """Persist all scenes for this display."""

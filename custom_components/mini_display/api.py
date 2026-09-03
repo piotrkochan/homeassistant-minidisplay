@@ -110,13 +110,19 @@ class MiniDisplayClient:
         return await self._request("GET", "/status")
 
     async def async_set_display(
-        self, *, on: bool | None = None, brightness: int | None = None
+        self,
+        *,
+        on: bool | None = None,
+        brightness: int | None = None,
+        pixel_shift: int | None = None,
     ) -> None:
         body: dict[str, Any] = {}
         if on is not None:
             body["on"] = on
         if brightness is not None:
             body["brightness"] = max(0, min(100, brightness))
+        if pixel_shift is not None:
+            body["pixelShift"] = max(0, min(4, pixel_shift))
         await self._request("PUT", "/display", json=body, expect_json=False)
 
     async def async_set_page(self, page_id: str) -> None:

@@ -15,7 +15,7 @@ export type Style = {
 };
 
 export type PageTransition = {
-  type: "none" | "slide" | "bounce" | "fade" | "wipe" | "dissolve";
+  type: "none" | "random" | "slide" | "bounce" | "fade" | "wipe" | "dissolve";
   direction?: "left" | "right" | "up" | "down";
   speed?: "slow" | "normal" | "fast";
   intensity?: "subtle" | "strong";
@@ -52,8 +52,8 @@ export type DisplayCard = {
 };
 
 export type DisplayRow = { title?: string; showTitle?: boolean; weight?: number; gap?: "none" | "small" | "medium"; cards: DisplayCard[]; visibility?: Visibility };
-export type DisplayPage = { id: string; title?: string; showTitle?: boolean; durationSeconds?: number; enabled?: boolean; rows: DisplayRow[] };
-export type Dashboard = { version: 1; defaults?: Record<string, unknown>; transition?: PageTransition; pages: DisplayPage[] };
+export type DisplayPage = { id: string; title?: string; showTitle?: boolean; durationSeconds?: number; enabled?: boolean; transition?: PageTransition; rows: DisplayRow[] };
+export type Dashboard = { version: 1; defaults?: Record<string, unknown>; pages: DisplayPage[] };
 export type Display = {
   config_entry_id: string;
   title: string;
@@ -73,8 +73,8 @@ export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
   return { type, source: "", progress: "none" };
 };
 export const newRow = (): DisplayRow => ({ weight: 1, gap: "small", cards: [newCard("clock")] });
-export const newPage = (number: number): DisplayPage => ({ id: `page_${number}`, title: `Page ${number}`, durationSeconds: 10, enabled: true, rows: [newRow()] });
-export const newDashboard = (): Dashboard => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, transition: { type: "none" }, pages: [newPage(1)] });
+export const newPage = (number: number): DisplayPage => ({ id: `page_${number}`, title: `Page ${number}`, durationSeconds: 10, enabled: true, transition: { type: "none" }, rows: [newRow()] });
+export const newDashboard = (): Dashboard => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, pages: [newPage(1)] });
 
 export const mapCardValue = (card: DisplayCard, raw: string): { value: string; mapped: boolean } => {
   if (card.type === "number") {

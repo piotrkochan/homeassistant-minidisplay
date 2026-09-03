@@ -10,9 +10,14 @@ from .entity import MiniDisplayEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    """Set up the display brightness slider."""
+    """Set up display controls."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    async_add_entities([MiniDisplayBrightnessNumber(coordinator)])
+    async_add_entities(
+        [
+            MiniDisplayBrightnessNumber(coordinator),
+            MiniDisplayPixelShiftNumber(coordinator),
+        ]
+    )
 
 
 class MiniDisplayBrightnessNumber(MiniDisplayEntity, NumberEntity):
@@ -40,4 +45,30 @@ class MiniDisplayBrightnessNumber(MiniDisplayEntity, NumberEntity):
         await self.coordinator.client.async_set_display(
             on=True, brightness=round(value)
         )
+        await self.coordinator.async_request_refresh()
+
+
+class MiniDisplayPixelShiftNumber(MiniDisplayEntity, NumberEntity):
+    """Move rendered content periodically to reduce image retention."""
+
+    _attr_name = "Pixel shift"
+    _attr_icon = "mdi:move-resize"
+    _attr_native_min_value = 0
+    _attr_native_max_value = 4
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = "px"
+    _attr_mode = NumberMode.SLIDER
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "pixel_shift")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return maximum content offset in pixels; zero disables it."""
+        value = self.coordinator.data.get("pixelShift")
+        return float(value) if value is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set the maximum periodic content offset."""
+        await self.coordinator.client.async_set_display(pixel_shift=round(value))
         await self.coordinator.async_request_refresh()
