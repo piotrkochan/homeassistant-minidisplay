@@ -47,6 +47,48 @@ export class MiniDisplaySceneSidebar extends LitElement {
     .form small { color: var(--secondary-text-color); line-height: 1.4; }
   `;
 
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("pointerdown", this.closeActionMenusOnOutsideClick, true);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("pointerdown", this.closeActionMenusOnOutsideClick, true);
+    super.disconnectedCallback();
+  }
+
+  private closeActionMenusOnOutsideClick = (event: PointerEvent) => {
+    const path = event.composedPath();
+    this.renderRoot.querySelectorAll<HTMLDetailsElement>("details.action-menu[open]").forEach((menu) => {
+      if (!path.includes(menu)) menu.open = false;
+    });
+  };
+
+  private actionMenuToggled(event: Event) {
+    const current = event.currentTarget as HTMLDetailsElement;
+    if (!current.open) return;
+    this.renderRoot.querySelectorAll<HTMLDetailsElement>("details.action-menu[open]").forEach((menu) => {
+      if (menu !== current) menu.open = false;
+    });
+  }
+
+  private closeActionMenu(event: Event) {
+    const button = event.composedPath().find((item): item is HTMLButtonElement => item instanceof HTMLButtonElement);
+    if (!button || button.disabled) return;
+    const menu = (event.currentTarget as HTMLElement).closest("details");
+    if (menu) menu.open = false;
+  }
+
+  private actionMenuKeydown(event: KeyboardEvent) {
+    if (event.key !== "Escape") return;
+    const menu = (event.currentTarget as HTMLElement).closest("details");
+    if (!menu) return;
+    menu.open = false;
+    menu.querySelector<HTMLElement>("summary")?.focus();
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   render() {
     const display = this.displays.find((item) => item.config_entry_id === this.selectedDisplayId);
     return html`
@@ -79,9 +121,9 @@ export class MiniDisplaySceneSidebar extends LitElement {
                 ${scene.is_default ? html`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : nothing}
               </button>
               ${scene.id === this.selectedSceneId ? html`
-                <details>
-                  <summary aria-label="Scene actions"><ha-icon icon="mdi:dots-vertical"></ha-icon></summary>
-                  <div class="menu">
+                <details class="action-menu" @toggle=${this.actionMenuToggled} @keydown=${this.actionMenuKeydown}>
+                  <summary aria-label="Scene actions" aria-haspopup="menu"><ha-icon icon="mdi:dots-vertical"></ha-icon></summary>
+                  <div class="menu" role="menu" @click=${this.closeActionMenu}>
                     <button @click=${() => emit(this, "scene-rename")}>Rename</button>
                     <button @click=${() => emit(this, "scene-duplicate")}>Duplicate</button>
                     ${!scene.is_default ? html`<button @click=${() => emit(this, "scene-default")}>Set as default</button>` : nothing}
