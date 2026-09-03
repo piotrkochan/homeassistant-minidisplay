@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 DOMAIN = "mini_display"
-PLATFORMS = ["binary_sensor", "button", "light", "number", "select", "sensor"]
+PLATFORMS = ["binary_sensor", "light", "number", "button", "select", "sensor"]
 
 CONF_API_TOKEN = "api_token"
 CONF_DATA_BATCH_INTERVAL = "data_batch_interval"
