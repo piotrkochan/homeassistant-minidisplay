@@ -45,6 +45,8 @@ constexpr char kHardwareModel[] = "JUZIPi SD PRO";
 constexpr char kDashboardPath[] = "/dashboard.json";
 constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
+constexpr char kDisplaySettingsPath[] = "/display.json";
+constexpr char kDisplaySettingsTempPath[] = "/display.tmp";
 constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
@@ -76,7 +78,6 @@ uint8_t displayBrightness = 100;
 uint8_t displayPixelShift = 0;
 int8_t pixelShiftX = 0;
 int8_t pixelShiftY = 0;
-uint8_t pixelShiftStep = 0;
 uint32_t pixelShiftAt = 0;
 bool pageRotationAuto = true;
 uint8_t activePageIndex = 0;
@@ -104,6 +105,61 @@ CachedPage transitionPages[2]{};
 bool renderDashboardPage();
 bool renderDashboardPage(const JsonObjectConst *changedValues);
 void showPageWithTransition(uint8_t nextPageIndex);
+
+void updatePixelShift() {
+  if (displayPixelShift == 0) {
+    pixelShiftX = 0;
+    pixelShiftY = 0;
+    return;
+  }
+  int8_t nextX = pixelShiftX;
+  int8_t nextY = pixelShiftY;
+  for (uint8_t attempt = 0; attempt < 8 && nextX == pixelShiftX &&
+                            nextY == pixelShiftY;
+       ++attempt) {
+    nextX = random(-displayPixelShift, displayPixelShift + 1);
+    nextY = random(-displayPixelShift, displayPixelShift + 1);
+  }
+  if (nextX == pixelShiftX && nextY == pixelShiftY) {
+    nextX = pixelShiftX == displayPixelShift ? -displayPixelShift
+                                             : pixelShiftX + 1;
+  }
+  pixelShiftX = nextX;
+  pixelShiftY = nextY;
+}
+
+void loadDisplaySettings() {
+  if (!filesystemReady || !LittleFS.exists(kDisplaySettingsPath)) return;
+  File file = LittleFS.open(kDisplaySettingsPath, "r");
+  if (!file) return;
+  StaticJsonDocument<96> document;
+  const auto error = deserializeJson(document, file);
+  file.close();
+  if (error) return;
+  const int brightness = document["brightness"] | 100;
+  const int pixelShift = document["pixelShift"] | 0;
+  if (brightness >= 0 && brightness <= 100) displayBrightness = brightness;
+  if (pixelShift >= 0 && pixelShift <= 4) displayPixelShift = pixelShift;
+  updatePixelShift();
+  pixelShiftAt = millis();
+}
+
+void saveDisplaySettings() {
+  if (!filesystemReady) return;
+  File file = LittleFS.open(kDisplaySettingsTempPath, "w");
+  if (!file) return;
+  StaticJsonDocument<96> document;
+  document["brightness"] = displayBrightness;
+  document["pixelShift"] = displayPixelShift;
+  if (serializeJson(document, file) == 0) {
+    file.close();
+    LittleFS.remove(kDisplaySettingsTempPath);
+    return;
+  }
+  file.close();
+  LittleFS.remove(kDisplaySettingsPath);
+  LittleFS.rename(kDisplaySettingsTempPath, kDisplaySettingsPath);
+}
 
 uint32_t checksum(const DeviceConfig &value) {
   const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
@@ -1024,6 +1080,7 @@ void receiveApiDisplay() {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
   }
+  bool settingsChanged = false;
   if (document.containsKey("on")) displayOn = document["on"].as<bool>();
   if (document.containsKey("brightness")) {
     const int value = document["brightness"].as<int>();
@@ -1031,6 +1088,7 @@ void receiveApiDisplay() {
       sendJsonError(422, F("invalid_brightness"), F("Brightness must be 0-100"));
       return;
     }
+    settingsChanged = settingsChanged || displayBrightness != value;
     displayBrightness = value;
   }
   if (document.containsKey("pixelShift")) {
@@ -1040,13 +1098,13 @@ void receiveApiDisplay() {
                     F("Pixel shift must be 0-4"));
       return;
     }
+    settingsChanged = settingsChanged || displayPixelShift != value;
     displayPixelShift = value;
-    pixelShiftStep = 0;
-    pixelShiftX = 0;
-    pixelShiftY = 0;
+    updatePixelShift();
     pixelShiftAt = millis();
     showCurrentPage();
   }
+  if (settingsChanged) saveDisplaySettings();
   applyBacklight();
   server.send(204);
 }
@@ -1276,6 +1334,7 @@ void setup() {
   Serial.printf("Home Assistant Mini-Display firmware %s\n", kFirmwareVersion);
   loadConfig();
   filesystemReady = LittleFS.begin();
+  loadDisplaySettings();
   configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
   tzset();
@@ -1299,11 +1358,7 @@ void loop() {
   }
   if (displayPixelShift > 0 &&
       millis() - pixelShiftAt >= kPixelShiftIntervalMs) {
-    static constexpr int8_t kShiftX[] = {0, -1, 0, 1, 1, 1, 0, -1};
-    static constexpr int8_t kShiftY[] = {-1, -1, -1, -1, 0, 1, 1, 1};
-    pixelShiftStep = (pixelShiftStep + 1) % 8;
-    pixelShiftX = kShiftX[pixelShiftStep] * displayPixelShift;
-    pixelShiftY = kShiftY[pixelShiftStep] * displayPixelShift;
+    updatePixelShift();
     pixelShiftAt = millis();
     showCurrentPage();
   }
