@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import re
 
 import voluptuous as vol
 
@@ -14,6 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .api import MiniDisplayClient
 from .const import (
@@ -25,9 +27,15 @@ from .const import (
     PANEL_URL_PATH,
     PANEL_WEB_COMPONENT,
     PLATFORMS,
+    SIGNAL_SCENES_UPDATED,
 )
 from .coordinator import MiniDisplayCoordinator
-from .dashboard import DashboardValidationError, MiniDisplayDashboardManager
+from .dashboard import (
+    DEFAULT_SCENE_ID,
+    DEFAULT_SCENE_NAME,
+    DashboardValidationError,
+    MiniDisplayDashboardManager,
+)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -44,6 +52,15 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_get_dashboard)
     websocket_api.async_register_command(hass, websocket_set_dashboard)
     websocket_api.async_register_command(hass, websocket_show_page)
+    websocket_api.async_register_command(hass, websocket_list_scenes)
+    websocket_api.async_register_command(hass, websocket_create_scene)
+    websocket_api.async_register_command(hass, websocket_duplicate_scene)
+    websocket_api.async_register_command(hass, websocket_rename_scene)
+    websocket_api.async_register_command(hass, websocket_set_default_scene)
+    websocket_api.async_register_command(hass, websocket_delete_scene)
+    websocket_api.async_register_command(hass, websocket_activate_scene)
+    websocket_api.async_register_command(hass, websocket_start_scene_preview)
+    websocket_api.async_register_command(hass, websocket_stop_scene_preview)
     return True
 
 
@@ -97,6 +114,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
         "dashboard": dashboard,
     }
+    await _async_reconcile_scenes(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -109,6 +127,96 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if runtime:
             runtime["dashboard"].close()
     return unloaded
+
+
+def _display_runtimes(hass: HomeAssistant) -> list[dict]:
+    """Return configured display runtimes, excluding domain metadata."""
+    return [
+        runtime
+        for runtime in hass.data.get(DOMAIN, {}).values()
+        if isinstance(runtime, dict) and "dashboard" in runtime
+    ]
+
+
+async def _async_reconcile_scenes(hass: HomeAssistant) -> None:
+    """Keep the global scene catalogue available on every display."""
+    runtimes = _display_runtimes(hass)
+    catalogue: dict[str, str] = {}
+    for runtime in runtimes:
+        for scene in runtime["dashboard"].scene_summaries:
+            catalogue.setdefault(scene["id"], scene["name"])
+    if not catalogue:
+        catalogue[DEFAULT_SCENE_ID] = DEFAULT_SCENE_NAME
+    default_scene_id = (
+        runtimes[0]["dashboard"].default_scene_id
+        if runtimes
+        else DEFAULT_SCENE_ID
+    )
+    for runtime in runtimes:
+        manager = runtime["dashboard"]
+        for scene_id, name in catalogue.items():
+            await manager.async_create_scene(scene_id, name)
+        await manager.async_set_default_scene(default_scene_id)
+
+
+def _scene_catalogue(hass: HomeAssistant) -> list[dict[str, object]]:
+    """Return the union of scenes configured across displays."""
+    runtimes = _display_runtimes(hass)
+    catalogue: dict[str, str] = {}
+    for runtime in runtimes:
+        for scene in runtime["dashboard"].scene_summaries:
+            catalogue.setdefault(scene["id"], scene["name"])
+    if not catalogue:
+        catalogue[DEFAULT_SCENE_ID] = DEFAULT_SCENE_NAME
+    default_scene_id = (
+        runtimes[0]["dashboard"].default_scene_id
+        if runtimes
+        else DEFAULT_SCENE_ID
+    )
+    return [
+        {
+            "id": scene_id,
+            "name": name,
+            "is_default": scene_id == default_scene_id,
+        }
+        for scene_id, name in catalogue.items()
+    ]
+
+
+def _new_scene_id(hass: HomeAssistant, name: str) -> str:
+    """Create a readable unique scene id."""
+    base = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_") or "scene"
+    base = base[:32]
+    existing = {scene["id"] for scene in _scene_catalogue(hass)}
+    candidate = base
+    suffix = 2
+    while candidate in existing:
+        ending = f"_{suffix}"
+        candidate = f"{base[: 32 - len(ending)]}{ending}"
+        suffix += 1
+    return candidate
+
+
+def _scene_name_exists(
+    hass: HomeAssistant, name: str, *, excluding_id: str | None = None
+) -> bool:
+    """Return whether another scene already uses a display name."""
+    normalized = name.casefold()
+    return any(
+        scene["id"] != excluding_id and scene["name"].casefold() == normalized
+        for scene in _scene_catalogue(hass)
+    )
+
+
+def _new_copy_name(hass: HomeAssistant, source_name: str) -> str:
+    """Create a unique human-readable name for a duplicated scene."""
+    base = f"{source_name} copy"
+    candidate = base
+    suffix = 2
+    while _scene_name_exists(hass, candidate):
+        candidate = f"{base} {suffix}"
+        suffix += 1
+    return candidate
 
 
 @websocket_api.websocket_command({"type": "mini_display/displays"})
@@ -124,13 +232,27 @@ async def websocket_list_displays(hass, connection, msg) -> None:
                 "config_entry_id": entry.entry_id,
                 "title": entry.title,
                 "available": bool(coordinator and coordinator.last_update_success),
+                "active_scene_id": runtime["dashboard"].active_scene_id if runtime else None,
+                "active_scene_name": runtime["dashboard"].scene_name() if runtime else None,
+                "preview_scene_id": runtime["dashboard"].preview_scene_id if runtime else None,
             }
         )
     connection.send_result(msg["id"], displays)
 
 
+@websocket_api.websocket_command({"type": "mini_display/scenes"})
+@websocket_api.async_response
+async def websocket_list_scenes(hass, connection, msg) -> None:
+    """Return the global scene catalogue."""
+    connection.send_result(msg["id"], _scene_catalogue(hass))
+
+
 @websocket_api.websocket_command(
-    {"type": "mini_display/dashboard/get", "config_entry_id": str}
+    {
+        "type": "mini_display/dashboard/get",
+        "config_entry_id": str,
+        vol.Optional("scene_id"): str,
+    }
 )
 @websocket_api.async_response
 async def websocket_get_dashboard(hass, connection, msg) -> None:
@@ -139,7 +261,9 @@ async def websocket_get_dashboard(hass, connection, msg) -> None:
     if runtime is None:
         connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
-    connection.send_result(msg["id"], runtime["dashboard"].dashboard)
+    manager = runtime["dashboard"]
+    scene_id = msg.get("scene_id", manager.active_scene_id)
+    connection.send_result(msg["id"], manager.get_dashboard(scene_id))
 
 
 @websocket_api.websocket_command(
@@ -147,6 +271,7 @@ async def websocket_get_dashboard(hass, connection, msg) -> None:
         "type": "mini_display/dashboard/set",
         "config_entry_id": str,
         "dashboard": dict,
+        vol.Optional("scene_id"): str,
         vol.Optional("page_id"): str,
     }
 )
@@ -159,13 +284,195 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
         return
     try:
         await runtime["dashboard"].async_apply(
-            msg["dashboard"], msg.get("page_id")
+            msg["dashboard"], msg.get("page_id"), msg.get("scene_id")
         )
     except DashboardValidationError as err:
         connection.send_error(
             msg["id"], "invalid_dashboard", f"{err.path}: {err}"
         )
         return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/scene/create",
+        "name": vol.All(str, vol.Strip, vol.Length(min=1, max=48)),
+    }
+)
+@websocket_api.async_response
+async def websocket_create_scene(hass, connection, msg) -> None:
+    """Create one scene for every configured display."""
+    if _scene_name_exists(hass, msg["name"]):
+        connection.send_error(msg["id"], "invalid_scene", "Scene name already exists")
+        return
+    scene_id = _new_scene_id(hass, msg["name"])
+    for runtime in _display_runtimes(hass):
+        await runtime["dashboard"].async_create_scene(scene_id, msg["name"])
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(
+        msg["id"], {"id": scene_id, "name": msg["name"], "is_default": False}
+    )
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/scene/duplicate", "source_scene_id": str}
+)
+@websocket_api.async_response
+async def websocket_duplicate_scene(hass, connection, msg) -> None:
+    """Duplicate one scene and all of its per-display layouts."""
+    source = next(
+        (
+            scene
+            for scene in _scene_catalogue(hass)
+            if scene["id"] == msg["source_scene_id"]
+        ),
+        None,
+    )
+    if source is None:
+        connection.send_error(msg["id"], "invalid_scene", "Source scene not found")
+        return
+    name = _new_copy_name(hass, str(source["name"]))
+    scene_id = _new_scene_id(hass, name)
+    try:
+        for runtime in _display_runtimes(hass):
+            await runtime["dashboard"].async_duplicate_scene(
+                msg["source_scene_id"], scene_id, name
+            )
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(
+        msg["id"], {"id": scene_id, "name": name, "is_default": False}
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/scene/rename",
+        "scene_id": str,
+        "name": vol.All(str, vol.Strip, vol.Length(min=1, max=48)),
+    }
+)
+@websocket_api.async_response
+async def websocket_rename_scene(hass, connection, msg) -> None:
+    """Rename a scene on every display."""
+    if _scene_name_exists(hass, msg["name"], excluding_id=msg["scene_id"]):
+        connection.send_error(msg["id"], "invalid_scene", "Scene name already exists")
+        return
+    try:
+        for runtime in _display_runtimes(hass):
+            await runtime["dashboard"].async_rename_scene(msg["scene_id"], msg["name"])
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/scene/default", "scene_id": str}
+)
+@websocket_api.async_response
+async def websocket_set_default_scene(hass, connection, msg) -> None:
+    """Set the global default scene without activating it."""
+    try:
+        for runtime in _display_runtimes(hass):
+            await runtime["dashboard"].async_set_default_scene(msg["scene_id"])
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/scene/delete", "scene_id": str}
+)
+@websocket_api.async_response
+async def websocket_delete_scene(hass, connection, msg) -> None:
+    """Delete a scene from every display."""
+    try:
+        for runtime in _display_runtimes(hass):
+            await runtime["dashboard"].async_delete_scene(msg["scene_id"])
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/scene/activate",
+        "config_entry_id": str,
+        "scene_id": str,
+    }
+)
+@websocket_api.async_response
+async def websocket_activate_scene(hass, connection, msg) -> None:
+    """Activate one scene on one physical display."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    try:
+        await runtime["dashboard"].async_activate_scene(msg["scene_id"])
+        await runtime["coordinator"].async_request_refresh()
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
+    connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/scene/preview/start",
+        "config_entry_id": str,
+        "scene_id": str,
+        vol.Optional("page_id"): str,
+        vol.Optional("dashboard"): dict,
+    }
+)
+@websocket_api.async_response
+async def websocket_start_scene_preview(hass, connection, msg) -> None:
+    """Temporarily show a scene on one display."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    try:
+        manager = runtime["dashboard"]
+        await manager.async_start_preview(
+            msg["scene_id"],
+            msg.get("page_id"),
+            msg.get("dashboard"),
+            owner=connection,
+        )
+    except DashboardValidationError as err:
+        connection.send_error(msg["id"], "invalid_scene", str(err))
+        return
+    def stop_preview_on_disconnect() -> None:
+        hass.async_create_task(manager.async_stop_preview(owner=connection))
+
+    connection.subscriptions[msg["id"]] = stop_preview_on_disconnect
+    connection.send_result(msg["id"], {"accepted": True, "timeout": 300})
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/scene/preview/stop", "config_entry_id": str}
+)
+@websocket_api.async_response
+async def websocket_stop_scene_preview(hass, connection, msg) -> None:
+    """Stop temporary preview and restore the active scene."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    await runtime["dashboard"].async_stop_preview()
     connection.send_result(msg["id"], {"accepted": True})
 
 

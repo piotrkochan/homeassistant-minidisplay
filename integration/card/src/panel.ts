@@ -16,6 +16,7 @@ export class MiniDisplayPanel extends LitElement {
       min-height: 100%;
       color: var(--primary-text-color);
       background: var(--primary-background-color);
+      font-family: var(--ha-font-family-body, Roboto, sans-serif);
     }
     .shell {
       width: min(1440px, 100%);
