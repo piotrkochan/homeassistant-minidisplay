@@ -72,6 +72,7 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
     if not isinstance(pages, list) or not 1 <= len(pages) <= 16:
         raise DashboardValidationError("Dashboard requires 1-16 pages", "/pages")
     seen_pages: set[str] = set()
+    enabled_pages = 0
     for page_index, page in enumerate(pages):
         page_path = f"/pages/{page_index}"
         if not isinstance(page, dict):
@@ -82,6 +83,11 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
         if page_id in seen_pages:
             raise DashboardValidationError("Page id must be unique", f"{page_path}/id")
         seen_pages.add(page_id)
+        enabled = page.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise DashboardValidationError("enabled must be a boolean", f"{page_path}/enabled")
+        if enabled:
+            enabled_pages += 1
         if "transition" not in page and legacy_transition is not None:
             page["transition"] = deepcopy(legacy_transition)
         _validate_transition(page.get("transition"), f"{page_path}/transition")
@@ -131,6 +137,8 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 _validate_color_mappings(
                     card.get("colorMappings"), card.get("type"), f"{card_path}/colorMappings"
                 )
+    if enabled_pages == 0:
+        raise DashboardValidationError("Dashboard requires an enabled page", "/pages")
     return document
 
 
@@ -365,11 +373,14 @@ def extract_sources(document: dict[str, Any]) -> set[str]:
     sources = {
         card["source"]
         for page in document["pages"]
+        if page.get("enabled", True)
         for row in page["rows"]
         for card in row["cards"]
         if isinstance(card.get("source"), str) and card["source"]
     }
     for page in document["pages"]:
+        if not page.get("enabled", True):
+            continue
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
@@ -383,6 +394,8 @@ def extract_visibility_sources(document: dict[str, Any]) -> set[str]:
     """Return entity IDs that can change the rendered layout."""
     sources: set[str] = set()
     for page in document["pages"]:
+        if not page.get("enabled", True):
+            continue
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
@@ -490,6 +503,9 @@ def visibility_matches(
 def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
     """Resolve HA visibility rules into a firmware-compatible dashboard."""
     rendered = deepcopy(document)
+    rendered["pages"] = [
+        page for page in rendered["pages"] if page.get("enabled", True)
+    ]
     for page in rendered["pages"]:
         visible_rows = []
         for row in page["rows"]:
@@ -789,6 +805,11 @@ class MiniDisplayDashboardManager:
             page["id"] for page in preview_dashboard["pages"]
         }:
             raise DashboardValidationError("Page not found in scene")
+        if page_id is not None:
+            preview_dashboard = deepcopy(preview_dashboard)
+            for page in preview_dashboard["pages"]:
+                if page["id"] == page_id:
+                    page["enabled"] = True
         await self._async_send_dashboard(preview_dashboard, page_id)
         self._clear_preview()
         self.preview_scene_id = scene_id
