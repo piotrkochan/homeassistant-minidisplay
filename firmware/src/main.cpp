@@ -106,11 +106,21 @@ struct DashboardValue {
 DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
 CachedPage transitionPages[2]{};
+uint32_t pendingChangedValues = 0;
+bool fullRenderPending = false;
+uint32_t minimumFreeHeapBytes = UINT32_MAX;
+#if defined(ESP8266)
+char lastResetReason[48]{};
+#endif
 
 bool renderDashboardPage();
-bool renderDashboardPage(const JsonObjectConst *changedValues,
+bool renderDashboardPage(const uint32_t *changedValues,
                          bool clear = true);
 void showPageWithTransition(uint8_t nextPageIndex);
+
+void recordFreeHeap() {
+  minimumFreeHeapBytes = min(minimumFreeHeapBytes, ESP.getFreeHeap());
+}
 
 void updatePixelShift() {
   if (displayPixelShift == 0) {
@@ -238,7 +248,8 @@ bool apiAuthenticated() {
     server.send(403, "application/json", "{\"error\":\"not_configured\"}");
     return false;
   }
-  const String expected = "Bearer " + String(config.otaPassword);
+  char expected[sizeof(config.otaPassword) + 8];
+  snprintf(expected, sizeof(expected), "Bearer %s", config.otaPassword);
   if (server.header("Authorization") == expected) return true;
   server.sendHeader("WWW-Authenticate", "Bearer");
   server.send(401, "application/json", "{\"error\":\"invalid_auth\"}");
@@ -251,6 +262,7 @@ void sendJsonError(int status, const __FlashStringHelper *error,
   document["error"] = error;
   document["message"] = message;
   String body;
+  body.reserve(192);
   serializeJson(document, body);
   server.send(status, "application/json", body);
 }
@@ -763,8 +775,7 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
   return true;
 }
 
-bool drawDashboardPage(JsonObjectConst page,
-                       const JsonObjectConst *changedValues,
+bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
                        int16_t offsetX = 0, int16_t offsetY = 0,
                        bool clear = true) {
   JsonArrayConst rows = page["rows"].as<JsonArrayConst>();
@@ -821,8 +832,11 @@ bool drawDashboardPage(JsonObjectConst page,
     size_t cardIndex = 0;
     for (JsonObjectConst card : cards) {
       const char *source = card["source"];
-      if (!partial ||
-          (source != nullptr && changedValues->containsKey(source))) {
+      DashboardValue *sourceValue = findValue(source, false);
+      const bool sourceChanged =
+          partial && sourceValue != nullptr &&
+          (*changedValues & (1UL << (sourceValue - dashboardValues))) != 0;
+      if (!partial || sourceChanged) {
         uint8_t edgeExtensions = 0;
         if (cardIndex == 0) edgeExtensions |= kExtendLeft;
         if (cardIndex + 1 == cards.size()) edgeExtensions |= kExtendRight;
@@ -844,7 +858,7 @@ bool drawDashboardPage(JsonObjectConst page,
 
 bool renderDashboardPage() { return renderDashboardPage(nullptr); }
 
-bool renderDashboardPage(const JsonObjectConst *changedValues, bool clear) {
+bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   if (!filesystemReady || !LittleFS.exists(kDashboardPath) ||
       activePageIndex >= dashboardPageCount) {
     return false;
@@ -852,6 +866,7 @@ bool renderDashboardPage(const JsonObjectConst *changedValues, bool clear) {
   File file = LittleFS.open(kDashboardPath, "r");
   if (!file) return false;
   DynamicJsonDocument document(12288);
+  recordFreeHeap();
   const auto error = deserializeJson(document, file);
   file.close();
   if (error) return false;
@@ -921,6 +936,7 @@ bool loadDashboardMetadata(Stream &stream) {
   filter["transition"] = true;
 
   DynamicJsonDocument document(6144);
+  recordFreeHeap();
   const auto error = deserializeJson(
       document, stream, DeserializationOption::Filter(filter));
   if (error || document["version"].as<int>() != 1 ||
@@ -933,7 +949,6 @@ bool loadDashboardMetadata(Stream &stream) {
   JsonArray pages = document["pages"].as<JsonArray>();
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
 
-  DashboardPage parsed[kMaxPages]{};
   PageTransitionConfig legacyTransition;
   if (!PageTransitionRenderer::parse(document["transition"], legacyTransition)) {
     return false;
@@ -942,14 +957,12 @@ bool loadDashboardMetadata(Stream &stream) {
   for (JsonObject page : pages) {
     const char *id = page["id"];
     if (id == nullptr || id[0] == '\0' || strlen(id) > 32) return false;
-    strlcpy(parsed[count].id, id, sizeof(parsed[count].id));
     const uint32_t seconds = page["durationSeconds"] | defaultSeconds;
     if (seconds == 0 || seconds > 86400) return false;
-    parsed[count].durationMs = seconds * 1000UL;
-    if (page["transition"].isNull()) {
-      parsed[count].transition = legacyTransition;
-    } else if (!PageTransitionRenderer::parse(page["transition"],
-                                              parsed[count].transition)) {
+    PageTransitionConfig parsedTransition;
+    if (!page["transition"].isNull() &&
+        !PageTransitionRenderer::parse(page["transition"],
+                                       parsedTransition)) {
       return false;
     }
     JsonArray rows = page["rows"].as<JsonArray>();
@@ -971,7 +984,22 @@ bool loadDashboardMetadata(Stream &stream) {
     }
     ++count;
   }
-  memcpy(dashboardPages, parsed, sizeof(parsed));
+
+  count = 0;
+  for (JsonObject page : pages) {
+    DashboardPage &parsed = dashboardPages[count++];
+    strlcpy(parsed.id, page["id"], sizeof(parsed.id));
+    const uint32_t seconds = page["durationSeconds"] | defaultSeconds;
+    parsed.durationMs = seconds * 1000UL;
+    if (page["transition"].isNull()) {
+      parsed.transition = legacyTransition;
+    } else {
+      PageTransitionRenderer::parse(page["transition"], parsed.transition);
+    }
+  }
+  for (uint8_t index = count; index < kMaxPages; ++index) {
+    memset(&dashboardPages[index], 0, sizeof(dashboardPages[index]));
+  }
   dashboardPageCount = count;
   if (activePageIndex >= dashboardPageCount) activePageIndex = 0;
   pageShownAt = millis();
@@ -1004,13 +1032,14 @@ void sendApiInfo() {
   capabilities.add("pixel-shift");
   capabilities.add("page-control");
   String body;
+  body.reserve(384);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
 
 void sendApiStatus() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<768> document;
+  StaticJsonDocument<1024> document;
   document["connected"] = WiFi.status() == WL_CONNECTED;
   document["displayOn"] = displayOn;
   document["brightness"] = displayBrightness;
@@ -1019,6 +1048,12 @@ void sendApiStatus() {
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
   document["uptimeSeconds"] = millis() / 1000UL;
   document["freeHeapBytes"] = ESP.getFreeHeap();
+#if defined(ESP8266)
+  document["minimumFreeHeapBytes"] = minimumFreeHeapBytes;
+  document["maximumFreeBlockBytes"] = ESP.getMaxFreeBlockSize();
+  document["heapFragmentationPercent"] = ESP.getHeapFragmentation();
+  document["resetReason"] = lastResetReason;
+#endif
   document["wifiRssiDbm"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
   document["firmwareVersion"] = kFirmwareVersion;
   JsonArray pages = document.createNestedArray("pages");
@@ -1026,6 +1061,7 @@ void sendApiStatus() {
     pages.add(dashboardPages[index].id);
   }
   String body;
+  body.reserve(640);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
@@ -1085,7 +1121,7 @@ void receiveApiDashboard() {
   if (server.arg("render") != "false") {
     pageRotationAuto = true;
     pageShownAt = millis();
-    showCurrentPage();
+    fullRenderPending = true;
   }
   server.send(204);
 }
@@ -1101,6 +1137,7 @@ void receiveApiData() {
   filter["values"] = true;
   filter["render"] = true;
   DynamicJsonDocument document(4096);
+  recordFreeHeap();
   const auto error = deserializeJson(document, body,
       DeserializationOption::Filter(filter));
   if (error || !document["values"].is<JsonObject>()) {
@@ -1108,6 +1145,7 @@ void receiveApiData() {
     return;
   }
   JsonObject values = document["values"].as<JsonObject>();
+  uint32_t changedValueMask = 0;
   for (JsonPair pair : values) {
     DashboardValue *slot = findValue(pair.key().c_str(), true);
     if (slot == nullptr) continue;
@@ -1115,10 +1153,10 @@ void receiveApiData() {
     const char *state = value["state"] | "unknown";
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = value["available"] | false;
+    changedValueMask |= 1UL << (slot - dashboardValues);
   }
   if (document["render"] | true) {
-    JsonObjectConst changedValues = values;
-    if (!renderDashboardPage(&changedValues)) showCurrentPage();
+    pendingChangedValues |= changedValueMask;
   }
   server.send(204);
 }
@@ -1382,6 +1420,10 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.printf("Home Assistant Mini-Display firmware %s\n", kFirmwareVersion);
+#if defined(ESP8266)
+  const String resetReason = ESP.getResetReason();
+  strlcpy(lastResetReason, resetReason.c_str(), sizeof(lastResetReason));
+#endif
   loadConfig();
   filesystemReady = LittleFS.begin();
   loadDisplaySettings();
@@ -1394,10 +1436,20 @@ void setup() {
   showDisplayTest();
   if (dashboardPageCount) showCurrentPage();
   applyBacklight();
+  recordFreeHeap();
 }
 
 void loop() {
   server.handleClient();
+  if (fullRenderPending) {
+    fullRenderPending = false;
+    pendingChangedValues = 0;
+    showCurrentPage();
+  } else if (pendingChangedValues != 0) {
+    const uint32_t changedValues = pendingChangedValues;
+    pendingChangedValues = 0;
+    if (!renderDashboardPage(&changedValues)) showCurrentPage();
+  }
   startMdns();
 #if defined(ESP8266)
   if (mdnsReady) MDNS.update();
@@ -1416,5 +1468,6 @@ void loop() {
       millis() - connectStartedAt >= kConnectTimeoutMs) {
     startAccessPoint();
   }
+  recordFreeHeap();
   delay(2);
 }

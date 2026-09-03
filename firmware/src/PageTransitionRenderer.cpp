@@ -6,7 +6,7 @@ namespace {
 
 constexpr int16_t kDisplaySize = 240;
 #if defined(ESP8266)
-constexpr int16_t kFrameBandHeight = 32;
+constexpr int16_t kFrameBandHeight = 24;
 #endif
 
 bool equals(const char *left, const char *right) {
