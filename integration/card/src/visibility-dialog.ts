@@ -30,6 +30,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   @property({ attribute: false }) value?: Visibility;
   @state() private draft: Visibility = emptyVisibility();
   @state() private advanced = false;
+  private valueRefreshTimer?: number;
 
   static styles = css`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
@@ -40,7 +41,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     label{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}select,input{box-sizing:border-box;width:100%;min-height:40px;padding:8px;color:var(--primary-text-color);font:inherit;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}
     select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.rule-list{display:grid;gap:10px}
     .rule{display:grid;gap:10px;padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)}
-    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}.entity-source{display:grid;gap:4px}.current-value{min-height:18px;padding:0 4px;color:var(--secondary-text-color);font-size:12px;line-height:18px}.current-value strong{color:var(--primary-text-color);font-weight:500}.current-value.unavailable strong{color:var(--warning-color)}
     .rule-marker{display:grid;place-items:center;align-self:center;width:28px;height:28px;color:#fff;font-size:13px;font-weight:700;border-radius:50%}.rule-reference{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:end}.rule-reference .rule-marker{margin-bottom:6px}
     .icon{display:grid;place-items:center;width:40px;height:40px;padding:0;color:var(--secondary-text-color);background:transparent;border:0;border-radius:50%;cursor:pointer}.icon.danger{color:var(--error-color)}.icon:disabled{opacity:.38;cursor:default}
     .logic{padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:color-mix(in srgb,var(--secondary-background-color) 60%,transparent)}.group{display:grid;gap:8px}.group.nested{margin-left:18px;padding:10px 0 4px 12px;border-left:3px solid var(--primary-color)}
@@ -58,6 +59,13 @@ export class MiniDisplayVisibilityDialog extends LitElement {
       this.draft.rules[0].source = "card";
       if (this.card?.type === "number") this.draft.rules[0].operator = "range";
     }
+    this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3000);
+  }
+
+  disconnectedCallback() {
+    if (this.valueRefreshTimer !== undefined) window.clearInterval(this.valueRefreshTimer);
+    this.valueRefreshTimer = undefined;
+    super.disconnectedCallback();
   }
 
   render() {
@@ -93,7 +101,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
       </div>
       <div class="rule-fields">
         <label>Comparison<select .value=${rule.operator} @change=${(event: Event) => this.changeOperator(index, (event.target as HTMLSelectElement).value as VisibilityRuleOperator)}>${Object.entries(operatorNames).map(([value, name]) => html`<option value=${value}>${name}</option>`)}</select></label>
-        ${needsEntity ? html`<ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: this.entitySelector(rule) } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>` : html`<p>Uses the raw value of this card.</p>`}
+        ${needsEntity ? html`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: this.entitySelector(rule) } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>${this.currentValue(rule)}</div>` : html`<p>Uses the raw value of this card.</p>`}
         ${rule.operator === "range" ? html`<div class="range">${this.numberField("From", rule.minimum, (minimum) => this.updateRule(index, { minimum }))}${this.numberField("To", rule.maximum, (maximum) => this.updateRule(index, { maximum }))}</div>` : needsMatch ? this.matchField(rule, index) : nothing}
       </div>
     </article>`;
@@ -158,6 +166,15 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   private sourceState(rule: VisibilityRule) {
     const entityId = rule.source === "card" ? this.card?.source : rule.entity;
     return entityId ? this.hass?.states[entityId] : undefined;
+  }
+
+  private currentValue(rule: VisibilityRule) {
+    if (!rule.entity) return html`<div class="current-value">Select an entity to see its current value.</div>`;
+    const state = this.hass?.states[rule.entity];
+    if (!state) return html`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
+    const unit = typeof state.attributes?.unit_of_measurement === "string" ? ` ${state.attributes.unit_of_measurement}` : "";
+    const unavailable = ["unknown", "unavailable"].includes(state.state);
+    return html`<div class="current-value ${unavailable ? "unavailable" : ""}"><span>Current value: </span><strong>${state.state}${unit}</strong></div>`;
   }
 
   private knownValues(rule: VisibilityRule): string[] {

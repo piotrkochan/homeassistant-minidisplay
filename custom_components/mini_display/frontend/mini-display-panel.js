@@ -17,7 +17,7 @@ let Ie = class {
     return this.cssText;
   }
 };
-const Ve = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t, ...e) => {
+const qe = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((s, a, r) => s + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
@@ -33,7 +33,7 @@ const Ve = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t,
 }, fe = oe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let i = "";
   for (const s of e.cssRules) i += s.cssText;
-  return Ve(i);
+  return qe(i);
 })(t) : t;
 const { is: We, defineProperty: Be, getOwnPropertyDescriptor: Ge, getOwnPropertyNames: Ke, getOwnPropertySymbols: Je, getPrototypeOf: Ze } = Object, te = globalThis, be = te.trustedTypes, Ye = be ? be.emptyScript : "", Qe = te.reactiveElementPolyfillSupport, F = (t, e) => t, X = { toAttribute(t, e) {
   switch (e) {
@@ -248,7 +248,7 @@ let U = class extends HTMLElement {
 };
 U.elementStyles = [], U.shadowRootOptions = { mode: "open" }, U[F("elementProperties")] = /* @__PURE__ */ new Map(), U[F("finalized")] = /* @__PURE__ */ new Map(), Qe?.({ ReactiveElement: U }), (te.reactiveElementVersions ??= []).push("2.1.2");
 const de = globalThis, $e = (t) => t, ee = de.trustedTypes, we = ee ? ee.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ne = "$lit$", C = `lit$${Math.random().toFixed(9).slice(2)}$`, Te = "?" + C, Xe = `<${Te}>`, T = document, W = () => T.createComment(""), B = (t) => t === null || typeof t != "object" && typeof t != "function", ce = Array.isArray, et = (t) => ce(t) || typeof t?.[Symbol.iterator] == "function", se = `[ 	
-\f\r]`, q = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _e = /-->/g, Se = />/g, I = RegExp(`>|${se}(?:([^\\s"'>=/]+)(${se}*=${se}*(?:[^ 	
+\f\r]`, V = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _e = /-->/g, Se = />/g, I = RegExp(`>|${se}(?:([^\\s"'>=/]+)(${se}*=${se}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), ke = /'/g, Ae = /"/g, Oe = /^(?:script|style|textarea|title)$/i, tt = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), n = tt(1), j = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), De = /* @__PURE__ */ new WeakMap(), N = T.createTreeWalker(T, 129);
 function ze(t, e) {
   if (!ce(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
@@ -256,13 +256,13 @@ function ze(t, e) {
 }
 const it = (t, e) => {
   const i = t.length - 1, s = [];
-  let a, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = q;
+  let a, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = V;
   for (let d = 0; d < i; d++) {
     const l = t[d];
     let u, v, h = -1, f = 0;
-    for (; f < l.length && (o.lastIndex = f, v = o.exec(l), v !== null); ) f = o.lastIndex, o === q ? v[1] === "!--" ? o = _e : v[1] !== void 0 ? o = Se : v[2] !== void 0 ? (Oe.test(v[2]) && (a = RegExp("</" + v[2], "g")), o = I) : v[3] !== void 0 && (o = I) : o === I ? v[0] === ">" ? (o = a ?? q, h = -1) : v[1] === void 0 ? h = -2 : (h = o.lastIndex - v[2].length, u = v[1], o = v[3] === void 0 ? I : v[3] === '"' ? Ae : ke) : o === Ae || o === ke ? o = I : o === _e || o === Se ? o = q : (o = I, a = void 0);
+    for (; f < l.length && (o.lastIndex = f, v = o.exec(l), v !== null); ) f = o.lastIndex, o === V ? v[1] === "!--" ? o = _e : v[1] !== void 0 ? o = Se : v[2] !== void 0 ? (Oe.test(v[2]) && (a = RegExp("</" + v[2], "g")), o = I) : v[3] !== void 0 && (o = I) : o === I ? v[0] === ">" ? (o = a ?? V, h = -1) : v[1] === void 0 ? h = -2 : (h = o.lastIndex - v[2].length, u = v[1], o = v[3] === void 0 ? I : v[3] === '"' ? Ae : ke) : o === Ae || o === ke ? o = I : o === _e || o === Se ? o = V : (o = I, a = void 0);
     const b = o === I && t[d + 1].startsWith("/>") ? " " : "";
-    r += o === q ? l + Xe : h >= 0 ? (s.push(u), l.slice(0, h) + Ne + l.slice(h) + C + b) : l + C + (h === -2 ? d : b);
+    r += o === V ? l + Xe : h >= 0 ? (s.push(u), l.slice(0, h) + Ne + l.slice(h) + C + b) : l + C + (h === -2 ? d : b);
   }
   return [ze(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
 };
@@ -677,8 +677,8 @@ const ue = class ue extends $ {
     if (!e) return n`<div class="screen-frame" style=${i}><div class="screen loading" aria-label="Loading display preview"></div></div>`;
     const s = e.rows.filter((a) => Ce(this.hass, a.visibility)).map((a) => ({ ...a, cards: a.cards.filter((r) => Ce(this.hass, r.visibility, r)) })).filter((a) => a.cards.length > 0);
     return s.length === 0 ? n`<div class="screen-frame" style=${i}><div class="screen"><div class="card"><div class="value">No visible content</div></div></div></div>` : n`<div class="screen-frame" style=${i}><div class="screen">${e.title && e.showTitle !== !1 ? n`<h3>${e.title}</h3>` : null}${s.map((a) => n`<div class="group" style="flex:${a.weight ?? 1}">${a.title && a.showTitle !== !1 ? n`<div class="title">${a.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${a.cards.length},minmax(0,1fr))">${a.cards.map((r) => {
-      const o = r.source ? this.hass?.states[r.source]?.state ?? "—" : r.text ?? "—", d = Number(o), l = r.minimum ?? 0, u = r.maximum ?? 100, v = Number.isFinite(d) && u > l ? Math.max(0, Math.min(100, (d - l) / (u - l) * 100)) : 0, h = { sans: "sans-serif", "sans-bold": "sans-serif", mono: "monospace", serif: "serif" }[r.valueStyle?.fontFamily ?? "sans"], f = { auto: 14, small: 10, medium: 13, large: 17, xlarge: 22 }[r.valueStyle?.fontSize ?? "auto"], b = mt(r, o), M = b?.background ?? r.style?.background ?? "", ge = b?.foreground ?? r.style?.foreground ?? "", me = (Q[M] ?? M) || "#20242d", ve = Q[r.style?.accent ?? ""] ?? r.style?.accent ?? "#42a5f5", je = (Q[ge] ?? ge) || "white", Le = { left: "flex-start", center: "center", right: "flex-end" }[r.valueStyle?.horizontalAlign ?? "center"], He = { top: "flex-start", middle: "center", bottom: "flex-end" }[r.valueStyle?.verticalAlign ?? "middle"], qe = r.valueStyle?.horizontalAlign ?? "center";
-      return n`<div class="card" style=${`background:${me};color:${je}`}><small>${r.title ?? ""}</small><div class="value-wrap" style=${`align-items:${He};justify-content:${Le};text-align:${qe}`}><div class="value" style=${`font-family:${h};font-size:${f}px;font-weight:${r.valueStyle?.fontFamily === "sans-bold" ? 700 : 600}`}>${this.cardValue(r)}</div></div>${r.progress === "bar" ? n`<div class="bar"><i style=${`width:${v}%;background:${ve}`}></i></div>` : r.progress === "ring" ? n`<div class="ring" style=${`background:conic-gradient(${ve} ${v}%,#3d424e 0);--ring-bg:${me}`}></div>` : null}</div>`;
+      const o = r.source ? this.hass?.states[r.source]?.state ?? "—" : r.text ?? "—", d = Number(o), l = r.minimum ?? 0, u = r.maximum ?? 100, v = Number.isFinite(d) && u > l ? Math.max(0, Math.min(100, (d - l) / (u - l) * 100)) : 0, h = { sans: "sans-serif", "sans-bold": "sans-serif", mono: "monospace", serif: "serif" }[r.valueStyle?.fontFamily ?? "sans"], f = { auto: 14, small: 10, medium: 13, large: 17, xlarge: 22 }[r.valueStyle?.fontSize ?? "auto"], b = mt(r, o), M = b?.background ?? r.style?.background ?? "", ge = b?.foreground ?? r.style?.foreground ?? "", me = (Q[M] ?? M) || "#20242d", ve = Q[r.style?.accent ?? ""] ?? r.style?.accent ?? "#42a5f5", je = (Q[ge] ?? ge) || "white", Le = { left: "flex-start", center: "center", right: "flex-end" }[r.valueStyle?.horizontalAlign ?? "center"], He = { top: "flex-start", middle: "center", bottom: "flex-end" }[r.valueStyle?.verticalAlign ?? "middle"], Ve = r.valueStyle?.horizontalAlign ?? "center";
+      return n`<div class="card" style=${`background:${me};color:${je}`}><small>${r.title ?? ""}</small><div class="value-wrap" style=${`align-items:${He};justify-content:${Le};text-align:${Ve}`}><div class="value" style=${`font-family:${h};font-size:${f}px;font-weight:${r.valueStyle?.fontFamily === "sans-bold" ? 700 : 600}`}>${this.cardValue(r)}</div></div>${r.progress === "bar" ? n`<div class="bar"><i style=${`width:${v}%;background:${ve}`}></i></div>` : r.progress === "ring" ? n`<div class="ring" style=${`background:conic-gradient(${ve} ${v}%,#3d424e 0);--ring-bg:${me}`}></div>` : null}</div>`;
     })}</div></div>`)}</div></div>`;
   }
 };
@@ -718,7 +718,7 @@ var $t = Object.defineProperty, wt = Object.getOwnPropertyDescriptor, D = (t, e,
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
   return s && a && $t(e, i, a), a;
 };
-const V = (t, e, i) => {
+const q = (t, e, i) => {
   t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let _ = class extends $ {
@@ -736,7 +736,7 @@ let _ = class extends $ {
     return n`
       <ha-card
         class=${t.config_entry_id === this.selectedDisplayId ? "selected" : ""}
-        @click=${() => V(this, "display-selected", t.config_entry_id)}
+        @click=${() => q(this, "display-selected", t.config_entry_id)}
       >
         <header>
           <div><strong>${t.title}</strong><small>Active: ${t.active_scene_name ?? "Unknown"}</small></div>
@@ -746,7 +746,7 @@ let _ = class extends $ {
             aria-label=${s ? "Stop temporary preview" : "Show temporary preview"}
             ?disabled=${!s && !r}
             @click=${(o) => {
-      o.stopPropagation(), V(this, "preview-toggle", t);
+      o.stopPropagation(), q(this, "preview-toggle", t);
     }}
           >
             <ha-icon icon=${s ? "mdi:eye" : "mdi:eye-off-outline"}></ha-icon>
@@ -757,17 +757,17 @@ let _ = class extends $ {
           ${e.pages.length > 1 ? n`
             <nav>
               <button class="icon" aria-label="Previous page" @click=${(o) => {
-      o.stopPropagation(), V(this, "preview-page", { displayId: t.config_entry_id, delta: -1 });
+      o.stopPropagation(), q(this, "preview-page", { displayId: t.config_entry_id, delta: -1 });
     }}><ha-icon icon="mdi:chevron-left"></ha-icon></button>
               <span>${i + 1} / ${e.pages.length}</span>
               <button class="icon" aria-label="Next page" @click=${(o) => {
-      o.stopPropagation(), V(this, "preview-page", { displayId: t.config_entry_id, delta: 1 });
+      o.stopPropagation(), q(this, "preview-page", { displayId: t.config_entry_id, delta: 1 });
     }}><ha-icon icon="mdi:chevron-right"></ha-icon></button>
             </nav>
           ` : c}
         ` : n`<ha-alert alert-type="info">No layout in this scene.</ha-alert>`}
         ${!a && e ? n`<ha-button .disabled=${this.dirtyDisplays.has(t.config_entry_id)} @click=${(o) => {
-      o.stopPropagation(), V(this, "scene-activate", t);
+      o.stopPropagation(), q(this, "scene-activate", t);
     }}>Activate ${this.selectedSceneName}</ha-button>` : c}
       </ha-card>
     `;
@@ -973,7 +973,10 @@ let S = class extends $ {
     super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = Ee(), this.advanced = !1;
   }
   connectedCallback() {
-    super.connectedCallback(), this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range"));
+    super.connectedCallback(), this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
+  }
+  disconnectedCallback() {
+    this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
   }
   render() {
     const t = this.validationError;
@@ -1005,7 +1008,7 @@ let S = class extends $ {
       </div>
       <div class="rule-fields">
         <label>Comparison<select .value=${t.operator} @change=${(a) => this.changeOperator(e, a.target.value)}>${Object.entries(Dt).map(([a, r]) => n`<option value=${a}>${r}</option>`)}</select></label>
-        ${i ? n`<ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(a) => this.updateRule(e, { entity: a.detail.value.entity })}></ha-form>` : n`<p>Uses the raw value of this card.</p>`}
+        ${i ? n`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(a) => this.updateRule(e, { entity: a.detail.value.entity })}></ha-form>${this.currentValue(t)}</div>` : n`<p>Uses the raw value of this card.</p>`}
         ${t.operator === "range" ? n`<div class="range">${this.numberField("From", t.minimum, (a) => this.updateRule(e, { minimum: a }))}${this.numberField("To", t.maximum, (a) => this.updateRule(e, { maximum: a }))}</div>` : s ? this.matchField(t, e) : c}
       </div>
     </article>`;
@@ -1057,6 +1060,13 @@ let S = class extends $ {
   sourceState(t) {
     const e = t.source === "card" ? this.card?.source : t.entity;
     return e ? this.hass?.states[e] : void 0;
+  }
+  currentValue(t) {
+    if (!t.entity) return n`<div class="current-value">Select an entity to see its current value.</div>`;
+    const e = this.hass?.states[t.entity];
+    if (!e) return n`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
+    const i = typeof e.attributes?.unit_of_measurement == "string" ? ` ${e.attributes.unit_of_measurement}` : "", s = ["unknown", "unavailable"].includes(e.state);
+    return n`<div class="current-value ${s ? "unavailable" : ""}"><span>Current value: </span><strong>${e.state}${i}</strong></div>`;
   }
   knownValues(t) {
     if (!["equals", "not_equals"].includes(t.operator)) return [];
@@ -1167,7 +1177,7 @@ S.styles = z`
     label{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}select,input{box-sizing:border-box;width:100%;min-height:40px;padding:8px;color:var(--primary-text-color);font:inherit;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}
     select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.rule-list{display:grid;gap:10px}
     .rule{display:grid;gap:10px;padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)}
-    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}.entity-source{display:grid;gap:4px}.current-value{min-height:18px;padding:0 4px;color:var(--secondary-text-color);font-size:12px;line-height:18px}.current-value strong{color:var(--primary-text-color);font-weight:500}.current-value.unavailable strong{color:var(--warning-color)}
     .rule-marker{display:grid;place-items:center;align-self:center;width:28px;height:28px;color:#fff;font-size:13px;font-weight:700;border-radius:50%}.rule-reference{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:end}.rule-reference .rule-marker{margin-bottom:6px}
     .icon{display:grid;place-items:center;width:40px;height:40px;padding:0;color:var(--secondary-text-color);background:transparent;border:0;border-radius:50%;cursor:pointer}.icon.danger{color:var(--error-color)}.icon:disabled{opacity:.38;cursor:default}
     .logic{padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:color-mix(in srgb,var(--secondary-background-color) 60%,transparent)}.group{display:grid;gap:8px}.group.nested{margin-left:18px;padding:10px 0 4px 12px;border-left:3px solid var(--primary-color)}
