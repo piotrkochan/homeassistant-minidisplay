@@ -53,6 +53,10 @@ constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
 constexpr uint8_t kMaxPixelShift = 10;
 constexpr uint32_t kPixelShiftIntervalMs = 60000;
+constexpr uint8_t kExtendLeft = 1U << 0;
+constexpr uint8_t kExtendRight = 1U << 1;
+constexpr uint8_t kExtendTop = 1U << 2;
+constexpr uint8_t kExtendBottom = 1U << 3;
 
 struct DeviceConfig {
   uint32_t magic;
@@ -104,7 +108,8 @@ uint8_t dashboardValueCount = 0;
 CachedPage transitionPages[2]{};
 
 bool renderDashboardPage();
-bool renderDashboardPage(const JsonObjectConst *changedValues);
+bool renderDashboardPage(const JsonObjectConst *changedValues,
+                         bool clear = true);
 void showPageWithTransition(uint8_t nextPageIndex);
 
 void updatePixelShift() {
@@ -471,8 +476,42 @@ String cardValue(JsonObjectConst card) {
   return String(card["text"] | "");
 }
 
+void fillCardEdgeBackground(int16_t x, int16_t y, int16_t width,
+                            int16_t height, uint16_t background,
+                            uint8_t edges) {
+  const int16_t left = max<int16_t>(0, x);
+  const int16_t top = max<int16_t>(0, y);
+  const int16_t right = min<int16_t>(240, x + width);
+  const int16_t bottom = min<int16_t>(240, y + height);
+  if ((edges & kExtendLeft) && x > 0 && bottom > top) {
+    display.fillRect(0, top, x, bottom - top, background);
+  }
+  if ((edges & kExtendRight) && right < 240 && bottom > top) {
+    display.fillRect(right, top, 240 - right, bottom - top, background);
+  }
+  if ((edges & kExtendTop) && y > 0 && right > left) {
+    display.fillRect(left, 0, right - left, y, background);
+  }
+  if ((edges & kExtendBottom) && bottom < 240 && right > left) {
+    display.fillRect(left, bottom, right - left, 240 - bottom, background);
+  }
+  if ((edges & kExtendLeft) && (edges & kExtendTop) && x > 0 && y > 0) {
+    display.fillRect(0, 0, x, y, background);
+  }
+  if ((edges & kExtendRight) && (edges & kExtendTop) && right < 240 && y > 0) {
+    display.fillRect(right, 0, 240 - right, y, background);
+  }
+  if ((edges & kExtendLeft) && (edges & kExtendBottom) && x > 0 && bottom < 240) {
+    display.fillRect(0, bottom, x, 240 - bottom, background);
+  }
+  if ((edges & kExtendRight) && (edges & kExtendBottom) && right < 240 &&
+      bottom < 240) {
+    display.fillRect(right, bottom, 240 - right, 240 - bottom, background);
+  }
+}
+
 void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
-              int16_t height) {
+              int16_t height, uint8_t edgeExtensions = 0) {
   JsonObjectConst colorMapping;
   const char *source = card["source"];
   DashboardValue *sourceValue = findValue(source, false);
@@ -489,6 +528,7 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const uint16_t foreground =
       parseColor(foregroundValue, TFT_WHITE);
   const uint16_t accent = parseColor(card["style"]["accent"], TFT_CYAN);
+  fillCardEdgeBackground(x, y, width, height, background, edgeExtensions);
   display.fillRoundRect(x, y, width, height, 5, background);
 
   const char *title = card["title"];
@@ -732,13 +772,7 @@ bool drawDashboardPage(JsonObjectConst page,
   const uint16_t pageBackground =
       parseColor(page["style"]["background"], TFT_BLACK);
   const bool partial = changedValues != nullptr;
-  if (!partial) {
-    if (clear && offsetX == 0 && offsetY == 0) {
-      display.fillScreen(pageBackground);
-    } else {
-      display.fillRect(offsetX, offsetY, 240, 240, pageBackground);
-    }
-  }
+  if (!partial && clear) display.fillScreen(pageBackground);
   int16_t top = 1;
   const char *pageTitle = page["title"];
   const bool showPageTitle = page["showTitle"] | true;
@@ -769,7 +803,9 @@ bool drawDashboardPage(JsonObjectConst page,
     int16_t rowHeight = nextY - rowY;
     const char *rowTitle = row["title"];
     const bool showTitle = row["showTitle"] | true;
-    if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
+    const bool rowTitleShown =
+        showTitle && rowTitle && rowTitle[0] && rowHeight >= 24;
+    if (rowTitleShown) {
       if (!partial) {
         display.setTextDatum(TL_DATUM);
         display.setTextColor(TFT_LIGHTGREY, pageBackground);
@@ -782,13 +818,23 @@ bool drawDashboardPage(JsonObjectConst page,
     JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
     const int16_t cardWidth = (236 - gap * (cards.size() - 1)) / cards.size();
     int16_t cardX = 2 + offsetX;
+    size_t cardIndex = 0;
     for (JsonObjectConst card : cards) {
       const char *source = card["source"];
       if (!partial ||
           (source != nullptr && changedValues->containsKey(source))) {
-        drawCard(card, cardX, rowY + offsetY, cardWidth, rowHeight);
+        uint8_t edgeExtensions = 0;
+        if (cardIndex == 0) edgeExtensions |= kExtendLeft;
+        if (cardIndex + 1 == cards.size()) edgeExtensions |= kExtendRight;
+        if (rowIndex == 0 && top <= 1 && !rowTitleShown) {
+          edgeExtensions |= kExtendTop;
+        }
+        if (rowIndex + 1 == rows.size()) edgeExtensions |= kExtendBottom;
+        drawCard(card, cardX, rowY + offsetY, cardWidth, rowHeight,
+                 edgeExtensions);
       }
       cardX += cardWidth + gap;
+      ++cardIndex;
     }
     rowY = nextY + gap;
     yield();
@@ -798,7 +844,7 @@ bool drawDashboardPage(JsonObjectConst page,
 
 bool renderDashboardPage() { return renderDashboardPage(nullptr); }
 
-bool renderDashboardPage(const JsonObjectConst *changedValues) {
+bool renderDashboardPage(const JsonObjectConst *changedValues, bool clear) {
   if (!filesystemReady || !LittleFS.exists(kDashboardPath) ||
       activePageIndex >= dashboardPageCount) {
     return false;
@@ -812,7 +858,7 @@ bool renderDashboardPage(const JsonObjectConst *changedValues) {
   JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
   if (activePageIndex >= pages.size()) return false;
   return drawDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
-                           changedValues, pixelShiftX, pixelShiftY);
+                           changedValues, pixelShiftX, pixelShiftY, clear);
 }
 
 void showPageWithTransition(uint8_t nextPageIndex) {
@@ -859,6 +905,7 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   renderer.render(transitionPages[0], transitionPages[1], transition,
                   pixelShiftX, pixelShiftY);
   activePageIndex = nextPageIndex;
+  renderDashboardPage(nullptr, false);
   pageShownAt = millis();
 }
 
