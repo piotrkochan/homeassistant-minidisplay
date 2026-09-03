@@ -117,14 +117,16 @@
               "id": { "type": "string", "minLength": 1, "maxLength": 32 },
               "source": { "enum": ["card", "entity"] },
               "entity": { "$ref": "#/$defs/source" },
-              "operator": { "enum": ["range", "equals", "not_equals", "starts_with", "ends_with", "contains", "available", "unavailable"] },
+              "operator": { "enum": ["range", "number_equals", "number_not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "equals", "not_equals", "starts_with", "ends_with", "contains", "available", "unavailable"] },
               "minimum": { "type": "number" },
               "maximum": { "type": "number" },
+              "value": { "type": "number" },
               "match": { "type": "string", "maxLength": 64 }
             },
             "allOf": [
               { "if": { "properties": { "source": { "const": "entity" } } }, "then": { "required": ["entity"] } },
               { "if": { "properties": { "operator": { "enum": ["equals", "not_equals", "starts_with", "ends_with", "contains"] } } }, "then": { "required": ["match"] } },
+              { "if": { "properties": { "operator": { "enum": ["number_equals", "number_not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal"] } } }, "then": { "required": ["value"] } },
               { "if": { "properties": { "operator": { "const": "range" } } }, "then": { "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }] } }
             ]
           }

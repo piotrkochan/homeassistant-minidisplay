@@ -1,12 +1,25 @@
 import { css, html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { live } from "lit/directives/live.js";
 import type { DisplayCard, Hass, Visibility, VisibilityExpression, VisibilityGroupExpression, VisibilityRule, VisibilityRuleOperator } from "./types";
 
 const operatorNames: Record<VisibilityRuleOperator, string> = {
-  range: "is in number range", equals: "equals", not_equals: "does not equal",
+  range: "is in number range", number_equals: "equals", number_not_equals: "does not equal",
+  greater_than: "is greater than", greater_than_or_equal: "is greater than or equal to",
+  less_than: "is less than", less_than_or_equal: "is less than or equal to",
+  equals: "equals", not_equals: "does not equal",
   starts_with: "starts with", ends_with: "ends with", contains: "contains",
   available: "is available", unavailable: "is unavailable",
 };
+
+const numericOperators: VisibilityRuleOperator[] = [
+  "number_equals", "number_not_equals", "greater_than", "greater_than_or_equal",
+  "less_than", "less_than_or_equal", "range",
+];
+const numericValueOperators = new Set<VisibilityRuleOperator>(numericOperators.filter((operator) => operator !== "range"));
+const textOperators: VisibilityRuleOperator[] = ["equals", "not_equals", "starts_with", "ends_with", "contains"];
+const availabilityOperators: VisibilityRuleOperator[] = ["available", "unavailable"];
+const isNumericOperator = (operator: VisibilityRuleOperator) => numericOperators.includes(operator);
 
 const emptyVisibility = (): Visibility => ({
   rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
@@ -82,7 +95,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
         <main>
           <div class="mode-switch" role="tablist" aria-label="Visibility editor mode"><button class=${this.advanced ? "" : "active"} role="tab" aria-selected=${!this.advanced} @click=${() => this.advanced = false}>Simple</button><button class=${this.advanced ? "active" : ""} role="tab" aria-selected=${this.advanced} @click=${() => this.advanced = true}>Advanced</button></div>
           <p>${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}</p>
-          ${!this.advanced && this.draft.rules.length > 1 ? html`<label>Match<select .value=${this.draft.expression.operator} @change=${(event: Event) => this.updateGroup([], { operator: (event.target as HTMLSelectElement).value as "and" | "or" })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : nothing}
+          ${!this.advanced && this.draft.rules.length > 1 ? html`<label>Match<select .value=${live(this.draft.expression.operator)} @change=${(event: Event) => this.updateGroup([], { operator: (event.target as HTMLSelectElement).value as "and" | "or" })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : nothing}
           ${!this.advanced && this.hasAdvancedLogic ? html`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : nothing}
           <section><div class="section-head"><h3>Conditions</h3><ha-button .disabled=${this.draft.rules.length >= 12} @click=${this.addRule}>Add condition</ha-button></div><div class="rule-list">${this.draft.rules.map((rule, index) => this.renderRule(rule, index))}</div></section>
           ${this.advanced ? html`<section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div></section>` : nothing}
@@ -98,17 +111,18 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private renderRule(rule: VisibilityRule, index: number) {
     const needsEntity = rule.source === "entity";
-    const needsMatch = ["equals", "not_equals", "starts_with", "ends_with", "contains"].includes(rule.operator);
+    const needsMatch = textOperators.includes(rule.operator);
+    const needsNumericValue = numericValueOperators.has(rule.operator);
     return html`<article class="rule">
       <div class="rule-head">
         <span class="rule-marker" style=${`background:${ruleColor(rule.id)}`}>${ruleMarker(rule.id)}</span>
-        <label>Value source<select .value=${rule.source} @change=${(event: Event) => this.changeSource(index, (event.target as HTMLSelectElement).value as "card" | "entity")}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <label>Value source<select .value=${live(rule.source)} @change=${(event: Event) => this.changeSource(index, (event.target as HTMLSelectElement).value as "card" | "entity")}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
         <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${ruleMarker(rule.id)}`} @click=${() => this.removeRule(index)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
-        <label>Comparison<select .value=${rule.operator} @change=${(event: Event) => this.changeOperator(index, (event.target as HTMLSelectElement).value as VisibilityRuleOperator)}>${Object.entries(operatorNames).map(([value, name]) => html`<option value=${value}>${name}</option>`)}</select></label>
-        ${needsEntity ? html`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: this.entitySelector(rule) } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>${this.currentValue(rule)}</div>` : html`<p>Uses the raw value of this card.</p>`}
-        ${rule.operator === "range" ? html`<div class="range">${this.numberField("From", rule.minimum, (minimum) => this.updateRule(index, { minimum }))}${this.numberField("To", rule.maximum, (maximum) => this.updateRule(index, { maximum }))}</div>` : needsMatch ? this.matchField(rule, index) : nothing}
+        <label>Comparison<select .value=${live(rule.operator)} @change=${(event: Event) => this.changeOperator(index, (event.target as HTMLSelectElement).value as VisibilityRuleOperator)}>${this.operatorOptions(rule).map((operator) => html`<option value=${operator}>${operatorNames[operator]}</option>`)}</select></label>
+        ${needsEntity ? html`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: this.entitySelector(rule) } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>${this.currentValue(rule)}</div>` : html`<div class="entity-source">${this.currentValue(rule)}</div>`}
+        ${rule.operator === "range" ? html`<div class="range">${this.numberField("From", rule.minimum, (minimum) => this.updateRule(index, { minimum }))}${this.numberField("To", rule.maximum, (maximum) => this.updateRule(index, { maximum }))}</div>` : needsNumericValue ? this.numberField("Value", rule.value, (value) => this.updateRule(index, { value })) : needsMatch ? this.matchField(rule, index) : nothing}
       </div>
     </article>`;
   }
@@ -119,7 +133,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private renderGroup(group: VisibilityGroupExpression, path: number[]): TemplateResult {
     return html`<div class="group ${path.length ? "nested" : ""}">
-      <div class="group-head"><label>Group logic<select .value=${group.operator} @change=${(event: Event) => this.updateGroup(path, { operator: (event.target as HTMLSelectElement).value as "and" | "or" })}><option value="and">All must match (AND)</option><option value="or">Any may match (OR)</option></select></label><label class="invert"><input type="checkbox" .checked=${group.negate === true} @change=${(event: Event) => this.updateGroup(path, { negate: (event.target as HTMLInputElement).checked })}>Invert result</label></div>
+      <div class="group-head"><label>Group logic<select .value=${live(group.operator)} @change=${(event: Event) => this.updateGroup(path, { operator: (event.target as HTMLSelectElement).value as "and" | "or" })}><option value="and">All must match (AND)</option><option value="or">Any may match (OR)</option></select></label><label class="invert"><input type="checkbox" .checked=${group.negate === true} @change=${(event: Event) => this.updateGroup(path, { negate: (event.target as HTMLInputElement).checked })}>Invert result</label></div>
       ${group.children.map((child, index) => this.renderExpression(child, [...path, index], index, group.children.length))}
       <div class="group-actions"><ha-button @click=${() => this.addRuleReference(path)}>Add condition</ha-button><ha-button .disabled=${path.length >= 3} @click=${() => this.addGroup(path)}>Add group</ha-button></div>
     </div>`;
@@ -127,7 +141,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private renderExpression(expression: VisibilityExpression, path: number[], index: number, siblingCount: number): TemplateResult {
     if (expression.type === "group") return html`<div class="logic-child"><span class="logic-index">${index + 1}</span>${this.renderGroup(expression, path)}${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove group" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
-    return html`<div class="logic-child"><span class="logic-index">${index + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${ruleColor(expression.ruleId)}`}>${ruleMarker(expression.ruleId)}</span><label>Condition<select .value=${expression.ruleId} @change=${(event: Event) => this.updateExpression(path, { ...expression, ruleId: (event.target as HTMLSelectElement).value })}>${this.draft.rules.map((rule) => html`<option value=${rule.id}>Condition ${ruleMarker(rule.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${expression.negate === true} @change=${(event: Event) => this.updateExpression(path, { ...expression, negate: (event.target as HTMLInputElement).checked })}>Invert condition</label></div>${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
+    return html`<div class="logic-child"><span class="logic-index">${index + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${ruleColor(expression.ruleId)}`}>${ruleMarker(expression.ruleId)}</span><label>Condition<select .value=${live(expression.ruleId)} @change=${(event: Event) => this.updateExpression(path, { ...expression, ruleId: (event.target as HTMLSelectElement).value })}>${this.draft.rules.map((rule) => html`<option value=${rule.id}>Condition ${ruleMarker(rule.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${expression.negate === true} @change=${(event: Event) => this.updateExpression(path, { ...expression, negate: (event.target as HTMLInputElement).checked })}>Invert condition</label></div>${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
   }
 
   private moveButtons(path: number[], index: number, siblingCount: number) {
@@ -140,12 +154,12 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private changeSource(index: number, source: "card" | "entity") {
     const rule = this.draft.rules[index];
-    if (source === "card" && this.card?.type === "number" && !["range", "available", "unavailable"].includes(rule.operator)) {
+    if (source === "card" && this.card?.type === "number" && ![...numericOperators, ...availabilityOperators].includes(rule.operator)) {
       this.changeOperator(index, "range");
       this.updateRule(index, { source });
       return;
     }
-    if (source === "card" && this.card?.type !== "number" && rule.operator === "range") {
+    if (source === "card" && this.card?.type !== "number" && isNumericOperator(rule.operator)) {
       this.changeOperator(index, "equals");
       this.updateRule(index, { source });
       return;
@@ -153,9 +167,15 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     this.updateRule(index, { source });
   }
 
+  private operatorOptions(rule: VisibilityRule): VisibilityRuleOperator[] {
+    if (rule.source !== "card") return Object.keys(operatorNames) as VisibilityRuleOperator[];
+    if (this.card?.type === "number") return [...numericOperators, ...availabilityOperators];
+    return [...textOperators, ...availabilityOperators];
+  }
+
   private entitySelector(rule: VisibilityRule): Record<string, unknown> {
     if (["available", "unavailable"].includes(rule.operator)) return {};
-    const numeric = rule.operator === "range";
+    const numeric = isNumericOperator(rule.operator);
     const entities = Object.entries(this.hass?.states ?? {})
       .filter(([entityId, state]) => entityId === rule.entity || this.isNumericState(entityId, state) === numeric)
       .map(([entityId]) => entityId);
@@ -175,8 +195,12 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   }
 
   private currentValue(rule: VisibilityRule) {
-    if (!rule.entity) return html`<div class="current-value">Select an entity to see its current value.</div>`;
-    const state = this.hass?.states[rule.entity];
+    if (rule.source === "entity" && !rule.entity) return html`<div class="current-value">Select an entity to see its current value.</div>`;
+    if (rule.source === "card" && this.card?.type === "text" && !this.card.source) {
+      return html`<div class="current-value"><span>Current value: </span><strong>${this.card.text ?? ""}</strong></div>`;
+    }
+    const entityId = rule.source === "card" ? this.card?.source : rule.entity;
+    const state = entityId ? this.hass?.states[entityId] : undefined;
     if (!state) return html`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
     const unit = typeof state.attributes?.unit_of_measurement === "string" ? ` ${state.attributes.unit_of_measurement}` : "";
     const unavailable = ["unknown", "unavailable"].includes(state.state);
@@ -199,7 +223,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     const options = this.knownValues(rule);
     if (options.length) {
       const values = rule.match && !options.includes(rule.match) ? [rule.match, ...options] : options;
-      return html`<label>Value<select .value=${rule.match ?? ""} @change=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLSelectElement).value })}><option value="" disabled>Select value</option>${values.map((value) => html`<option value=${value}>${value}</option>`)}</select></label>`;
+      return html`<label>Value<select .value=${live(rule.match ?? "")} @change=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLSelectElement).value })}><option value="" disabled>Select value</option>${values.map((value) => html`<option value=${value}>${value}</option>`)}</select></label>`;
     }
     const current = this.sourceState(rule)?.state;
     return html`<label>Value<input maxlength="64" placeholder=${current ? `Current: ${current}` : "Value"} .value=${rule.match ?? ""} @input=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLInputElement).value })}></label>`;
@@ -209,10 +233,11 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     const rule = this.draft.rules[index];
     const next: VisibilityRule = { id: rule.id, source: rule.source, entity: rule.entity, operator };
     if (operator === "range") { next.minimum = rule.minimum; next.maximum = rule.maximum; }
-    else if (!["available", "unavailable"].includes(operator)) next.match = rule.match ?? "";
+    else if (numericValueOperators.has(operator)) next.value = rule.value;
+    else if (!availabilityOperators.includes(operator)) next.match = rule.match ?? "";
     const selectedState = next.entity ? this.hass?.states[next.entity] : undefined;
-    if (next.source === "entity" && next.entity && selectedState && !["available", "unavailable"].includes(operator)
-      && this.isNumericState(next.entity, selectedState) !== (operator === "range")) delete next.entity;
+    if (next.source === "entity" && next.entity && selectedState && !availabilityOperators.includes(operator)
+      && this.isNumericState(next.entity, selectedState) !== isNumericOperator(operator)) delete next.entity;
     this.draft = { ...this.draft, rules: this.draft.rules.map((item, ruleIndex) => ruleIndex === index ? next : item) };
   }
 
@@ -260,7 +285,8 @@ export class MiniDisplayVisibilityDialog extends LitElement {
         if ((rule.minimum !== undefined && !Number.isFinite(rule.minimum)) || (rule.maximum !== undefined && !Number.isFinite(rule.maximum))) return `Condition ${ruleMarker(rule.id)} needs valid number limits.`;
         if (rule.minimum !== undefined && rule.maximum !== undefined && rule.minimum > rule.maximum) return `Condition ${ruleMarker(rule.id)} has an invalid range.`;
       }
-      if (["equals", "not_equals", "starts_with", "ends_with", "contains"].includes(rule.operator) && !rule.match?.length) return `Condition ${ruleMarker(rule.id)} needs a value.`;
+      if (numericValueOperators.has(rule.operator) && !Number.isFinite(rule.value)) return `Condition ${ruleMarker(rule.id)} needs a numeric value.`;
+      if (textOperators.includes(rule.operator) && !rule.match?.length) return `Condition ${ruleMarker(rule.id)} needs a value.`;
     }
     return undefined;
   }

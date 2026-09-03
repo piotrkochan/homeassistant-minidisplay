@@ -22,7 +22,21 @@ export type PageTransition = {
   tileSize?: "small" | "medium" | "large";
 };
 
-export type VisibilityRuleOperator = "range" | "equals" | "not_equals" | "starts_with" | "ends_with" | "contains" | "available" | "unavailable";
+export type VisibilityRuleOperator =
+  | "range"
+  | "number_equals"
+  | "number_not_equals"
+  | "greater_than"
+  | "greater_than_or_equal"
+  | "less_than"
+  | "less_than_or_equal"
+  | "equals"
+  | "not_equals"
+  | "starts_with"
+  | "ends_with"
+  | "contains"
+  | "available"
+  | "unavailable";
 export type VisibilityRule = {
   id: string;
   source: "card" | "entity";
@@ -30,6 +44,7 @@ export type VisibilityRule = {
   operator: VisibilityRuleOperator;
   minimum?: number;
   maximum?: number;
+  value?: number;
   match?: string;
 };
 export type VisibilityRuleExpression = { type: "rule"; ruleId: string; negate?: boolean };

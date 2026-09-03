@@ -24,6 +24,12 @@ DEFAULT_SCENE_ID = "default"
 DEFAULT_SCENE_NAME = "Default"
 VISIBILITY_OPERATORS = {
     "range",
+    "number_equals",
+    "number_not_equals",
+    "greater_than",
+    "greater_than_or_equal",
+    "less_than",
+    "less_than_or_equal",
     "equals",
     "not_equals",
     "starts_with",
@@ -31,6 +37,14 @@ VISIBILITY_OPERATORS = {
     "contains",
     "available",
     "unavailable",
+}
+NUMERIC_VISIBILITY_OPERATORS = {
+    "number_equals",
+    "number_not_equals",
+    "greater_than",
+    "greater_than_or_equal",
+    "less_than",
+    "less_than_or_equal",
 }
 MAX_VISIBILITY_RULES = 12
 MAX_VISIBILITY_DEPTH = 5
@@ -329,6 +343,12 @@ def _validate_visibility(
                 raise DashboardValidationError("Maximum must be a number", f"{rule_path}/maximum")
             if minimum is not None and maximum is not None and minimum > maximum:
                 raise DashboardValidationError("Minimum cannot exceed maximum", rule_path)
+        elif operator in NUMERIC_VISIBILITY_OPERATORS:
+            value = rule.get("value")
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise DashboardValidationError(
+                    "Comparison value must be a number", f"{rule_path}/value"
+                )
         elif operator not in {"available", "unavailable"}:
             match = rule.get("match")
             if not isinstance(match, str) or not match or len(match) > 64:
@@ -456,15 +476,28 @@ def _rule_matches(
     if not available:
         return False
     actual = static_value if static_value is not None else state.state
-    if operator == "range":
+    if operator == "range" or operator in NUMERIC_VISIBILITY_OPERATORS:
         try:
             number = float(actual)
         except (TypeError, ValueError):
             return False
-        minimum = rule.get("minimum")
-        maximum = rule.get("maximum")
-        return ((minimum is None or number >= float(minimum))
-                and (maximum is None or number <= float(maximum)))
+        if operator == "range":
+            minimum = rule.get("minimum")
+            maximum = rule.get("maximum")
+            return ((minimum is None or number >= float(minimum))
+                    and (maximum is None or number <= float(maximum)))
+        expected_number = float(rule["value"])
+        if operator == "number_equals":
+            return number == expected_number
+        if operator == "number_not_equals":
+            return number != expected_number
+        if operator == "greater_than":
+            return number > expected_number
+        if operator == "greater_than_or_equal":
+            return number >= expected_number
+        if operator == "less_than":
+            return number < expected_number
+        return number <= expected_number
     expected = str(rule.get("match", ""))
     if operator == "equals":
         return actual == expected

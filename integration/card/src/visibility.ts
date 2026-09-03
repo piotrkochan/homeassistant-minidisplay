@@ -1,6 +1,10 @@
 import type { DisplayCard, Hass, Visibility, VisibilityExpression, VisibilityRule } from "./types";
 
 const unavailableStates = new Set(["unknown", "unavailable"]);
+const numericOperators = new Set([
+  "range", "number_equals", "number_not_equals", "greater_than",
+  "greater_than_or_equal", "less_than", "less_than_or_equal",
+]);
 
 function ruleMatches(hass: Hass | undefined, rule: VisibilityRule, card?: DisplayCard): boolean {
   const state = rule.source === "card"
@@ -10,11 +14,19 @@ function ruleMatches(hass: Hass | undefined, rule: VisibilityRule, card?: Displa
   if (rule.operator === "available") return available;
   if (rule.operator === "unavailable") return !available;
   if (!available) return false;
-  if (rule.operator === "range") {
+  if (numericOperators.has(rule.operator)) {
     const number = Number(state);
-    return Number.isFinite(number)
-      && (rule.minimum === undefined || number >= rule.minimum)
+    if (!Number.isFinite(number)) return false;
+    if (rule.operator === "range") return (rule.minimum === undefined || number >= rule.minimum)
       && (rule.maximum === undefined || number <= rule.maximum);
+    const expected = rule.value;
+    if (!Number.isFinite(expected)) return false;
+    if (rule.operator === "number_equals") return number === expected;
+    if (rule.operator === "number_not_equals") return number !== expected;
+    if (rule.operator === "greater_than") return number > expected!;
+    if (rule.operator === "greater_than_or_equal") return number >= expected!;
+    if (rule.operator === "less_than") return number < expected!;
+    return number <= expected!;
   }
   const match = rule.match ?? "";
   if (rule.operator === "equals") return state === match;
