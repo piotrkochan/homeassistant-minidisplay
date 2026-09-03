@@ -103,23 +103,64 @@
     "visibility": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["conditions"],
+      "required": ["rules", "expression"],
       "properties": {
-        "mode": { "enum": ["all", "any"], "default": "all" },
-        "conditions": {
+        "rules": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 5,
+          "maxItems": 12,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["entity", "operator"],
+            "required": ["id", "label", "source", "operator"],
             "properties": {
+              "id": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "label": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "source": { "enum": ["card", "entity"] },
               "entity": { "$ref": "#/$defs/source" },
-              "operator": { "enum": ["equals", "not_equals", "above", "below", "available", "unavailable"] },
-              "value": { "type": ["string", "number", "boolean"] }
-            }
+              "operator": { "enum": ["range", "equals", "not_equals", "starts_with", "ends_with", "contains", "available", "unavailable"] },
+              "minimum": { "type": "number" },
+              "maximum": { "type": "number" },
+              "match": { "type": "string", "maxLength": 64 }
+            },
+            "allOf": [
+              { "if": { "properties": { "source": { "const": "entity" } } }, "then": { "required": ["entity"] } },
+              { "if": { "properties": { "operator": { "enum": ["equals", "not_equals", "starts_with", "ends_with", "contains"] } } }, "then": { "required": ["match"] } },
+              { "if": { "properties": { "operator": { "const": "range" } } }, "then": { "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }] } }
+            ]
           }
+        },
+        "expression": { "$ref": "#/$defs/visibilityGroup" }
+      }
+    },
+    "visibilityExpression": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "ruleId"],
+          "properties": {
+            "type": { "const": "rule" },
+            "ruleId": { "type": "string", "minLength": 1, "maxLength": 32 },
+            "negate": { "type": "boolean" }
+          }
+        },
+        { "$ref": "#/$defs/visibilityGroup" }
+      ]
+    },
+    "visibilityGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "operator", "children"],
+      "properties": {
+        "type": { "const": "group" },
+        "operator": { "enum": ["and", "or"] },
+        "negate": { "type": "boolean" },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 48,
+          "items": { "$ref": "#/$defs/visibilityExpression" }
         }
       }
     },

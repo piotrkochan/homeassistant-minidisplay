@@ -22,9 +22,21 @@ export type PageTransition = {
   tileSize?: "small" | "medium" | "large";
 };
 
-export type VisibilityOperator = "equals" | "not_equals" | "above" | "below" | "available" | "unavailable";
-export type VisibilityCondition = { entity: string; operator: VisibilityOperator; value?: string };
-export type Visibility = { mode: "all" | "any"; conditions: VisibilityCondition[] };
+export type VisibilityRuleOperator = "range" | "equals" | "not_equals" | "starts_with" | "ends_with" | "contains" | "available" | "unavailable";
+export type VisibilityRule = {
+  id: string;
+  label: string;
+  source: "card" | "entity";
+  entity?: string;
+  operator: VisibilityRuleOperator;
+  minimum?: number;
+  maximum?: number;
+  match?: string;
+};
+export type VisibilityRuleExpression = { type: "rule"; ruleId: string; negate?: boolean };
+export type VisibilityGroupExpression = { type: "group"; operator: "and" | "or"; children: VisibilityExpression[]; negate?: boolean };
+export type VisibilityExpression = VisibilityRuleExpression | VisibilityGroupExpression;
+export type Visibility = { rules: VisibilityRule[]; expression: VisibilityGroupExpression };
 export type NumberValueMapping = { minimum?: number; maximum?: number; value: string };
 export type TextValueMapping = { operator: "equals" | "starts_with" | "ends_with" | "contains"; match: string; value: string };
 export type NumberColorMapping = { minimum?: number; maximum?: number; background?: string; foreground?: string };

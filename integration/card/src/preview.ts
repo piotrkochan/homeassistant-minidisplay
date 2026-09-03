@@ -49,7 +49,7 @@ export class MiniDisplayPreview extends LitElement {
     const page = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
     const screenStyle = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
     if (!page) return html`<div class="screen-frame" style=${screenStyle}><div class="screen loading" aria-label="Loading display preview"></div></div>`;
-    const rows = page.rows.filter(row => visibilityMatches(this.hass, row.visibility)).map(row => ({ ...row, cards: row.cards.filter(card => visibilityMatches(this.hass, card.visibility)) })).filter(row => row.cards.length > 0);
+    const rows = page.rows.filter(row => visibilityMatches(this.hass, row.visibility)).map(row => ({ ...row, cards: row.cards.filter(card => visibilityMatches(this.hass, card.visibility, card)) })).filter(row => row.cards.length > 0);
     if (rows.length === 0) return html`<div class="screen-frame" style=${screenStyle}><div class="screen"><div class="card"><div class="value">No visible content</div></div></div></div>`;
     return html`<div class="screen-frame" style=${screenStyle}><div class="screen">${page.title && page.showTitle !== false ? html`<h3>${page.title}</h3>` : null}${rows.map(row => html`<div class="group" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title">${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${row.cards.length},minmax(0,1fr))">${row.cards.map(card => {
       const raw = card.source ? this.hass?.states[card.source]?.state ?? "—" : card.text ?? "—";

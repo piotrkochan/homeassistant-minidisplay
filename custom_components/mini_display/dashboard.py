@@ -23,14 +23,18 @@ SCENE_DOCUMENT_VERSION = 1
 DEFAULT_SCENE_ID = "default"
 DEFAULT_SCENE_NAME = "Default"
 VISIBILITY_OPERATORS = {
+    "range",
     "equals",
     "not_equals",
-    "above",
-    "below",
+    "starts_with",
+    "ends_with",
+    "contains",
     "available",
     "unavailable",
 }
-MAX_VISIBILITY_CONDITIONS = 5
+MAX_VISIBILITY_RULES = 12
+MAX_VISIBILITY_DEPTH = 5
+MAX_VISIBILITY_NODES = 48
 MAX_VALUE_MAPPINGS = 12
 COLOR_TOKENS = {
     "background", "surface", "primary", "secondary", "accent",
@@ -91,7 +95,9 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
             row_path = f"{page_path}/rows/{row_index}"
             if not isinstance(row, dict):
                 raise DashboardValidationError("Row must be an object", row_path)
-            _validate_visibility(row.get("visibility"), f"{row_path}/visibility")
+            _validate_visibility(
+                row.get("visibility"), f"{row_path}/visibility", allow_card_value=False
+            )
             cards = row.get("cards")
             if not isinstance(cards, list) or not 1 <= len(cards) <= 3:
                 raise DashboardValidationError("Row requires 1-3 cards", f"{row_path}/cards")
@@ -99,7 +105,6 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 card_path = f"{row_path}/cards/{card_index}"
                 if not isinstance(card, dict):
                     raise DashboardValidationError("Card must be an object", card_path)
-                _validate_visibility(card.get("visibility"), f"{card_path}/visibility")
                 if card.get("type") not in {"clock", "number", "status", "text"}:
                     raise DashboardValidationError("Unsupported card type", f"{card_path}/type")
                 source = card.get("source")
@@ -109,6 +114,12 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                     raise DashboardValidationError("Card type requires source", f"{card_path}/source")
                 if card.get("type") == "text" and not source and "text" not in card:
                     raise DashboardValidationError("Text card requires source or text", card_path)
+                _validate_visibility(
+                    card.get("visibility"),
+                    f"{card_path}/visibility",
+                    allow_card_value=bool(source)
+                    or (card.get("type") == "text" and "text" in card),
+                )
                 if card.get("type") == "number" and card.get("progress", "none") != "none":
                     if "minimum" not in card or "maximum" not in card:
                         raise DashboardValidationError(
@@ -263,33 +274,98 @@ def _is_color(value: Any) -> bool:
     )
 
 
-def _validate_visibility(visibility: Any, path: str) -> None:
-    """Validate optional entity-driven visibility rules."""
+def _validate_visibility(
+    visibility: Any, path: str, *, allow_card_value: bool
+) -> None:
+    """Validate named visibility rules and their bounded logic tree."""
     if visibility is None:
         return
     if not isinstance(visibility, dict):
         raise DashboardValidationError("Visibility must be an object", path)
-    mode = visibility.get("mode", "all")
-    if mode not in {"all", "any"}:
-        raise DashboardValidationError("Visibility mode must be all or any", f"{path}/mode")
-    conditions = visibility.get("conditions")
-    if not isinstance(conditions, list) or not 1 <= len(conditions) <= MAX_VISIBILITY_CONDITIONS:
+    rules = visibility.get("rules")
+    if not isinstance(rules, list) or not 1 <= len(rules) <= MAX_VISIBILITY_RULES:
         raise DashboardValidationError(
-            f"Visibility requires 1-{MAX_VISIBILITY_CONDITIONS} conditions",
-            f"{path}/conditions",
+            f"Visibility requires 1-{MAX_VISIBILITY_RULES} rules", f"{path}/rules"
         )
-    for index, condition in enumerate(conditions):
-        condition_path = f"{path}/conditions/{index}"
-        if not isinstance(condition, dict):
-            raise DashboardValidationError("Condition must be an object", condition_path)
-        entity_id = condition.get("entity")
-        if not isinstance(entity_id, str) or not entity_id or len(entity_id) > 64:
-            raise DashboardValidationError("Condition requires an entity", f"{condition_path}/entity")
-        operator = condition.get("operator")
+    rule_ids: set[str] = set()
+    labels: set[str] = set()
+    for index, rule in enumerate(rules):
+        rule_path = f"{path}/rules/{index}"
+        if not isinstance(rule, dict):
+            raise DashboardValidationError("Visibility rule must be an object", rule_path)
+        rule_id = rule.get("id")
+        if not isinstance(rule_id, str) or not rule_id or len(rule_id) > 32:
+            raise DashboardValidationError("Rule requires a valid id", f"{rule_path}/id")
+        if rule_id in rule_ids:
+            raise DashboardValidationError("Rule ids must be unique", f"{rule_path}/id")
+        rule_ids.add(rule_id)
+        label = rule.get("label")
+        if not isinstance(label, str) or not label.strip() or len(label) > 32:
+            raise DashboardValidationError("Rule requires a label", f"{rule_path}/label")
+        normalized_label = label.strip().casefold()
+        if normalized_label in labels:
+            raise DashboardValidationError("Rule labels must be unique", f"{rule_path}/label")
+        labels.add(normalized_label)
+        source = rule.get("source")
+        if source not in {"card", "entity"}:
+            raise DashboardValidationError("Unsupported rule source", f"{rule_path}/source")
+        if source == "card" and not allow_card_value:
+            raise DashboardValidationError("Card value is unavailable here", f"{rule_path}/source")
+        if source == "entity":
+            entity_id = rule.get("entity")
+            if not isinstance(entity_id, str) or not entity_id or len(entity_id) > 64:
+                raise DashboardValidationError("Rule requires an entity", f"{rule_path}/entity")
+        operator = rule.get("operator")
         if operator not in VISIBILITY_OPERATORS:
-            raise DashboardValidationError("Unsupported condition operator", f"{condition_path}/operator")
-        if operator not in {"available", "unavailable"} and "value" not in condition:
-            raise DashboardValidationError("Condition requires a value", f"{condition_path}/value")
+            raise DashboardValidationError("Unsupported rule operator", f"{rule_path}/operator")
+        if operator == "range":
+            minimum = rule.get("minimum")
+            maximum = rule.get("maximum")
+            if minimum is None and maximum is None:
+                raise DashboardValidationError("Range requires a limit", rule_path)
+            if minimum is not None and not isinstance(minimum, (int, float)):
+                raise DashboardValidationError("Minimum must be a number", f"{rule_path}/minimum")
+            if maximum is not None and not isinstance(maximum, (int, float)):
+                raise DashboardValidationError("Maximum must be a number", f"{rule_path}/maximum")
+            if minimum is not None and maximum is not None and minimum > maximum:
+                raise DashboardValidationError("Minimum cannot exceed maximum", rule_path)
+        elif operator not in {"available", "unavailable"}:
+            match = rule.get("match")
+            if not isinstance(match, str) or not match or len(match) > 64:
+                raise DashboardValidationError("Rule requires a match value", f"{rule_path}/match")
+
+    node_count = [0]
+
+    def validate_expression(expression: Any, expression_path: str, depth: int) -> None:
+        if depth > MAX_VISIBILITY_DEPTH:
+            raise DashboardValidationError("Visibility logic is nested too deeply", expression_path)
+        node_count[0] += 1
+        if node_count[0] > MAX_VISIBILITY_NODES:
+            raise DashboardValidationError("Visibility logic has too many items", expression_path)
+        if not isinstance(expression, dict):
+            raise DashboardValidationError("Logic item must be an object", expression_path)
+        expression_type = expression.get("type")
+        negate = expression.get("negate")
+        if negate is not None and not isinstance(negate, bool):
+            raise DashboardValidationError("Negate must be a boolean", f"{expression_path}/negate")
+        if expression_type == "rule":
+            if expression.get("ruleId") not in rule_ids:
+                raise DashboardValidationError("Logic references an unknown rule", f"{expression_path}/ruleId")
+            return
+        if expression_type != "group":
+            raise DashboardValidationError("Unsupported logic item", f"{expression_path}/type")
+        if expression.get("operator") not in {"and", "or"}:
+            raise DashboardValidationError("Group operator must be and or or", f"{expression_path}/operator")
+        children = expression.get("children")
+        if not isinstance(children, list) or not 1 <= len(children) <= MAX_VISIBILITY_NODES:
+            raise DashboardValidationError("Logic group cannot be empty", f"{expression_path}/children")
+        for index, child in enumerate(children):
+            validate_expression(child, f"{expression_path}/children/{index}", depth + 1)
+
+    expression = visibility.get("expression")
+    if not isinstance(expression, dict) or expression.get("type") != "group":
+        raise DashboardValidationError("Visibility requires a root logic group", f"{path}/expression")
+    validate_expression(expression, f"{path}/expression", 1)
 
 
 def extract_sources(document: dict[str, Any]) -> set[str]:
@@ -305,7 +381,9 @@ def extract_sources(document: dict[str, Any]) -> set[str]:
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
-                sources.update(_visibility_sources(card.get("visibility")))
+                sources.update(
+                    _visibility_sources(card.get("visibility"), card.get("source"))
+                )
     return sources
 
 
@@ -316,54 +394,105 @@ def extract_visibility_sources(document: dict[str, Any]) -> set[str]:
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
-                sources.update(_visibility_sources(card.get("visibility")))
+                sources.update(
+                    _visibility_sources(card.get("visibility"), card.get("source"))
+                )
     return sources
 
 
-def _visibility_sources(visibility: Any) -> set[str]:
+def _visibility_sources(visibility: Any, card_source: Any = None) -> set[str]:
     if not isinstance(visibility, dict):
         return set()
-    return {
-        condition["entity"]
-        for condition in visibility.get("conditions", [])
-        if isinstance(condition, dict)
-        and isinstance(condition.get("entity"), str)
-        and condition["entity"]
+    sources = {
+        rule["entity"]
+        for rule in visibility.get("rules", [])
+        if isinstance(rule, dict)
+        and rule.get("source") == "entity"
+        and isinstance(rule.get("entity"), str)
+        and rule["entity"]
     }
+    if (
+        isinstance(card_source, str)
+        and card_source
+        and any(
+            isinstance(rule, dict) and rule.get("source") == "card"
+            for rule in visibility.get("rules", [])
+        )
+    ):
+        sources.add(card_source)
+    return sources
 
 
-def _condition_matches(hass: HomeAssistant, condition: dict[str, Any]) -> bool:
-    state = hass.states.get(condition["entity"])
-    available = state is not None and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
-    operator = condition["operator"]
+def _rule_matches(
+    hass: HomeAssistant, rule: dict[str, Any], card: dict[str, Any] | None
+) -> bool:
+    static_value: str | None = None
+    if rule["source"] == "card":
+        if card is None:
+            return False
+        source = card.get("source")
+        if source:
+            state = hass.states.get(source)
+        elif card.get("type") == "text" and "text" in card:
+            state = None
+            static_value = str(card["text"])
+        else:
+            state = None
+    else:
+        state = hass.states.get(rule["entity"])
+    available = static_value is not None or (
+        state is not None and state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE)
+    )
+    operator = rule["operator"]
     if operator == "available":
         return available
     if operator == "unavailable":
         return not available
     if not available:
         return False
-    expected = str(condition.get("value", ""))
+    actual = static_value if static_value is not None else state.state
+    if operator == "range":
+        try:
+            number = float(actual)
+        except (TypeError, ValueError):
+            return False
+        minimum = rule.get("minimum")
+        maximum = rule.get("maximum")
+        return ((minimum is None or number >= float(minimum))
+                and (maximum is None or number <= float(maximum)))
+    expected = str(rule.get("match", ""))
     if operator == "equals":
-        return state.state == expected
+        return actual == expected
     if operator == "not_equals":
-        return state.state != expected
-    try:
-        actual_number = float(state.state)
-        expected_number = float(expected)
-    except (TypeError, ValueError):
-        return False
-    return actual_number > expected_number if operator == "above" else actual_number < expected_number
+        return actual != expected
+    if operator == "starts_with":
+        return actual.startswith(expected)
+    if operator == "ends_with":
+        return actual.endswith(expected)
+    return expected in actual
 
 
-def visibility_matches(hass: HomeAssistant, visibility: Any) -> bool:
-    """Evaluate one visibility group against current Home Assistant states."""
+def visibility_matches(
+    hass: HomeAssistant, visibility: Any, card: dict[str, Any] | None = None
+) -> bool:
+    """Evaluate a named visibility-rule expression against current HA states."""
     if not isinstance(visibility, dict):
         return True
-    matches = [
-        _condition_matches(hass, condition)
-        for condition in visibility.get("conditions", [])
-    ]
-    return any(matches) if visibility.get("mode", "all") == "any" else all(matches)
+    rules = {
+        rule["id"]: rule
+        for rule in visibility.get("rules", [])
+        if isinstance(rule, dict) and isinstance(rule.get("id"), str)
+    }
+
+    def evaluate(expression: dict[str, Any]) -> bool:
+        if expression["type"] == "rule":
+            result = _rule_matches(hass, rules[expression["ruleId"]], card)
+        else:
+            values = [evaluate(child) for child in expression["children"]]
+            result = all(values) if expression["operator"] == "and" else any(values)
+        return not result if expression.get("negate", False) else result
+
+    return evaluate(visibility["expression"])
 
 
 def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
@@ -374,11 +503,11 @@ def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str,
         for row in page["rows"]:
             if not visibility_matches(hass, row.pop("visibility", None)):
                 continue
-            visible_cards = [
-                card
-                for card in row["cards"]
-                if visibility_matches(hass, card.pop("visibility", None))
-            ]
+            visible_cards = []
+            for card in row["cards"]:
+                visibility = card.pop("visibility", None)
+                if visibility_matches(hass, visibility, card):
+                    visible_cards.append(card)
             if visible_cards:
                 row["cards"] = visible_cards
                 visible_rows.append(row)

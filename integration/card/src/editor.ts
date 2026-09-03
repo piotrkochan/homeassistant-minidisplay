@@ -415,11 +415,7 @@ export class MiniDisplayEditor extends LitElement {
   private saveVisibility(visibility: Visibility) {
     const target = this.visibilityObject();
     if (!target) return;
-    const conditions = visibility.conditions
-      .map((condition) => ({ ...condition, entity: condition.entity.trim() }))
-      .filter((condition) => condition.entity);
-    if (conditions.length) target.visibility = { ...visibility, conditions };
-    else delete target.visibility;
+    target.visibility = visibility;
     this.visibilityTarget = undefined;
     this.changed();
   }
@@ -732,6 +728,7 @@ export class MiniDisplayEditor extends LitElement {
     if (this.displays.length === 0) return html`<ha-card class="empty"><ha-icon icon="mdi:monitor-off"></ha-icon><h2>No Mini Displays yet</h2><p>Add a Mini Display integration first. Configured displays will appear here automatically.</p><ha-button @click=${() => { history.pushState(null, "", "/config/integrations"); window.dispatchEvent(new Event("location-changed")); }}><ha-icon icon="mdi:plus"></ha-icon>Add integration</ha-button></ha-card>`;
     const visibility = this.visibilityObject()?.visibility;
     const visibilityName = this.visibilityTarget?.kind === "row" ? "Row" : "Card";
+    const visibilityCard = this.visibilityTarget?.kind === "card" ? this.visibilityObject() as DisplayCard : undefined;
     return html`
       <div class="layout">
         <mini-display-scene-sidebar
@@ -775,6 +772,8 @@ export class MiniDisplayEditor extends LitElement {
         <mini-display-visibility-dialog
           .hass=${this.hass}
           .targetName=${visibilityName}
+          .targetKind=${this.visibilityTarget.kind}
+          .card=${visibilityCard}
           .value=${visibility}
           @visibility-save=${(event: CustomEvent<Visibility>) => this.saveVisibility(event.detail)}
           @visibility-clear=${this.clearVisibility}
