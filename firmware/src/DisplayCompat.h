@@ -37,7 +37,17 @@ constexpr uint16_t TFT_ORANGE = 0xFD20;
 constexpr uint16_t TFT_DARKGREY = 0x7BEF;
 constexpr uint16_t TFT_LIGHTGREY = 0xC618;
 
-enum TextDatum : uint8_t { TL_DATUM, TC_DATUM, MC_DATUM };
+enum TextDatum : uint8_t {
+  TL_DATUM,
+  TC_DATUM,
+  TR_DATUM,
+  ML_DATUM,
+  MC_DATUM,
+  MR_DATUM,
+  BL_DATUM,
+  BC_DATUM,
+  BR_DATUM,
+};
 
 class MiniDisplay {
  public:
@@ -94,10 +104,15 @@ class MiniDisplay {
     gfx_->getTextBounds(text, 0, 0, &x1, &y1, &width, &height);
     int16_t left = x;
     int16_t top = y;
-    if (datum_ == TC_DATUM) left -= width / 2;
-    if (datum_ == MC_DATUM) {
+    if (datum_ == TC_DATUM || datum_ == MC_DATUM || datum_ == BC_DATUM) {
       left -= width / 2;
+    } else if (datum_ == TR_DATUM || datum_ == MR_DATUM || datum_ == BR_DATUM) {
+      left -= width;
+    }
+    if (datum_ == ML_DATUM || datum_ == MC_DATUM || datum_ == MR_DATUM) {
       top -= height / 2;
+    } else if (datum_ == BL_DATUM || datum_ == BC_DATUM || datum_ == BR_DATUM) {
+      top -= height;
     }
     gfx_->setCursor(left - x1, top - y1);
     gfx_->print(text);

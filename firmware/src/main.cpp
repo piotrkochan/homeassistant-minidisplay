@@ -80,8 +80,17 @@ struct DashboardPage {
   uint32_t durationMs;
 };
 
+struct PageTransitionConfig {
+  char type[10];
+  char direction[6];
+  char speed[7];
+  char intensity[7];
+  char tileSize[7];
+};
+
 DashboardPage dashboardPages[kMaxPages]{};
 uint8_t dashboardPageCount = 0;
+PageTransitionConfig pageTransition{"none", "left", "normal", "subtle", "medium"};
 
 struct DashboardValue {
   char source[65];
@@ -93,6 +102,8 @@ DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
 
 bool renderDashboardPage();
+bool renderDashboardPage(const JsonObjectConst *changedValues);
+void showPageWithTransition(uint8_t nextPageIndex);
 
 uint32_t checksum(const DeviceConfig &value) {
   const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
@@ -237,7 +248,8 @@ uint16_t parseColor(JsonVariantConst value, uint16_t fallback) {
   }
   if (strcmp(text, "surface") == 0) return display.color565(30, 34, 42);
   if (strcmp(text, "primary") == 0) return TFT_WHITE;
-  if (strcmp(text, "secondary") == 0 || strcmp(text, "muted") == 0) return TFT_DARKGREY;
+  if (strcmp(text, "secondary") == 0) return display.color565(158, 158, 158);
+  if (strcmp(text, "muted") == 0) return display.color565(102, 102, 102);
   if (strcmp(text, "accent") == 0) return TFT_CYAN;
   if (strcmp(text, "success") == 0) return TFT_GREEN;
   if (strcmp(text, "warning") == 0) return TFT_ORANGE;
@@ -294,17 +306,76 @@ void selectBestFont(const String &text, JsonVariantConst style, int16_t width,
   display.setFreeFont(fontFor(family, 0));
 }
 
-void drawCenteredFit(const String &text, JsonVariantConst style, int16_t x,
-                     int16_t y, int16_t width, int16_t height,
-                     uint16_t foreground, uint16_t background) {
-  display.setTextDatum(MC_DATUM);
+void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
+                       int16_t y, int16_t width, int16_t height,
+                       uint16_t foreground, uint16_t background) {
+  const char *horizontal = style["horizontalAlign"] | "center";
+  const char *vertical = style["verticalAlign"] | "middle";
+  const bool left = strcmp(horizontal, "left") == 0;
+  const bool right = strcmp(horizontal, "right") == 0;
+  const bool top = strcmp(vertical, "top") == 0;
+  const bool bottom = strcmp(vertical, "bottom") == 0;
+  const uint8_t datum = top
+                              ? (left ? TL_DATUM : right ? TR_DATUM : TC_DATUM)
+                              : bottom
+                                    ? (left ? BL_DATUM
+                                            : right ? BR_DATUM : BC_DATUM)
+                                    : (left ? ML_DATUM
+                                            : right ? MR_DATUM : MC_DATUM);
+  display.setTextDatum(datum);
   display.setTextColor(foreground, background);
   selectBestFont(text, style, width, height);
   String clipped = text;
   while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
     clipped.remove(clipped.length() - 1);
   }
-  display.drawString(clipped, x + width / 2, y + height / 2);
+  const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
+  const int16_t textY = top ? y + 3 : bottom ? y + height - 3 : y + height / 2;
+  display.drawString(clipped, textX, textY);
+}
+
+bool mappingMatches(const char *type, JsonObjectConst rule, const String &raw) {
+  if (strcmp(type, "number") == 0) {
+    char *end = nullptr;
+    const float number = strtof(raw.c_str(), &end);
+    if (end == raw.c_str() || *end != '\0') return false;
+    const bool hasMinimum = !rule["minimum"].isNull();
+    const bool hasMaximum = !rule["maximum"].isNull();
+    return (!hasMinimum || number >= rule["minimum"].as<float>()) &&
+           (!hasMaximum || number <= rule["maximum"].as<float>());
+  }
+  if (strcmp(type, "text") != 0) return false;
+  const String match(rule["match"] | "");
+  const char *operatorName = rule["operator"] | "equals";
+  return strcmp(operatorName, "equals") == 0
+             ? raw == match
+             : strcmp(operatorName, "starts_with") == 0
+                   ? raw.startsWith(match)
+                   : strcmp(operatorName, "ends_with") == 0
+                         ? raw.endsWith(match)
+                         : strcmp(operatorName, "contains") == 0 &&
+                               raw.indexOf(match) >= 0;
+}
+
+bool findCardMapping(JsonObjectConst card, const char *collection,
+                     const String &raw, JsonObjectConst &matched) {
+  JsonArrayConst mappings = card[collection].as<JsonArrayConst>();
+  if (mappings.isNull()) return false;
+  const char *type = card["type"] | "text";
+  for (JsonObjectConst rule : mappings) {
+    if (mappingMatches(type, rule, raw)) {
+      matched = rule;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool mappedCardValue(JsonObjectConst card, const String &raw, String &mapped) {
+  JsonObjectConst rule;
+  if (!findCardMapping(card, "valueMappings", raw, rule)) return false;
+  mapped = String(rule["value"] | "");
+  return true;
 }
 
 String cardValue(JsonObjectConst card) {
@@ -327,9 +398,12 @@ String cardValue(JsonObjectConst card) {
   if (source != nullptr) {
     DashboardValue *value = findValue(source, false);
     if (value == nullptr || !value->available) return String("--");
-    String result(value->state);
+    const String raw(value->state);
+    String result;
+    const bool mapped = mappedCardValue(card, raw, result);
+    if (!mapped) result = raw;
     const char *unit = card["unit"];
-    if (unit && unit[0]) result += " " + String(unit);
+    if (!mapped && unit && unit[0]) result += " " + String(unit);
     return result;
   }
   return String(card["text"] | "");
@@ -337,10 +411,21 @@ String cardValue(JsonObjectConst card) {
 
 void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
               int16_t height) {
+  JsonObjectConst colorMapping;
+  const char *source = card["source"];
+  DashboardValue *sourceValue = findValue(source, false);
+  if (sourceValue != nullptr && sourceValue->available) {
+    findCardMapping(card, "colorMappings", String(sourceValue->state),
+                    colorMapping);
+  }
+  JsonVariantConst backgroundValue = colorMapping["background"];
+  if (backgroundValue.isNull()) backgroundValue = card["style"]["background"];
+  JsonVariantConst foregroundValue = colorMapping["foreground"];
+  if (foregroundValue.isNull()) foregroundValue = card["style"]["foreground"];
   const uint16_t background =
-      parseColor(card["style"]["background"], display.color565(30, 34, 42));
+      parseColor(backgroundValue, display.color565(30, 34, 42));
   const uint16_t foreground =
-      parseColor(card["style"]["foreground"], TFT_WHITE);
+      parseColor(foregroundValue, TFT_WHITE);
   const uint16_t accent = parseColor(card["style"]["accent"], TFT_CYAN);
   display.fillRoundRect(x, y, width, height, 5, background);
 
@@ -367,8 +452,8 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   if (progress && contentHeight >= 20) contentHeight -= 9;
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
-  drawCenteredFit(cardValue(card), valueStyle, x, contentY, width, contentHeight,
-                  foreground, background);
+  drawPositionedFit(cardValue(card), valueStyle, x, contentY, width,
+                    contentHeight, foreground, background);
 
   if (progress) {
     const char *source = card["source"];
@@ -388,44 +473,43 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   }
 }
 
-bool renderDashboardPage() {
-  if (!filesystemReady || !LittleFS.exists(kDashboardPath) ||
-      activePageIndex >= dashboardPageCount) {
-    return false;
-  }
-  File file = LittleFS.open(kDashboardPath, "r");
-  if (!file) return false;
-  DynamicJsonDocument document(12288);
-  const auto error = deserializeJson(document, file);
-  file.close();
-  if (error) return false;
-  JsonArray pages = document["pages"].as<JsonArray>();
-  if (activePageIndex >= pages.size()) return false;
-  JsonObject page = pages[activePageIndex];
-  JsonArray rows = page["rows"].as<JsonArray>();
+bool drawDashboardPage(JsonObjectConst page,
+                       const JsonObjectConst *changedValues,
+                       int16_t offsetX = 0, int16_t offsetY = 0,
+                       bool clear = true) {
+  JsonArrayConst rows = page["rows"].as<JsonArrayConst>();
 
   const uint16_t pageBackground =
       parseColor(page["style"]["background"], TFT_BLACK);
-  display.fillScreen(pageBackground);
+  const bool partial = changedValues != nullptr;
+  if (!partial) {
+    if (clear && offsetX == 0 && offsetY == 0) {
+      display.fillScreen(pageBackground);
+    } else {
+      display.fillRect(offsetX, offsetY, 240, 240, pageBackground);
+    }
+  }
   int16_t top = 1;
   const char *pageTitle = page["title"];
   const bool showPageTitle = page["showTitle"] | true;
   if (showPageTitle && pageTitle && pageTitle[0]) {
-    display.setTextDatum(TC_DATUM);
-    display.setTextColor(TFT_WHITE, pageBackground);
-    display.setFreeFont(&FreeSansBold9pt7b);
-    display.drawString(pageTitle, 120, top);
+    if (!partial) {
+      display.setTextDatum(TC_DATUM);
+      display.setTextColor(TFT_WHITE, pageBackground);
+      display.setFreeFont(&FreeSansBold9pt7b);
+      display.drawString(pageTitle, 120 + offsetX, top + offsetY);
+    }
     top += 21;
   }
 
   uint16_t totalWeight = 0;
-  for (JsonObject row : rows) totalWeight += row["weight"] | 1;
+  for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
   const int16_t gap = 4;
   const int16_t availableHeight = 236 - top - gap * (rows.size() - 1);
   int16_t rowY = top;
   uint16_t consumedWeight = 0;
   for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
-    JsonObject row = rows[rowIndex];
+    JsonObjectConst row = rows[rowIndex];
     const uint16_t weight = row["weight"] | 1;
     consumedWeight += weight;
     const int16_t nextY = rowIndex + 1 == rows.size()
@@ -436,24 +520,208 @@ bool renderDashboardPage() {
     const char *rowTitle = row["title"];
     const bool showTitle = row["showTitle"] | true;
     if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
-      display.setTextDatum(TL_DATUM);
-      display.setTextColor(TFT_LIGHTGREY, pageBackground);
-      display.setFreeFont(&FreeSans9pt7b);
-      display.drawString(rowTitle, 4, rowY);
+      if (!partial) {
+        display.setTextDatum(TL_DATUM);
+        display.setTextColor(TFT_LIGHTGREY, pageBackground);
+        display.setFreeFont(&FreeSans9pt7b);
+        display.drawString(rowTitle, 4 + offsetX, rowY + offsetY);
+      }
       rowY += 17;
       rowHeight -= 17;
     }
-    JsonArray cards = row["cards"].as<JsonArray>();
+    JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
     const int16_t cardWidth = (236 - gap * (cards.size() - 1)) / cards.size();
-    int16_t cardX = 2;
-    for (JsonObject card : cards) {
-      drawCard(card, cardX, rowY, cardWidth, rowHeight);
+    int16_t cardX = 2 + offsetX;
+    for (JsonObjectConst card : cards) {
+      const char *source = card["source"];
+      if (!partial ||
+          (source != nullptr && changedValues->containsKey(source))) {
+        drawCard(card, cardX, rowY + offsetY, cardWidth, rowHeight);
+      }
       cardX += cardWidth + gap;
     }
     rowY = nextY + gap;
     yield();
   }
   return true;
+}
+
+bool renderDashboardPage() { return renderDashboardPage(nullptr); }
+
+bool renderDashboardPage(const JsonObjectConst *changedValues) {
+  if (!filesystemReady || !LittleFS.exists(kDashboardPath) ||
+      activePageIndex >= dashboardPageCount) {
+    return false;
+  }
+  File file = LittleFS.open(kDashboardPath, "r");
+  if (!file) return false;
+  DynamicJsonDocument document(12288);
+  const auto error = deserializeJson(document, file);
+  file.close();
+  if (error) return false;
+  JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
+  if (activePageIndex >= pages.size()) return false;
+  return drawDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
+                           changedValues);
+}
+
+uint8_t transitionFrames() {
+  if (strcmp(pageTransition.speed, "fast") == 0) return 7;
+  if (strcmp(pageTransition.speed, "slow") == 0) return 15;
+  return 10;
+}
+
+uint16_t transitionDelayMs() {
+  if (strcmp(pageTransition.speed, "fast") == 0) return 18;
+  if (strcmp(pageTransition.speed, "slow") == 0) return 42;
+  return 28;
+}
+
+void transitionOffset(float distance, int16_t &x, int16_t &y) {
+  x = 0;
+  y = 0;
+  if (strcmp(pageTransition.direction, "right") == 0) x = distance;
+  else if (strcmp(pageTransition.direction, "up") == 0) y = -distance;
+  else if (strcmp(pageTransition.direction, "down") == 0) y = distance;
+  else x = -distance;
+}
+
+void animateFade(JsonObjectConst nextPage, uint8_t frames, uint16_t waitMs) {
+  if (!displayOn || displayBrightness == 0) {
+    drawDashboardPage(nextPage, nullptr);
+    return;
+  }
+  const uint8_t originalBrightness = displayBrightness;
+  const uint8_t minimumBrightness =
+      strcmp(pageTransition.intensity, "strong") == 0
+          ? 0
+          : max<uint8_t>(1, originalBrightness / 4);
+  for (uint8_t step = 1; step <= frames; ++step) {
+    displayBrightness = originalBrightness -
+        (originalBrightness - minimumBrightness) * step / frames;
+    applyBacklight();
+    delay(waitMs);
+    yield();
+  }
+  drawDashboardPage(nextPage, nullptr);
+  for (uint8_t step = 1; step <= frames; ++step) {
+    displayBrightness = minimumBrightness +
+        (originalBrightness - minimumBrightness) * step / frames;
+    applyBacklight();
+    delay(waitMs);
+    yield();
+  }
+  displayBrightness = originalBrightness;
+  applyBacklight();
+}
+
+void animateMotion(JsonObjectConst currentPage, JsonObjectConst nextPage,
+                   uint8_t frames, uint16_t waitMs, bool bounce) {
+  const float overshoot = strcmp(pageTransition.intensity, "strong") == 0
+                              ? 1.7F
+                              : 0.9F;
+  for (uint8_t step = 1; step <= frames; ++step) {
+    const float progress = static_cast<float>(step) / frames;
+    float incomingProgress = progress;
+    if (bounce) {
+      const float shifted = progress - 1.0F;
+      incomingProgress = 1.0F + (overshoot + 1.0F) * shifted * shifted * shifted +
+                         overshoot * shifted * shifted;
+    }
+    int16_t oldX, oldY, newX, newY;
+    transitionOffset(240.0F * progress, oldX, oldY);
+    transitionOffset(-240.0F * (1.0F - incomingProgress), newX, newY);
+    display.fillScreen(TFT_BLACK);
+    drawDashboardPage(currentPage, nullptr, oldX, oldY, false);
+    drawDashboardPage(nextPage, nullptr, newX, newY, false);
+    delay(waitMs);
+    yield();
+  }
+}
+
+void animateWipe(JsonObjectConst nextPage, uint8_t frames, uint16_t waitMs) {
+  for (uint8_t step = 1; step <= frames; ++step) {
+    drawDashboardPage(nextPage, nullptr);
+    const int16_t hidden = 240 * (frames - step) / frames;
+    if (strcmp(pageTransition.direction, "right") == 0) {
+      display.fillRect(240 - hidden, 0, hidden, 240, TFT_BLACK);
+    } else if (strcmp(pageTransition.direction, "up") == 0) {
+      display.fillRect(0, 0, 240, hidden, TFT_BLACK);
+    } else if (strcmp(pageTransition.direction, "down") == 0) {
+      display.fillRect(0, 240 - hidden, 240, hidden, TFT_BLACK);
+    } else {
+      display.fillRect(0, 0, hidden, 240, TFT_BLACK);
+    }
+    delay(waitMs);
+    yield();
+  }
+}
+
+void animateDissolve(JsonObjectConst nextPage, uint8_t frames,
+                     uint16_t waitMs) {
+  const uint8_t tile = strcmp(pageTransition.tileSize, "small") == 0
+                           ? 8
+                           : strcmp(pageTransition.tileSize, "large") == 0
+                                 ? 24
+                                 : 16;
+  for (uint8_t step = 1; step <= frames; ++step) {
+    drawDashboardPage(nextPage, nullptr);
+    for (uint16_t y = 0; y < 240; y += tile) {
+      for (uint16_t x = 0; x < 240; x += tile) {
+        const uint8_t order = ((x / tile) * 13 + (y / tile) * 7) % frames;
+        if (order >= step) {
+          display.fillRect(x, y, min<uint16_t>(tile, 240 - x),
+                           min<uint16_t>(tile, 240 - y), TFT_BLACK);
+        }
+      }
+    }
+    delay(waitMs);
+    yield();
+  }
+}
+
+void showPageWithTransition(uint8_t nextPageIndex) {
+  if (nextPageIndex >= dashboardPageCount || nextPageIndex == activePageIndex) {
+    return;
+  }
+  if (!filesystemReady || !LittleFS.exists(kDashboardPath)) {
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    return;
+  }
+  File file = LittleFS.open(kDashboardPath, "r");
+  if (!file) {
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    return;
+  }
+  DynamicJsonDocument document(12288);
+  const auto error = deserializeJson(document, file);
+  file.close();
+  JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
+  if (error || activePageIndex >= pages.size() || nextPageIndex >= pages.size()) {
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    return;
+  }
+  JsonObjectConst currentPage = pages[activePageIndex].as<JsonObjectConst>();
+  JsonObjectConst nextPage = pages[nextPageIndex].as<JsonObjectConst>();
+  const uint8_t frames = transitionFrames();
+  const uint16_t waitMs = transitionDelayMs();
+  if (strcmp(pageTransition.type, "fade") == 0) {
+    animateFade(nextPage, frames, waitMs);
+  } else if (strcmp(pageTransition.type, "slide") == 0) {
+    animateMotion(currentPage, nextPage, frames, waitMs, false);
+  } else if (strcmp(pageTransition.type, "bounce") == 0) {
+    animateMotion(currentPage, nextPage, frames, waitMs, true);
+  } else if (strcmp(pageTransition.type, "wipe") == 0) {
+    animateWipe(nextPage, frames, waitMs);
+  } else if (strcmp(pageTransition.type, "dissolve") == 0) {
+    animateDissolve(nextPage, frames, waitMs);
+  }
+  activePageIndex = nextPageIndex;
+  pageShownAt = millis();
+  drawDashboardPage(nextPage, nullptr);
 }
 
 bool loadDashboardMetadata(Stream &stream) {
@@ -464,6 +732,7 @@ bool loadDashboardMetadata(Stream &stream) {
   filter["pages"][0]["rows"][0]["cards"][0]["type"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["source"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
+  filter["transition"] = true;
 
   DynamicJsonDocument document(4096);
   const auto error = deserializeJson(
@@ -479,6 +748,46 @@ bool loadDashboardMetadata(Stream &stream) {
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
 
   DashboardPage parsed[kMaxPages]{};
+  PageTransitionConfig parsedTransition{
+      "none", "left", "normal", "subtle", "medium"};
+  JsonObject transition = document["transition"].as<JsonObject>();
+  if (!transition.isNull()) {
+    const char *type = transition["type"] | "none";
+    const char *direction = transition["direction"] | "left";
+    const char *speed = transition["speed"] | "normal";
+    const char *intensity = transition["intensity"] | "subtle";
+    const char *tileSize = transition["tileSize"] | "medium";
+    const bool validType = strcmp(type, "none") == 0 ||
+                           strcmp(type, "slide") == 0 ||
+                           strcmp(type, "bounce") == 0 ||
+                           strcmp(type, "fade") == 0 ||
+                           strcmp(type, "wipe") == 0 ||
+                           strcmp(type, "dissolve") == 0;
+    const bool validDirection = strcmp(direction, "left") == 0 ||
+                                strcmp(direction, "right") == 0 ||
+                                strcmp(direction, "up") == 0 ||
+                                strcmp(direction, "down") == 0;
+    const bool validSpeed = strcmp(speed, "slow") == 0 ||
+                            strcmp(speed, "normal") == 0 ||
+                            strcmp(speed, "fast") == 0;
+    const bool validIntensity = strcmp(intensity, "subtle") == 0 ||
+                                strcmp(intensity, "strong") == 0;
+    const bool validTileSize = strcmp(tileSize, "small") == 0 ||
+                               strcmp(tileSize, "medium") == 0 ||
+                               strcmp(tileSize, "large") == 0;
+    if (!validType || !validDirection || !validSpeed || !validIntensity ||
+        !validTileSize) {
+      return false;
+    }
+    strlcpy(parsedTransition.type, type, sizeof(parsedTransition.type));
+    strlcpy(parsedTransition.direction, direction,
+            sizeof(parsedTransition.direction));
+    strlcpy(parsedTransition.speed, speed, sizeof(parsedTransition.speed));
+    strlcpy(parsedTransition.intensity, intensity,
+            sizeof(parsedTransition.intensity));
+    strlcpy(parsedTransition.tileSize, tileSize,
+            sizeof(parsedTransition.tileSize));
+  }
   uint8_t count = 0;
   for (JsonObject page : pages) {
     const char *id = page["id"];
@@ -507,6 +816,7 @@ bool loadDashboardMetadata(Stream &stream) {
     ++count;
   }
   memcpy(dashboardPages, parsed, sizeof(parsed));
+  pageTransition = parsedTransition;
   dashboardPageCount = count;
   if (activePageIndex >= dashboardPageCount) activePageIndex = 0;
   pageShownAt = millis();
@@ -645,7 +955,10 @@ void receiveApiData() {
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = value["available"] | false;
   }
-  if (document["render"] | true) showCurrentPage();
+  if (document["render"] | true) {
+    JsonObjectConst changedValues = values;
+    if (!renderDashboardPage(&changedValues)) showCurrentPage();
+  }
   server.send(204);
 }
 
@@ -684,9 +997,14 @@ void receiveApiPage() {
   } else if (command && dashboardPageCount) {
     pageRotationAuto = false;
     if (strcmp(command, "next") == 0) {
-      activePageIndex = (activePageIndex + 1) % dashboardPageCount;
+      showPageWithTransition((activePageIndex + 1) % dashboardPageCount);
+      server.send(204);
+      return;
     } else if (strcmp(command, "previous") == 0) {
-      activePageIndex = (activePageIndex + dashboardPageCount - 1) % dashboardPageCount;
+      showPageWithTransition(
+          (activePageIndex + dashboardPageCount - 1) % dashboardPageCount);
+      server.send(204);
+      return;
     } else if (strcmp(command, "reload") != 0) {
       sendJsonError(422, F("invalid_command"), F("Unknown page command"));
       return;
@@ -695,8 +1013,8 @@ void receiveApiPage() {
     bool found = false;
     for (uint8_t index = 0; index < dashboardPageCount; ++index) {
       if (strcmp(id, dashboardPages[index].id) == 0) {
-        activePageIndex = index;
         pageRotationAuto = false;
+        showPageWithTransition(index);
         found = true;
         break;
       }
@@ -705,6 +1023,9 @@ void receiveApiPage() {
       sendJsonError(404, F("page_not_found"), F("Unknown page id"));
       return;
     }
+    pageShownAt = millis();
+    server.send(204);
+    return;
   } else {
     sendJsonError(422, F("invalid_page_request"), F("Expected mode, command, or id"));
     return;
@@ -905,9 +1226,7 @@ void loop() {
 #endif
   if (pageRotationAuto && dashboardPageCount > 1 &&
       millis() - pageShownAt >= dashboardPages[activePageIndex].durationMs) {
-    activePageIndex = (activePageIndex + 1) % dashboardPageCount;
-    pageShownAt = millis();
-    showCurrentPage();
+    showPageWithTransition((activePageIndex + 1) % dashboardPageCount);
   }
   if (configValid() && WiFi.status() != WL_CONNECTED && !accessPointRunning &&
       millis() - connectStartedAt >= kConnectTimeoutMs) {
