@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -33,7 +33,8 @@ class MiniDisplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             if self.device_info is None:
                 self.device_info = await self.client.async_get_info()
-            return await self.client.async_get_status()
+            status = await self.client.async_get_status()
+            status["lastSync"] = datetime.now(UTC)
+            return status
         except MiniDisplayApiError as err:
             raise UpdateFailed(str(err)) from err
-
