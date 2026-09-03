@@ -17,7 +17,7 @@ let Te = class {
     return this.cssText;
   }
 };
-const Ve = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ne), R = (t, ...e) => {
+const Ve = (t) => new Te(typeof t == "string" ? t : t + "", void 0, ne), z = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((s, a, r) => s + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
@@ -250,7 +250,7 @@ U.elementStyles = [], U.shadowRootOptions = { mode: "open" }, U[F("elementProper
 const de = globalThis, $e = (t) => t, ee = de.trustedTypes, we = ee ? ee.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ie = "$lit$", C = `lit$${Math.random().toFixed(9).slice(2)}$`, Oe = "?" + C, Xe = `<${Oe}>`, O = document, W = () => O.createComment(""), B = (t) => t === null || typeof t != "object" && typeof t != "function", ce = Array.isArray, et = (t) => ce(t) || typeof t?.[Symbol.iterator] == "function", se = `[ 	
 \f\r]`, H = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _e = /-->/g, Se = />/g, T = RegExp(`>|${se}(?:([^\\s"'>=/]+)(${se}*=${se}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), ke = /'/g, Ae = /"/g, Ne = /^(?:script|style|textarea|title)$/i, tt = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), n = tt(1), j = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), De = /* @__PURE__ */ new WeakMap(), I = O.createTreeWalker(O, 129);
-function Re(t, e) {
+function ze(t, e) {
   if (!ce(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return we !== void 0 ? we.createHTML(e) : e;
 }
@@ -264,7 +264,7 @@ const it = (t, e) => {
     const b = o === T && t[d + 1].startsWith("/>") ? " " : "";
     r += o === H ? l + Xe : h >= 0 ? (s.push(u), l.slice(0, h) + Ie + l.slice(h) + C + b) : l + C + (h === -2 ? d : b);
   }
-  return [Re(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
+  return [ze(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
 };
 class G {
   constructor({ strings: e, _$litType$: i }, s) {
@@ -368,7 +368,7 @@ class J {
     this._$AH !== c && B(this._$AH) ? this._$AA.nextSibling.data = e : this.T(O.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: i, _$litType$: s } = e, a = typeof s == "number" ? this._$AC(e) : (s.el === void 0 && (s.el = G.createElement(Re(s.h, s.h[0]), this.options)), s);
+    const { values: i, _$litType$: s } = e, a = typeof s == "number" ? this._$AC(e) : (s.el === void 0 && (s.el = G.createElement(ze(s.h, s.h[0]), this.options)), s);
     if (this._$AH?._$AD === a) this._$AH.p(i);
     else {
       const r = new st(a, this), o = r.u(this.options);
@@ -534,7 +534,7 @@ function p(t) {
 function m(t) {
   return p({ ...t, state: !0, attribute: !1 });
 }
-const re = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, ze = () => ({ weight: 1, gap: "small", cards: [re("clock")] }), Ue = (t) => ({ id: `page_${t}`, title: `Page ${t}`, durationSeconds: 10, enabled: !0, transition: { type: "none" }, rows: [ze()] }), ut = () => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, pages: [Ue(1)] }), gt = (t, e) => {
+const re = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, Re = () => ({ weight: 1, gap: "small", cards: [re("clock")] }), Ue = (t) => ({ id: `page_${t}`, title: `Page ${t}`, durationSeconds: 10, enabled: !0, transition: { type: "none" }, rows: [Re()] }), ut = () => ({ version: 1, defaults: { pageDurationSeconds: 10, theme: "dark" }, pages: [Ue(1)] }), gt = (t, e) => {
   if (t.type === "number") {
     const i = Number(e);
     if (Number.isFinite(i)) {
@@ -630,7 +630,7 @@ let K = class extends $ {
     this.dispatchEvent(new CustomEvent("color-changed", { detail: t, bubbles: !0, composed: !0 }));
   }
 };
-K.styles = R`
+K.styles = z`
     :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
     .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
     select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
@@ -682,7 +682,7 @@ const ue = class ue extends $ {
     })}</div></div>`)}</div></div>`;
   }
 };
-ue.styles = R`
+ue.styles = z`
     :host{display:block;width:240px;max-width:100%}.screen-frame{position:relative;width:100%;overflow:hidden;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.22)}.screen{position:absolute;inset:0;box-sizing:border-box;padding:6px;background:#090b10;color:white;display:flex;flex-direction:column;gap:4px;overflow:hidden}
     .loading{background:linear-gradient(110deg,#090b10 30%,#181c24 45%,#090b10 60%);background-size:220% 100%;animation:loading 1.4s linear infinite}h3{font:700 13px sans-serif;text-align:center;margin:0}.row{display:grid;gap:4px;min-height:0;flex:1}.group{display:flex;flex-direction:column;min-height:0}.title{font:9px sans-serif;color:#aaa}.card{min-width:0;padding:5px;background:#20242d;border-radius:6px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}.card small{font:9px sans-serif;color:#bbb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.value-wrap{display:flex;min-width:0;min-height:0}.value{max-width:100%;font:700 14px sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar{height:4px;background:#3d424e;border-radius:2px;margin-top:4px}.bar i{display:block;height:100%;background:#42a5f5;border-radius:2px}.ring{width:42px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:3px auto}.ring:after{content:"";width:30px;aspect-ratio:1;border-radius:50%;background:var(--ring-bg,#20242d)}
     @keyframes loading{to{background-position:-220% 0}}@media(prefers-reduced-motion:reduce){.loading{animation:none}}
@@ -773,7 +773,7 @@ let _ = class extends $ {
     `;
   }
 };
-_.styles = R`
+_.styles = z`
     :host { display: grid; gap: 12px; max-height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 16px; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
     h2 { margin: 0 2px; font-size: 16px; font-weight: 500; }
     ha-card { display: grid; gap: 10px; padding: 12px; border: 2px solid transparent; cursor: pointer; }
@@ -818,7 +818,7 @@ D([
 _ = D([
   q("mini-display-preview-list")
 ], _);
-var _t = Object.defineProperty, St = Object.getOwnPropertyDescriptor, z = (t, e, i, s) => {
+var _t = Object.defineProperty, St = Object.getOwnPropertyDescriptor, R = (t, e, i, s) => {
   for (var a = s > 1 ? void 0 : s ? St(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
   return s && a && _t(e, i, a), a;
@@ -924,7 +924,7 @@ let A = class extends $ {
     `;
   }
 };
-A.styles = R`
+A.styles = z`
     :host { display: block; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
     ha-card { overflow: hidden; border: 1px solid var(--divider-color); }
     header { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 10px 12px; border-bottom: 1px solid var(--divider-color); }
@@ -955,25 +955,25 @@ A.styles = R`
     .form strong { font-size: 14px; }
     .form small { color: var(--secondary-text-color); line-height: 1.4; }
   `;
-z([
+R([
   p({ attribute: !1 })
 ], A.prototype, "displays", 2);
-z([
+R([
   p({ attribute: !1 })
 ], A.prototype, "scenes", 2);
-z([
+R([
   p()
 ], A.prototype, "selectedDisplayId", 2);
-z([
+R([
   p()
 ], A.prototype, "selectedSceneId", 2);
-z([
+R([
   p()
 ], A.prototype, "form", 2);
-z([
+R([
   p()
 ], A.prototype, "sceneName", 2);
-A = z([
+A = R([
   q("mini-display-scene-sidebar")
 ], A);
 var kt = Object.defineProperty, At = Object.getOwnPropertyDescriptor, M = (t, e, i, s) => {
@@ -998,10 +998,13 @@ const Dt = {
 };
 let S = class extends $ {
   constructor() {
-    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = Ee(), this.advanced = !1;
+    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = Ee(), this.advanced = !1, this.draftInitialized = !1;
   }
   connectedCallback() {
-    super.connectedCallback(), this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
+    super.connectedCallback(), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
+  }
+  willUpdate() {
+    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
   }
   disconnectedCallback() {
     this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
@@ -1196,7 +1199,7 @@ let S = class extends $ {
     ae(this, "visibility-save", t);
   }
 };
-S.styles = R`
+S.styles = z`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
     ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
     h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
@@ -1848,7 +1851,7 @@ let g = class extends $ {
             ${this.transitionEditor(e)}
             <div class="rows">${e.rows.map((a, r) => this.rowEditor(a, r))}</div>
             ${e.rows.length < 6 ? n`<button class="add-button" @click=${() => {
-      e.rows.push(ze()), this.changed();
+      e.rows.push(Re()), this.changed();
     }}>Add row</button>` : c}
           </div>
         ` : n`<div class="loading"><p>No layout configured for this display.</p><ha-button @click=${this.createLayout}>Create layout</ha-button></div>`}
@@ -1951,7 +1954,7 @@ let g = class extends $ {
     `;
   }
 };
-g.styles = R`
+g.styles = z`
     :host{display:block;color:var(--primary-text-color);font-family:var(--ha-font-family-body,Roboto,sans-serif)}*{box-sizing:border-box}button,input,select{font:inherit}button{cursor:pointer}.layout{display:grid;grid-template-columns:220px minmax(420px,1fr) 288px;gap:16px;align-items:start;min-width:0}ha-card{overflow:hidden;border:1px solid var(--divider-color);box-shadow:var(--ha-card-box-shadow,none)}
     .section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:10px 12px;border-bottom:1px solid var(--divider-color)}.section-heading h2{margin:0;font-size:16px;font-weight:500}.icon-button{display:inline-grid;place-items:center;width:40px;height:40px;padding:0;color:var(--primary-text-color);background:transparent;border:0;border-radius:50%}.icon-button:hover{background:var(--secondary-background-color)}.icon-button.danger{color:var(--error-color)}.icon-button:disabled{opacity:.35;cursor:default}
     .scene-list{display:grid;gap:4px;padding:8px}.scene-row{display:grid;grid-template-columns:minmax(0,1fr) 36px;gap:4px;align-items:center;border-radius:10px}.scene-row.active{background:var(--secondary-background-color)}.scene-select{display:flex;align-items:center;gap:10px;min-width:0;min-height:44px;padding:8px 10px;color:var(--primary-text-color);text-align:left;background:transparent;border:0;border-radius:10px}.scene-select ha-icon{color:var(--secondary-text-color)}.scene-row.active .scene-select ha-icon{color:var(--primary-color)}.scene-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2050,7 +2053,7 @@ let N = class extends $ {
     `;
   }
 };
-N.styles = R`
+N.styles = z`
     :host {
       display: block;
       min-height: 100%;

@@ -30,6 +30,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   @property({ attribute: false }) value?: Visibility;
   @state() private draft: Visibility = emptyVisibility();
   @state() private advanced = false;
+  private draftInitialized = false;
   private valueRefreshTimer?: number;
 
   static styles = css`
@@ -54,12 +55,17 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3000);
+  }
+
+  protected willUpdate() {
+    if (this.draftInitialized) return;
+    this.draftInitialized = true;
     this.draft = structuredClone(this.value ?? emptyVisibility());
     if (!this.value && this.canUseCardValue) {
       this.draft.rules[0].source = "card";
       if (this.card?.type === "number") this.draft.rules[0].operator = "range";
     }
-    this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3000);
   }
 
   disconnectedCallback() {
