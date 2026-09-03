@@ -151,7 +151,7 @@
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["none", "random", "slide", "bounce", "fade", "wipe", "dissolve"] },
+        "type": { "enum": ["none", "random", "slide", "bounce", "fade", "wipe", "dissolve", "curtain", "blinds", "mosaic", "doors", "spiral"] },
         "direction": { "enum": ["left", "right", "up", "down"] },
         "speed": { "enum": ["slow", "normal", "fast"] },
         "intensity": { "enum": ["subtle", "strong"] },

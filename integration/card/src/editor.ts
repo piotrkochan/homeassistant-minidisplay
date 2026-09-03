@@ -117,6 +117,34 @@ export class MiniDisplayEditor extends LitElement {
     return String(error);
   }
 
+  private retryableSaveError(error: unknown) {
+    if (!error || typeof error !== "object") return false;
+    const value = error as { code?: unknown; message?: unknown };
+    if (value.code === "display_unavailable") return true;
+    if (typeof value.message !== "string") return false;
+    const message = value.message.toLowerCase();
+    return message.includes("did not respond") || message.includes("timeout");
+  }
+
+  private async saveDashboardWithRetry(message: Record<string, unknown>) {
+    if (!this.hass) return;
+    const retryDelays = [0, 300, 800];
+    for (let attempt = 0; attempt < retryDelays.length; attempt += 1) {
+      if (retryDelays[attempt]) {
+        this.syncMessage = `Retrying save (${attempt + 1}/${retryDelays.length})`;
+        await new Promise((resolve) => window.setTimeout(resolve, retryDelays[attempt]));
+      }
+      try {
+        await this.hass.callWS(message);
+        return;
+      } catch (error) {
+        if (attempt === retryDelays.length - 1 || !this.retryableSaveError(error)) {
+          throw error;
+        }
+      }
+    }
+  }
+
   private async load(preferredSceneId?: string) {
     if (!this.hass) return;
     this.loaded = true;
@@ -185,7 +213,7 @@ export class MiniDisplayEditor extends LitElement {
     try {
       this.syncState = "syncing";
       this.syncMessage = "Saving";
-      await this.hass.callWS({ type: "mini_display/dashboard/set", config_entry_id: this.selectedDisplayId, scene_id: this.selectedSceneId, dashboard: this.dashboard });
+      await this.saveDashboardWithRetry({ type: "mini_display/dashboard/set", config_entry_id: this.selectedDisplayId, scene_id: this.selectedSceneId, dashboard: this.dashboard });
       this.savedDashboards = { ...this.savedDashboards, [this.selectedDisplayId]: structuredClone(this.dashboard) };
       const dirty = new Set(this.dirtyDisplays);
       dirty.delete(this.selectedDisplayId);
@@ -505,12 +533,18 @@ export class MiniDisplayEditor extends LitElement {
       { type: "fade", label: "Fade", icon: "mdi:brightness-6" },
       { type: "wipe", label: "Wipe", icon: "mdi:transition-masked" },
       { type: "dissolve", label: "Dissolve", icon: "mdi:dots-grid" },
+      { type: "curtain", label: "Curtain", icon: "mdi:curtains" },
+      { type: "blinds", label: "Blinds", icon: "mdi:blinds-horizontal" },
+      { type: "mosaic", label: "Mosaic", icon: "mdi:view-grid-plus" },
+      { type: "doors", label: "Doors", icon: "mdi:door-sliding" },
+      { type: "spiral", label: "Spiral", icon: "mdi:reload" },
     ];
     const defaults = (type: PageTransition["type"]): PageTransition => type === "none" ? { type }
       : type === "random" ? { type, speed: "normal" }
-      : type === "dissolve" ? { type, speed: "normal", tileSize: "medium" }
+      : ["dissolve", "mosaic", "spiral"].includes(type) ? { type, speed: "normal", tileSize: "medium" }
       : type === "fade" ? { type, speed: "normal", intensity: "strong" }
       : type === "bounce" ? { type, direction: "left", speed: "normal", intensity: "subtle" }
+      : ["curtain", "blinds"].includes(type) ? { type, direction: "left", speed: "normal" }
       : { type, direction: "left", speed: "normal" };
     const directions = [
       { value: "left" as const, label: "Left", icon: "mdi:arrow-left" },
@@ -523,7 +557,7 @@ export class MiniDisplayEditor extends LitElement {
       { value: "normal" as const, label: "Normal" },
       { value: "fast" as const, label: "Fast" },
     ];
-    return html`<details class="transition-settings"><summary class="transition-summary">Transition to next page · ${effects.find((effect) => effect.type === transition.type)?.label ?? "None"}</summary><div class="effect-grid">${effects.map((effect) => html`<button class="effect ${transition.type === effect.type ? "active" : ""}" aria-pressed=${transition.type === effect.type} @click=${() => set(defaults(effect.type))}><ha-icon icon=${effect.icon}></ha-icon><span>${effect.label}</span></button>`)}</div>${transition.type !== "none" ? html`<div class="transition-options">${["slide", "bounce", "wipe"].includes(transition.type) ? this.segmented("Direction", transition.direction ?? "left", directions, (value) => patch({ direction: value })) : nothing}${this.segmented("Speed", transition.speed ?? "normal", speeds, (value) => patch({ speed: value }))}${["bounce", "fade"].includes(transition.type) ? this.segmented("Intensity", transition.intensity ?? "subtle", [{ value: "subtle" as const, label: "Subtle" }, { value: "strong" as const, label: "Strong" }], (value) => patch({ intensity: value })) : nothing}${transition.type === "dissolve" ? this.segmented("Tile size", transition.tileSize ?? "medium", [{ value: "small" as const, label: "Small" }, { value: "medium" as const, label: "Medium" }, { value: "large" as const, label: "Large" }], (value) => patch({ tileSize: value })) : nothing}</div>` : nothing}</details>`;
+    return html`<details class="transition-settings"><summary class="transition-summary">Transition to next page · ${effects.find((effect) => effect.type === transition.type)?.label ?? "None"}</summary><div class="effect-grid">${effects.map((effect) => html`<button class="effect ${transition.type === effect.type ? "active" : ""}" aria-pressed=${effect.type === transition.type} @click=${() => set(defaults(effect.type))}><ha-icon icon=${effect.icon}></ha-icon><span>${effect.label}</span></button>`)}</div>${transition.type !== "none" ? html`<div class="transition-options">${["slide", "bounce", "wipe", "curtain", "blinds"].includes(transition.type) ? this.segmented("Direction", transition.direction ?? "left", directions, (value) => patch({ direction: value })) : nothing}${this.segmented("Speed", transition.speed ?? "normal", speeds, (value) => patch({ speed: value }))}${["bounce", "fade"].includes(transition.type) ? this.segmented("Intensity", transition.intensity ?? "subtle", [{ value: "subtle" as const, label: "Subtle" }, { value: "strong" as const, label: "Strong" }], (value) => patch({ intensity: value })) : nothing}${["dissolve", "mosaic", "spiral"].includes(transition.type) ? this.segmented("Tile size", transition.tileSize ?? "medium", [{ value: "small" as const, label: "Small" }, { value: "medium" as const, label: "Medium" }, { value: "large" as const, label: "Large" }], (value) => patch({ tileSize: value })) : nothing}</div>` : nothing}</details>`;
   }
 
   private dragMapping(kind: "value" | "color", index: number, event: DragEvent) {

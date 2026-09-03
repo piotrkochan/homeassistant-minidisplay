@@ -15,7 +15,7 @@ export type Style = {
 };
 
 export type PageTransition = {
-  type: "none" | "random" | "slide" | "bounce" | "fade" | "wipe" | "dissolve";
+  type: "none" | "random" | "slide" | "bounce" | "fade" | "wipe" | "dissolve" | "curtain" | "blinds" | "mosaic" | "doors" | "spiral";
   direction?: "left" | "right" | "up" | "down";
   speed?: "slow" | "normal" | "fast";
   intensity?: "subtle" | "strong";
