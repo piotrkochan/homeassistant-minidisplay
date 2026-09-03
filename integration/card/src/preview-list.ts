@@ -69,7 +69,7 @@ export class MiniDisplayPreviewList extends LitElement {
           </button>
         </header>
         ${dashboard ? html`
-          <mini-display-preview .dashboard=${dashboard} .hass=${this.hass} .page=${page}></mini-display-preview>
+          <mini-display-preview .dashboard=${dashboard} .hass=${this.hass} .page=${page} .width=${display.width} .height=${display.height}></mini-display-preview>
           ${dashboard.pages.length > 1 ? html`
             <nav>
               <button class="icon" aria-label="Previous page" @click=${(event: Event) => { event.stopPropagation(); emit(this, "preview-page", { displayId: display.config_entry_id, delta: -1 }); }}><ha-icon icon="mdi:chevron-left"></ha-icon></button>

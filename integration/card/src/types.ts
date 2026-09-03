@@ -61,6 +61,8 @@ export type Display = {
   active_scene_id: string | null;
   active_scene_name: string | null;
   preview_scene_id: string | null;
+  width: number;
+  height: number;
 };
 export type Scene = { id: string; name: string; is_default: boolean };
 

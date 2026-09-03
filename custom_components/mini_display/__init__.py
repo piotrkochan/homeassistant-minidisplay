@@ -235,6 +235,12 @@ async def websocket_list_displays(hass, connection, msg) -> None:
                 "active_scene_id": runtime["dashboard"].active_scene_id if runtime else None,
                 "active_scene_name": runtime["dashboard"].scene_name() if runtime else None,
                 "preview_scene_id": runtime["dashboard"].preview_scene_id if runtime else None,
+                "width": coordinator.device_info.width
+                if coordinator and coordinator.device_info
+                else 240,
+                "height": coordinator.device_info.height
+                if coordinator and coordinator.device_info
+                else 240,
             }
         )
     connection.send_result(msg["id"], displays)

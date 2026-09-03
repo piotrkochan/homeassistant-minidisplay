@@ -10,13 +10,15 @@ export class MiniDisplayPreview extends LitElement {
   @property({ attribute: false }) hass?: Hass;
   @property({ type: Number }) page = 0;
   @property({ type: Boolean }) autoRotate = false;
+  @property({ type: Number }) width = 240;
+  @property({ type: Number }) height = 240;
   @state() private now = new Date();
   @state() private autoPage = 0;
   private clockTimer?: number;
   private pageShownAt = Date.now();
 
   static styles = css`
-    :host{display:block;width:240px;max-width:100%}.screen{box-sizing:border-box;width:100%;aspect-ratio:1;padding:6px;background:#090b10;color:white;border-radius:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+    :host{display:block;width:240px;max-width:100%}.screen{box-sizing:border-box;width:100%;padding:6px;background:#090b10;color:white;border-radius:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.22)}
     .loading{background:linear-gradient(110deg,#090b10 30%,#181c24 45%,#090b10 60%);background-size:220% 100%;animation:loading 1.4s linear infinite}h3{font:700 13px sans-serif;text-align:center;margin:0}.row{display:grid;gap:4px;min-height:0;flex:1}.group{display:flex;flex-direction:column;min-height:0}.title{font:9px sans-serif;color:#aaa}.card{min-width:0;padding:5px;background:#20242d;border-radius:6px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}.card small{font:9px sans-serif;color:#bbb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.value-wrap{display:flex;min-width:0;min-height:0}.value{max-width:100%;font:700 14px sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar{height:4px;background:#3d424e;border-radius:2px;margin-top:4px}.bar i{display:block;height:100%;background:#42a5f5;border-radius:2px}.ring{width:42px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:3px auto}.ring:after{content:"";width:30px;aspect-ratio:1;border-radius:50%;background:var(--ring-bg,#20242d)}
     @keyframes loading{to{background-position:-220% 0}}@media(prefers-reduced-motion:reduce){.loading{animation:none}}
   `;
@@ -45,10 +47,11 @@ export class MiniDisplayPreview extends LitElement {
 
   render() {
     const page = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
-    if (!page) return html`<div class="screen loading" aria-label="Loading display preview"></div>`;
+    const screenStyle = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
+    if (!page) return html`<div class="screen loading" style=${screenStyle} aria-label="Loading display preview"></div>`;
     const rows = page.rows.filter(row => visibilityMatches(this.hass, row.visibility)).map(row => ({ ...row, cards: row.cards.filter(card => visibilityMatches(this.hass, card.visibility)) })).filter(row => row.cards.length > 0);
-    if (rows.length === 0) return html`<div class="screen"><div class="card"><div class="value">No visible content</div></div></div>`;
-    return html`<div class="screen">${page.title && page.showTitle !== false ? html`<h3>${page.title}</h3>` : null}${rows.map(row => html`<div class="group" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title">${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${row.cards.length},minmax(0,1fr))">${row.cards.map(card => {
+    if (rows.length === 0) return html`<div class="screen" style=${screenStyle}><div class="card"><div class="value">No visible content</div></div></div>`;
+    return html`<div class="screen" style=${screenStyle}>${page.title && page.showTitle !== false ? html`<h3>${page.title}</h3>` : null}${rows.map(row => html`<div class="group" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title">${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${row.cards.length},minmax(0,1fr))">${row.cards.map(card => {
       const raw = card.source ? this.hass?.states[card.source]?.state ?? "—" : card.text ?? "—";
       const numeric = Number(raw); const min = card.minimum ?? 0; const max = card.maximum ?? 100; const progress = Number.isFinite(numeric) && max > min ? Math.max(0,Math.min(100,(numeric-min)/(max-min)*100)) : 0;
       const family = {sans:"sans-serif","sans-bold":"sans-serif",mono:"monospace",serif:"serif"}[card.valueStyle?.fontFamily ?? "sans"];
