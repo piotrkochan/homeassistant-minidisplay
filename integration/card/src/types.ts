@@ -25,7 +25,6 @@ export type PageTransition = {
 export type VisibilityRuleOperator = "range" | "equals" | "not_equals" | "starts_with" | "ends_with" | "contains" | "available" | "unavailable";
 export type VisibilityRule = {
   id: string;
-  label: string;
   source: "card" | "entity";
   entity?: string;
   operator: VisibilityRuleOperator;

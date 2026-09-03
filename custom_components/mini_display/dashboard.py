@@ -288,7 +288,6 @@ def _validate_visibility(
             f"Visibility requires 1-{MAX_VISIBILITY_RULES} rules", f"{path}/rules"
         )
     rule_ids: set[str] = set()
-    labels: set[str] = set()
     for index, rule in enumerate(rules):
         rule_path = f"{path}/rules/{index}"
         if not isinstance(rule, dict):
@@ -299,13 +298,6 @@ def _validate_visibility(
         if rule_id in rule_ids:
             raise DashboardValidationError("Rule ids must be unique", f"{rule_path}/id")
         rule_ids.add(rule_id)
-        label = rule.get("label")
-        if not isinstance(label, str) or not label.strip() or len(label) > 32:
-            raise DashboardValidationError("Rule requires a label", f"{rule_path}/label")
-        normalized_label = label.strip().casefold()
-        if normalized_label in labels:
-            raise DashboardValidationError("Rule labels must be unique", f"{rule_path}/label")
-        labels.add(normalized_label)
         source = rule.get("source")
         if source not in {"card", "entity"}:
             raise DashboardValidationError("Unsupported rule source", f"{rule_path}/source")

@@ -112,10 +112,9 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "label", "source", "operator"],
+            "required": ["id", "source", "operator"],
             "properties": {
               "id": { "type": "string", "minLength": 1, "maxLength": 32 },
-              "label": { "type": "string", "minLength": 1, "maxLength": 32 },
               "source": { "enum": ["card", "entity"] },
               "entity": { "$ref": "#/$defs/source" },
               "operator": { "enum": ["range", "equals", "not_equals", "starts_with", "ends_with", "contains", "available", "unavailable"] },

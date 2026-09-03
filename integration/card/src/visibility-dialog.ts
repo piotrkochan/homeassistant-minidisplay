@@ -9,9 +9,13 @@ const operatorNames: Record<VisibilityRuleOperator, string> = {
 };
 
 const emptyVisibility = (): Visibility => ({
-  rules: [{ id: "rule_1", label: "Condition A", source: "entity", entity: "", operator: "equals", match: "" }],
-  expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_1" }] },
+  rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
+  expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_a" }] },
 });
+
+const ruleColors = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"];
+const ruleMarker = (ruleId: string) => ruleId.replace("rule_", "").toUpperCase();
+const ruleColor = (ruleId: string) => ruleColors[Math.max(0, ruleId.charCodeAt(ruleId.length - 1) - 97) % ruleColors.length];
 
 const emit = (element: HTMLElement, type: string, detail?: unknown) => {
   element.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
@@ -25,16 +29,19 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   @property({ attribute: false }) card?: DisplayCard;
   @property({ attribute: false }) value?: Visibility;
   @state() private draft: Visibility = emptyVisibility();
+  @state() private advanced = false;
 
   static styles = css`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
     ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
     h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
     .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}p{margin:0;color:var(--secondary-text-color);font-size:13px;line-height:1.45}
+    .mode-switch{display:grid;grid-template-columns:1fr 1fr;padding:3px;background:var(--secondary-background-color);border-radius:10px}.mode-switch button{min-height:36px;padding:6px 16px;color:var(--secondary-text-color);font:inherit;background:transparent;border:0;border-radius:8px;cursor:pointer}.mode-switch button.active{color:var(--primary-text-color);font-weight:500;background:var(--card-background-color);box-shadow:0 1px 3px rgba(0,0,0,.18)}
     label{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}select,input{box-sizing:border-box;width:100%;min-height:40px;padding:8px;color:var(--primary-text-color);font:inherit;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}
     select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.rule-list{display:grid;gap:10px}
     .rule{display:grid;gap:10px;padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)}
-    .rule-head{display:grid;grid-template-columns:1fr 130px 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .rule-marker{display:grid;place-items:center;align-self:center;width:28px;height:28px;color:#fff;font-size:13px;font-weight:700;border-radius:50%}.rule-reference{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:end}.rule-reference .rule-marker{margin-bottom:6px}
     .icon{display:grid;place-items:center;width:40px;height:40px;padding:0;color:var(--secondary-text-color);background:transparent;border:0;border-radius:50%;cursor:pointer}.icon.danger{color:var(--error-color)}.icon:disabled{opacity:.38;cursor:default}
     .logic{padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:color-mix(in srgb,var(--secondary-background-color) 60%,transparent)}.group{display:grid;gap:8px}.group.nested{margin-left:18px;padding:10px 0 4px 12px;border-left:3px solid var(--primary-color)}
     .group-head{display:flex;align-items:end;gap:8px}.group-head label:first-child{width:170px}.invert{display:flex;align-items:center;gap:7px;min-height:40px;color:var(--primary-text-color);font-size:13px}.invert input{width:18px;min-height:18px}
@@ -56,9 +63,13 @@ export class MiniDisplayVisibilityDialog extends LitElement {
       <ha-card role="dialog" aria-modal="true" aria-labelledby="visibility-title" @click=${(event: Event) => event.stopPropagation()}>
         <header><h2 id="visibility-title">${this.targetName} visibility</h2></header>
         <main>
-          <p>Create reusable conditions, then combine them in the logic tree. Nested groups work like parentheses.</p>
+          <div class="mode-switch" role="tablist" aria-label="Visibility editor mode"><button class=${this.advanced ? "" : "active"} role="tab" aria-selected=${!this.advanced} @click=${() => this.advanced = false}>Simple</button><button class=${this.advanced ? "active" : ""} role="tab" aria-selected=${this.advanced} @click=${() => this.advanced = true}>Advanced</button></div>
+          <p>${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}</p>
+          ${!this.advanced && this.draft.rules.length > 1 ? html`<label>Match<select .value=${this.draft.expression.operator} @change=${(event: Event) => this.updateGroup([], { operator: (event.target as HTMLSelectElement).value as "and" | "or" })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : nothing}
+          ${!this.advanced && this.hasAdvancedLogic ? html`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : nothing}
           <section><div class="section-head"><h3>Conditions</h3><ha-button .disabled=${this.draft.rules.length >= 12} @click=${this.addRule}>Add condition</ha-button></div><div class="rule-list">${this.draft.rules.map((rule, index) => this.renderRule(rule, index))}</div></section>
-          <section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div>${validationError ? html`<p class="error" role="alert">${validationError}</p>` : nothing}</section>
+          ${this.advanced ? html`<section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div></section>` : nothing}
+          ${validationError ? html`<p class="error" role="alert">${validationError}</p>` : nothing}
         </main>
         <footer class="actions"><ha-button @click=${() => emit(this, "visibility-clear")}>Always visible</ha-button><div class="right"><ha-button @click=${() => emit(this, "visibility-cancel")}>Cancel</ha-button><ha-button .disabled=${Boolean(validationError)} @click=${this.save}>Save</ha-button></div></footer>
       </ha-card>`;
@@ -73,9 +84,9 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     const needsMatch = ["equals", "not_equals", "starts_with", "ends_with", "contains"].includes(rule.operator);
     return html`<article class="rule">
       <div class="rule-head">
-        <label>Label<input maxlength="32" .value=${rule.label} @input=${(event: Event) => this.updateRule(index, { label: (event.target as HTMLInputElement).value })}></label>
+        <span class="rule-marker" style=${`background:${ruleColor(rule.id)}`}>${ruleMarker(rule.id)}</span>
         <label>Value source<select .value=${rule.source} @change=${(event: Event) => this.updateRule(index, { source: (event.target as HTMLSelectElement).value as "card" | "entity" })}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
-        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove ${rule.label || `condition ${index + 1}`}`} @click=${() => this.removeRule(index)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
+        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${ruleMarker(rule.id)}`} @click=${() => this.removeRule(index)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
         <label>Comparison<select .value=${rule.operator} @change=${(event: Event) => this.changeOperator(index, (event.target as HTMLSelectElement).value as VisibilityRuleOperator)}>${Object.entries(operatorNames).map(([value, name]) => html`<option value=${value}>${name}</option>`)}</select></label>
@@ -99,7 +110,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private renderExpression(expression: VisibilityExpression, path: number[], index: number, siblingCount: number): TemplateResult {
     if (expression.type === "group") return html`<div class="logic-child"><span class="logic-index">${index + 1}</span>${this.renderGroup(expression, path)}${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove group" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
-    return html`<div class="logic-child"><span class="logic-index">${index + 1}</span><div><label>Condition<select .value=${expression.ruleId} @change=${(event: Event) => this.updateExpression(path, { ...expression, ruleId: (event.target as HTMLSelectElement).value })}>${this.draft.rules.map((rule) => html`<option value=${rule.id}>${rule.label || rule.id}</option>`)}</select></label><label class="invert"><input type="checkbox" .checked=${expression.negate === true} @change=${(event: Event) => this.updateExpression(path, { ...expression, negate: (event.target as HTMLInputElement).checked })}>Invert condition</label></div>${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
+    return html`<div class="logic-child"><span class="logic-index">${index + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${ruleColor(expression.ruleId)}`}>${ruleMarker(expression.ruleId)}</span><label>Condition<select .value=${expression.ruleId} @change=${(event: Event) => this.updateExpression(path, { ...expression, ruleId: (event.target as HTMLSelectElement).value })}>${this.draft.rules.map((rule) => html`<option value=${rule.id}>Condition ${ruleMarker(rule.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${expression.negate === true} @change=${(event: Event) => this.updateExpression(path, { ...expression, negate: (event.target as HTMLInputElement).checked })}>Invert condition</label></div>${this.moveButtons(path, index, siblingCount)}<button class="icon danger" ?disabled=${siblingCount === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(path)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
   }
 
   private moveButtons(path: number[], index: number, siblingCount: number) {
@@ -112,16 +123,16 @@ export class MiniDisplayVisibilityDialog extends LitElement {
 
   private changeOperator(index: number, operator: VisibilityRuleOperator) {
     const rule = this.draft.rules[index];
-    const next: VisibilityRule = { id: rule.id, label: rule.label, source: rule.source, entity: rule.entity, operator };
+    const next: VisibilityRule = { id: rule.id, source: rule.source, entity: rule.entity, operator };
     if (operator === "range") { next.minimum = rule.minimum; next.maximum = rule.maximum; }
     else if (!["available", "unavailable"].includes(operator)) next.match = rule.match ?? "";
     this.draft = { ...this.draft, rules: this.draft.rules.map((item, ruleIndex) => ruleIndex === index ? next : item) };
   }
 
   private addRule() {
-    const used = new Set(this.draft.rules.map((rule) => rule.id)); let number = 1;
-    while (used.has(`rule_${number}`)) number += 1;
-    const rule: VisibilityRule = { id: `rule_${number}`, label: `Condition ${String.fromCharCode(65 + Math.min(this.draft.rules.length, 25))}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: "equals", match: "" };
+    const used = new Set(this.draft.rules.map((rule) => rule.id)); let markerCode = 97;
+    while (used.has(`rule_${String.fromCharCode(markerCode)}`)) markerCode += 1;
+    const rule: VisibilityRule = { id: `rule_${String.fromCharCode(markerCode)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: "equals", match: "" };
     this.draft = { rules: [...this.draft.rules, rule], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: rule.id }] } };
   }
 
@@ -146,21 +157,22 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   private addGroup(path: number[]) { this.mutateExpression((root) => this.groupAt(root, path).children.push({ type: "group", operator: "and", children: [{ type: "rule", ruleId: this.draft.rules[0].id }] })); }
   private removeExpression(path: number[]) { this.mutateExpression((root) => { const parent = this.parentAt(root, path); if (parent.children.length > 1) parent.children.splice(path.at(-1)!, 1); }); }
   private moveExpression(path: number[], direction: -1 | 1) { this.mutateExpression((root) => { const parent = this.parentAt(root, path); const index = path.at(-1)!; const target = index + direction; if (target < 0 || target >= parent.children.length) return; [parent.children[index], parent.children[target]] = [parent.children[target], parent.children[index]]; }); }
+
+  private get hasAdvancedLogic(): boolean {
+    const walk = (expression: VisibilityExpression): boolean => expression.negate === true
+      || (expression.type === "group" && expression.children.some((child) => child.type === "group" || walk(child)));
+    return walk(this.draft.expression);
+  }
   private get validationError(): string | undefined {
-    const labels = new Set<string>();
     for (const rule of this.draft.rules) {
-      const label = rule.label.trim();
-      if (!label) return "Every condition needs a label.";
-      if (labels.has(label.toLowerCase())) return "Condition labels must be unique.";
-      labels.add(label.toLowerCase());
       if (rule.source === "card" && !this.canUseCardValue) return "This item has no card value to test.";
-      if (rule.source === "entity" && !rule.entity?.trim()) return `${label} needs an entity.`;
+      if (rule.source === "entity" && !rule.entity?.trim()) return `Condition ${ruleMarker(rule.id)} needs an entity.`;
       if (rule.operator === "range") {
-        if (rule.minimum === undefined && rule.maximum === undefined) return `${label} needs a lower or upper limit.`;
-        if ((rule.minimum !== undefined && !Number.isFinite(rule.minimum)) || (rule.maximum !== undefined && !Number.isFinite(rule.maximum))) return `${label} needs valid number limits.`;
-        if (rule.minimum !== undefined && rule.maximum !== undefined && rule.minimum > rule.maximum) return `${label} has an invalid range.`;
+        if (rule.minimum === undefined && rule.maximum === undefined) return `Condition ${ruleMarker(rule.id)} needs a lower or upper limit.`;
+        if ((rule.minimum !== undefined && !Number.isFinite(rule.minimum)) || (rule.maximum !== undefined && !Number.isFinite(rule.maximum))) return `Condition ${ruleMarker(rule.id)} needs valid number limits.`;
+        if (rule.minimum !== undefined && rule.maximum !== undefined && rule.minimum > rule.maximum) return `Condition ${ruleMarker(rule.id)} has an invalid range.`;
       }
-      if (["equals", "not_equals", "starts_with", "ends_with", "contains"].includes(rule.operator) && !rule.match?.length) return `${label} needs a value.`;
+      if (["equals", "not_equals", "starts_with", "ends_with", "contains"].includes(rule.operator) && !rule.match?.length) return `Condition ${ruleMarker(rule.id)} needs a value.`;
     }
     return undefined;
   }
@@ -168,7 +180,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   private save() {
     if (this.validationError) return;
     const draft = structuredClone(this.draft);
-    for (const rule of draft.rules) { rule.label = rule.label.trim(); if (rule.entity !== undefined) rule.entity = rule.entity.trim(); }
+    for (const rule of draft.rules) if (rule.entity !== undefined) rule.entity = rule.entity.trim();
     emit(this, "visibility-save", draft);
   }
 }
