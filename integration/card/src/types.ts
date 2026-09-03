@@ -1,5 +1,5 @@
 export type Hass = {
-  states: Record<string, { state: string }>;
+  states: Record<string, { state: string; attributes?: Record<string, unknown> }>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
 };
 

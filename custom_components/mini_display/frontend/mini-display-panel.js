@@ -17,14 +17,14 @@ let Ie = class {
     return this.cssText;
   }
 };
-const Fe = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t, ...e) => {
+const Ve = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((s, a, r) => s + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + o + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(a) + t[r + 1], t[0]);
   return new Ie(i, t, ne);
-}, Ve = (t, e) => {
+}, Fe = (t, e) => {
   if (oe) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
   else for (const i of e) {
     const s = document.createElement("style"), a = Y.litNonce;
@@ -33,9 +33,9 @@ const Fe = (t) => new Ie(typeof t == "string" ? t : t + "", void 0, ne), z = (t,
 }, fe = oe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let i = "";
   for (const s of e.cssRules) i += s.cssText;
-  return Fe(i);
+  return Ve(i);
 })(t) : t;
-const { is: We, defineProperty: Be, getOwnPropertyDescriptor: Ge, getOwnPropertyNames: Ke, getOwnPropertySymbols: Je, getPrototypeOf: Ze } = Object, te = globalThis, be = te.trustedTypes, Ye = be ? be.emptyScript : "", Qe = te.reactiveElementPolyfillSupport, V = (t, e) => t, X = { toAttribute(t, e) {
+const { is: We, defineProperty: Be, getOwnPropertyDescriptor: Ge, getOwnPropertyNames: Ke, getOwnPropertySymbols: Je, getPrototypeOf: Ze } = Object, te = globalThis, be = te.trustedTypes, Ye = be ? be.emptyScript : "", Qe = te.reactiveElementPolyfillSupport, F = (t, e) => t, X = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
       t = t ? Ye : null;
@@ -93,13 +93,13 @@ let U = class extends HTMLElement {
     return this.elementProperties.get(e) ?? xe;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(V("elementProperties"))) return;
+    if (this.hasOwnProperty(F("elementProperties"))) return;
     const e = Ze(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(V("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(V("properties"))) {
+    if (this.hasOwnProperty(F("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(F("properties"))) {
       const i = this.properties, s = [...Ke(i), ...Je(i)];
       for (const a of s) this.createProperty(a, i[a]);
     }
@@ -146,7 +146,7 @@ let U = class extends HTMLElement {
   }
   createRenderRoot() {
     const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Ve(e, this.constructor.elementStyles), e;
+    return Fe(e, this.constructor.elementStyles), e;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -246,7 +246,7 @@ let U = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-U.elementStyles = [], U.shadowRootOptions = { mode: "open" }, U[V("elementProperties")] = /* @__PURE__ */ new Map(), U[V("finalized")] = /* @__PURE__ */ new Map(), Qe?.({ ReactiveElement: U }), (te.reactiveElementVersions ??= []).push("2.1.2");
+U.elementStyles = [], U.shadowRootOptions = { mode: "open" }, U[F("elementProperties")] = /* @__PURE__ */ new Map(), U[F("finalized")] = /* @__PURE__ */ new Map(), Qe?.({ ReactiveElement: U }), (te.reactiveElementVersions ??= []).push("2.1.2");
 const de = globalThis, $e = (t) => t, ee = de.trustedTypes, we = ee ? ee.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ne = "$lit$", C = `lit$${Math.random().toFixed(9).slice(2)}$`, Te = "?" + C, Xe = `<${Te}>`, T = document, W = () => T.createComment(""), B = (t) => t === null || typeof t != "object" && typeof t != "function", ce = Array.isArray, et = (t) => ce(t) || typeof t?.[Symbol.iterator] == "function", se = `[ 	
 \f\r]`, q = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, _e = /-->/g, Se = />/g, I = RegExp(`>|${se}(?:([^\\s"'>=/]+)(${se}*=${se}*(?:[^ 	
 \f\r"'\`<>=]|("|')|))|$)`, "g"), ke = /'/g, Ae = /"/g, Oe = /^(?:script|style|textarea|title)$/i, tt = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), n = tt(1), j = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), De = /* @__PURE__ */ new WeakMap(), N = T.createTreeWalker(T, 129);
@@ -718,7 +718,7 @@ var $t = Object.defineProperty, wt = Object.getOwnPropertyDescriptor, D = (t, e,
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
   return s && a && $t(e, i, a), a;
 };
-const F = (t, e, i) => {
+const V = (t, e, i) => {
   t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let _ = class extends $ {
@@ -736,7 +736,7 @@ let _ = class extends $ {
     return n`
       <ha-card
         class=${t.config_entry_id === this.selectedDisplayId ? "selected" : ""}
-        @click=${() => F(this, "display-selected", t.config_entry_id)}
+        @click=${() => V(this, "display-selected", t.config_entry_id)}
       >
         <header>
           <div><strong>${t.title}</strong><small>Active: ${t.active_scene_name ?? "Unknown"}</small></div>
@@ -746,7 +746,7 @@ let _ = class extends $ {
             aria-label=${s ? "Stop temporary preview" : "Show temporary preview"}
             ?disabled=${!s && !r}
             @click=${(o) => {
-      o.stopPropagation(), F(this, "preview-toggle", t);
+      o.stopPropagation(), V(this, "preview-toggle", t);
     }}
           >
             <ha-icon icon=${s ? "mdi:eye" : "mdi:eye-off-outline"}></ha-icon>
@@ -757,17 +757,17 @@ let _ = class extends $ {
           ${e.pages.length > 1 ? n`
             <nav>
               <button class="icon" aria-label="Previous page" @click=${(o) => {
-      o.stopPropagation(), F(this, "preview-page", { displayId: t.config_entry_id, delta: -1 });
+      o.stopPropagation(), V(this, "preview-page", { displayId: t.config_entry_id, delta: -1 });
     }}><ha-icon icon="mdi:chevron-left"></ha-icon></button>
               <span>${i + 1} / ${e.pages.length}</span>
               <button class="icon" aria-label="Next page" @click=${(o) => {
-      o.stopPropagation(), F(this, "preview-page", { displayId: t.config_entry_id, delta: 1 });
+      o.stopPropagation(), V(this, "preview-page", { displayId: t.config_entry_id, delta: 1 });
     }}><ha-icon icon="mdi:chevron-right"></ha-icon></button>
             </nav>
           ` : c}
         ` : n`<ha-alert alert-type="info">No layout in this scene.</ha-alert>`}
         ${!a && e ? n`<ha-button .disabled=${this.dirtyDisplays.has(t.config_entry_id)} @click=${(o) => {
-      o.stopPropagation(), F(this, "scene-activate", t);
+      o.stopPropagation(), V(this, "scene-activate", t);
     }}>Activate ${this.selectedSceneName}</ha-button>` : c}
       </ha-card>
     `;
@@ -973,7 +973,7 @@ let S = class extends $ {
     super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = Ee(), this.advanced = !1;
   }
   connectedCallback() {
-    super.connectedCallback(), this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card");
+    super.connectedCallback(), this.draft = structuredClone(this.value ?? Ee()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range"));
   }
   render() {
     const t = this.validationError;
@@ -1000,13 +1000,13 @@ let S = class extends $ {
     return n`<article class="rule">
       <div class="rule-head">
         <span class="rule-marker" style=${`background:${Me(t.id)}`}>${k(t.id)}</span>
-        <label>Value source<select .value=${t.source} @change=${(a) => this.updateRule(e, { source: a.target.value })}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <label>Value source<select .value=${t.source} @change=${(a) => this.changeSource(e, a.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
         <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${k(t.id)}`} @click=${() => this.removeRule(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
         <label>Comparison<select .value=${t.operator} @change=${(a) => this.changeOperator(e, a.target.value)}>${Object.entries(Dt).map(([a, r]) => n`<option value=${a}>${r}</option>`)}</select></label>
-        ${i ? n`<ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: {} } }]} .computeLabel=${() => "Entity"} @value-changed=${(a) => this.updateRule(e, { entity: a.detail.value.entity })}></ha-form>` : n`<p>Uses the raw value of this card.</p>`}
-        ${t.operator === "range" ? n`<div class="range">${this.numberField("From", t.minimum, (a) => this.updateRule(e, { minimum: a }))}${this.numberField("To", t.maximum, (a) => this.updateRule(e, { maximum: a }))}</div>` : s ? n`<label>Value<input maxlength="64" .value=${t.match ?? ""} @input=${(a) => this.updateRule(e, { match: a.target.value })}></label>` : c}
+        ${i ? n`<ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(a) => this.updateRule(e, { entity: a.detail.value.entity })}></ha-form>` : n`<p>Uses the raw value of this card.</p>`}
+        ${t.operator === "range" ? n`<div class="range">${this.numberField("From", t.minimum, (a) => this.updateRule(e, { minimum: a }))}${this.numberField("To", t.maximum, (a) => this.updateRule(e, { maximum: a }))}</div>` : s ? this.matchField(t, e) : c}
       </div>
     </article>`;
   }
@@ -1032,16 +1032,61 @@ let S = class extends $ {
   updateRule(t, e) {
     this.draft = { ...this.draft, rules: this.draft.rules.map((i, s) => s === t ? { ...i, ...e } : i) };
   }
+  changeSource(t, e) {
+    const i = this.draft.rules[t];
+    if (e === "card" && this.card?.type === "number" && !["range", "available", "unavailable"].includes(i.operator)) {
+      this.changeOperator(t, "range"), this.updateRule(t, { source: e });
+      return;
+    }
+    if (e === "card" && this.card?.type !== "number" && i.operator === "range") {
+      this.changeOperator(t, "equals"), this.updateRule(t, { source: e });
+      return;
+    }
+    this.updateRule(t, { source: e });
+  }
+  entitySelector(t) {
+    if (["available", "unavailable"].includes(t.operator)) return {};
+    const e = t.operator === "range";
+    return { include_entities: Object.entries(this.hass?.states ?? {}).filter(([s, a]) => s === t.entity || this.isNumericState(s, a) === e).map(([s]) => s) };
+  }
+  isNumericState(t, e) {
+    if (["number", "input_number", "counter"].includes(t.split(".", 1)[0]) || e.attributes?.unit_of_measurement !== void 0) return !0;
+    const i = e.state.trim();
+    return i !== "" && !["unknown", "unavailable"].includes(i) && Number.isFinite(Number(i));
+  }
+  sourceState(t) {
+    const e = t.source === "card" ? this.card?.source : t.entity;
+    return e ? this.hass?.states[e] : void 0;
+  }
+  knownValues(t) {
+    if (!["equals", "not_equals"].includes(t.operator)) return [];
+    if (t.source === "card" && this.card?.type === "status") return ["on", "off"];
+    const e = t.source === "card" ? this.card?.source : t.entity, s = this.sourceState(t)?.attributes?.options;
+    if (Array.isArray(s)) return [...new Set(s.map(String))];
+    const a = e?.split(".", 1)[0];
+    return a && ["binary_sensor", "switch", "input_boolean", "light", "fan", "lock", "cover"].includes(a) ? ["on", "off"] : [];
+  }
+  matchField(t, e) {
+    const i = this.knownValues(t);
+    if (i.length) {
+      const a = t.match && !i.includes(t.match) ? [t.match, ...i] : i;
+      return n`<label>Value<select .value=${t.match ?? ""} @change=${(r) => this.updateRule(e, { match: r.target.value })}><option value="" disabled>Select value</option>${a.map((r) => n`<option value=${r}>${r}</option>`)}</select></label>`;
+    }
+    const s = this.sourceState(t)?.state;
+    return n`<label>Value<input maxlength="64" placeholder=${s ? `Current: ${s}` : "Value"} .value=${t.match ?? ""} @input=${(a) => this.updateRule(e, { match: a.target.value })}></label>`;
+  }
   changeOperator(t, e) {
     const i = this.draft.rules[t], s = { id: i.id, source: i.source, entity: i.entity, operator: e };
-    e === "range" ? (s.minimum = i.minimum, s.maximum = i.maximum) : ["available", "unavailable"].includes(e) || (s.match = i.match ?? ""), this.draft = { ...this.draft, rules: this.draft.rules.map((a, r) => r === t ? s : a) };
+    e === "range" ? (s.minimum = i.minimum, s.maximum = i.maximum) : ["available", "unavailable"].includes(e) || (s.match = i.match ?? "");
+    const a = s.entity ? this.hass?.states[s.entity] : void 0;
+    s.source === "entity" && s.entity && a && !["available", "unavailable"].includes(e) && this.isNumericState(s.entity, a) !== (e === "range") && delete s.entity, this.draft = { ...this.draft, rules: this.draft.rules.map((r, o) => o === t ? s : r) };
   }
   addRule() {
-    const t = new Set(this.draft.rules.map((s) => s.id));
+    const t = new Set(this.draft.rules.map((a) => a.id));
     let e = 97;
     for (; t.has(`rule_${String.fromCharCode(e)}`); ) e += 1;
-    const i = { id: `rule_${String.fromCharCode(e)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: "equals", match: "" };
-    this.draft = { rules: [...this.draft.rules, i], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: i.id }] } };
+    const i = this.canUseCardValue && this.card?.type === "number", s = { id: `rule_${String.fromCharCode(e)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: i ? "range" : "equals", ...i ? {} : { match: "" } };
+    this.draft = { rules: [...this.draft.rules, s], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: s.id }] } };
   }
   removeRule(t) {
     if (this.draft.rules.length === 1) return;

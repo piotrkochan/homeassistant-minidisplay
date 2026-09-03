@@ -54,7 +54,10 @@ export class MiniDisplayVisibilityDialog extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.draft = structuredClone(this.value ?? emptyVisibility());
-    if (!this.value && this.canUseCardValue) this.draft.rules[0].source = "card";
+    if (!this.value && this.canUseCardValue) {
+      this.draft.rules[0].source = "card";
+      if (this.card?.type === "number") this.draft.rules[0].operator = "range";
+    }
   }
 
   render() {
@@ -85,13 +88,13 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     return html`<article class="rule">
       <div class="rule-head">
         <span class="rule-marker" style=${`background:${ruleColor(rule.id)}`}>${ruleMarker(rule.id)}</span>
-        <label>Value source<select .value=${rule.source} @change=${(event: Event) => this.updateRule(index, { source: (event.target as HTMLSelectElement).value as "card" | "entity" })}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <label>Value source<select .value=${rule.source} @change=${(event: Event) => this.changeSource(index, (event.target as HTMLSelectElement).value as "card" | "entity")}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
         <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${ruleMarker(rule.id)}`} @click=${() => this.removeRule(index)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
         <label>Comparison<select .value=${rule.operator} @change=${(event: Event) => this.changeOperator(index, (event.target as HTMLSelectElement).value as VisibilityRuleOperator)}>${Object.entries(operatorNames).map(([value, name]) => html`<option value=${value}>${name}</option>`)}</select></label>
-        ${needsEntity ? html`<ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: {} } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>` : html`<p>Uses the raw value of this card.</p>`}
-        ${rule.operator === "range" ? html`<div class="range">${this.numberField("From", rule.minimum, (minimum) => this.updateRule(index, { minimum }))}${this.numberField("To", rule.maximum, (maximum) => this.updateRule(index, { maximum }))}</div>` : needsMatch ? html`<label>Value<input maxlength="64" .value=${rule.match ?? ""} @input=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLInputElement).value })}></label>` : nothing}
+        ${needsEntity ? html`<ha-form .hass=${this.hass} .data=${{ entity: rule.entity ?? "" }} .schema=${[{ name: "entity", required: true, selector: { entity: this.entitySelector(rule) } }]} .computeLabel=${() => "Entity"} @value-changed=${(event: CustomEvent) => this.updateRule(index, { entity: event.detail.value.entity })}></ha-form>` : html`<p>Uses the raw value of this card.</p>`}
+        ${rule.operator === "range" ? html`<div class="range">${this.numberField("From", rule.minimum, (minimum) => this.updateRule(index, { minimum }))}${this.numberField("To", rule.maximum, (maximum) => this.updateRule(index, { maximum }))}</div>` : needsMatch ? this.matchField(rule, index) : nothing}
       </div>
     </article>`;
   }
@@ -121,18 +124,80 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     this.draft = { ...this.draft, rules: this.draft.rules.map((rule, ruleIndex) => ruleIndex === index ? { ...rule, ...patch } : rule) };
   }
 
+  private changeSource(index: number, source: "card" | "entity") {
+    const rule = this.draft.rules[index];
+    if (source === "card" && this.card?.type === "number" && !["range", "available", "unavailable"].includes(rule.operator)) {
+      this.changeOperator(index, "range");
+      this.updateRule(index, { source });
+      return;
+    }
+    if (source === "card" && this.card?.type !== "number" && rule.operator === "range") {
+      this.changeOperator(index, "equals");
+      this.updateRule(index, { source });
+      return;
+    }
+    this.updateRule(index, { source });
+  }
+
+  private entitySelector(rule: VisibilityRule): Record<string, unknown> {
+    if (["available", "unavailable"].includes(rule.operator)) return {};
+    const numeric = rule.operator === "range";
+    const entities = Object.entries(this.hass?.states ?? {})
+      .filter(([entityId, state]) => entityId === rule.entity || this.isNumericState(entityId, state) === numeric)
+      .map(([entityId]) => entityId);
+    return { include_entities: entities };
+  }
+
+  private isNumericState(entityId: string, state: { state: string; attributes?: Record<string, unknown> }): boolean {
+    if (["number", "input_number", "counter"].includes(entityId.split(".", 1)[0])) return true;
+    if (state.attributes?.unit_of_measurement !== undefined) return true;
+    const value = state.state.trim();
+    return value !== "" && !["unknown", "unavailable"].includes(value) && Number.isFinite(Number(value));
+  }
+
+  private sourceState(rule: VisibilityRule) {
+    const entityId = rule.source === "card" ? this.card?.source : rule.entity;
+    return entityId ? this.hass?.states[entityId] : undefined;
+  }
+
+  private knownValues(rule: VisibilityRule): string[] {
+    if (!["equals", "not_equals"].includes(rule.operator)) return [];
+    if (rule.source === "card" && this.card?.type === "status") return ["on", "off"];
+    const entityId = rule.source === "card" ? this.card?.source : rule.entity;
+    const state = this.sourceState(rule);
+    const options = state?.attributes?.options;
+    if (Array.isArray(options)) return [...new Set(options.map(String))];
+    const domain = entityId?.split(".", 1)[0];
+    if (domain && ["binary_sensor", "switch", "input_boolean", "light", "fan", "lock", "cover"].includes(domain)) return ["on", "off"];
+    return [];
+  }
+
+  private matchField(rule: VisibilityRule, index: number) {
+    const options = this.knownValues(rule);
+    if (options.length) {
+      const values = rule.match && !options.includes(rule.match) ? [rule.match, ...options] : options;
+      return html`<label>Value<select .value=${rule.match ?? ""} @change=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLSelectElement).value })}><option value="" disabled>Select value</option>${values.map((value) => html`<option value=${value}>${value}</option>`)}</select></label>`;
+    }
+    const current = this.sourceState(rule)?.state;
+    return html`<label>Value<input maxlength="64" placeholder=${current ? `Current: ${current}` : "Value"} .value=${rule.match ?? ""} @input=${(event: Event) => this.updateRule(index, { match: (event.target as HTMLInputElement).value })}></label>`;
+  }
+
   private changeOperator(index: number, operator: VisibilityRuleOperator) {
     const rule = this.draft.rules[index];
     const next: VisibilityRule = { id: rule.id, source: rule.source, entity: rule.entity, operator };
     if (operator === "range") { next.minimum = rule.minimum; next.maximum = rule.maximum; }
     else if (!["available", "unavailable"].includes(operator)) next.match = rule.match ?? "";
+    const selectedState = next.entity ? this.hass?.states[next.entity] : undefined;
+    if (next.source === "entity" && next.entity && selectedState && !["available", "unavailable"].includes(operator)
+      && this.isNumericState(next.entity, selectedState) !== (operator === "range")) delete next.entity;
     this.draft = { ...this.draft, rules: this.draft.rules.map((item, ruleIndex) => ruleIndex === index ? next : item) };
   }
 
   private addRule() {
     const used = new Set(this.draft.rules.map((rule) => rule.id)); let markerCode = 97;
     while (used.has(`rule_${String.fromCharCode(markerCode)}`)) markerCode += 1;
-    const rule: VisibilityRule = { id: `rule_${String.fromCharCode(markerCode)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: "equals", match: "" };
+    const ownNumber = this.canUseCardValue && this.card?.type === "number";
+    const rule: VisibilityRule = { id: `rule_${String.fromCharCode(markerCode)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: ownNumber ? "range" : "equals", ...(ownNumber ? {} : { match: "" }) };
     this.draft = { rules: [...this.draft.rules, rule], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: rule.id }] } };
   }
 
