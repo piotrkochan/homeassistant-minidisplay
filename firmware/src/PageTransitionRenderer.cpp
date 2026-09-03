@@ -40,7 +40,11 @@ uint32_t nextRandomValue() {
 
 void finishFrame(uint32_t startedAt, uint16_t frameDurationMs) {
   const uint32_t elapsed = millis() - startedAt;
-  if (elapsed < frameDurationMs) delay(frameDurationMs - elapsed);
+  if (elapsed < frameDurationMs) {
+    delay(frameDurationMs - elapsed);
+  } else {
+    yield();
+  }
 }
 
 template <typename Canvas>
