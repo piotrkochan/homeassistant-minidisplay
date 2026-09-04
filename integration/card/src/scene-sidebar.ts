@@ -17,7 +17,7 @@ export class MiniDisplaySceneSidebar extends LitElement {
 
   static styles = css`
     :host { display: block; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
-    ha-card { overflow: hidden; border: 1px solid var(--divider-color); }
+    ha-card { overflow: visible; border: 1px solid var(--divider-color); }
     header { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 10px 12px; border-bottom: 1px solid var(--divider-color); }
     h2 { margin: 0; font-size: 16px; font-weight: 500; }
     .picker, .form { display: grid; gap: 8px; padding: 12px; border-bottom: 1px solid var(--divider-color); }
