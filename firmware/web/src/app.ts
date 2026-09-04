@@ -67,29 +67,29 @@ const lastUpdateAge = (seconds: number) => {
 
 @customElement("mini-display-device")
 class MiniDisplayDevice extends LitElement {
-  @state() private configured = true;
-  @state() private loading = true;
-  @state() private saving = false;
-  @state() private message = "";
-  @state() private error = "";
-  @state() private info?: DeviceInfo;
-  @state() private status?: DeviceStatus;
-  @state() private network?: NetworkStatus;
-  @state() private security?: SecurityStatus;
-  @state() private setup?: SetupStatus;
-  @state() private brightness = 100;
-  @state() private pixelShift = 0;
-  @state() private timezone: string = timezones[0].value;
-  @state() private selectedTimezone: string = timezones[0].value;
-  @state() private setupApiAuth = true;
-  @state() private setupOtaAuth = true;
-  @state() private directOta = true;
-  @state() private recoveryProtected = false;
-  @state() private staticIp = false;
-  @state() private ntpFromDhcp = false;
+  @state() private configured_ = true;
+  @state() private loading_ = true;
+  @state() private saving_ = false;
+  @state() private message_ = "";
+  @state() private error_ = "";
+  @state() private info_?: DeviceInfo;
+  @state() private status_?: DeviceStatus;
+  @state() private network_?: NetworkStatus;
+  @state() private security_?: SecurityStatus;
+  @state() private setup_?: SetupStatus;
+  @state() private brightness_ = 100;
+  @state() private pixelShift_ = 0;
+  @state() private timezone_: string = timezones[0].value;
+  @state() private selectedTimezone_: string = timezones[0].value;
+  @state() private setupApiAuth_ = true;
+  @state() private setupOtaAuth_ = true;
+  @state() private directOta_ = true;
+  @state() private recoveryProtected_ = false;
+  @state() private staticIp_ = false;
+  @state() private ntpFromDhcp_ = false;
 
-  private readonly page = pageFromPath();
-  private statusTimer?: number;
+  private readonly page_ = pageFromPath();
+  private statusTimer_?: number;
 
   static styles = css`
     :host {
@@ -406,98 +406,100 @@ class MiniDisplayDevice extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    void this.load();
-    this.statusTimer = window.setInterval(
-      () => void this.refreshStatus(),
+    void this.load_();
+    this.statusTimer_ = window.setInterval(
+      () => void this.refreshStatus_(),
       5000,
     );
   }
 
   disconnectedCallback() {
-    if (this.statusTimer !== undefined) window.clearInterval(this.statusTimer);
+    if (this.statusTimer_ !== undefined)
+      window.clearInterval(this.statusTimer_);
     super.disconnectedCallback();
   }
 
-  private async refreshStatus() {
-    if (!this.configured || this.loading || this.saving || !this.status) return;
+  private async refreshStatus_() {
+    if (!this.configured_ || this.loading_ || this.saving_ || !this.status_)
+      return;
     try {
-      this.status = await request<DeviceStatus>("/api/v1/status");
+      this.status_ = await request<DeviceStatus>("/api/v1/status");
     } catch {
       // Keep the last known state; the next interval retries.
     }
   }
 
-  private async load() {
-    this.loading = true;
-    this.error = "";
+  private async load_() {
+    this.loading_ = true;
+    this.error_ = "";
     try {
       const [info, status] = await Promise.all([
         request<DeviceInfo>("/api/v1/info"),
         request<DeviceStatus>("/api/v1/status"),
       ]);
-      this.info = info;
-      this.status = status;
-      this.brightness = status.brightness;
-      this.pixelShift = status.pixelShift;
-      this.timezone = status.timezone;
-      this.selectedTimezone = timezonePreset(status.timezone);
-      if (this.page === "network") {
-        this.network = await request<NetworkStatus>("/api/v1/network");
-        this.recoveryProtected = this.network.recoveryPasswordSet;
-        this.staticIp = this.network.staticIpEnabled;
-        this.ntpFromDhcp = this.network.ntpFromDhcp;
+      this.info_ = info;
+      this.status_ = status;
+      this.brightness_ = status.brightness;
+      this.pixelShift_ = status.pixelShift;
+      this.timezone_ = status.timezone;
+      this.selectedTimezone_ = timezonePreset(status.timezone);
+      if (this.page_ === "network") {
+        this.network_ = await request<NetworkStatus>("/api/v1/network");
+        this.recoveryProtected_ = this.network_.recoveryPasswordSet;
+        this.staticIp_ = this.network_.staticIpEnabled;
+        this.ntpFromDhcp_ = this.network_.ntpFromDhcp;
       }
-      if (this.page === "security") {
-        this.security = await request<SecurityStatus>("/api/v1/security");
-        this.setupApiAuth = this.security.apiAuthEnabled;
-        this.setupOtaAuth = this.security.otaAuthEnabled;
-        this.directOta = this.security.directOtaEnabled;
+      if (this.page_ === "security") {
+        this.security_ = await request<SecurityStatus>("/api/v1/security");
+        this.setupApiAuth_ = this.security_.apiAuthEnabled;
+        this.setupOtaAuth_ = this.security_.otaAuthEnabled;
+        this.directOta_ = this.security_.directOtaEnabled;
       }
     } catch (error) {
       if (error instanceof DeviceApiError && error.status === 403) {
         try {
-          this.setup = await request<SetupStatus>("/api/v1/setup");
-          this.configured = false;
-          this.setupApiAuth = this.setup.apiAuthEnabled;
-          this.setupOtaAuth = this.setup.otaAuthEnabled;
-          this.directOta = this.setup.directOtaEnabled;
-          this.recoveryProtected = this.setup.recoveryPasswordSet;
-          this.staticIp = this.setup.staticIpEnabled;
-          this.ntpFromDhcp = this.setup.ntpFromDhcp;
+          this.setup_ = await request<SetupStatus>("/api/v1/setup");
+          this.configured_ = false;
+          this.setupApiAuth_ = this.setup_.apiAuthEnabled;
+          this.setupOtaAuth_ = this.setup_.otaAuthEnabled;
+          this.directOta_ = this.setup_.directOtaEnabled;
+          this.recoveryProtected_ = this.setup_.recoveryPasswordSet;
+          this.staticIp_ = this.setup_.staticIpEnabled;
+          this.ntpFromDhcp_ = this.setup_.ntpFromDhcp;
         } catch (setupError) {
-          this.error =
+          this.error_ =
             setupError instanceof Error
               ? setupError.message
               : "Could not load setup mode";
         }
       } else
-        this.error =
+        this.error_ =
           error instanceof Error ? error.message : "Could not load device";
     } finally {
-      this.loading = false;
+      this.loading_ = false;
     }
   }
 
-  private async submit(
+  private async submit_(
     path: string,
     body: Record<string, unknown>,
     success: string,
     method: "PUT" | "POST" = "PUT",
   ) {
-    this.saving = true;
-    this.message = "";
-    this.error = "";
+    this.saving_ = true;
+    this.message_ = "";
+    this.error_ = "";
     try {
       await request(path, { method, body: JSON.stringify(body) });
-      this.message = success;
+      this.message_ = success;
     } catch (error) {
-      this.error = error instanceof Error ? error.message : "Request failed";
+      this.error_ = error instanceof Error ? error.message : "Request failed";
     } finally {
-      this.saving = false;
+      this.saving_ = false;
     }
   }
 
-  private navigation() {
+  private navigation_() {
     const items: [Page, string, string][] = [
       ["overview", "/", "Overview"],
       ["display", "/display", "Display"],
@@ -506,11 +508,11 @@ class MiniDisplayDevice extends LitElement {
       ["firmware", "/update", "Firmware"],
     ];
     return html`<nav>
-      ${items.map(([page, path, label]) => html`<a href=${path} aria-current=${this.page === page ? "page" : nothing}>${label}</a>`)}
+      ${items.map(([page, path, label]) => html`<a href=${path} aria-current=${this.page_ === page ? "page" : nothing}>${label}</a>`)}
     </nav>`;
   }
 
-  private firmwareForm(endpoint = "/api/v1/firmware") {
+  private firmwareForm_(endpoint = "/api/v1/firmware") {
     return html`<form
       class="stack"
       @submit=${async (event: SubmitEvent) => {
@@ -518,16 +520,16 @@ class MiniDisplayDevice extends LitElement {
         const data = new FormData(event.currentTarget as HTMLFormElement);
         const file = data.get("firmware");
         if (!(file instanceof File) || !file.size) return;
-        this.saving = true;
-        this.message = "";
-        this.error = "";
+        this.saving_ = true;
+        this.message_ = "";
+        this.error_ = "";
         try {
-          this.message = await uploadFirmware(file, endpoint);
+          this.message_ = await uploadFirmware(file, endpoint);
         } catch (error) {
-          this.error =
+          this.error_ =
             error instanceof Error ? error.message : "Firmware upload failed";
         } finally {
-          this.saving = false;
+          this.saving_ = false;
         }
       }}
     >
@@ -537,33 +539,33 @@ class MiniDisplayDevice extends LitElement {
           name="firmware"
           accept=".bin"
           required /></label
-      ><button type="submit" ?disabled=${this.saving}>Upload firmware</button>
+      ><button type="submit" ?disabled=${this.saving_}>Upload firmware</button>
     </form>`;
   }
 
-  private shell(content: unknown) {
+  private shell_(content: unknown) {
     return html`<header>
         <div class="head">
           <div>
             <h1>Mini Display</h1>
-            <p>${this.info?.model ?? "Local display control"}</p>
+            <p>${this.info_?.model ?? "Local display control"}</p>
           </div>
           <div class="head-status">
-            ${this.status?.ip ?? "0.0.0.0"}<br />${this.status?.wifiRssiDbm ?? -127}
+            ${this.status_?.ip ?? "0.0.0.0"}<br />${this.status_?.wifiRssiDbm ?? -127}
             dBm
           </div>
         </div>
-        ${this.navigation()}
+        ${this.navigation_()}
       </header>
       <main>
-        ${this.message ? html`<div class="notice">${this.message}</div>` : nothing}${this.error ? html`<div class="error">${this.error}</div>` : nothing}${content}
+        ${this.message_ ? html`<div class="notice">${this.message_}</div>` : nothing}${this.error_ ? html`<div class="error">${this.error_}</div>` : nothing}${content}
       </main>`;
   }
 
-  private overview() {
-    const status = this.status!;
+  private overview_() {
+    const status = this.status_!;
     const updateAge = lastUpdateAge(status.lastValueUpdateAgeSeconds);
-    return this.shell(
+    return this.shell_(
       html`<div class="grid">
         <section class="card">
           <h2>Connection</h2>
@@ -607,16 +609,16 @@ class MiniDisplayDevice extends LitElement {
         </section>
         <section class="card">
           <h2>Firmware</h2>
-          <div class="metric">${this.info?.firmwareVersion}</div>
+          <div class="metric">${this.info_?.firmwareVersion}</div>
           <div class="muted">Uptime ${formatUptime(status.uptimeSeconds)}</div>
         </section>
       </div>`,
     );
   }
 
-  private displayPage() {
-    const status = this.status!;
-    return this.shell(
+  private displayPage_() {
+    const status = this.status_!;
+    return this.shell_(
       html`<div class="grid">
         <section class="card">
           <h2>Screen</h2>
@@ -625,13 +627,13 @@ class MiniDisplayDevice extends LitElement {
             @submit=${(event: SubmitEvent) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget as HTMLFormElement);
-              void this.submit(
+              void this.submit_(
                 "/api/v1/display",
                 {
                   on: data.has("on"),
-                  brightness: this.brightness,
-                  pixelShift: this.pixelShift,
-                  timezone: this.timezone,
+                  brightness: this.brightness_,
+                  pixelShift: this.pixelShift_,
+                  timezone: this.timezone_,
                 },
                 "Display settings saved.",
               );
@@ -645,25 +647,25 @@ class MiniDisplayDevice extends LitElement {
               />Screen enabled</label
             >
             <label class="field"
-              >Brightness <small>${this.brightness}%</small
+              >Brightness <small>${this.brightness_}%</small
               ><input
                 type="range"
                 min="0"
                 max="100"
-                .value=${String(this.brightness)}
-                @input=${(event: Event) => (this.brightness = Number((event.target as HTMLInputElement).value))}
+                .value=${String(this.brightness_)}
+                @input=${(event: Event) => (this.brightness_ = Number((event.target as HTMLInputElement).value))}
             /></label>
             <label class="field"
               >Pixel shift
               <small
-                >${this.pixelShift}px · periodically moves content to reduce
+                >${this.pixelShift_}px · periodically moves content to reduce
                 image retention</small
               ><input
                 type="range"
                 min="0"
                 max="10"
-                .value=${String(this.pixelShift)}
-                @input=${(event: Event) => (this.pixelShift = Number((event.target as HTMLInputElement).value))}
+                .value=${String(this.pixelShift_)}
+                @input=${(event: Event) => (this.pixelShift_ = Number((event.target as HTMLInputElement).value))}
             /></label>
             <label class="field"
               >Time zone
@@ -671,11 +673,11 @@ class MiniDisplayDevice extends LitElement {
                 >Used by clock cards. Time stays synchronized over NTP.</small
               >
               <select
-                .value=${this.selectedTimezone}
+                .value=${this.selectedTimezone_}
                 @change=${(event: Event) => {
                   const value = (event.target as HTMLSelectElement).value;
-                  this.selectedTimezone = value;
-                  if (value !== "custom") this.timezone = value;
+                  this.selectedTimezone_ = value;
+                  if (value !== "custom") this.timezone_ = value;
                 }}
               >
                 ${timezones.map(
@@ -688,22 +690,22 @@ class MiniDisplayDevice extends LitElement {
               </select>
             </label>
             ${
-              this.selectedTimezone === "custom"
+              this.selectedTimezone_ === "custom"
                 ? html`<label class="field"
                     >POSIX time zone rule
                     <input
                       maxlength="63"
                       required
-                      .value=${this.timezone}
+                      .value=${this.timezone_}
                       @input=${(event: Event) =>
-                        (this.timezone = (
+                        (this.timezone_ = (
                           event.target as HTMLInputElement
                         ).value)}
                     />
                   </label>`
                 : nothing
             }
-            <button type="submit" ?disabled=${this.saving}>
+            <button type="submit" ?disabled=${this.saving_}>
               Save display settings
             </button>
           </form>
@@ -722,7 +724,7 @@ class MiniDisplayDevice extends LitElement {
               ([command, label]) =>
                 html`<button
                   class="secondary"
-                  @click=${() => void this.submit("/api/v1/page", command === "auto" ? { mode: "auto" } : { command }, `Page mode changed to ${label.toLowerCase()}.`, "POST")}
+                  @click=${() => void this.submit_("/api/v1/page", command === "auto" ? { mode: "auto" } : { command }, `Page mode changed to ${label.toLowerCase()}.`, "POST")}
                 >
                   ${label}
                 </button>`,
@@ -733,18 +735,18 @@ class MiniDisplayDevice extends LitElement {
     );
   }
 
-  private networkPayload(data: FormData) {
+  private networkPayload_(data: FormData) {
     return {
       ssid: data.get("ssid"),
       password: data.get("password"),
       hostname: data.get("hostname"),
       retryLimit: Number(data.get("retryLimit")),
       resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
-      recoveryPasswordEnabled: this.recoveryProtected,
+      recoveryPasswordEnabled: this.recoveryProtected_,
       recoveryPassword: data.get("recoveryPassword"),
       ntpServer: data.get("ntpServer"),
-      ntpFromDhcp: this.ntpFromDhcp,
-      staticIpEnabled: this.staticIp,
+      ntpFromDhcp: this.ntpFromDhcp_,
+      staticIpEnabled: this.staticIp_,
       staticIp: data.get("staticIp"),
       gateway: data.get("gateway"),
       subnet: data.get("subnet"),
@@ -753,7 +755,7 @@ class MiniDisplayDevice extends LitElement {
     };
   }
 
-  private ipv4Fields(values: {
+  private ipv4Fields_(values: {
     staticIp: string;
     gateway: string;
     subnet: string;
@@ -776,16 +778,16 @@ class MiniDisplayDevice extends LitElement {
             inputmode="decimal"
             maxlength="15"
             placeholder=${placeholder}
-            ?required=${this.staticIp && required}
-            ?disabled=${!this.staticIp}
+            ?required=${this.staticIp_ && required}
+            ?disabled=${!this.staticIp_}
             .value=${values[name]}
         /></label>`,
     );
   }
 
-  private networkPage() {
-    const network = this.network!;
-    return this.shell(
+  private networkPage_() {
+    const network = this.network_!;
+    return this.shell_(
       html`<div class="stack">
         <section class="card">
           <h2>Connection</h2>
@@ -843,9 +845,9 @@ class MiniDisplayDevice extends LitElement {
             @submit=${(event: SubmitEvent) => {
               event.preventDefault();
               const data = new FormData(event.currentTarget as HTMLFormElement);
-              void this.submit(
+              void this.submit_(
                 "/api/v1/network",
-                this.networkPayload(data),
+                this.networkPayload_(data),
                 "Network settings saved. The display is restarting.",
               );
             }}
@@ -886,8 +888,8 @@ class MiniDisplayDevice extends LitElement {
                   type="radio"
                   name="ipMode"
                   value="dhcp"
-                  .checked=${!this.staticIp}
-                  @change=${() => (this.staticIp = false)}
+                  .checked=${!this.staticIp_}
+                  @change=${() => (this.staticIp_ = false)}
                 />DHCP</label
               >
               <label class="check"
@@ -895,16 +897,16 @@ class MiniDisplayDevice extends LitElement {
                   type="radio"
                   name="ipMode"
                   value="static"
-                  .checked=${this.staticIp}
+                  .checked=${this.staticIp_}
                   @change=${() => {
-                    this.staticIp = true;
-                    this.ntpFromDhcp = false;
+                    this.staticIp_ = true;
+                    this.ntpFromDhcp_ = false;
                   }}
                 />Static</label
               >
             </fieldset>
-            <div class="dependent ${this.staticIp ? "" : "disabled"}">
-              ${this.ipv4Fields({
+            <div class="dependent ${this.staticIp_ ? "" : "disabled"}">
+              ${this.ipv4Fields_({
                 staticIp: network.staticIp,
                 gateway: network.staticGateway,
                 subnet: network.staticSubnet,
@@ -919,8 +921,8 @@ class MiniDisplayDevice extends LitElement {
                   type="radio"
                   name="ntpMode"
                   value="custom"
-                  .checked=${!this.ntpFromDhcp}
-                  @change=${() => (this.ntpFromDhcp = false)}
+                  .checked=${!this.ntpFromDhcp_}
+                  @change=${() => (this.ntpFromDhcp_ = false)}
                 />Custom</label
               >
               <label class="check"
@@ -928,13 +930,14 @@ class MiniDisplayDevice extends LitElement {
                   type="radio"
                   name="ntpMode"
                   value="dhcp"
-                  ?disabled=${this.staticIp}
-                  .checked=${this.ntpFromDhcp}
-                  @change=${() => (this.ntpFromDhcp = true)}
+                  ?disabled=${this.staticIp_}
+                  .checked=${this.ntpFromDhcp_}
+                  @change=${() => (this.ntpFromDhcp_ = true)}
                 />From DHCP</label
               >
             </fieldset>
-            <label class="field dependent ${this.ntpFromDhcp ? "disabled" : ""}"
+            <label
+              class="field dependent ${this.ntpFromDhcp_ ? "disabled" : ""}"
               >NTP server address
               <small
                 >Hostname or IP address. DHCP mode uses option 42 and requires
@@ -944,7 +947,7 @@ class MiniDisplayDevice extends LitElement {
                 type="text"
                 maxlength="63"
                 required
-                ?disabled=${this.ntpFromDhcp}
+                ?disabled=${this.ntpFromDhcp_}
                 .value=${network.ntpServer || "pool.ntp.org"}
             /></label>
             <section class="form-section">
@@ -965,15 +968,15 @@ class MiniDisplayDevice extends LitElement {
               <label class="check"
                 ><input
                   type="checkbox"
-                  .checked=${this.recoveryProtected}
+                  .checked=${this.recoveryProtected_}
                   @change=${(event: Event) =>
-                    (this.recoveryProtected = (
+                    (this.recoveryProtected_ = (
                       event.target as HTMLInputElement
                     ).checked)}
                 />Protect Wi-Fi with password</label
               >
               <div
-                class="dependent ${this.recoveryProtected ? "" : "disabled"}"
+                class="dependent ${this.recoveryProtected_ ? "" : "disabled"}"
               >
                 <label class="field"
                   >Wi-Fi password
@@ -985,8 +988,8 @@ class MiniDisplayDevice extends LitElement {
                     type="password"
                     minlength="8"
                     maxlength="63"
-                    ?required=${this.recoveryProtected && !network.recoveryPasswordSet}
-                    ?disabled=${!this.recoveryProtected}
+                    ?required=${this.recoveryProtected_ && !network.recoveryPasswordSet}
+                    ?disabled=${!this.recoveryProtected_}
                     autocomplete="new-password"
                 /></label>
               </div>
@@ -1000,19 +1003,19 @@ class MiniDisplayDevice extends LitElement {
               <p class="muted">Firmware update protection remains unchanged.</p>
             </section>
             <div class="actions">
-              <button type="submit" ?disabled=${this.saving}>
+              <button type="submit" ?disabled=${this.saving_}>
                 Save and restart
               </button>
               <button
                 type="button"
                 class="secondary"
-                ?disabled=${this.saving}
+                ?disabled=${this.saving_}
                 @click=${(event: Event) => {
                   const form = (event.currentTarget as HTMLButtonElement).form!;
                   if (!form.reportValidity()) return;
-                  void this.submit(
+                  void this.submit_(
                     "/api/v1/network/test",
-                    this.networkPayload(new FormData(form)),
+                    this.networkPayload_(new FormData(form)),
                     "Settings are valid. Connection will be verified after save.",
                     "POST",
                   );
@@ -1027,9 +1030,9 @@ class MiniDisplayDevice extends LitElement {
     );
   }
 
-  private securityPage() {
-    const security = this.security!;
-    return this.shell(
+  private securityPage_() {
+    const security = this.security_!;
+    return this.shell_(
       html`<section class="card">
         <h2>Authentication</h2>
         <p class="muted">
@@ -1041,14 +1044,14 @@ class MiniDisplayDevice extends LitElement {
           @submit=${(event: SubmitEvent) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget as HTMLFormElement);
-            void this.submit(
+            void this.submit_(
               "/api/v1/security",
               {
                 username: data.get("username"),
                 apiAuthEnabled: data.has("apiAuthEnabled"),
                 apiPassword: data.get("apiPassword"),
-                directOtaEnabled: this.directOta,
-                otaAuthEnabled: this.setupOtaAuth,
+                directOtaEnabled: this.directOta_,
+                otaAuthEnabled: this.setupOtaAuth_,
                 otaPassword: data.get("otaPassword"),
               },
               "Security settings saved. Reload if login credentials changed.",
@@ -1059,14 +1062,14 @@ class MiniDisplayDevice extends LitElement {
             ><input
               type="checkbox"
               name="apiAuthEnabled"
-              .checked=${this.setupApiAuth}
+              .checked=${this.setupApiAuth_}
               @change=${(event: Event) =>
-                (this.setupApiAuth = (
+                (this.setupApiAuth_ = (
                   event.target as HTMLInputElement
                 ).checked)}
             />Protect panel and Home Assistant API</label
           >
-          <div class="dependent ${this.setupApiAuth ? "" : "disabled"}">
+          <div class="dependent ${this.setupApiAuth_ ? "" : "disabled"}">
             <label class="field"
               >Username <small>Used for panel login and direct OTA</small
               ><input
@@ -1076,7 +1079,7 @@ class MiniDisplayDevice extends LitElement {
                 maxlength="32"
                 pattern="[A-Za-z0-9._-]+"
                 required
-                ?disabled=${!this.setupApiAuth}
+                ?disabled=${!this.setupApiAuth_}
                 autocomplete="username"
                 .value=${security.username || "admin"}
             /></label>
@@ -1090,32 +1093,32 @@ class MiniDisplayDevice extends LitElement {
                 type="password"
                 minlength="8"
                 maxlength="32"
-                ?disabled=${!this.setupApiAuth}
+                ?disabled=${!this.setupApiAuth_}
                 autocomplete="new-password"
             /></label>
           </div>
           <label class="check"
             ><input
               type="checkbox"
-              .checked=${this.directOta}
-              @change=${(event: Event) => (this.directOta = (event.target as HTMLInputElement).checked)}
+              .checked=${this.directOta_}
+              @change=${(event: Event) => (this.directOta_ = (event.target as HTMLInputElement).checked)}
             />Allow direct OTA firmware updates</label
           >
-          <div class="dependent ${this.directOta ? "" : "disabled"}">
+          <div class="dependent ${this.directOta_ ? "" : "disabled"}">
             <label class="check"
               ><input
                 type="checkbox"
-                .checked=${this.setupOtaAuth}
-                ?disabled=${!this.directOta}
+                .checked=${this.setupOtaAuth_}
+                ?disabled=${!this.directOta_}
                 @change=${(event: Event) =>
-                  (this.setupOtaAuth = (
+                  (this.setupOtaAuth_ = (
                     event.target as HTMLInputElement
                   ).checked)}
               />Protect direct OTA with password</label
             >
             <div
               class="dependent ${
-                this.directOta && this.setupOtaAuth ? "" : "disabled"
+                this.directOta_ && this.setupOtaAuth_ ? "" : "disabled"
               }"
             >
               <label class="field"
@@ -1128,12 +1131,12 @@ class MiniDisplayDevice extends LitElement {
                   type="password"
                   minlength="8"
                   maxlength="32"
-                  ?disabled=${!this.directOta || !this.setupOtaAuth}
+                  ?disabled=${!this.directOta_ || !this.setupOtaAuth_}
                   autocomplete="new-password"
               /></label>
             </div>
           </div>
-          <button type="submit" ?disabled=${this.saving}>
+          <button type="submit" ?disabled=${this.saving_}>
             Save security settings
           </button>
         </form>
@@ -1141,21 +1144,21 @@ class MiniDisplayDevice extends LitElement {
     );
   }
 
-  private firmwarePage() {
-    return this.shell(
+  private firmwarePage_() {
+    return this.shell_(
       html`<section class="card">
         <h2>Firmware update</h2>
         <p class="muted">
           Upload a compatible OTA image. Your panel login authorizes this
           update.
         </p>
-        ${this.firmwareForm()}
+        ${this.firmwareForm_()}
       </section>`,
     );
   }
 
-  private setupPage() {
-    const setup = this.setup;
+  private setupPage_() {
+    const setup = this.setup_;
     return html`<main class="center">
       <section class="card">
         <h1>Set up Mini Display</h1>
@@ -1163,23 +1166,23 @@ class MiniDisplayDevice extends LitElement {
           Connect to Wi-Fi and configure local access. Current setup network:
           ${setup?.recoverySsid ?? "SDPRO-Setup"}.
         </p>
-        ${this.message ? html`<div class="notice">${this.message}</div>` : nothing}${this.error ? html`<div class="error">${this.error}</div>` : nothing}
+        ${this.message_ ? html`<div class="notice">${this.message_}</div>` : nothing}${this.error_ ? html`<div class="error">${this.error_}</div>` : nothing}
         <form
           class="stack"
           @submit=${(event: SubmitEvent) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget as HTMLFormElement);
-            void this.submit(
+            void this.submit_(
               "/api/v1/setup",
               {
                 ssid: data.get("ssid"),
                 wifiPassword: data.get("wifiPassword"),
                 hostname: data.get("hostname"),
-                recoveryPasswordEnabled: this.recoveryProtected,
+                recoveryPasswordEnabled: this.recoveryProtected_,
                 recoveryPassword: data.get("recoveryPassword"),
                 ntpServer: data.get("ntpServer"),
-                ntpFromDhcp: this.ntpFromDhcp,
-                staticIpEnabled: this.staticIp,
+                ntpFromDhcp: this.ntpFromDhcp_,
+                staticIpEnabled: this.staticIp_,
                 staticIp: data.get("staticIp"),
                 gateway: data.get("gateway"),
                 subnet: data.get("subnet"),
@@ -1188,10 +1191,10 @@ class MiniDisplayDevice extends LitElement {
                 username: data.get("username"),
                 retryLimit: Number(data.get("retryLimit")),
                 resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
-                apiAuthEnabled: this.setupApiAuth,
+                apiAuthEnabled: this.setupApiAuth_,
                 apiPassword: data.get("apiPassword"),
-                directOtaEnabled: this.directOta,
-                otaAuthEnabled: this.setupOtaAuth,
+                directOtaEnabled: this.directOta_,
+                otaAuthEnabled: this.setupOtaAuth_,
                 otaPassword: data.get("otaPassword"),
               },
               "Configuration saved. Reconnect after the display restarts.",
@@ -1227,8 +1230,8 @@ class MiniDisplayDevice extends LitElement {
                 type="radio"
                 name="ipMode"
                 value="dhcp"
-                .checked=${!this.staticIp}
-                @change=${() => (this.staticIp = false)}
+                .checked=${!this.staticIp_}
+                @change=${() => (this.staticIp_ = false)}
               />DHCP</label
             >
             <label class="check"
@@ -1236,16 +1239,16 @@ class MiniDisplayDevice extends LitElement {
                 type="radio"
                 name="ipMode"
                 value="static"
-                .checked=${this.staticIp}
+                .checked=${this.staticIp_}
                 @change=${() => {
-                  this.staticIp = true;
-                  this.ntpFromDhcp = false;
+                  this.staticIp_ = true;
+                  this.ntpFromDhcp_ = false;
                 }}
               />Static</label
             >
           </fieldset>
-          <div class="dependent ${this.staticIp ? "" : "disabled"}">
-            ${this.ipv4Fields({
+          <div class="dependent ${this.staticIp_ ? "" : "disabled"}">
+            ${this.ipv4Fields_({
               staticIp: setup?.staticIp ?? "",
               gateway: setup?.gateway ?? "",
               subnet: setup?.subnet ?? "",
@@ -1260,8 +1263,8 @@ class MiniDisplayDevice extends LitElement {
                 type="radio"
                 name="ntpMode"
                 value="custom"
-                .checked=${!this.ntpFromDhcp}
-                @change=${() => (this.ntpFromDhcp = false)}
+                .checked=${!this.ntpFromDhcp_}
+                @change=${() => (this.ntpFromDhcp_ = false)}
               />Custom</label
             >
             <label class="check"
@@ -1269,13 +1272,13 @@ class MiniDisplayDevice extends LitElement {
                 type="radio"
                 name="ntpMode"
                 value="dhcp"
-                ?disabled=${this.staticIp}
-                .checked=${this.ntpFromDhcp}
-                @change=${() => (this.ntpFromDhcp = true)}
+                ?disabled=${this.staticIp_}
+                .checked=${this.ntpFromDhcp_}
+                @change=${() => (this.ntpFromDhcp_ = true)}
               />From DHCP</label
             >
           </fieldset>
-          <label class="field dependent ${this.ntpFromDhcp ? "disabled" : ""}"
+          <label class="field dependent ${this.ntpFromDhcp_ ? "disabled" : ""}"
             >NTP server address
             <small
               >Hostname or IP address. DHCP mode uses option 42 and requires
@@ -1285,7 +1288,7 @@ class MiniDisplayDevice extends LitElement {
               type="text"
               maxlength="63"
               required
-              ?disabled=${this.ntpFromDhcp}
+              ?disabled=${this.ntpFromDhcp_}
               .value=${setup?.ntpServer || "pool.ntp.org"}
           /></label>
           <section class="form-section">
@@ -1304,14 +1307,14 @@ class MiniDisplayDevice extends LitElement {
             <label class="check"
               ><input
                 type="checkbox"
-                .checked=${this.recoveryProtected}
+                .checked=${this.recoveryProtected_}
                 @change=${(event: Event) =>
-                  (this.recoveryProtected = (
+                  (this.recoveryProtected_ = (
                     event.target as HTMLInputElement
                   ).checked)}
               />Protect Wi-Fi with password</label
             >
-            <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+            <div class="dependent ${this.recoveryProtected_ ? "" : "disabled"}">
               <label class="field"
                 >Wi-Fi password
                 <small
@@ -1322,8 +1325,8 @@ class MiniDisplayDevice extends LitElement {
                   type="password"
                   minlength="8"
                   maxlength="63"
-                  ?required=${this.recoveryProtected && !setup?.recoveryPasswordSet}
-                  ?disabled=${!this.recoveryProtected}
+                  ?required=${this.recoveryProtected_ && !setup?.recoveryPasswordSet}
+                  ?disabled=${!this.recoveryProtected_}
                   autocomplete="new-password"
               /></label>
             </div>
@@ -1338,11 +1341,11 @@ class MiniDisplayDevice extends LitElement {
           <label class="check"
             ><input
               type="checkbox"
-              .checked=${this.setupApiAuth}
-              @change=${(event: Event) => (this.setupApiAuth = (event.target as HTMLInputElement).checked)}
+              .checked=${this.setupApiAuth_}
+              @change=${(event: Event) => (this.setupApiAuth_ = (event.target as HTMLInputElement).checked)}
             />Protect panel and Home Assistant API</label
           >
-          <div class="dependent ${this.setupApiAuth ? "" : "disabled"}">
+          <div class="dependent ${this.setupApiAuth_ ? "" : "disabled"}">
             <label class="field"
               >Username <small>Used for panel login and direct OTA</small
               ><input
@@ -1352,7 +1355,7 @@ class MiniDisplayDevice extends LitElement {
                 maxlength="32"
                 pattern="[A-Za-z0-9._-]+"
                 required
-                ?disabled=${!this.setupApiAuth}
+                ?disabled=${!this.setupApiAuth_}
                 autocomplete="username"
                 .value=${setup?.username ?? "admin"}
             /></label>
@@ -1365,33 +1368,33 @@ class MiniDisplayDevice extends LitElement {
                 type="password"
                 minlength="8"
                 maxlength="32"
-                ?required=${this.setupApiAuth && !setup?.apiPasswordSet}
-                ?disabled=${!this.setupApiAuth}
+                ?required=${this.setupApiAuth_ && !setup?.apiPasswordSet}
+                ?disabled=${!this.setupApiAuth_}
                 autocomplete="new-password"
             /></label>
           </div>
           <label class="check"
             ><input
               type="checkbox"
-              .checked=${this.directOta}
-              @change=${(event: Event) => (this.directOta = (event.target as HTMLInputElement).checked)}
+              .checked=${this.directOta_}
+              @change=${(event: Event) => (this.directOta_ = (event.target as HTMLInputElement).checked)}
             />Allow direct OTA firmware updates</label
           >
-          <div class="dependent ${this.directOta ? "" : "disabled"}">
+          <div class="dependent ${this.directOta_ ? "" : "disabled"}">
             <label class="check"
               ><input
                 type="checkbox"
-                .checked=${this.setupOtaAuth}
-                ?disabled=${!this.directOta}
+                .checked=${this.setupOtaAuth_}
+                ?disabled=${!this.directOta_}
                 @change=${(event: Event) =>
-                  (this.setupOtaAuth = (
+                  (this.setupOtaAuth_ = (
                     event.target as HTMLInputElement
                   ).checked)}
               />Protect direct OTA with password</label
             >
             <div
               class="dependent ${
-                this.directOta && this.setupOtaAuth ? "" : "disabled"
+                this.directOta_ && this.setupOtaAuth_ ? "" : "disabled"
               }"
             >
               <label class="field"
@@ -1403,13 +1406,13 @@ class MiniDisplayDevice extends LitElement {
                   type="password"
                   minlength="8"
                   maxlength="32"
-                  ?required=${this.directOta && this.setupOtaAuth && !setup?.otaPasswordSet}
-                  ?disabled=${!this.directOta || !this.setupOtaAuth}
+                  ?required=${this.directOta_ && this.setupOtaAuth_ && !setup?.otaPasswordSet}
+                  ?disabled=${!this.directOta_ || !this.setupOtaAuth_}
                   autocomplete="new-password"
               /></label>
             </div>
           </div>
-          <button type="submit" ?disabled=${this.saving}>
+          <button type="submit" ?disabled=${this.saving_}>
             Save and restart
           </button>
         </form>
@@ -1422,7 +1425,7 @@ class MiniDisplayDevice extends LitElement {
                 Upload firmware without leaving setup mode. Existing direct OTA
                 protection remains active after prior configuration.
               </p>
-              ${this.firmwareForm("/update")}
+              ${this.firmwareForm_("/update")}
             </section>`
           : nothing
       }
@@ -1430,16 +1433,16 @@ class MiniDisplayDevice extends LitElement {
   }
 
   render() {
-    if (this.loading) return html`<div class="loading">Loading device…</div>`;
-    if (!this.configured) return this.setupPage();
-    if (!this.status)
-      return this.shell(
+    if (this.loading_) return html`<div class="loading">Loading device…</div>`;
+    if (!this.configured_) return this.setupPage_();
+    if (!this.status_)
+      return this.shell_(
         html`<section class="card">Device data is unavailable.</section>`,
       );
-    if (this.page === "display") return this.displayPage();
-    if (this.page === "network") return this.networkPage();
-    if (this.page === "security") return this.securityPage();
-    if (this.page === "firmware") return this.firmwarePage();
-    return this.overview();
+    if (this.page_ === "display") return this.displayPage_();
+    if (this.page_ === "network") return this.networkPage_();
+    if (this.page_ === "security") return this.securityPage_();
+    if (this.page_ === "firmware") return this.firmwarePage_();
+    return this.overview_();
   }
 }
