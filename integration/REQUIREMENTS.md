@@ -87,6 +87,7 @@ Required endpoints:
 ```text
 GET  /api/v1/info
 GET  /api/v1/status
+GET  /api/v1/screenshot
 GET  /api/v1/dashboard
 PUT  /api/v1/dashboard
 PATCH /api/v1/data
@@ -125,6 +126,11 @@ POST /api/v1/restart
   "dashboardRevision": "sha256-prefix"
 }
 ```
+
+`GET /api/v1/screenshot` returns a 240x240, 24-bit BMP containing the exact
+completed frame currently visible on the display. Capture waits behind active
+page transitions and freezes loop-driven animation updates while pixels are
+read. The endpoint uses the same authentication as the rest of the device API.
 
 `PUT /api/v1/dashboard` accepts one complete document conforming to
 `dashboard.schema.json`. Success returns status 204. Firmware must validate the

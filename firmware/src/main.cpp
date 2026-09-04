@@ -27,6 +27,7 @@
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
+#include "ScreenCapture.h"
 #include "TextEffect.h"
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
 #include "TlsCertificateManager.h"
@@ -2071,6 +2072,7 @@ void sendApiInfo() {
   capabilities.add("pixel-shift");
   capabilities.add("page-control");
   capabilities.add("user-fonts");
+  if (ScreenCapture::supported()) capabilities.add("screenshot-bmp");
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
   capabilities.add("https");
 #endif
@@ -2327,6 +2329,57 @@ void sendApiLatestData() {
   }
   server.sendHeader("Cache-Control", "no-store");
   server.send(200, "application/json", diagnosticsLastData);
+}
+
+void sendApiScreenshot() {
+  if (!apiAuthenticated()) return;
+  if (!ScreenCapture::supported()) {
+    sendJsonError(501, F("screenshot_unsupported"),
+                  F("Display readback is not supported by this hardware"));
+    return;
+  }
+
+  std::unique_ptr<CachedPage> page(new (std::nothrow) CachedPage());
+  if (!page) {
+    sendJsonError(503, F("capture_unavailable"),
+                  F("Not enough memory to capture the display"));
+    return;
+  }
+  bool cached = false;
+  if (filesystemReady && LittleFS.exists(kDashboardPath) &&
+      activePageIndex < dashboardPageCount) {
+    File file = LittleFS.open(kDashboardPath, "r");
+    if (file) {
+      DynamicJsonDocument document(12288);
+      const auto error = deserializeJson(document, file);
+      file.close();
+      JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
+      cached = !error && activePageIndex < pages.size() &&
+               cacheDashboardPage(
+                   pages[activePageIndex].as<JsonObjectConst>(), *page);
+    }
+  }
+  if (!cached) {
+    sendJsonError(503, F("capture_unavailable"),
+                  F("Current dashboard frame could not be prepared"));
+    return;
+  }
+  ScreenCapture capture(display);
+  if (!capture.begin()) {
+    sendJsonError(503, F("capture_unavailable"),
+                  F("Not enough memory to capture the display"));
+    return;
+  }
+
+  // Page transitions run synchronously. The web server dispatches this
+  // handler only after a transition finishes, then this handler freezes loop-
+  // driven marquee and page animations until the complete frame is captured.
+  server.sendHeader("Cache-Control", "no-store");
+  server.sendHeader("Content-Disposition",
+                    "inline; filename=\"mini-display.bmp\"");
+  server.setContentLength(ScreenCapture::kBmpSize);
+  server.send(200, "image/bmp", "");
+  capture.streamBmp(*page, pixelShiftX, pixelShiftY, server.client());
 }
 
 void receiveApiDisplay() {
@@ -3064,6 +3117,7 @@ void configureRoutes() {
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
+  server.on("/api/v1/screenshot", HTTP_GET, sendApiScreenshot);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
   server.on("/api/v1/fonts", HTTP_GET, sendApiFonts);
   server.on("/api/v1/fonts", HTTP_PUT, receiveApiFontSelection);
