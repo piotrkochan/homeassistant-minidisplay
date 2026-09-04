@@ -32,6 +32,9 @@ export class MiniDisplayEditor extends LitElement {
   @state() private selectedDisplayId = "";
   @state() private selectedSceneId = "";
   @state() private pageIndex = 0;
+  @state() private cardSection: "content" | "appearance" | "rules" =
+    "content";
+  @state() private editingRowTitle?: number;
   @state() private previewPages: Record<string, number> = {};
   @state() private selected?: { row: number; card: number };
   @state() private syncState: "idle" | "syncing" | "success" | "error" = "idle";
@@ -485,9 +488,170 @@ export class MiniDisplayEditor extends LitElement {
     .row-title small {
       color: var(--secondary-text-color);
     }
+    .inline-icon-button {
+      display: inline-grid;
+      flex: none;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      color: var(--secondary-text-color);
+      background: transparent;
+      border: 0;
+      border-radius: 50%;
+    }
+    .inline-icon-button:hover {
+      color: var(--primary-color);
+      background: var(--secondary-background-color);
+    }
+    .inline-icon-button ha-icon {
+      width: 17px;
+      height: 17px;
+    }
+    .row-title-input {
+      width: min(220px, 45vw);
+      min-height: 34px;
+      padding: 6px 9px;
+      color: var(--primary-text-color);
+      background: var(--card-background-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 7px;
+    }
     .card-settings {
       border-color: var(--primary-color);
       background: var(--card-background-color);
+      padding: 0;
+      overflow: hidden;
+    }
+    .card-settings > .card-head {
+      min-height: 52px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .card-section-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      padding: 6px;
+      background: var(--secondary-background-color);
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .card-section-tab {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 0;
+      min-height: 40px;
+      padding: 7px 10px;
+      color: var(--secondary-text-color);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      transition:
+        color 150ms ease,
+        background-color 150ms ease;
+    }
+    .card-section-tab:hover {
+      color: var(--primary-text-color);
+      background: color-mix(
+        in srgb,
+        var(--card-background-color),
+        transparent 20%
+      );
+    }
+    .card-section-tab.active {
+      color: var(--primary-color);
+      background: var(--card-background-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    }
+    .card-section-tab ha-icon {
+      width: 19px;
+      height: 19px;
+    }
+    .section-count {
+      display: inline-grid;
+      place-items: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      color: var(--text-primary-color);
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--primary-color);
+      border-radius: 10px;
+    }
+    .card-pane {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+    .settings-group {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+      padding: 12px;
+      background: color-mix(
+        in srgb,
+        var(--secondary-background-color),
+        transparent 45%
+      );
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+    }
+    .settings-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .settings-heading > ha-icon,
+    .setting-action > ha-icon {
+      flex: none;
+      width: 22px;
+      height: 22px;
+      color: var(--primary-color);
+    }
+    .settings-heading > div,
+    .setting-action > div {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+    .settings-heading strong,
+    .setting-action strong {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .settings-heading small,
+    .setting-action small {
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .setting-action {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .compact-grid {
+      align-items: end;
+    }
+    .inline-option {
+      display: flex;
+      align-items: center;
+      min-height: 40px;
+    }
+    .appearance-grid {
+      gap: 12px;
+    }
+    .rule-groups .mappings {
+      padding: 0;
+    }
+    .rule-groups .mappings + .mappings {
+      padding-top: 10px;
+      border-top: 1px solid var(--divider-color);
     }
     .grid {
       display: grid;
@@ -991,6 +1155,25 @@ export class MiniDisplayEditor extends LitElement {
       }
       .effect-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .card-section-tab {
+        gap: 4px;
+        padding: 6px 4px;
+        font-size: 12px;
+      }
+      .card-section-tab ha-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .section-count {
+        min-width: 17px;
+        height: 17px;
+        padding: 0 4px;
+        font-size: 10px;
+      }
+      .card-pane,
+      .settings-group {
+        padding: 10px;
       }
       .drag-handle {
         display: none;
@@ -2032,13 +2215,11 @@ export class MiniDisplayEditor extends LitElement {
     </details>`;
   }
 
-  private styleEditor(card: DisplayCard) {
+  private appearanceEditor(card: DisplayCard) {
     const style = (card.style ??= {});
     const value = (card.valueStyle ??= {});
     const title = (card.titleStyle ??= {});
-    return html`<details class="style">
-      <summary>Appearance</summary>
-      <div class="grid">
+    return html`<div class="grid appearance-grid">
         <mini-display-color-field
           label="Background"
           .value=${style.background ?? ""}
@@ -2066,7 +2247,14 @@ export class MiniDisplayEditor extends LitElement {
         >${this.fontSelect("Value font", value.fontFamily, (input) => {
           value.fontFamily = input;
           this.changed();
-        })}${this.select(
+        })}${
+          card.title?.trim() && card.showTitle !== false
+            ? this.fontSelect("Title font", title.fontFamily, (input) => {
+                title.fontFamily = input;
+                this.changed();
+              })
+            : nothing
+        }${this.select(
           "Font size",
           value.fontSize ?? "auto",
           ["auto", "small", "medium", "large", "xlarge"],
@@ -2079,14 +2267,7 @@ export class MiniDisplayEditor extends LitElement {
           value,
         )}${
           card.title?.trim() && card.showTitle !== false
-            ? html`${this.fontSelect(
-                "Title font",
-                title.fontFamily,
-                (input) => {
-                  title.fontFamily = input;
-                  this.changed();
-                },
-              )}${this.textPosition(
+            ? html`${this.textPosition(
                 "Title position",
                 title,
                 "left",
@@ -2094,8 +2275,7 @@ export class MiniDisplayEditor extends LitElement {
               )}${this.textEffectEditor("Title effect", title)}`
             : nothing
         }
-      </div>
-    </details>`;
+      </div>`;
   }
 
   private transitionEditor(page: Dashboard["pages"][number]) {
@@ -2528,6 +2708,17 @@ export class MiniDisplayEditor extends LitElement {
       status: "Maps a state entity to two readable labels.",
       clock: "Displays local time without using an entity.",
     };
+    const rulesCount =
+      (card.visibility ? 1 : 0) +
+      (card.valueMappings?.length ?? 0) +
+      (card.colorMappings?.length ?? 0);
+    const selectType = (input: DisplayCard["type"]) => {
+      Object.keys(card).forEach(
+        (key) => delete (card as unknown as Record<string, unknown>)[key],
+      );
+      Object.assign(card, newCard(input));
+      this.changed();
+    };
     return html`<section class="card-settings">
       <div class="card-head">
         <div class="card-title">
@@ -2536,10 +2727,6 @@ export class MiniDisplayEditor extends LitElement {
         </div>
         ${this.menu(
           html`<button
-              @click=${() => this.openVisibility("card", rowIndex, cardIndex)}
-            >
-              Visibility</button
-            ><button
               @click=${() => {
                 cards.splice(cardIndex + 1, 0, structuredClone(card));
                 this.selected = { row: rowIndex, card: cardIndex + 1 };
@@ -2559,89 +2746,164 @@ export class MiniDisplayEditor extends LitElement {
               }}
             >
               Delete
-            </button>`,
+          </button>`,
         )}
       </div>
-      <div class="grid">
-        ${this.select(
-          "Type",
-          card.type,
-          ["number", "text", "clock", "status"],
-          (input) => {
-            Object.keys(card).forEach(
-              (key) => delete (card as unknown as Record<string, unknown>)[key],
-            );
-            Object.assign(card, newCard(input as DisplayCard["type"]));
-            this.changed();
-          },
-        )}${this.field("Title", card.title, (input) => {
-          card.title = input;
-          this.changed();
-        })}${this.checkbox(
-          "Show title on display",
-          card.showTitle !== false,
-          (input) => {
-            card.showTitle = input;
-            this.changed();
-          },
-          !card.title?.trim(),
+      <nav class="card-section-tabs" aria-label="Card settings sections">
+        ${(
+          [
+            ["content", "Content", "mdi:text-box-outline"],
+            ["appearance", "Appearance", "mdi:palette-outline"],
+            ["rules", "Rules", "mdi:source-branch"],
+          ] as const
+        ).map(
+          ([section, label, icon]) => html`<button
+            class="card-section-tab ${this.cardSection === section
+              ? "active"
+              : ""}"
+            role="tab"
+            aria-selected=${this.cardSection === section}
+            @click=${() => (this.cardSection = section)}
+          >
+            <ha-icon icon=${icon}></ha-icon><span>${label}</span
+            >${section === "rules" && rulesCount
+              ? html`<span class="section-count">${rulesCount}</span>`
+              : nothing}
+          </button>`,
         )}
-        <p class="hint">${hints[card.type]}</p>
-        ${["number", "status", "text"].includes(card.type) ? this.entity(card) : nothing}${
-          card.type === "number"
-            ? html`${this.field("Unit", card.unit, (input) => {
-                card.unit = input;
-                this.changed();
-              })}${this.select(
-                "Progress",
-                card.progress ?? "none",
-                ["none", "bar", "ring"],
-                (input) => {
-                  card.progress = input as DisplayCard["progress"];
-                  this.changed();
-                },
-              )}${
-                card.progress && card.progress !== "none"
-                  ? html`${this.field(
-                      "Minimum",
-                      card.minimum,
-                      (input) => {
-                        card.minimum = Number(input);
-                        this.changed();
-                      },
-                      "number",
-                    )}${this.field(
-                      "Maximum",
-                      card.maximum,
-                      (input) => {
-                        card.maximum = Number(input);
-                        this.changed();
-                      },
-                      "number",
-                    )}`
-                  : nothing
-              }`
-            : nothing
-        }${
-          card.type === "text"
-            ? this.field("Static text", card.text, (input) => {
-                card.text = input;
-                this.changed();
-              })
-            : nothing
-        }${
-          card.type === "status"
-            ? html`${this.field("On text", card.onText, (input) => {
-                card.onText = input;
-                this.changed();
-              })}${this.field("Off text", card.offText, (input) => {
-                card.offText = input;
-                this.changed();
-              })}`
-            : nothing
+      </nav>
+      <div class="card-pane" role="tabpanel">
+        ${
+          this.cardSection === "content"
+            ? html`
+                <section class="settings-group">
+                  <div class="settings-heading">
+                    <ha-icon icon="mdi:card-text-outline"></ha-icon>
+                    <div><strong>Card</strong><small>${hints[card.type]}</small></div>
+                  </div>
+                  ${this.segmented(
+                    "Card type",
+                    card.type,
+                    [
+                      { value: "number", label: "Number", icon: "mdi:numeric" },
+                      { value: "text", label: "Text", icon: "mdi:format-text" },
+                      { value: "status", label: "Status", icon: "mdi:toggle-switch-outline" },
+                      { value: "clock", label: "Clock", icon: "mdi:clock-outline" },
+                    ],
+                    selectType,
+                  )}
+                  <div class="grid compact-grid">
+                    ${this.field("Title", card.title, (input) => {
+                      card.title = input;
+                      this.changed();
+                    })}
+                    <div class="inline-option">
+                      ${this.checkbox(
+                        "Show title on display",
+                        card.showTitle !== false,
+                        (input) => {
+                          card.showTitle = input;
+                          this.changed();
+                        },
+                        !card.title?.trim(),
+                      )}
+                    </div>
+                  </div>
+                </section>
+                ${["number", "status", "text"].includes(card.type)
+                  ? html`<section class="settings-group">
+                      <div class="settings-heading">
+                        <ha-icon icon="mdi:database-outline"></ha-icon>
+                        <div><strong>Data</strong><small>Value shown by this card</small></div>
+                      </div>
+                      <div class="grid">
+                        ${this.entity(card)}
+                        ${card.type === "number"
+                          ? html`${this.field("Unit", card.unit, (input) => {
+                                card.unit = input;
+                                this.changed();
+                              })}${this.select(
+                                "Progress",
+                                card.progress ?? "none",
+                                ["none", "bar", "ring"],
+                                (input) => {
+                                  card.progress = input as DisplayCard["progress"];
+                                  this.changed();
+                                },
+                              )}${card.progress && card.progress !== "none"
+                                ? html`${this.field(
+                                      "Minimum",
+                                      card.minimum,
+                                      (input) => {
+                                        card.minimum = Number(input);
+                                        this.changed();
+                                      },
+                                      "number",
+                                    )}${this.field(
+                                      "Maximum",
+                                      card.maximum,
+                                      (input) => {
+                                        card.maximum = Number(input);
+                                        this.changed();
+                                      },
+                                      "number",
+                                    )}`
+                                : nothing}`
+                          : nothing}
+                        ${card.type === "text"
+                          ? this.field("Static text", card.text, (input) => {
+                              card.text = input;
+                              this.changed();
+                            })
+                          : nothing}
+                        ${card.type === "status"
+                          ? html`${this.field("On text", card.onText, (input) => {
+                                card.onText = input;
+                                this.changed();
+                              })}${this.field("Off text", card.offText, (input) => {
+                                card.offText = input;
+                                this.changed();
+                              })}`
+                          : nothing}
+                      </div>
+                    </section>`
+                  : nothing}
+              `
+            : this.cardSection === "appearance"
+              ? html`<section class="settings-group">
+                  <div class="settings-heading">
+                    <ha-icon icon="mdi:palette-outline"></ha-icon>
+                    <div><strong>Appearance</strong><small>Colors, typography and placement</small></div>
+                  </div>
+                  ${this.appearanceEditor(card)}
+                </section>`
+              : html`
+                  <section class="settings-group">
+                    <div class="setting-action">
+                      <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
+                      <div>
+                        <strong>Visibility</strong>
+                        <small>${card.visibility
+                          ? "Shown when configured conditions match"
+                          : "Always visible"}</small>
+                      </div>
+                      <ha-button
+                        @click=${() =>
+                          this.openVisibility("card", rowIndex, cardIndex)}
+                        >${card.visibility ? "Edit" : "Configure"}</ha-button
+                      >
+                    </div>
+                  </section>
+                  <section class="settings-group rule-groups">
+                    <div class="settings-heading">
+                      <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+                      <div><strong>Mappings</strong><small>Transform values and colors in rule order</small></div>
+                    </div>
+                    ${this.valueMappingsEditor(card)}${this.colorMappingsEditor(card)}
+                  </section>
+                `
         }
       </div>
-      ${this.valueMappingsEditor(card)}${this.colorMappingsEditor(card)}${this.styleEditor(card)}
     </section>`;
   }
 
@@ -2650,8 +2912,33 @@ export class MiniDisplayEditor extends LitElement {
     return html`<section class="row-panel">
       <div class="row-head">
         <div class="row-title">
-          <strong>Row ${rowIndex + 1}</strong
-          ><small
+          ${this.editingRowTitle === rowIndex
+            ? html`<input
+                class="row-title-input"
+                aria-label="Row title"
+                autofocus
+                .value=${row.title ?? ""}
+                placeholder=${`Row ${rowIndex + 1}`}
+                @input=${(event: Event) => {
+                  row.title = (event.target as HTMLInputElement).value;
+                  this.changed();
+                }}
+                @blur=${() => (this.editingRowTitle = undefined)}
+                @keydown=${(event: KeyboardEvent) => {
+                  if (event.key === "Enter" || event.key === "Escape") {
+                    (event.currentTarget as HTMLInputElement).blur();
+                  }
+                }}
+              />`
+            : html`<strong>${row.title?.trim() || `Row ${rowIndex + 1}`}</strong
+                ><button
+                  class="inline-icon-button"
+                  aria-label="Edit row title"
+                  title="Edit row title"
+                  @click=${() => (this.editingRowTitle = rowIndex)}
+                >
+                  <ha-icon icon="mdi:pencil-outline"></ha-icon>
+                </button>`}<small
             >${row.cards.length}
             ${row.cards.length === 1 ? "card" : "cards"}</small
           >${row.visibility ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : nothing}
@@ -2677,10 +2964,7 @@ export class MiniDisplayEditor extends LitElement {
             </button>`,
         )}
       </div>
-      ${this.field("Row title", row.title, (input) => {
-        row.title = input;
-        this.changed();
-      })}${
+      ${
         row.title?.trim()
           ? this.fontSelect(
               "Row title font",
