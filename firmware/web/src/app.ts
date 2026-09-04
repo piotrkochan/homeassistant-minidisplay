@@ -10,6 +10,7 @@ import {
   request,
 } from "./api";
 import "./pages/display";
+import "./pages/diagnostics";
 import "./pages/firmware";
 import "./pages/network";
 import "./pages/overview";
@@ -22,13 +23,15 @@ import type {
 } from "./pages/shared";
 import { shellStyles } from "./styles";
 
-type Page = "overview" | "display" | "network" | "security" | "firmware";
+type Page =
+  "overview" | "display" | "network" | "security" | "diagnostics" | "firmware";
 
 const pageFromPath = (): Page =>
   (({
     "/display": "display",
     "/network": "network",
     "/security": "security",
+    "/diagnostics": "diagnostics",
     "/update": "firmware",
   })[location.pathname] as Page | undefined) ?? "overview";
 
@@ -176,6 +179,7 @@ class MiniDisplayDevice extends LitElement {
       ["display", "/display", "Display"],
       ["network", "/network", "Network"],
       ["security", "/security", "Security"],
+      ["diagnostics", "/diagnostics", "Diagnostics"],
       ["firmware", "/update", "Firmware"],
     ];
     return html`<nav>
@@ -250,6 +254,10 @@ class MiniDisplayDevice extends LitElement {
         .onSuccess=${this.uploadSuccess_}
         .onError=${this.uploadError_}
       ></mini-display-firmware-page>`;
+    if (this.page_ === "diagnostics")
+      return html`<mini-display-diagnostics-page
+        .recoverySsid=${this.status_.recoverySsid}
+      ></mini-display-diagnostics-page>`;
     return html`<mini-display-overview
       .info=${this.info_}
       .status=${this.status_}

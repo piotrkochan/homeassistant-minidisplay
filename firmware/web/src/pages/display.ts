@@ -91,7 +91,6 @@ export class DisplayPage extends LitElement {
               >Used by clock cards. Time stays synchronized over NTP.</small
             >
             <select
-              .value=${this.selectedTimezone_}
               @change=${(event: Event) => {
                 const value = (event.target as HTMLSelectElement).value;
                 this.selectedTimezone_ = value;
@@ -103,7 +102,10 @@ export class DisplayPage extends LitElement {
                   html`<optgroup label=${group.label}>
                     ${group.zones.map(
                       (timezone) =>
-                        html`<option value=${timezone.value}>
+                        html`<option
+                          value=${timezone.value}
+                          ?selected=${timezone.value === this.selectedTimezone_}
+                        >
                           ${timezone.label}
                         </option>`,
                     )}

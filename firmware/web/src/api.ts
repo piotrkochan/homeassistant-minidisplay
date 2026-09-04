@@ -25,6 +25,7 @@ export type DeviceStatus = {
   minimumFreeHeapBytes?: number;
   wifiRssiDbm: number;
   lastValueUpdateAgeSeconds: number;
+  recoverySsid: string;
   pages: string[];
 };
 

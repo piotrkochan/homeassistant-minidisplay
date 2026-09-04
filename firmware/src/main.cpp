@@ -64,6 +64,7 @@ constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
 constexpr uint8_t kMaxPixelShift = 10;
 constexpr uint32_t kPixelShiftIntervalMs = 60000;
+constexpr uint32_t kDiagnosticsCaptureTimeoutMs = 15000;
 constexpr char kDefaultTimezone[] = "CET-1CEST,M3.5.0,M10.5.0/3";
 constexpr char kDefaultNtpServer[] = "pool.ntp.org";
 constexpr uint8_t kExtendLeft = 1U << 0;
@@ -152,6 +153,11 @@ bool wifiWasConnected = false;
 bool accessPointRunning = false;
 uint8_t setupStationCount = UINT8_MAX;
 uint32_t setupScreenUpdatedAt = 0;
+bool startupSequenceActive = true;
+uint32_t startupConnectedAt = 0;
+uint32_t startupScreenUpdatedAt = 0;
+uint8_t startupCountdownShown = UINT8_MAX;
+bool connectionScreenVisible = false;
 uint32_t reconnectCount = 0;
 wl_status_t lastDisconnectStatus = WL_IDLE_STATUS;
 bool routesReady = false;
@@ -193,6 +199,8 @@ uint32_t pendingChangedValues = 0;
 bool fullRenderPending = false;
 uint32_t lastValueUpdateAt = 0;
 bool hasValueUpdate = false;
+String diagnosticsLastData;
+uint32_t diagnosticsCaptureAt = 0;
 uint32_t minimumFreeHeapBytes = UINT32_MAX;
 #if defined(ESP8266)
 char lastResetReason[48]{};
@@ -203,6 +211,7 @@ bool renderDashboardPage(const uint32_t *changedValues,
                          bool clear = true);
 void showPageWithTransition(uint8_t nextPageIndex);
 void showSetupScreen();
+void startAccessPoint();
 
 void recordFreeHeap() {
   minimumFreeHeapBytes = min(minimumFreeHeapBytes, ESP.getFreeHeap());
@@ -459,9 +468,10 @@ uint32_t checksum(const V3DeviceConfig &value) {
 }
 
 bool configValid() {
-  return config.magic == kConfigMagic && config.checksum == checksum(config) &&
-         config.ssid[0] != '\0';
+  return config.magic == kConfigMagic && config.checksum == checksum(config);
 }
+
+bool wifiConfigured() { return configValid() && config.ssid[0] != '\0'; }
 
 bool legacyConfigValid(const LegacyDeviceConfig &value) {
   return value.magic == kLegacyConfigMagic &&
@@ -1881,7 +1891,27 @@ void receiveApiData() {
   }
   lastValueUpdateAt = millis();
   hasValueUpdate = true;
+  if (diagnosticsCaptureAt != 0 &&
+      millis() - diagnosticsCaptureAt <= kDiagnosticsCaptureTimeoutMs) {
+    diagnosticsLastData = body;
+  }
   server.send(204);
+}
+
+void sendApiLatestData() {
+  if (!apiAuthenticated()) return;
+  const uint32_t now = millis();
+  if (diagnosticsCaptureAt == 0 ||
+      now - diagnosticsCaptureAt > kDiagnosticsCaptureTimeoutMs) {
+    diagnosticsLastData = String();
+  }
+  diagnosticsCaptureAt = now == 0 ? 1 : now;
+  if (diagnosticsLastData.isEmpty()) {
+    server.send(204);
+    return;
+  }
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", diagnosticsLastData);
 }
 
 void receiveApiDisplay() {
@@ -1996,6 +2026,39 @@ void receiveApiRestart() {
   ESP.restart();
 }
 
+void receiveApiSetupMode() {
+  if (!apiAuthenticated()) return;
+  memset(config.ssid, 0, sizeof(config.ssid));
+  memset(config.wifiPassword, 0, sizeof(config.wifiPassword));
+  saveConfig();
+  server.send(204);
+  delay(250);
+  WiFi.disconnect(true);
+  startAccessPoint();
+}
+
+void receiveApiFactoryReset() {
+  if (!apiAuthenticated()) return;
+  if (filesystemReady && !LittleFS.format()) {
+    sendJsonError(500, F("storage_error"), F("Could not erase settings"));
+    return;
+  }
+  DeviceConfig erased{};
+  EEPROM.put(0, erased);
+  if (!EEPROM.commit()) {
+    sendJsonError(500, F("storage_error"), F("Could not erase settings"));
+    return;
+  }
+  server.send(204);
+  delay(250);
+#if defined(ESP8266)
+  WiFi.disconnect(true);
+#else
+  WiFi.disconnect(true, true);
+#endif
+  ESP.restart();
+}
+
 void startAccessPoint() {
   if (accessPointRunning) return;
   if (configValid() && config.resetApiAuthOnRecovery) {
@@ -2003,7 +2066,7 @@ void startAccessPoint() {
     config.apiAuthEnabled = 0;
     saveConfig();
   }
-  WiFi.mode(configValid() ? WIFI_AP_STA : WIFI_AP);
+  WiFi.mode(wifiConfigured() ? WIFI_AP_STA : WIFI_AP);
   const String ssid = "SDPRO-Setup-" + deviceSuffix();
   if (networkSettings.recoveryPassword[0]) {
     WiFi.softAP(ssid.c_str(), networkSettings.recoveryPassword);
@@ -2024,6 +2087,14 @@ void sendWebApp() {
   server.sendHeader("Vary", "Accept-Encoding");
   server.send_P(200, PSTR("text/html; charset=utf-8"),
                 reinterpret_cast<PGM_P>(kWebAppGzip), kWebAppGzipSize);
+}
+
+void sendDashboardSchema() {
+  server.sendHeader("Cache-Control", "public, max-age=3600");
+  server.sendHeader("Content-Encoding", "gzip");
+  server.send_P(200, PSTR("application/schema+json"),
+                reinterpret_cast<PGM_P>(kDashboardSchemaGzip),
+                kDashboardSchemaGzipSize);
 }
 
 void sendApiSetup() {
@@ -2346,7 +2417,9 @@ void configureRoutes() {
   server.on("/display", HTTP_GET, sendWebApp);
   server.on("/network", HTTP_GET, sendWebApp);
   server.on("/security", HTTP_GET, sendWebApp);
+  server.on("/diagnostics", HTTP_GET, sendWebApp);
   server.on("/update", HTTP_GET, sendWebApp);
+  server.on("/schema/dashboard.schema.json", HTTP_GET, sendDashboardSchema);
   server.on("/update", HTTP_POST, finishDirectUpdate, receiveDirectUpdate);
   server.on("/api/v1/firmware", HTTP_POST, finishPanelUpdate,
             receivePanelUpdate);
@@ -2362,16 +2435,19 @@ void configureRoutes() {
   server.on("/api/v1/dashboard", HTTP_GET, sendApiDashboard);
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
+  server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
   server.on("/api/v1/page", HTTP_POST, receiveApiPage);
   server.on("/api/v1/restart", HTTP_POST, receiveApiRestart);
+  server.on("/api/v1/setup-mode", HTTP_POST, receiveApiSetupMode);
+  server.on("/api/v1/factory-reset", HTTP_POST, receiveApiFactoryReset);
   server.onNotFound([] { server.send(404, "text/plain", "Not found"); });
   server.begin();
   routesReady = true;
 }
 
 void connectToWiFi() {
-  if (!configValid()) {
+  if (!wifiConfigured()) {
     startAccessPoint();
     return;
   }
@@ -2389,23 +2465,121 @@ void connectToWiFi() {
   wifiWasConnected = false;
 }
 
-void showDisplayTest() {
+void drawCenteredBold(const String &text, int16_t y, uint8_t font,
+                      uint16_t color) {
+  display.setTextColor(color);
+  display.drawString(text, 120, y, font);
+  display.drawString(text, 121, y, font);
+}
+
+void showStartupScreen() {
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
   display.init();
   display.setRotation(0);
-  display.fillScreen(TFT_BLACK);
-  display.fillRect(0, 0, 80, 80, TFT_RED);
-  display.fillRect(80, 0, 80, 80, TFT_GREEN);
-  display.fillRect(160, 0, 80, 80, TFT_BLUE);
-  display.fillRect(0, 80, 240, 80, TFT_WHITE);
-  display.fillRect(0, 160, 240, 80, TFT_BLACK);
+
+  const uint16_t background = display.color565(9, 14, 23);
+  const uint16_t panel = display.color565(25, 34, 47);
+  const uint16_t muted = display.color565(150, 164, 181);
+  const uint16_t accent = display.color565(3, 169, 244);
+  display.fillScreen(background);
+  display.fillRoundRect(12, 12, 216, 216, 12, panel);
+  display.fillRoundRect(12, 12, 216, 6, 3, accent);
   display.setTextDatum(MC_DATUM);
-  display.setTextColor(TFT_BLACK, TFT_WHITE);
-  display.drawString("SD PRO", 120, 110, 4);
-  display.drawString("DISPLAY TEST 1", 120, 145, 2);
-  display.setTextColor(TFT_YELLOW, TFT_BLACK);
-  display.drawString("OTA + WIFI OK", 120, 200, 2);
+  display.setTextColor(accent, panel);
+  display.drawCircle(120, 76, 28, accent);
+  display.drawLine(104, 76, 116, 88, accent);
+  display.drawLine(116, 88, 139, 63, accent);
+  drawCenteredBold("MINI-DISPLAY", 130, 4, TFT_WHITE);
+  drawCenteredBold("HOME ASSISTANT", 160, 2, muted);
+  drawCenteredBold("Starting...", 198, 2, muted);
+}
+
+void showWifiConnectingScreen() {
+  if (!wifiConfigured() || WiFi.status() == WL_CONNECTED) return;
+  setupScreenUpdatedAt = millis();
+
+  const uint16_t background = display.color565(9, 14, 23);
+  const uint16_t panel = display.color565(25, 34, 47);
+  const uint16_t muted = display.color565(150, 164, 181);
+  const uint16_t accent = display.color565(3, 169, 244);
+  const uint16_t warning = display.color565(245, 180, 0);
+  const uint8_t retryLimit = config.wifiRetryLimit
+                                 ? config.wifiRetryLimit
+                                 : kDefaultWifiRetryLimit;
+  const uint32_t elapsed = millis() - connectStartedAt;
+  const uint32_t remainingSeconds =
+      elapsed >= kConnectTimeoutMs
+          ? 0
+          : (kConnectTimeoutMs - elapsed + 999) / 1000;
+  const uint16_t progressWidth =
+      min<uint32_t>(180, elapsed * 180 / kConnectTimeoutMs);
+
+  if (!connectionScreenVisible) {
+    display.fillScreen(background);
+    display.fillRoundRect(12, 12, 216, 216, 12, panel);
+    display.fillRoundRect(12, 12, 216, 6, 3, accent);
+    display.setTextDatum(MC_DATUM);
+    drawCenteredBold("CONNECTING", 38, 4, TFT_WHITE);
+    drawCenteredBold("WI-FI NETWORK", 69, 2, muted);
+    drawCenteredBold(config.ssid, 90, 2, TFT_WHITE);
+    connectionScreenVisible = true;
+  }
+
+  display.fillRect(25, 106, 190, 27, panel);
+  drawCenteredBold("ATTEMPT " + String(wifiAttemptCount) + " OF " +
+                       String(retryLimit),
+                   119, 2, warning);
+  display.fillRect(28, 138, 184, 16, panel);
+  display.drawRoundRect(29, 139, 182, 14, 5, muted);
+  if (progressWidth > 0) {
+    display.fillRoundRect(30, 140, progressWidth, 12, 4, accent);
+  }
+  display.fillRect(25, 160, 190, 29, panel);
+  drawCenteredBold("Waiting up to " + String(remainingSeconds) + " s", 174,
+                   2, muted);
+
+  const wl_status_t status = WiFi.status();
+  display.fillRect(25, 190, 190, 25, panel);
+  if (status == WL_NO_SSID_AVAIL) {
+    drawCenteredBold("Network not found", 202, 2, muted);
+  } else if (status == WL_CONNECT_FAILED) {
+    drawCenteredBold("Check Wi-Fi password", 202, 2, TFT_RED);
+  } else {
+    drawCenteredBold("Please wait...", 202, 2, muted);
+  }
+
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+}
+
+void updateWifiConnectedCountdown(uint8_t secondsRemaining) {
+  const uint16_t panel = display.color565(25, 34, 47);
+  display.fillRect(85, 192, 70, 32, panel);
+  drawCenteredBold(String(secondsRemaining), 207, 4, TFT_WHITE);
+  startupCountdownShown = secondsRemaining;
+  startupScreenUpdatedAt = millis();
+}
+
+void showWifiConnectedScreen(uint8_t secondsRemaining) {
+
+  const uint16_t background = display.color565(9, 14, 23);
+  const uint16_t panel = display.color565(25, 34, 47);
+  const uint16_t muted = display.color565(150, 164, 181);
+  const uint16_t success = display.color565(46, 204, 113);
+  display.fillScreen(background);
+  display.fillRoundRect(12, 12, 216, 216, 12, panel);
+  display.fillRoundRect(12, 12, 216, 6, 3, success);
+
+  display.drawCircle(120, 56, 24, success);
+  display.drawLine(108, 56, 117, 65, success);
+  display.drawLine(117, 65, 133, 47, success);
+  display.setTextDatum(MC_DATUM);
+  drawCenteredBold("CONNECTED", 94, 4, success);
+  drawCenteredBold(config.ssid, 122, 2, muted);
+  drawCenteredBold("IP  " + WiFi.localIP().toString(), 148, 2, TFT_WHITE);
+  drawCenteredBold("Opening dashboard in", 181, 2, muted);
+  updateWifiConnectedCountdown(secondsRemaining);
 }
 
 void showSetupScreen() {
@@ -2423,32 +2597,51 @@ void showSetupScreen() {
 
   display.setTextDatum(MC_DATUM);
   display.setTextColor(TFT_WHITE, panel);
-  display.drawString("SETUP MODE", 120, 42, 4);
+  display.drawString("SETUP MODE", 120, 32, 4);
+  const uint8_t retryLimit = config.wifiRetryLimit
+                                 ? config.wifiRetryLimit
+                                 : kDefaultWifiRetryLimit;
+  const bool connectionFailed =
+      wifiConfigured() && wifiAttemptCount >= retryLimit;
+  if (connectionFailed) {
+    display.setTextColor(TFT_RED, panel);
+    display.drawString("WI-FI CONNECTION FAILED", 120, 52, 1);
+  }
   display.setTextColor(muted, panel);
-  display.drawString("WI-FI NETWORK", 120, 70, 2);
+  display.drawString("CONNECT TO", 120, connectionFailed ? 69 : 60, 2);
   display.setTextColor(TFT_WHITE, panel);
-  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120, 92, 2);
+  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120,
+                     connectionFailed ? 87 : 78, 2);
+
+  display.setTextColor(muted, panel);
+  display.drawString("OPEN IN BROWSER", 120,
+                     connectionFailed ? 107 : 100, 2);
+  display.setTextColor(accent, panel);
+  display.drawString("http://" + WiFi.softAPIP().toString(), 120,
+                     connectionFailed ? 125 : 118, 2);
+
   if (networkSettings.recoveryPassword[0]) {
     display.setTextColor(muted, panel);
-    display.drawString("PASSWORD", 120, 122, 2);
+    display.drawString("PASSWORD", 120, connectionFailed ? 145 : 140, 2);
     display.setTextColor(TFT_WHITE, panel);
     const String password = networkSettings.recoveryPassword;
+    const int16_t passwordY = connectionFailed ? 162 : 158;
     if (password.length() <= 24) {
-      display.drawString(password, 120, 144, 2);
+      display.drawString(password, 120, passwordY, 2);
     } else if (password.length() <= 36) {
-      display.drawString(password, 120, 144, 1);
+      display.drawString(password, 120, passwordY, 1);
     } else {
       const size_t split = (password.length() + 1) / 2;
-      display.drawString(password.substring(0, split), 120, 138, 1);
-      display.drawString(password.substring(split), 120, 151, 1);
+      display.drawString(password.substring(0, split), 120, passwordY - 5, 1);
+      display.drawString(password.substring(split), 120, passwordY + 7, 1);
     }
   }
   display.setTextColor(muted, panel);
   display.drawString("CONNECTED DEVICES", 120,
-                     networkSettings.recoveryPassword[0] ? 174 : 142, 2);
+                     networkSettings.recoveryPassword[0] ? 188 : 151, 2);
   display.setTextColor(accent, panel);
   display.drawString(String(setupStationCount), 120,
-                     networkSettings.recoveryPassword[0] ? 205 : 180, 4);
+                     networkSettings.recoveryPassword[0] ? 211 : 184, 4);
 
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
@@ -2481,14 +2674,13 @@ void setup() {
   loadNetworkSettings();
   configureTimeService();
   loadStoredDashboard();
-  showDisplayTest();
+  showStartupScreen();
   configureRoutes();
   connectToWiFi();
   if (accessPointRunning) {
     showSetupScreen();
-  } else {
-    if (dashboardPageCount) showCurrentPage();
-    applyBacklight();
+  } else if (WiFi.status() != WL_CONNECTED) {
+    showWifiConnectingScreen();
   }
   recordFreeHeap();
 }
@@ -2496,13 +2688,13 @@ void setup() {
 void loop() {
   server.handleClient();
   if (accessPointRunning) {
-    if (configValid() && WiFi.status() == WL_CONNECTED) {
+    if (wifiConfigured() && WiFi.status() == WL_CONNECTED) {
       WiFi.softAPdisconnect(true);
       accessPointRunning = false;
       wifiWasConnected = true;
       wifiAttemptCount = 0;
-      showCurrentPage();
-      applyBacklight();
+      startupSequenceActive = true;
+      startupConnectedAt = 0;
     } else if (millis() - setupScreenUpdatedAt >= 1000 &&
                WiFi.softAPgetStationNum() != setupStationCount) {
       showSetupScreen();
@@ -2511,6 +2703,72 @@ void loop() {
     delay(2);
     return;
   }
+
+  if (wifiConfigured() && WiFi.status() != WL_CONNECTED) {
+    if (wifiWasConnected) {
+      wifiWasConnected = false;
+      lastDisconnectStatus = WiFi.status();
+      ++reconnectCount;
+      wifiAttemptCount = 1;
+      connectStartedAt = millis();
+      WiFi.reconnect();
+      showWifiConnectingScreen();
+    } else if (millis() - connectStartedAt >= kConnectTimeoutMs) {
+      const uint8_t retryLimit = config.wifiRetryLimit
+                                     ? config.wifiRetryLimit
+                                     : kDefaultWifiRetryLimit;
+      if (wifiAttemptCount >= retryLimit) {
+        startAccessPoint();
+      } else {
+        lastDisconnectStatus = WiFi.status();
+        ++reconnectCount;
+        ++wifiAttemptCount;
+        connectStartedAt = millis();
+        WiFi.disconnect();
+        WiFi.begin(config.ssid, config.wifiPassword);
+        showWifiConnectingScreen();
+      }
+    } else if (millis() - setupScreenUpdatedAt >= 1000) {
+      showWifiConnectingScreen();
+    }
+    recordFreeHeap();
+    delay(2);
+    return;
+  }
+
+  if (wifiConfigured()) {
+    wifiWasConnected = true;
+    wifiAttemptCount = 0;
+  }
+  if (startupSequenceActive) {
+    if (startupConnectedAt == 0) {
+      startupConnectedAt = millis();
+      showWifiConnectedScreen(4);
+    }
+    const uint32_t connectedFor = millis() - startupConnectedAt;
+    if (connectedFor < 4000) {
+      const uint8_t secondsRemaining = 4 - connectedFor / 1000;
+      if (secondsRemaining != startupCountdownShown) {
+        updateWifiConnectedCountdown(secondsRemaining);
+      }
+      startMdns();
+#if defined(ESP8266)
+      if (mdnsReady) MDNS.update();
+#endif
+      recordFreeHeap();
+      delay(2);
+      return;
+    }
+    startupSequenceActive = false;
+    connectionScreenVisible = false;
+    showCurrentPage();
+    applyBacklight();
+  } else if (connectionScreenVisible) {
+    connectionScreenVisible = false;
+    showCurrentPage();
+    applyBacklight();
+  }
+
   if (fullRenderPending) {
     fullRenderPending = false;
     pendingChangedValues = 0;
@@ -2546,32 +2804,10 @@ void loop() {
     pixelShiftAt = millis();
     showCurrentPage();
   }
-  if (configValid() && !accessPointRunning) {
-    if (WiFi.status() == WL_CONNECTED) {
-      wifiWasConnected = true;
-      wifiAttemptCount = 0;
-    } else if (wifiWasConnected) {
-      wifiWasConnected = false;
-      lastDisconnectStatus = WiFi.status();
-      ++reconnectCount;
-      wifiAttemptCount = 1;
-      connectStartedAt = millis();
-      WiFi.reconnect();
-    } else if (millis() - connectStartedAt >= kConnectTimeoutMs) {
-      const uint8_t retryLimit = config.wifiRetryLimit
-                                     ? config.wifiRetryLimit
-                                     : kDefaultWifiRetryLimit;
-      if (wifiAttemptCount >= retryLimit) {
-        startAccessPoint();
-      } else {
-        lastDisconnectStatus = WiFi.status();
-        ++reconnectCount;
-        ++wifiAttemptCount;
-        connectStartedAt = millis();
-        WiFi.disconnect();
-        WiFi.begin(config.ssid, config.wifiPassword);
-      }
-    }
+  if (diagnosticsCaptureAt != 0 &&
+      millis() - diagnosticsCaptureAt > kDiagnosticsCaptureTimeoutMs) {
+    diagnosticsCaptureAt = 0;
+    diagnosticsLastData = String();
   }
   recordFreeHeap();
   delay(2);
