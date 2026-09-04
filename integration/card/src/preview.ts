@@ -22,6 +22,7 @@ export class MiniDisplayPreview extends LitElement {
   @state() private dragPoint = { x: 0, y: 0 };
   private clockTimer?: number;
   private pageShownAt = Date.now();
+  private measureContext?: CanvasRenderingContext2D | null;
   private pointerCandidate?: { pointerId: number; startX: number; startY: number; kind: "value" | "title" | "page-title"; row?: number; card?: number; label: string; cardElement?: HTMLElement };
   private suppressClickUntil = 0;
 
@@ -213,6 +214,26 @@ export class MiniDisplayPreview extends LitElement {
     return `${mapped.value}${!mapped.mapped && card.unit ? ` ${card.unit}` : ""}`;
   }
 
+  private valueFontSize(card: Dashboard["pages"][number]["rows"][number]["cards"][number], value: string, width: number, height: number) {
+    // Adafruit GFX font names use point sizes. At the display's pixel density,
+    // their browser equivalents are approximately 2 CSS pixels per point.
+    const sizes = [18, 24, 36, 48];
+    const lineHeights = [22, 29, 42, 56];
+    const requested = card.valueStyle?.fontSize ?? "auto";
+    let index = requested === "small" ? 0 : requested === "medium" ? 1 : requested === "large" ? 2 : requested === "xlarge" ? 3 : height >= 58 ? 3 : height >= 42 ? 2 : height >= 28 ? 1 : 0;
+    const family = { sans: "sans-serif", "sans-bold": "sans-serif", mono: "monospace", serif: "serif" }[card.valueStyle?.fontFamily ?? "sans"];
+    this.measureContext ??= document.createElement("canvas").getContext("2d");
+    while (index > 0) {
+      if (lineHeights[index] <= height) {
+        if (!this.measureContext) break;
+        this.measureContext.font = `${card.valueStyle?.fontFamily === "sans-bold" ? 700 : 400} ${sizes[index]}px ${family}`;
+        if (this.measureContext.measureText(value).width <= width - 6) break;
+      }
+      index -= 1;
+    }
+    return sizes[index];
+  }
+
   render() {
     const page = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
     const screenStyle = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
@@ -238,13 +259,24 @@ export class MiniDisplayPreview extends LitElement {
     const titleSize = page.titleStyle?.fontSize ?? "small";
     const titleThickness = { small: 21, medium: 29, large: 40, xlarge: 52, auto: 21 }[titleSize];
     const titleFontSize = { small: 13, medium: 17, large: 25, xlarge: 32, auto: 13 }[titleSize];
+    const horizontalTitle = showPageTitle && (titlePosition === "top" || titlePosition === "bottom") ? titleThickness : 0;
+    const verticalTitle = showPageTitle && (titlePosition === "left" || titlePosition === "right") ? titleThickness : 0;
+    const contentWidth = this.width - 12 - verticalTitle;
+    const availableRowsHeight = this.height - 12 - horizontalTitle - 4 * Math.max(0, rows.length - 1);
+    const totalWeight = rows.reduce((sum, item) => sum + (item.row.weight ?? 1), 0) || 1;
     const contentStyle = !showPageTitle ? "inset:6px" : titlePosition === "top" ? `top:${titleThickness + 6}px;right:6px;bottom:6px;left:6px` : titlePosition === "bottom" ? `top:6px;right:6px;bottom:${titleThickness + 6}px;left:6px` : titlePosition === "left" ? `top:6px;right:6px;bottom:6px;left:${titleThickness + 6}px` : `top:6px;right:${titleThickness + 6}px;bottom:6px;left:6px`;
     const titleStyle = `${titlePosition === "top" || titlePosition === "bottom" ? `height:${titleThickness}px` : `width:${titleThickness}px`};background:${titleBackground};color:${titleForeground};font-size:${titleFontSize}px`;
-    return html`<div class="screen-frame" style=${screenStyle}><div class="screen" style=${`background:${pageBackground}`}>${showPageTitle ? html`<div class="page-title ${titlePosition} ${this.interactive ? "interactive" : ""}" style=${titleStyle} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "page-title" }); }}><span .draggable=${this.interactive} @dragstart=${(event: DragEvent) => this.startDrag(event, { kind: "page-title" })} @dragend=${() => this.stopDrag()}>${page.title}</span></div>` : null}${this.pageDropzones()}<div class="page-content" style=${contentStyle}>${rows.map(({ row, rowIndex, hidden: rowHidden, cards }) => html`<div class="group ${rowHidden ? "hidden-item" : ""}" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title ${this.interactive ? "interactive" : ""}" @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "row", row: rowIndex }); }}>${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${cards.length},minmax(0,1fr))">${cards.map(({ card, cardIndex, hidden }) => {
+    return html`<div class="screen-frame" style=${screenStyle}><div class="screen" style=${`background:${pageBackground}`}>${showPageTitle ? html`<div class="page-title ${titlePosition} ${this.interactive ? "interactive" : ""}" style=${titleStyle} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "page-title" }); }}><span .draggable=${this.interactive} @dragstart=${(event: DragEvent) => this.startDrag(event, { kind: "page-title" })} @dragend=${() => this.stopDrag()}>${page.title}</span></div>` : null}${this.pageDropzones()}<div class="page-content" style=${contentStyle}>${rows.map(({ row, rowIndex, hidden: rowHidden, cards }) => {
+      const rowHeight = availableRowsHeight * (row.weight ?? 1) / totalWeight;
+      const cardHeight = rowHeight - (row.title && row.showTitle !== false && rowHeight >= 24 ? 17 : 0);
+      const cardWidth = (contentWidth - 4 * Math.max(0, cards.length - 1)) / cards.length;
+      return html`<div class="group ${rowHidden ? "hidden-item" : ""}" style="flex:${row.weight ?? 1}">${row.title && row.showTitle !== false ? html`<div class="title ${this.interactive ? "interactive" : ""}" @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "row", row: rowIndex }); }}>${row.title}</div>` : null}<div class="row" style="grid-template-columns:repeat(${cards.length},minmax(0,1fr))">${cards.map(({ card, cardIndex, hidden }) => {
       const raw = card.source ? this.hass?.states[card.source]?.state ?? "—" : card.text ?? "—";
       const numeric = Number(raw); const min = card.minimum ?? 0; const max = card.maximum ?? 100; const progress = Number.isFinite(numeric) && max > min ? Math.max(0,Math.min(100,(numeric-min)/(max-min)*100)) : 0;
       const family = {sans:"sans-serif","sans-bold":"sans-serif",mono:"monospace",serif:"serif"}[card.valueStyle?.fontFamily ?? "sans"];
-      const size = {auto:14,small:10,medium:13,large:17,xlarge:22}[card.valueStyle?.fontSize ?? "auto"];
+      const displayValue = this.cardValue(card);
+      const valueHeight = card.progress === "ring" ? Math.min(22, Math.max(12, cardHeight / 4)) : cardHeight - (card.progress === "bar" ? 9 : 0);
+      const size = this.valueFontSize(card, displayValue, cardWidth, valueHeight);
       const colorMapping = mapCardColors(card, raw);
       const backgroundValue = colorMapping?.background ?? card.style?.background ?? "";
       const foregroundValue = colorMapping?.foreground ?? card.style?.foreground ?? "";
@@ -256,9 +288,9 @@ export class MiniDisplayPreview extends LitElement {
       const titleVertical = { top: "flex-start", middle: "center", bottom: "flex-end" }[card.titleStyle?.verticalAlign ?? "top"];
       const contentBottom = card.progress && card.progress !== "none" ? 14 : 5;
       const contentArea = `top:5px;right:5px;bottom:${contentBottom}px;left:5px`;
-      const value = html`<div class="value" .draggable=${this.interactive} style=${`font-family:${family};font-size:${size}px;font-weight:${card.valueStyle?.fontFamily === "sans-bold" ? 700 : 600}`} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "value", row: rowIndex, card: cardIndex }); }} @dragstart=${(event: DragEvent) => this.startDrag(event, { kind: "value", row: rowIndex, card: cardIndex })} @dragend=${() => this.stopDrag()}>${this.cardValue(card)}</div>`;
+      const value = html`<div class="value" .draggable=${this.interactive} style=${`font-family:${family};font-size:${size}px;font-weight:${card.valueStyle?.fontFamily === "sans-bold" ? 700 : 600}`} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "value", row: rowIndex, card: cardIndex }); }} @dragstart=${(event: DragEvent) => this.startDrag(event, { kind: "value", row: rowIndex, card: cardIndex })} @dragend=${() => this.stopDrag()}>${displayValue}</div>`;
       return html`<div class="card ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}" style=${`background:${background};color:${foreground}`} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "card", row: rowIndex, card: cardIndex }); }}>${card.title ? html`<small style=${`${contentArea};align-items:${titleVertical};justify-content:${titleHorizontal};text-align:${card.titleStyle?.horizontalAlign ?? "left"}`}><span class="card-label" .draggable=${this.interactive} @click=${(event: Event) => { event.stopPropagation(); this.emit("preview-select", { kind: "title", row: rowIndex, card: cardIndex }); }} @dragstart=${(event: DragEvent) => this.startDrag(event, { kind: "title", row: rowIndex, card: cardIndex })} @dragend=${() => this.stopDrag()}>${card.title}</span></small>` : null}${card.progress === "ring" ? html`<div class="ring-stack"><div class="ring" style=${`background:conic-gradient(${accent} ${progress}%,#3d424e 0);--ring-bg:${background}`}></div>${value}</div>` : html`<div class="value-wrap" style=${`${contentArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}>${value}</div>`}${this.positionGrid(rowIndex, cardIndex)}${card.progress === "bar" ? html`<div class="bar"><i style=${`width:${progress}%;background:${accent}`}></i></div>` : null}</div>`;
-    })}</div></div>`)}</div></div></div>`;
+    })}</div></div>`;})}</div></div></div>`;
   }
 }
 
