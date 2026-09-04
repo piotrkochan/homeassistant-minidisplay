@@ -31,6 +31,8 @@ BINARY_SENSORS = (
     ("direct_ota", "Direct OTA enabled", "directOtaEnabled"),
     ("ota_protection", "OTA protection", "otaAuthEnabled"),
     ("ota_password", "OTA password configured", "otaPasswordSet"),
+    ("https_enabled", "HTTPS preferred", "httpsEnabled"),
+    ("https_available", "HTTPS available", "httpsAvailable"),
     (
         "recovery_wifi_password",
         "Setup Mode Wi-Fi password configured",

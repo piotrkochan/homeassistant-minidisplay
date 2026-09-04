@@ -21,6 +21,8 @@ from .api import MiniDisplayApiError, MiniDisplayClient
 from .const import (
     CONF_API_TOKEN,
     CONF_DATA_BATCH_INTERVAL,
+    CONF_USE_SSL,
+    CONF_VERIFY_SSL,
     DEFAULT_DATA_BATCH_INTERVAL_SECONDS,
     DOMAIN,
     FRONTEND_DIR,
@@ -107,6 +109,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.data[CONF_HOST],
         entry.data[CONF_API_TOKEN],
         entry.data[CONF_PORT],
+        use_ssl=entry.data.get(CONF_USE_SSL, False),
+        verify_ssl=entry.data.get(CONF_VERIFY_SSL, True),
     )
     coordinator = MiniDisplayCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
@@ -126,6 +130,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_reconcile_scenes(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Add explicit transport defaults to entries created before HTTPS support."""
+    if entry.version == 1:
+        hass.config_entries.async_update_entry(
+            entry,
+            data={
+                **entry.data,
+                CONF_USE_SSL: False,
+                CONF_VERIFY_SSL: True,
+            },
+            version=2,
+        )
     return True
 
 

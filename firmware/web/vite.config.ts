@@ -3,6 +3,11 @@ import minifyLiterals from "rollup-plugin-html-literals";
 
 export default defineConfig({
   base: "/",
+  define: {
+    __MINI_DISPLAY_FEATURE_TLS__: JSON.stringify(
+      process.env.MINI_DISPLAY_FEATURE_TLS === "1",
+    ),
+  },
   plugins: [
     minifyLiterals({
       include: ["**/*.ts"],

@@ -1,7 +1,8 @@
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { request } from "../api";
+import { request, type DeviceStatus } from "../api";
 import { pageStyles } from "../styles";
+import { features } from "../features";
 
 const jsonToken =
   /"(?:\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|\b(?:true|false|null)\b/g;
@@ -32,6 +33,7 @@ const jsonView = (value: unknown) => {
 @customElement("mini-display-diagnostics-page")
 export class DiagnosticsPage extends LitElement {
   @property() recoverySsid = "Mini-Display-Setup";
+  @property({ attribute: false }) status?: DeviceStatus;
 
   @state() private dashboard_?: unknown;
   @state() private latestData_?: unknown;
@@ -122,6 +124,19 @@ export class DiagnosticsPage extends LitElement {
       }
       .danger-zone {
         border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+      }
+      .fingerprint {
+        display: grid;
+        gap: 5px;
+        margin-top: 14px;
+      }
+      .fingerprint strong {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .fingerprint code {
+        overflow-wrap: anywhere;
+        font-size: 12px;
       }
       .danger-zone .actions {
         margin-top: 12px;
@@ -230,6 +245,45 @@ export class DiagnosticsPage extends LitElement {
 
   render() {
     return html`<div class="stack">
+      ${
+        features.tls
+          ? html`<section class="card">
+              <h2>TLS certificate</h2>
+              <div class="facts">
+                <div class="fact">
+                  <strong>HTTPS preference</strong
+                  ><span
+                    >${this.status?.httpsEnabled ? "Enabled" : "Disabled"}</span
+                  >
+                </div>
+                <div class="fact">
+                  <strong>HTTPS listener</strong
+                  ><span
+                    >${this.status?.httpsAvailable ? "Available" : "Unavailable"}</span
+                  >
+                </div>
+                <div class="fact">
+                  <strong>Source</strong
+                  ><span>${this.status?.tlsCertificateSource ?? "none"}</span>
+                </div>
+                <div class="fact">
+                  <strong>Algorithm</strong
+                  ><span
+                    >${this.status?.tlsCertificateAlgorithm ?? "none"}</span
+                  >
+                </div>
+              </div>
+              ${
+                this.status?.tlsCertificateFingerprint
+                  ? html`<div class="fingerprint">
+                      <strong>SHA-256 fingerprint</strong>
+                      <code>${this.status.tlsCertificateFingerprint}</code>
+                    </div>`
+                  : nothing
+              }
+            </section>`
+          : nothing
+      }
       <section class="card">
         <div class="card-header">
           <div>

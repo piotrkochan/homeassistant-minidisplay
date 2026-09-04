@@ -25,6 +25,12 @@ export type DeviceStatus = {
   storageTotalBytes: number;
   storageUsedBytes: number;
   storageFreeBytes: number;
+  httpsEnabled: boolean;
+  httpsAvailable: boolean;
+  httpsPort?: number;
+  tlsCertificateSource?: "none" | "generated" | "uploaded";
+  tlsCertificateAlgorithm?: string;
+  tlsCertificateFingerprint?: string;
   minimumFreeHeapBytes?: number;
   wifiRssiDbm: number;
   lastValueUpdateAgeSeconds: number;
@@ -66,6 +72,13 @@ export type SecurityStatus = {
   apiAuthEnabled: boolean;
   otaAuthEnabled: boolean;
   directOtaEnabled: boolean;
+  httpsSupported: boolean;
+  httpsEnabled: boolean;
+  httpsAvailable: boolean;
+  httpsPort?: number;
+  tlsCertificateSource?: "none" | "generated" | "uploaded";
+  tlsCertificateAlgorithm?: string;
+  tlsCertificateFingerprint?: string;
 };
 
 export type UserFontSlot = {
@@ -181,6 +194,27 @@ export async function uploadUserFont(
     throw new DeviceApiError(
       response.status,
       (await response.text()) || `Font upload failed (${response.status})`,
+    );
+  }
+}
+
+export async function uploadTlsCredential(
+  kind: "certificate" | "private-key",
+  file: File,
+): Promise<void> {
+  const body = new FormData();
+  body.append(kind, file);
+  const response = await fetch(`/api/v1/tls/${kind}`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    body,
+  });
+  if (!response.ok) {
+    throw new DeviceApiError(
+      response.status,
+      (await response.text()) ||
+        `Credential upload failed (${response.status})`,
     );
   }
 }

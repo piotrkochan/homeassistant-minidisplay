@@ -36,6 +36,9 @@ SENSORS = (
     ("time_zone", "Time zone", "timezone", None, None),
     ("reconnect_count", "Wi-Fi reconnect count", "reconnectCount", None, None),
     ("last_disconnect_reason", "Last disconnect reason", "lastDisconnectReason", None, None),
+    ("tls_certificate_source", "TLS certificate source", "tlsCertificateSource", None, None),
+    ("tls_certificate_algorithm", "TLS certificate algorithm", "tlsCertificateAlgorithm", None, None),
+    ("tls_certificate_fingerprint", "TLS certificate fingerprint", "tlsCertificateFingerprint", None, None),
     (
         "wifi_retry_limit",
         "Setup Mode activation attempts",

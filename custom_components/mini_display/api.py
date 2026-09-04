@@ -6,9 +6,15 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from aiohttp import ClientError, ClientResponseError, ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientSession, ClientTimeout
 
-from .const import API_VERSION, REQUEST_TIMEOUT_SECONDS
+from .const import (
+    API_VERSION,
+    DEFAULT_HTTPS_PORT,
+    DEFAULT_PORT,
+    FEATURE_TLS,
+    REQUEST_TIMEOUT_SECONDS,
+)
 
 
 class MiniDisplayApiError(Exception):
@@ -50,14 +56,79 @@ class MiniDisplayClient:
         host: str,
         api_token: str,
         port: int = 80,
+        *,
+        use_ssl: bool = False,
+        verify_ssl: bool = True,
     ) -> None:
         self._session = session
-        self._base_url = f"http://{host}:{port}/api/v1"
+        self._host = host
+        self._port = port
+        self._use_ssl = use_ssl if FEATURE_TLS else False
+        self._verify_ssl = verify_ssl
+        self._active_transport: tuple[bool, int] | None = None
         self._headers = (
             {"Authorization": f"Bearer {api_token}"} if api_token else {}
         )
         self._timeout = ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
         self._request_lock = asyncio.Lock()
+
+    @property
+    def configured_use_ssl(self) -> bool:
+        """Return the transport selected in the config entry."""
+        return self._use_ssl
+
+    @property
+    def active_use_ssl(self) -> bool | None:
+        """Return the transport used by the most recent successful request."""
+        return self._active_transport[0] if self._active_transport else None
+
+    def _transports(self) -> tuple[tuple[bool, int], ...]:
+        if not FEATURE_TLS:
+            return ((False, self._port),)
+        configured = (self._use_ssl, self._port)
+        fallback = (
+            (False, DEFAULT_PORT)
+            if self._use_ssl
+            else (True, DEFAULT_HTTPS_PORT)
+        )
+        ordered = [self._active_transport, configured, fallback]
+        result: list[tuple[bool, int]] = []
+        for transport in ordered:
+            if transport is not None and transport not in result:
+                result.append(transport)
+        return tuple(result)
+
+    async def _request_transport(
+        self,
+        method: str,
+        path: str,
+        transport: tuple[bool, int],
+        *,
+        json: dict[str, Any] | None,
+        expect_json: bool,
+    ) -> dict[str, Any]:
+        use_ssl, port = transport
+        scheme = "https" if use_ssl else "http"
+        ssl = self._verify_ssl if use_ssl else None
+        async with self._session.request(
+            method,
+            f"{scheme}://{self._host}:{port}/api/v1{path}",
+            headers=self._headers,
+            json=json,
+            timeout=self._timeout,
+            ssl=ssl,
+            allow_redirects=False,
+        ) as response:
+            if response.status in (401, 403):
+                raise MiniDisplayAuthError("Display rejected API credentials")
+            response.raise_for_status()
+            self._active_transport = transport
+            if not expect_json or response.status == 204:
+                return {}
+            payload = await response.json(content_type=None)
+            if not isinstance(payload, dict):
+                raise MiniDisplayInvalidResponseError("Expected a JSON object")
+            return payload
 
     async def _request(
         self,
@@ -68,29 +139,21 @@ class MiniDisplayClient:
         expect_json: bool = True,
     ) -> dict[str, Any]:
         async with self._request_lock:
-            try:
-                async with self._session.request(
-                    method,
-                    f"{self._base_url}{path}",
-                    headers=self._headers,
-                    json=json,
-                    timeout=self._timeout,
-                ) as response:
-                    if response.status in (401, 403):
-                        raise MiniDisplayAuthError("Display rejected API credentials")
-                    response.raise_for_status()
-                    if not expect_json or response.status == 204:
-                        return {}
-                    payload = await response.json(content_type=None)
-                    if not isinstance(payload, dict):
-                        raise MiniDisplayInvalidResponseError(
-                            "Expected a JSON object"
-                        )
-                    return payload
-            except MiniDisplayApiError:
-                raise
-            except (ClientError, TimeoutError) as err:
-                raise MiniDisplayConnectionError(str(err)) from err
+            last_error: ClientError | TimeoutError | None = None
+            for transport in self._transports():
+                try:
+                    return await self._request_transport(
+                        method,
+                        path,
+                        transport,
+                        json=json,
+                        expect_json=expect_json,
+                    )
+                except MiniDisplayApiError:
+                    raise
+                except (ClientError, TimeoutError) as err:
+                    last_error = err
+            raise MiniDisplayConnectionError(str(last_error)) from last_error
 
     async def async_get_info(self) -> DeviceInfo:
         payload = await self._request("GET", "/info")

@@ -7,7 +7,12 @@
         "data": {
           "host": "Host",
           "port": "Port",
+          "use_ssl": "Use HTTPS",
+          "verify_ssl": "Verify TLS certificate",
           "api_token": "Panel/API password (optional)"
+        },
+        "data_description": {
+          "verify_ssl": "Disable only for a self-signed certificate that you trust."
         }
       },
       "reauth_confirm": {
@@ -15,6 +20,19 @@
         "description": "Enter the current panel/API password for {name}, or leave it empty when API protection is disabled.",
         "data": {
           "api_token": "Panel/API password (optional)"
+        }
+      },
+      "reconfigure": {
+        "title": "Connection settings",
+        "description": "Choose how Home Assistant connects to {name}. The integration tests this transport before saving it.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "use_ssl": "Use HTTPS",
+          "verify_ssl": "Verify TLS certificate"
+        },
+        "data_description": {
+          "verify_ssl": "Disable only for a self-signed certificate that you trust."
         }
       }
     },
@@ -26,7 +44,8 @@
     "abort": {
       "already_configured": "This display is already configured",
       "invalid_discovery_info": "Discovery did not contain a stable device ID",
-      "wrong_device": "The password belongs to a different display"
+      "wrong_device": "The password belongs to a different display",
+      "reconfigure_successful": "Connection settings updated"
     }
   },
   "options": {
@@ -38,6 +57,12 @@
           "data_batch_interval": "Entity update interval (seconds)"
         }
       }
+    }
+  },
+  "issues": {
+    "transport_mismatch": {
+      "title": "Mini-Display connection needs attention",
+      "description": "{name} is reachable, but Home Assistant is using a different HTTP/HTTPS transport than the display prefers. Open the integration menu, choose Reconfigure, then select HTTP or HTTPS and certificate verification."
     }
   }
 }

@@ -246,6 +246,9 @@ class MiniDisplayDevice extends LitElement {
         .security=${this.security_}
         .saving=${this.saving_}
         .submit=${this.submit_}
+        .onStart=${this.uploadStart_}
+        .onSuccess=${this.uploadSuccess_}
+        .onError=${this.uploadError_}
       ></mini-display-security-page>`;
     if (this.page_ === "firmware")
       return html`<mini-display-firmware-page
@@ -257,6 +260,7 @@ class MiniDisplayDevice extends LitElement {
     if (this.page_ === "diagnostics")
       return html`<mini-display-diagnostics-page
         .recoverySsid=${this.status_.recoverySsid}
+        .status=${this.status_}
       ></mini-display-diagnostics-page>`;
     return html`<mini-display-overview
       .info=${this.info_}
