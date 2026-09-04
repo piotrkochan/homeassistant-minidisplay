@@ -10,13 +10,36 @@ from .entity import MiniDisplayEntity
 
 SENSORS = (
     ("current_page", "Current page", "page", None, None),
+    ("ip_address", "IP address", "ip", None, None),
+    ("hostname", "Hostname", "hostname", None, None),
+    ("wifi_network", "Wi-Fi network", "ssid", None, None),
+    ("ip_assignment", "IP assignment", "staticIpEnabled", None, None),
     ("wifi_signal", "Wi-Fi signal", "wifiRssiDbm", SensorDeviceClass.SIGNAL_STRENGTH, "dBm"),
+    ("wifi_channel", "Wi-Fi channel", "wifiChannel", None, None),
+    ("wifi_bssid", "Wi-Fi BSSID", "bssid", None, None),
+    ("mac_address", "MAC address", "mac", None, None),
+    ("gateway", "Gateway", "gateway", None, None),
+    ("primary_dns", "Primary DNS", "dns1", None, None),
+    ("secondary_dns", "Secondary DNS", "dns2", None, None),
     ("uptime", "Uptime", "uptimeSeconds", SensorDeviceClass.DURATION, "s"),
+    ("used_heap", "Used heap", "usedHeapBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
+    ("total_heap", "Total heap", "totalHeapBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
     ("free_heap", "Free heap", "freeHeapBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
+    ("minimum_free_heap", "Minimum free heap", "minimumFreeHeapBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
+    ("largest_free_heap_block", "Largest free heap block", "maximumFreeBlockBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
+    ("heap_fragmentation", "Heap fragmentation", "heapFragmentationPercent", None, PERCENTAGE),
     ("firmware_version", "Firmware version", "firmwareVersion", None, None),
+    ("last_reset_reason", "Last reset reason", "resetReason", None, None),
     ("last_sync", "Last synchronization", "lastSync", SensorDeviceClass.TIMESTAMP, None),
     ("ntp_server", "NTP server", "ntpServer", None, None),
+    ("ntp_source", "NTP source", "ntpFromDhcp", None, None),
     ("time_zone", "Time zone", "timezone", None, None),
+    ("reconnect_count", "Wi-Fi reconnect count", "reconnectCount", None, None),
+    ("last_disconnect_reason", "Last disconnect reason", "lastDisconnectReason", None, None),
+    ("wifi_retry_limit", "Wi-Fi retry limit", "wifiRetryLimit", None, None),
+    ("recovery_network", "Recovery Wi-Fi network", "recoverySsid", None, None),
+    ("dashboard_page_count", "Dashboard pages", "dashboardPageCount", None, None),
+    ("tracked_value_count", "Tracked values", "trackedValueCount", None, None),
 )
 
 
@@ -46,4 +69,8 @@ class MiniDisplaySensor(MiniDisplayEntity, SensorEntity):
                 (name for name, value in TIMEZONE_OPTIONS.items() if value == rule),
                 rule,
             )
+        if self._status_key == "staticIpEnabled":
+            return "Static" if self.coordinator.data.get(self._status_key) else "DHCP"
+        if self._status_key == "ntpFromDhcp":
+            return "DHCP" if self.coordinator.data.get(self._status_key) else "Custom"
         return self.coordinator.data.get(self._status_key)

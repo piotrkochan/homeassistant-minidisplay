@@ -70,6 +70,11 @@ Display settings include a persistent time zone used by clock cards. Common
 zones are available as presets, with a custom POSIX rule for other locations.
 Home Assistant exposes the presets as a per-display select entity and reports
 the active time zone and NTP server as diagnostic sensors.
+Periodic entity-state forwarding can be paused per display with a configuration
+switch without disabling dashboard or device controls.
+Diagnostic entities report network addressing, DHCP/static mode, DNS, Wi-Fi,
+NTP, memory health, reconnects, reset reason, dashboard size, and whether each
+local protection mechanism is configured. Password values are never exposed.
 
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted
