@@ -15,6 +15,11 @@ export type Style = {
   fontSize?: "auto" | "small" | "medium" | "large" | "xlarge";
   horizontalAlign?: "left" | "center" | "right";
   verticalAlign?: "top" | "middle" | "bottom";
+  textEffect?: "none" | "shadow" | "outline";
+  effectColor?: string;
+  effectThickness?: number;
+  effectOffsetX?: number;
+  effectOffsetY?: number;
 };
 
 export type PageTransition = {

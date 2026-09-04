@@ -4,6 +4,9 @@
 #include <ArduinoJson.h>
 
 #include "DisplayCompat.h"
+#include "TextEffect.h"
+
+struct FontRenderState;
 
 constexpr uint8_t kMaxPageCards = 18;
 constexpr uint8_t kMaxPageTexts = 43;
@@ -60,6 +63,7 @@ struct CachedText {
   uint16_t foreground;
   uint16_t background;
   uint16_t valueOffset;
+  TextEffect effect;
   uint8_t x;
   uint8_t y;
   int8_t userFontSlot;
@@ -109,7 +113,8 @@ class PageTransitionRenderer {
 
   PageTransitionRenderer(MiniDisplay &display, bool &displayOn,
                          uint8_t &displayBrightness,
-                         ApplyBacklight applyBacklight);
+                         ApplyBacklight applyBacklight,
+                         FontRenderState &displayFontState);
 
   static bool parse(JsonVariantConst value, PageTransitionConfig &result);
 
@@ -163,4 +168,5 @@ class PageTransitionRenderer {
   bool &displayOn_;
   uint8_t &displayBrightness_;
   ApplyBacklight applyBacklight_;
+  FontRenderState &displayFontState_;
 };

@@ -819,6 +819,9 @@ export class MiniDisplayEditor extends LitElement {
       color: var(--secondary-text-color);
       font-size: 13px;
     }
+    .effect-grid {
+      margin-top: 10px;
+    }
     .position-grid {
       display: grid;
       grid-template-columns: repeat(3, 38px);
@@ -1760,6 +1763,35 @@ export class MiniDisplayEditor extends LitElement {
     >`;
   }
 
+  private numberField(
+    label: string,
+    value: number | undefined,
+    fallback: number,
+    minimum: number,
+    maximum: number,
+    update: (value: number) => void,
+  ) {
+    return html`<label class="field"
+      >${label}<input
+        type="number"
+        min=${minimum}
+        max=${maximum}
+        step="1"
+        .value=${String(value ?? fallback)}
+        @change=${(event: Event) => {
+          const input = event.target as HTMLInputElement;
+          const parsed = Number(input.value);
+          const next = Math.max(
+            minimum,
+            Math.min(maximum, Number.isFinite(parsed) ? parsed : fallback),
+          );
+          input.value = String(next);
+          update(next);
+        }}
+      /></label
+    >`;
+  }
+
   private fontSelect(
     label: string,
     value: Style["fontFamily"] | undefined,
@@ -1894,6 +1926,70 @@ export class MiniDisplayEditor extends LitElement {
     </details>`;
   }
 
+  private textEffectEditor(label: string, style: Style) {
+    const effect = style.textEffect ?? "none";
+    const effectName =
+      effect === "shadow" ? "Shadow" : effect === "outline" ? "Outline" : "None";
+    return html`<details class="position-field effect-field">
+      <summary>${label} · ${effectName}</summary>
+      <div class="grid effect-grid">
+        ${this.select(
+          "Effect",
+          effect,
+          ["none", "shadow", "outline"],
+          (input) => {
+            style.textEffect = input as NonNullable<Style["textEffect"]>;
+            this.changed();
+          },
+        )}
+        ${effect !== "none"
+          ? html`<mini-display-color-field
+                label="Effect color"
+                .value=${style.effectColor ?? "background"}
+                @color-changed=${(event: CustomEvent<string>) => {
+                  style.effectColor = event.detail || "background";
+                  this.changed();
+                }}
+              ></mini-display-color-field>
+              ${this.numberField(
+                "Thickness",
+                style.effectThickness,
+                1,
+                1,
+                3,
+                (input) => {
+                  style.effectThickness = input;
+                  this.changed();
+                },
+              )}
+              ${effect === "shadow"
+                ? html`${this.numberField(
+                      "Horizontal offset",
+                      style.effectOffsetX,
+                      2,
+                      -6,
+                      6,
+                      (input) => {
+                        style.effectOffsetX = input;
+                        this.changed();
+                      },
+                    )}${this.numberField(
+                      "Vertical offset",
+                      style.effectOffsetY,
+                      2,
+                      -6,
+                      6,
+                      (input) => {
+                        style.effectOffsetY = input;
+                        this.changed();
+                      },
+                    )}`
+                : nothing}`
+          : nothing}
+      </div>
+    </details>`;
+  }
+
   private entity(card: DisplayCard) {
     const domains: Record<DisplayCard["type"], string[]> = {
       number: ["sensor", "number", "input_number", "counter"],
@@ -1978,7 +2074,10 @@ export class MiniDisplayEditor extends LitElement {
             value.fontSize = input as Style["fontSize"];
             this.changed();
           },
-        )}${this.textPosition("Text position", value)}${
+        )}${this.textPosition("Text position", value)}${this.textEffectEditor(
+          "Value effect",
+          value,
+        )}${
           card.title?.trim()
             ? html`${this.fontSelect(
                 "Title font",
@@ -1987,7 +2086,12 @@ export class MiniDisplayEditor extends LitElement {
                   title.fontFamily = input;
                   this.changed();
                 },
-              )}${this.textPosition("Title position", title, "left", "top")}`
+              )}${this.textPosition(
+                "Title position",
+                title,
+                "left",
+                "top",
+              )}${this.textEffectEditor("Title effect", title)}`
             : nothing
         }
       </div>

@@ -1,6 +1,6 @@
 import { css, html, LitElement } from "lit";
 import { property, state } from "lit/decorators.js";
-import type { Dashboard, Hass } from "./types";
+import type { Dashboard, Hass, Style } from "./types";
 import { mapCardColors, mapCardValue } from "./types";
 import { visibilityMatches } from "./visibility";
 import { displayColors } from "./color-field";
@@ -172,7 +172,7 @@ export class MiniDisplayPreview extends LitElement {
     .card small {
       z-index: 2;
       height: auto;
-      font: 9px sans-serif;
+      font: 11px/12px sans-serif;
       color: #bbb;
       white-space: nowrap;
       overflow: hidden;
@@ -181,6 +181,12 @@ export class MiniDisplayPreview extends LitElement {
     .card-label,
     .value {
       pointer-events: auto;
+    }
+    .card-label.marquee {
+      display: inline-block;
+      max-width: none;
+      text-overflow: clip;
+      animation: card-title-marquee var(--marquee-duration) linear infinite;
     }
     .value-wrap {
       z-index: 1;
@@ -361,6 +367,16 @@ export class MiniDisplayPreview extends LitElement {
     @keyframes loading {
       to {
         background-position: -220% 0;
+      }
+    }
+    @keyframes card-title-marquee {
+      0%,
+      22% {
+        transform: translateX(0);
+      }
+      78%,
+      100% {
+        transform: translateX(var(--marquee-distance));
       }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -737,6 +753,41 @@ export class MiniDisplayPreview extends LitElement {
     return sizes[index];
   }
 
+  private textEffectCss(style?: Style) {
+    const effect = style?.textEffect ?? "none";
+    if (effect === "none") return "";
+    const rawColor = style?.effectColor ?? "background";
+    const color = displayColors[rawColor] ?? rawColor;
+    const thickness = Math.max(
+      1,
+      Math.min(3, Math.round(style?.effectThickness ?? 1)),
+    );
+    const shadows: string[] = [];
+    if (effect === "outline") {
+      for (let radius = 1; radius <= thickness; radius += 1) {
+        for (const [x, y] of [
+          [-radius, 0],
+          [radius, 0],
+          [0, -radius],
+          [0, radius],
+          [-radius, -radius],
+          [radius, -radius],
+          [-radius, radius],
+          [radius, radius],
+        ])
+          shadows.push(`${x}px ${y}px 0 ${color}`);
+      }
+    } else {
+      const offsetX = Math.max(-6, Math.min(6, style?.effectOffsetX ?? 2));
+      const offsetY = Math.max(-6, Math.min(6, style?.effectOffsetY ?? 2));
+      const spread = thickness - 1;
+      for (let x = -spread; x <= spread; x += 1)
+        for (let y = -spread; y <= spread; y += 1)
+          shadows.push(`${offsetX + x}px ${offsetY + y}px 0 ${color}`);
+    }
+    return `text-shadow:${shadows.join(",")}`;
+  }
+
   render() {
     const page =
       this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
@@ -889,10 +940,34 @@ export class MiniDisplayPreview extends LitElement {
                       : 0;
                   const family = "sans-serif";
                   const displayValue = this.cardValue(card);
+                  const hasTitle = Boolean(card.title && cardHeight >= 28);
+                  const titleVerticalKey =
+                    card.titleStyle?.verticalAlign ?? "top";
+                  const reservesTitle =
+                    hasTitle &&
+                    (titleVerticalKey === "top" ||
+                      titleVerticalKey === "bottom");
+                  const compactTitle =
+                    [undefined, "auto", "small"].includes(
+                      card.titleStyle?.fontSize,
+                    ) &&
+                    [undefined, "default", "sans", "sans-bold"].includes(
+                      card.titleStyle?.fontFamily,
+                    );
+                  const baseContentBottom =
+                    card.progress === "bar" ? 14 : 5;
+                  const contentHeight =
+                    cardHeight - (card.progress === "bar" ? 9 : 0);
+                  const titleBand = reservesTitle
+                    ? Math.min(compactTitle ? 12 : 18, contentHeight / 2)
+                    : 0;
                   const valueHeight =
                     card.progress === "ring"
-                      ? Math.min(22, Math.max(12, cardHeight / 4))
-                      : cardHeight - (card.progress === "bar" ? 9 : 0);
+                      ? Math.min(
+                          22,
+                          Math.max(12, (contentHeight - titleBand) / 4),
+                        )
+                      : contentHeight - titleBand;
                   const size = this.valueFontSize(
                     card,
                     displayValue,
@@ -935,14 +1010,40 @@ export class MiniDisplayPreview extends LitElement {
                     top: "flex-start",
                     middle: "center",
                     bottom: "flex-end",
-                  }[card.titleStyle?.verticalAlign ?? "top"];
-                  const contentBottom =
-                    card.progress && card.progress !== "none" ? 14 : 5;
-                  const contentArea = `top:5px;right:5px;bottom:${contentBottom}px;left:5px`;
+                  }[titleVerticalKey];
+                  const valueTop =
+                    5 + (titleVerticalKey === "top" ? titleBand : 0);
+                  const valueBottom =
+                    baseContentBottom +
+                    (titleVerticalKey === "bottom" ? titleBand : 0);
+                  const valueArea = `top:${valueTop}px;right:5px;bottom:${valueBottom}px;left:5px`;
+                  const titleArea =
+                    titleVerticalKey === "top"
+                      ? `top:5px;right:5px;height:${titleBand}px;left:5px`
+                      : titleVerticalKey === "bottom"
+                        ? `right:5px;bottom:${baseContentBottom}px;height:${titleBand}px;left:5px`
+                        : `top:5px;right:5px;bottom:${baseContentBottom}px;left:5px`;
+                  this.measureContext ??= document
+                    .createElement("canvas")
+                    .getContext("2d");
+                  if (this.measureContext)
+                    this.measureContext.font = "11px sans-serif";
+                  const titleOverflow = card.title
+                    ? Math.max(
+                        0,
+                        (this.measureContext?.measureText(card.title).width ??
+                          0) -
+                          (cardWidth - 10),
+                      )
+                    : 0;
+                  const titleMarquee =
+                    titleOverflow > 0 &&
+                    (titleVerticalKey === "top" ||
+                      titleVerticalKey === "bottom");
                   const value = html`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${family};font-size:${size}px;font-weight:700`}
+                    style=${`font-family:${family};font-size:${size}px;font-weight:700;${this.textEffectCss(card.valueStyle)}`}
                     @click=${(event: Event) => {
                       event.stopPropagation();
                       this.emit("preview-select", {
@@ -971,9 +1072,10 @@ export class MiniDisplayPreview extends LitElement {
                     ${
                       card.title
                         ? html`<small
-                            style=${`${contentArea};align-items:${titleVertical};justify-content:${titleHorizontal};text-align:${card.titleStyle?.horizontalAlign ?? "left"}`}
+                            style=${`${titleArea};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")}`}
                             ><span
-                              class="card-label"
+                              class="card-label ${titleMarquee ? "marquee" : ""}"
+                              style=${`${titleMarquee ? `--marquee-distance:-${titleOverflow}px;--marquee-duration:${Math.max(3, 1.7 + titleOverflow * 0.035)}s;` : ""}${this.textEffectCss(card.titleStyle)}`}
                               .draggable=${this.interactive}
                               @click=${(event: Event) => {
                                 event.stopPropagation();
@@ -991,7 +1093,7 @@ export class MiniDisplayPreview extends LitElement {
                         : null
                     }${
                       card.progress === "ring"
-                        ? html`<div class="ring-stack">
+                        ? html`<div class="ring-stack" style=${valueArea}>
                             <div
                               class="ring"
                               style=${`background:conic-gradient(${accent} ${progress}%,#3d424e 0);--ring-bg:${background}`}
@@ -1000,7 +1102,7 @@ export class MiniDisplayPreview extends LitElement {
                           </div>`
                         : html`<div
                             class="value-wrap"
-                            style=${`${contentArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}
+                            style=${`${valueArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}
                           >
                             ${value}
                           </div>`

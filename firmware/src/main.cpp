@@ -27,11 +27,13 @@
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
+#include "TextEffect.h"
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
 #include "TlsCertificateManager.h"
 #endif
 #include "UserFonts.h"
 #include "WebAssets.generated.h"
+#include "fonts/InterTightCompact12.h"
 #include "fonts/InterTightBold18.h"
 #include "fonts/InterTightBold24.h"
 #include "fonts/InterTightBold36.h"
@@ -222,6 +224,35 @@ uint32_t pendingChangedValues = 0;
 bool fullRenderPending = false;
 uint32_t lastValueUpdateAt = 0;
 bool hasValueUpdate = false;
+constexpr uint8_t kMaxMarqueeTitles = 8;
+constexpr uint16_t kMarqueeTextBytes = 384;
+constexpr uint16_t kMarqueeStartPauseMs = 1000;
+constexpr uint16_t kMarqueeEndPauseMs = 700;
+constexpr uint8_t kMarqueePixelMs = 35;
+constexpr uint8_t kMarqueeFrameMs = 35;
+
+struct MarqueeTitle {
+  RenderFont font;
+  uint16_t textOffset;
+  uint16_t foreground;
+  uint16_t background;
+  int16_t clipX;
+  int16_t clipY;
+  int16_t clipWidth;
+  int16_t clipHeight;
+  int16_t textX;
+  int16_t textY;
+  int16_t overflow;
+  int16_t drawnOffset;
+  TextEffect effect;
+};
+
+MarqueeTitle marqueeTitles[kMaxMarqueeTitles]{};
+char marqueeTextPool[kMarqueeTextBytes]{};
+uint8_t marqueeTitleCount = 0;
+uint16_t marqueeTextBytes = 0;
+uint32_t marqueeStartedAt = 0;
+uint32_t marqueeFrameAt = 0;
 String diagnosticsLastData;
 uint32_t diagnosticsCaptureAt = 0;
 uint32_t minimumFreeHeapBytes = UINT32_MAX;
@@ -837,6 +868,24 @@ uint16_t parseColor(JsonVariantConst value, uint16_t fallback) {
   return fallback;
 }
 
+TextEffect parseTextEffect(JsonVariantConst style) {
+  TextEffect result{};
+  result.offsetX = 2;
+  result.offsetY = 2;
+  result.thickness = 1;
+  const char *type = style["textEffect"] | "none";
+  if (strcmp(type, "shadow") == 0) {
+    result.type = TextEffectType::Shadow;
+  } else if (strcmp(type, "outline") == 0) {
+    result.type = TextEffectType::Outline;
+  }
+  result.color = parseColor(style["effectColor"], TFT_BLACK);
+  result.thickness = constrain(style["effectThickness"] | 1, 1, 3);
+  result.offsetX = constrain(style["effectOffsetX"] | 2, -6, 6);
+  result.offsetY = constrain(style["effectOffsetY"] | 2, -6, 6);
+  return result;
+}
+
 const GFXfont *builtInFontFor(const char *family, uint8_t size) {
   if (family == nullptr) family = "sans";
   if (strcmp(family, "sans") == 0 || strcmp(family, "sans-bold") == 0) {
@@ -885,6 +934,87 @@ void applyDisplayFont(const RenderFont &font) {
   applyRenderFont(display, font, displayFontState);
 }
 
+void resetMarqueeTitles() {
+  marqueeTitleCount = 0;
+  marqueeTextBytes = 0;
+  marqueeStartedAt = millis();
+  marqueeFrameAt = 0;
+}
+
+void drawMarqueeTitle(MarqueeTitle &item, int16_t offset) {
+  display.setViewport(item.clipX, item.clipY, item.clipWidth, item.clipHeight,
+                      false);
+  display.fillRect(item.clipX, item.clipY, item.clipWidth, item.clipHeight,
+                   item.background);
+  display.setTextDatum(ML_DATUM);
+  applyDisplayFont(item.font);
+  drawTextWithEffect(display, marqueeTextPool + item.textOffset,
+                     item.textX - offset, item.textY, item.foreground,
+                     item.background, item.effect);
+  display.resetViewport();
+  item.drawnOffset = offset;
+}
+
+bool addMarqueeTitle(const char *text, const RenderFont &font,
+                     int16_t textWidth, int16_t x, int16_t y, int16_t width,
+                     int16_t height, uint16_t foreground,
+                     uint16_t background, const TextEffect &effect) {
+  const size_t bytes = min<size_t>(strlen(text), 48) + 1;
+  if (marqueeTitleCount >= kMaxMarqueeTitles ||
+      marqueeTextBytes + bytes > kMarqueeTextBytes) {
+    return false;
+  }
+  const int16_t textAreaX = x + 5;
+  const int16_t textAreaWidth = max<int16_t>(1, width - 10);
+  const int16_t clipX = max<int16_t>(0, textAreaX);
+  const int16_t clipY = max<int16_t>(0, y);
+  const int16_t clipRight = min<int16_t>(240, textAreaX + textAreaWidth);
+  const int16_t clipBottom = min<int16_t>(240, y + height);
+  if (clipRight <= clipX || clipBottom <= clipY) return false;
+
+  MarqueeTitle &item = marqueeTitles[marqueeTitleCount++];
+  item.font = font;
+  item.textOffset = marqueeTextBytes;
+  item.foreground = foreground;
+  item.background = background;
+  item.clipX = clipX;
+  item.clipY = clipY;
+  item.clipWidth = clipRight - clipX;
+  item.clipHeight = clipBottom - clipY;
+  item.textX = textAreaX;
+  item.textY = y + height / 2;
+  item.overflow = max<int16_t>(1, textWidth - textAreaWidth);
+  item.drawnOffset = -1;
+  item.effect = effect;
+  strlcpy(marqueeTextPool + marqueeTextBytes, text, bytes);
+  marqueeTextBytes += bytes;
+  drawMarqueeTitle(item, 0);
+  return true;
+}
+
+void updateMarqueeTitles() {
+  if (!displayOn || displayBrightness == 0 || marqueeTitleCount == 0) return;
+  const uint32_t now = millis();
+  if (now - marqueeFrameAt < kMarqueeFrameMs) return;
+  marqueeFrameAt = now;
+  for (uint8_t index = 0; index < marqueeTitleCount; ++index) {
+    MarqueeTitle &item = marqueeTitles[index];
+    const uint32_t scrollMs = item.overflow * kMarqueePixelMs;
+    const uint32_t cycleMs =
+        kMarqueeStartPauseMs + scrollMs + kMarqueeEndPauseMs;
+    const uint32_t elapsed = (now - marqueeStartedAt) % cycleMs;
+    const int16_t offset =
+        elapsed < kMarqueeStartPauseMs
+            ? 0
+            : elapsed < kMarqueeStartPauseMs + scrollMs
+                  ? min<int16_t>(item.overflow,
+                                 (elapsed - kMarqueeStartPauseMs) /
+                                     kMarqueePixelMs)
+                  : item.overflow;
+    if (offset != item.drawnOffset) drawMarqueeTitle(item, offset);
+  }
+}
+
 uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
   const char *size = style["fontSize"] | "auto";
   if (strcmp(size, "small") == 0) return 0;
@@ -914,6 +1044,23 @@ RenderFont selectBestFont(const String &text, JsonVariantConst style,
   return font;
 }
 
+RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
+                               int16_t width, int16_t height) {
+  const char *size = style["fontSize"] | "auto";
+  const char *family = style["fontFamily"] | "sans";
+  const bool compactSize = strcmp(size, "auto") == 0 ||
+                           strcmp(size, "small") == 0;
+  const bool builtInFamily = strcmp(family, "default") == 0 ||
+                             strcmp(family, "sans") == 0 ||
+                             strcmp(family, "sans-bold") == 0;
+  if (compactSize && builtInFamily) {
+    const RenderFont font{&InterTightCompact12, -1, 0};
+    applyDisplayFont(font);
+    return font;
+  }
+  return selectBestFont(text, style, width, height);
+}
+
 void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
                        int16_t y, int16_t width, int16_t height,
                        uint16_t foreground, uint16_t background,
@@ -934,7 +1081,6 @@ void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
                                     : (left ? ML_DATUM
                                             : right ? MR_DATUM : MC_DATUM);
   display.setTextDatum(datum);
-  display.setTextColor(foreground, background);
   selectBestFont(text, style, width,
                  fontHeight > 0 ? min(height, fontHeight) : height);
   String clipped = text;
@@ -943,7 +1089,8 @@ void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
   }
   const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
   const int16_t textY = top ? y + 3 : bottom ? y + height - 3 : y + height / 2;
-  display.drawString(clipped, textX, textY);
+  drawTextWithEffect(display, clipped, textX, textY, foreground, background,
+                     parseTextEffect(style));
 }
 
 struct RingLayout {
@@ -986,12 +1133,12 @@ void drawCenteredFit(String text, JsonVariantConst style, int16_t x,
                      int16_t y, int16_t width, int16_t height,
                      uint16_t foreground, uint16_t background) {
   display.setTextDatum(MC_DATUM);
-  display.setTextColor(foreground, background);
   selectBestFont(text, style, width, height);
   while (text.length() > 1 && display.textWidth(text) > width - 8) {
     text.remove(text.length() - 1);
   }
-  display.drawString(text, x + width / 2, y + height / 2);
+  drawTextWithEffect(display, text, x + width / 2, y + height / 2,
+                     foreground, background, parseTextEffect(style));
 }
 
 bool mappingMatches(const char *type, JsonObjectConst rule, const String &raw) {
@@ -1069,6 +1216,50 @@ String cardValue(JsonObjectConst card) {
   return String(card["text"] | "");
 }
 
+struct CardTextLayout {
+  int16_t valueY;
+  int16_t valueHeight;
+  int16_t titleY;
+  int16_t titleHeight;
+  bool hasTitle;
+};
+
+bool usesCompactCardTitle(JsonObjectConst card) {
+  JsonVariantConst style = card["titleStyle"];
+  if (style.isNull()) style = card["style"];
+  const char *size = style["fontSize"] | "auto";
+  const char *family = style["fontFamily"] | "sans";
+  return (strcmp(size, "auto") == 0 || strcmp(size, "small") == 0) &&
+         (strcmp(family, "default") == 0 || strcmp(family, "sans") == 0 ||
+          strcmp(family, "sans-bold") == 0);
+}
+
+CardTextLayout cardTextLayout(JsonObjectConst card, int16_t y,
+                              int16_t height) {
+  const char *title = card["title"];
+  const bool hasTitle = title && title[0] && height >= 28;
+  const bool bar = strcmp(card["progress"] | "none", "bar") == 0;
+  const int16_t contentHeight =
+      max<int16_t>(1, height - (bar && height >= 20 ? 9 : 0));
+  CardTextLayout layout{y, contentHeight, y, contentHeight, hasTitle};
+  if (!hasTitle) return layout;
+
+  const char *vertical = card["titleStyle"]["verticalAlign"] | "top";
+  if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
+    return layout;
+  }
+  const int16_t titleBand =
+      min<int16_t>(usesCompactCardTitle(card) ? 12 : 18, contentHeight / 2);
+  layout.titleHeight = titleBand;
+  layout.valueHeight = max<int16_t>(1, contentHeight - titleBand);
+  if (strcmp(vertical, "top") == 0) {
+    layout.valueY += titleBand;
+  } else {
+    layout.titleY += contentHeight - titleBand;
+  }
+  return layout;
+}
+
 void fillCardEdgeBackground(int16_t x, int16_t y, int16_t width,
                             int16_t height, uint16_t background,
                             uint8_t edges) {
@@ -1105,7 +1296,8 @@ void fillCardEdgeBackground(int16_t x, int16_t y, int16_t width,
 
 void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
               int16_t height, uint8_t edgeExtensions = 0,
-              uint16_t edgeBackground = TFT_BLACK) {
+              uint16_t edgeBackground = TFT_BLACK,
+              bool captureMarquee = false) {
   JsonObjectConst colorMapping;
   const char *source = card["source"];
   DashboardValue *sourceValue = findValue(source, false);
@@ -1126,31 +1318,63 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   display.fillRoundRect(x, y, width, height, 5, background);
 
   const char *title = card["title"];
-  int16_t contentHeight = height;
   const char *progressType = card["progress"] | "none";
   const bool bar = strcmp(progressType, "bar") == 0;
   const bool ring = strcmp(progressType, "ring") == 0;
-  if (bar && contentHeight >= 20) contentHeight -= 9;
+  const CardTextLayout textLayout = cardTextLayout(card, y, height);
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   if (ring) {
-    const RingLayout layout = ringLayout(x, y, width, height);
+    const RingLayout layout =
+        ringLayout(x, textLayout.valueY, width, textLayout.valueHeight);
     drawProgressRing(display, layout.x, layout.y, layout.diameter,
                      progressRatio(card, sourceValue), TFT_DARKGREY, accent,
                      background);
     drawCenteredFit(cardValue(card), valueStyle, x, layout.valueY, width,
                     layout.valueHeight, foreground, background);
   } else {
-    drawPositionedFit(cardValue(card), valueStyle, x, y, width,
-                      contentHeight, foreground, background);
+    drawPositionedFit(cardValue(card), valueStyle, x, textLayout.valueY,
+                      width, textLayout.valueHeight, foreground, background);
   }
-  if (title && title[0] && height >= 28) {
+  if (textLayout.hasTitle) {
     JsonVariantConst titleStyle = card["titleStyle"];
     if (titleStyle.isNull()) titleStyle = card["style"];
     const uint16_t titleForeground =
         parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
-    drawPositionedFit(String(title), titleStyle, x, y, width, contentHeight,
-                      titleForeground, background, "left", "top", 18);
+    const char *titleVertical = titleStyle["verticalAlign"] | "top";
+    const bool marqueePosition = strcmp(titleVertical, "top") == 0 ||
+                                  strcmp(titleVertical, "bottom") == 0;
+    const String titleText(title);
+    const RenderFont titleFont = selectCardTitleFont(
+        titleText, titleStyle, width - 10, textLayout.titleHeight);
+    const int16_t titleWidth = display.textWidth(titleText);
+    if (!captureMarquee || !marqueePosition || titleWidth <= width - 10 ||
+        !addMarqueeTitle(title, titleFont, titleWidth, x,
+                         textLayout.titleY, width, textLayout.titleHeight,
+                         titleForeground, background,
+                         parseTextEffect(titleStyle))) {
+      const char *horizontal = titleStyle["horizontalAlign"] | "left";
+      const char *vertical = titleStyle["verticalAlign"] | "top";
+      const bool right = strcmp(horizontal, "right") == 0;
+      const bool centered = strcmp(horizontal, "center") == 0;
+      const bool bottom = strcmp(vertical, "bottom") == 0;
+      display.setTextDatum(bottom
+                               ? (right ? BR_DATUM
+                                        : centered ? BC_DATUM : BL_DATUM)
+                               : (right ? TR_DATUM
+                                        : centered ? TC_DATUM : TL_DATUM));
+      applyDisplayFont(titleFont);
+      String clipped = titleText;
+      while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
+        clipped.remove(clipped.length() - 1);
+      }
+      drawTextWithEffect(
+          display, clipped,
+          right ? x + width - 4 : centered ? x + width / 2 : x + 4,
+          bottom ? textLayout.titleY + textLayout.titleHeight - 1
+                 : textLayout.titleY,
+          titleForeground, background, parseTextEffect(titleStyle));
+    }
   }
 
   if (bar) {
@@ -1166,7 +1390,7 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
 
 bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
                uint8_t datum, int16_t x, int16_t y, uint16_t foreground,
-               uint16_t background) {
+               uint16_t background, const TextEffect &effect = TextEffect{}) {
   if (page.textCount >= kMaxPageTexts) return false;
   const uint16_t valueBytes = min<size_t>(value.length(), 48) + 1;
   if (page.textBytes + valueBytes > kMaxPageTextBytes) return false;
@@ -1188,8 +1412,14 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
                            : rightX ? x - text.boundsWidth : x;
   text.boundsY = centeredY ? y - text.boundsHeight / 2
                            : bottomY ? y - text.boundsHeight : y;
+  const int16_t effectExtent = textEffectExtent(effect);
+  text.boundsX -= effectExtent;
+  text.boundsY -= effectExtent;
+  text.boundsWidth += effectExtent * 2;
+  text.boundsHeight += effectExtent * 2;
   text.foreground = foreground;
   text.background = background;
+  text.effect = effect;
   text.font = font.builtin;
   text.userFontSlot = font.userSlot;
   text.userFontSize = font.size;
@@ -1206,7 +1436,8 @@ bool cachePositionedText(CachedPage &page, String value,
                          uint16_t background,
                          const char *defaultHorizontal = "center",
                          const char *defaultVertical = "middle",
-                         int16_t fontHeight = 0) {
+                         int16_t fontHeight = 0,
+                         bool compactTitle = false) {
   const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
   const char *vertical = style["verticalAlign"] | defaultVertical;
   const bool left = strcmp(horizontal, "left") == 0;
@@ -1220,15 +1451,21 @@ bool cachePositionedText(CachedPage &page, String value,
                                           : right ? BR_DATUM : BC_DATUM)
                                   : (left ? ML_DATUM
                                           : right ? MR_DATUM : MC_DATUM);
-  const RenderFont font = selectBestFont(
-      value, style, width, fontHeight > 0 ? min(height, fontHeight) : height);
+  const int16_t availableHeight =
+      fontHeight > 0 ? min(height, fontHeight) : height;
+  const RenderFont font =
+      compactTitle
+          ? selectCardTitleFont(value, style, width, availableHeight)
+          : selectBestFont(value, style, width, availableHeight);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
   const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
-  const int16_t textY = top ? y + 3 : bottom ? y + height - 3 : y + height / 2;
+  const int16_t textY = top    ? y + (compactTitle ? 0 : 3)
+                        : bottom ? y + height - (compactTitle ? 1 : 3)
+                                 : y + height / 2;
   return cacheText(page, value, font, datum, textX, textY, foreground,
-                   background);
+                   background, parseTextEffect(style));
 }
 
 bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
@@ -1239,7 +1476,8 @@ bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
     value.remove(value.length() - 1);
   }
   return cacheText(page, value, font, MC_DATUM, x + width / 2,
-                   y + height / 2, foreground, background);
+                   y + height / 2, foreground, background,
+                   parseTextEffect(style));
 }
 
 bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
@@ -1268,35 +1506,38 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   cachedCard.background = background;
 
   const char *title = card["title"];
-  int16_t contentHeight = height;
   const char *progressType = card["progress"] | "none";
   const bool bar = strcmp(progressType, "bar") == 0;
   const bool ring = strcmp(progressType, "ring") == 0;
-  if (bar && contentHeight >= 20) contentHeight -= 9;
+  const CardTextLayout textLayout = cardTextLayout(card, y, height);
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   RingLayout ringGeometry{};
   if (ring) {
-    ringGeometry = ringLayout(x, y, width, height);
+    ringGeometry =
+        ringLayout(x, textLayout.valueY, width, textLayout.valueHeight);
     if (!cacheCenteredFit(page, cardValue(card), valueStyle, x,
                           ringGeometry.valueY, width,
                           ringGeometry.valueHeight, foreground, background)) {
       return false;
     }
   } else {
-    if (!cachePositionedText(page, cardValue(card), valueStyle, x, y,
-                             width, contentHeight, foreground, background)) {
+    if (!cachePositionedText(page, cardValue(card), valueStyle, x,
+                             textLayout.valueY, width, textLayout.valueHeight,
+                             foreground, background)) {
       return false;
     }
   }
-  if (title && title[0] && height >= 28) {
+  if (textLayout.hasTitle) {
     JsonVariantConst titleStyle = card["titleStyle"];
     if (titleStyle.isNull()) titleStyle = card["style"];
     const uint16_t titleForeground =
         parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
-    if (!cachePositionedText(page, String(title), titleStyle, x, y, width,
-                             contentHeight, titleForeground, background,
-                             "left", "top", 18)) {
+    if (!cachePositionedText(page, String(title), titleStyle, x,
+                             textLayout.titleY, width, textLayout.titleHeight,
+                             titleForeground, background, "left", "top",
+                             textLayout.titleHeight,
+                             usesCompactCardTitle(card))) {
       return false;
     }
   }
@@ -1499,6 +1740,7 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
   const uint16_t pageBackground =
       parseColor(page["style"]["background"], TFT_BLACK);
   const bool partial = changedValues != nullptr;
+  if (!partial) resetMarqueeTitles();
   if (!partial && clear) display.fillScreen(pageBackground);
   const PageContentLayout layout = pageContentLayout(page);
   const char *pageTitle = page["title"];
@@ -1593,7 +1835,7 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
           edgeExtensions |= kExtendBottom;
         }
         drawCard(card, cardX, rowY + offsetY, cardWidth, rowHeight,
-                 edgeExtensions, pageBackground);
+                 edgeExtensions, pageBackground, !partial);
       }
       cardX += cardWidth + gap;
       ++cardIndex;
@@ -1689,7 +1931,7 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     return;
   }
   PageTransitionRenderer renderer(display, displayOn, displayBrightness,
-                                  applyBacklight);
+                                  applyBacklight, displayFontState);
   renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
   activePageIndex = nextPageIndex;
   renderDashboardPage(nullptr, false);
@@ -3211,6 +3453,7 @@ void loop() {
       }
     }
   }
+  updateMarqueeTitles();
   if (displayPixelShift > 0 &&
       millis() - pixelShiftAt >= kPixelShiftIntervalMs) {
     updatePixelShift();

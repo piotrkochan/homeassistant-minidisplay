@@ -98,8 +98,8 @@ void finishFrame(uint32_t startedAt, uint16_t frameDurationMs) {
 template <typename Canvas>
 void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
                int16_t offsetY, int16_t clipX, int16_t clipY,
-               int16_t clipWidth, int16_t clipHeight) {
-  FontRenderState fontState;
+               int16_t clipWidth, int16_t clipHeight,
+               FontRenderState &fontState) {
   const int16_t clipRight = clipX + clipWidth;
   const int16_t clipBottom = clipY + clipHeight;
   canvas.fillRect(offsetX, offsetY, kDisplaySize, kDisplaySize,
@@ -132,17 +132,18 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
       continue;
     }
     canvas.setTextDatum(text.datum);
-    canvas.setTextColor(text.foreground, text.background);
     applyRenderFont(
         canvas,
         RenderFont{text.font, text.userFontSlot, text.userFontSize},
         fontState);
 #if defined(ESP8266)
-    canvas.drawString(page.textPool + text.valueOffset, text.x + offsetX,
-                      text.y + offsetY);
+    drawTextWithEffect(canvas, page.textPool + text.valueOffset,
+                       text.x + offsetX, text.y + offsetY, text.foreground,
+                       text.background, text.effect);
 #else
-    canvas.drawString(String(page.textPool + text.valueOffset),
-                      text.x + offsetX, text.y + offsetY);
+    drawTextWithEffect(canvas, String(page.textPool + text.valueOffset),
+                       text.x + offsetX, text.y + offsetY, text.foreground,
+                       text.background, text.effect);
 #endif
   }
   for (uint8_t index = 0; index < page.progressCount; ++index) {
@@ -172,11 +173,12 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
 
 PageTransitionRenderer::PageTransitionRenderer(
     MiniDisplay &display, bool &displayOn, uint8_t &displayBrightness,
-    ApplyBacklight applyBacklight)
+    ApplyBacklight applyBacklight, FontRenderState &displayFontState)
     : display_(display),
       displayOn_(displayOn),
       displayBrightness_(displayBrightness),
-      applyBacklight_(applyBacklight) {}
+      applyBacklight_(applyBacklight),
+      displayFontState_(displayFontState) {}
 
 bool PageTransitionRenderer::parse(JsonVariantConst value,
                                    PageTransitionConfig &result) {
@@ -217,7 +219,7 @@ uint16_t PageTransitionRenderer::duration(
 void PageTransitionRenderer::drawPage(const CachedPage &page, int16_t offsetX,
                                       int16_t offsetY) {
   paintPage(display_, page, offsetX, offsetY, 0, 0, kDisplaySize,
-            kDisplaySize);
+            kDisplaySize, displayFontState_);
 }
 
 void PageTransitionRenderer::drawRegion(
@@ -227,7 +229,7 @@ void PageTransitionRenderer::drawRegion(
 #if defined(ESP8266)
   display_.setViewport(x, y, width, height, false);
   paintPage(display_, page, contentOffsetX, contentOffsetY, x, y, width,
-            height);
+            height, displayFontState_);
   display_.resetViewport();
 #else
   if (x == 0 && y == 0 && width == kDisplaySize && height == kDisplaySize) {
@@ -284,6 +286,7 @@ void PageTransitionRenderer::motion(
     drawPage(nextPage, contentOffsetX, contentOffsetY);
     return;
   }
+  FontRenderState frameFontState;
 #endif
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
@@ -307,33 +310,33 @@ void PageTransitionRenderer::motion(
       if (transition.direction == PageTransitionDirection::Left) {
         paintPage(frame, currentPage, contentOffsetX - movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
         paintPage(frame, nextPage,
                   contentOffsetX + kDisplaySize - movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
       } else if (transition.direction == PageTransitionDirection::Right) {
         paintPage(frame, currentPage, contentOffsetX + movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
         paintPage(frame, nextPage,
                   contentOffsetX - kDisplaySize + movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
       } else if (transition.direction == PageTransitionDirection::Up) {
         paintPage(frame, currentPage, contentOffsetX,
                   contentOffsetY - movement - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
         paintPage(frame, nextPage, contentOffsetX,
                   contentOffsetY + kDisplaySize - movement - bandY,
-                  0, 0, kDisplaySize, kFrameBandHeight);
+                  0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
       } else {
         paintPage(frame, currentPage, contentOffsetX,
                   contentOffsetY + movement - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
         paintPage(frame, nextPage, contentOffsetX,
                   contentOffsetY - kDisplaySize + movement - bandY,
-                  0, 0, kDisplaySize, kFrameBandHeight);
+                  0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
       }
       frame.pushSprite(0, bandY);
     }
@@ -359,6 +362,7 @@ void PageTransitionRenderer::motion(
     finishFrame(startedAt, frameDurationMs);
   }
 #if defined(ESP8266)
+  if (frame.fontLoaded) frame.unloadFont();
   frame.deleteSprite();
 #endif
 }
@@ -517,6 +521,7 @@ void PageTransitionRenderer::doors(
     drawPage(nextPage, contentOffsetX, contentOffsetY);
     return;
   }
+  FontRenderState frameFontState;
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
   for (uint8_t step = 1; step <= frameCount; ++step) {
@@ -529,23 +534,24 @@ void PageTransitionRenderer::doors(
          bandY += kFrameBandHeight) {
       frame.fillSprite(nextPage.background);
       paintPage(frame, nextPage, contentOffsetX, contentOffsetY - bandY,
-                0, 0, kDisplaySize, kFrameBandHeight);
+                0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
       if (visibleHalf > 0) {
         frame.setViewport(0, 0, visibleHalf, kFrameBandHeight, false);
         paintPage(frame, currentPage, contentOffsetX - movement,
                   contentOffsetY - bandY, 0, 0, visibleHalf,
-                  kFrameBandHeight);
+                  kFrameBandHeight, frameFontState);
         frame.setViewport(kDisplaySize / 2 + movement, 0, visibleHalf,
                           kFrameBandHeight, false);
         paintPage(frame, currentPage, contentOffsetX + movement,
                   contentOffsetY - bandY, kDisplaySize / 2 + movement, 0,
-                  visibleHalf, kFrameBandHeight);
+                  visibleHalf, kFrameBandHeight, frameFontState);
         frame.resetViewport();
       }
       frame.pushSprite(0, bandY);
     }
     finishFrame(startedAt, frameDurationMs);
   }
+  if (frame.fontLoaded) frame.unloadFont();
   frame.deleteSprite();
 #else
   curtain(nextPage, transition, frameCount, durationMs, contentOffsetX,

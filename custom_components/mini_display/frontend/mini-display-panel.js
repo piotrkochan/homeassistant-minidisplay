@@ -1,15 +1,15 @@
-const he = globalThis, Ce = he.ShadowRoot && (he.ShadyCSS === void 0 || he.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Pe = /* @__PURE__ */ Symbol(), Xe = /* @__PURE__ */ new WeakMap();
-let ct = class {
+const me = globalThis, Oe = me.ShadowRoot && (me.ShadyCSS === void 0 || me.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Re = /* @__PURE__ */ Symbol(), it = /* @__PURE__ */ new WeakMap();
+let vt = class {
   constructor(e, i, s) {
-    if (this._$cssResult$ = !0, s !== Pe) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, s !== Re) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = i;
   }
   get styleSheet() {
     let e = this.o;
     const i = this.t;
-    if (Ce && e === void 0) {
+    if (Oe && e === void 0) {
       const s = i !== void 0 && i.length === 1;
-      s && (e = Xe.get(i)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && Xe.set(i, e));
+      s && (e = it.get(i)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && it.set(i, e));
     }
     return e;
   }
@@ -17,28 +17,28 @@ let ct = class {
     return this.cssText;
   }
 };
-const Mt = (t) => new ct(typeof t == "string" ? t : t + "", void 0, Pe), V = (t, ...e) => {
+const Ft = (t) => new vt(typeof t == "string" ? t : t + "", void 0, Re), V = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((s, a, r) => s + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + o + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(a) + t[r + 1], t[0]);
-  return new ct(i, t, Pe);
-}, Tt = (t, e) => {
-  if (Ce) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
+  return new vt(i, t, Re);
+}, Vt = (t, e) => {
+  if (Oe) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
   else for (const i of e) {
-    const s = document.createElement("style"), a = he.litNonce;
+    const s = document.createElement("style"), a = me.litNonce;
     a !== void 0 && s.setAttribute("nonce", a), s.textContent = i.cssText, t.appendChild(s);
   }
-}, Ke = Ce ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, st = Oe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let i = "";
   for (const s of e.cssRules) i += s.cssText;
-  return Mt(i);
+  return Ft(i);
 })(t) : t;
-const { is: zt, defineProperty: It, getOwnPropertyDescriptor: Ot, getOwnPropertyNames: Rt, getOwnPropertySymbols: Nt, getPrototypeOf: Ut } = Object, fe = globalThis, Je = fe.trustedTypes, qt = Je ? Je.emptyScript : "", jt = fe.reactiveElementPolyfillSupport, ie = (t, e) => t, ue = { toAttribute(t, e) {
+const { is: Bt, defineProperty: Wt, getOwnPropertyDescriptor: Yt, getOwnPropertyNames: Xt, getOwnPropertySymbols: Gt, getPrototypeOf: Kt } = Object, be = globalThis, at = be.trustedTypes, Jt = at ? at.emptyScript : "", Zt = be.reactiveElementPolyfillSupport, ae = (t, e) => t, fe = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
-      t = t ? qt : null;
+      t = t ? Jt : null;
       break;
     case Object:
     case Array:
@@ -63,44 +63,44 @@ const { is: zt, defineProperty: It, getOwnPropertyDescriptor: Ot, getOwnProperty
       }
   }
   return i;
-} }, Me = (t, e) => !zt(t, e), Ze = { attribute: !0, type: String, converter: ue, reflect: !1, useDefault: !1, hasChanged: Me };
-Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), fe.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let K = class extends HTMLElement {
+} }, Ne = (t, e) => !Bt(t, e), rt = { attribute: !0, type: String, converter: fe, reflect: !1, useDefault: !1, hasChanged: Ne };
+Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), be.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+let Z = class extends HTMLElement {
   static addInitializer(e) {
     this._$Ei(), (this.l ??= []).push(e);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, i = Ze) {
+  static createProperty(e, i = rt) {
     if (i.state && (i.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((i = Object.create(i)).wrapped = !0), this.elementProperties.set(e, i), !i.noAccessor) {
       const s = /* @__PURE__ */ Symbol(), a = this.getPropertyDescriptor(e, s, i);
-      a !== void 0 && It(this.prototype, e, a);
+      a !== void 0 && Wt(this.prototype, e, a);
     }
   }
   static getPropertyDescriptor(e, i, s) {
-    const { get: a, set: r } = Ot(this.prototype, e) ?? { get() {
+    const { get: a, set: r } = Yt(this.prototype, e) ?? { get() {
       return this[i];
     }, set(o) {
       this[i] = o;
     } };
     return { get: a, set(o) {
-      const l = a?.call(this);
-      r?.call(this, o), this.requestUpdate(e, l, s);
+      const n = a?.call(this);
+      r?.call(this, o), this.requestUpdate(e, n, s);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? Ze;
+    return this.elementProperties.get(e) ?? rt;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(ie("elementProperties"))) return;
-    const e = Ut(this);
+    if (this.hasOwnProperty(ae("elementProperties"))) return;
+    const e = Kt(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(ie("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(ie("properties"))) {
-      const i = this.properties, s = [...Rt(i), ...Nt(i)];
+    if (this.hasOwnProperty(ae("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(ae("properties"))) {
+      const i = this.properties, s = [...Xt(i), ...Gt(i)];
       for (const a of s) this.createProperty(a, i[a]);
     }
     const e = this[Symbol.metadata];
@@ -119,8 +119,8 @@ let K = class extends HTMLElement {
     const i = [];
     if (Array.isArray(e)) {
       const s = new Set(e.flat(1 / 0).reverse());
-      for (const a of s) i.unshift(Ke(a));
-    } else e !== void 0 && i.push(Ke(e));
+      for (const a of s) i.unshift(st(a));
+    } else e !== void 0 && i.push(st(e));
     return i;
   }
   static _$Eu(e, i) {
@@ -146,7 +146,7 @@ let K = class extends HTMLElement {
   }
   createRenderRoot() {
     const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Tt(e, this.constructor.elementStyles), e;
+    return Vt(e, this.constructor.elementStyles), e;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -162,23 +162,23 @@ let K = class extends HTMLElement {
   _$ET(e, i) {
     const s = this.constructor.elementProperties.get(e), a = this.constructor._$Eu(e, s);
     if (a !== void 0 && s.reflect === !0) {
-      const r = (s.converter?.toAttribute !== void 0 ? s.converter : ue).toAttribute(i, s.type);
+      const r = (s.converter?.toAttribute !== void 0 ? s.converter : fe).toAttribute(i, s.type);
       this._$Em = e, r == null ? this.removeAttribute(a) : this.setAttribute(a, r), this._$Em = null;
     }
   }
   _$AK(e, i) {
     const s = this.constructor, a = s._$Eh.get(e);
     if (a !== void 0 && this._$Em !== a) {
-      const r = s.getPropertyOptions(a), o = typeof r.converter == "function" ? { fromAttribute: r.converter } : r.converter?.fromAttribute !== void 0 ? r.converter : ue;
+      const r = s.getPropertyOptions(a), o = typeof r.converter == "function" ? { fromAttribute: r.converter } : r.converter?.fromAttribute !== void 0 ? r.converter : fe;
       this._$Em = a;
-      const l = o.fromAttribute(i, r.type);
-      this[a] = l ?? this._$Ej?.get(a) ?? l, this._$Em = null;
+      const n = o.fromAttribute(i, r.type);
+      this[a] = n ?? this._$Ej?.get(a) ?? n, this._$Em = null;
     }
   }
   requestUpdate(e, i, s, a = !1, r) {
     if (e !== void 0) {
       const o = this.constructor;
-      if (a === !1 && (r = this[e]), s ??= o.getPropertyOptions(e), !((s.hasChanged ?? Me)(r, i) || s.useDefault && s.reflect && r === this._$Ej?.get(e) && !this.hasAttribute(o._$Eu(e, s)))) return;
+      if (a === !1 && (r = this[e]), s ??= o.getPropertyOptions(e), !((s.hasChanged ?? Ne)(r, i) || s.useDefault && s.reflect && r === this._$Ej?.get(e) && !this.hasAttribute(o._$Eu(e, s)))) return;
       this.C(e, i, s);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -208,8 +208,8 @@ let K = class extends HTMLElement {
       }
       const s = this.constructor.elementProperties;
       if (s.size > 0) for (const [a, r] of s) {
-        const { wrapped: o } = r, l = this[a];
-        o !== !0 || this._$AL.has(a) || l === void 0 || this.C(a, void 0, r, l);
+        const { wrapped: o } = r, n = this[a];
+        o !== !0 || this._$AL.has(a) || n === void 0 || this.C(a, void 0, r, n);
       }
     }
     let e = !1;
@@ -246,70 +246,70 @@ let K = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-K.elementStyles = [], K.shadowRootOptions = { mode: "open" }, K[ie("elementProperties")] = /* @__PURE__ */ new Map(), K[ie("finalized")] = /* @__PURE__ */ new Map(), jt?.({ ReactiveElement: K }), (fe.reactiveElementVersions ??= []).push("2.1.2");
-const Te = globalThis, Qe = (t) => t, ge = Te.trustedTypes, et = ge ? ge.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, pt = "$lit$", R = `lit$${Math.random().toFixed(9).slice(2)}$`, ht = "?" + R, Lt = `<${ht}>`, L = document, se = () => L.createComment(""), ae = (t) => t === null || typeof t != "object" && typeof t != "function", ze = Array.isArray, Ht = (t) => ze(t) || typeof t?.[Symbol.iterator] == "function", _e = `[ 	
-\f\r]`, Q = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, tt = /-->/g, it = />/g, U = RegExp(`>|${_e}(?:([^\\s"'>=/]+)(${_e}*=${_e}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), st = /'/g, at = /"/g, ut = /^(?:script|style|textarea|title)$/i, Vt = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), n = Vt(1), P = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), rt = /* @__PURE__ */ new WeakMap(), j = L.createTreeWalker(L, 129);
-function gt(t, e) {
-  if (!ze(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return et !== void 0 ? et.createHTML(e) : e;
+Z.elementStyles = [], Z.shadowRootOptions = { mode: "open" }, Z[ae("elementProperties")] = /* @__PURE__ */ new Map(), Z[ae("finalized")] = /* @__PURE__ */ new Map(), Zt?.({ ReactiveElement: Z }), (be.reactiveElementVersions ??= []).push("2.1.2");
+const Ue = globalThis, ot = (t) => t, ve = Ue.trustedTypes, nt = ve ? ve.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, yt = "$lit$", U = `lit$${Math.random().toFixed(9).slice(2)}$`, bt = "?" + U, Qt = `<${bt}>`, H = document, re = () => H.createComment(""), oe = (t) => t === null || typeof t != "object" && typeof t != "function", qe = Array.isArray, ei = (t) => qe(t) || typeof t?.[Symbol.iterator] == "function", Ce = `[ 	
+\f\r]`, te = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, lt = /-->/g, dt = />/g, j = RegExp(`>|${Ce}(?:([^\\s"'>=/]+)(${Ce}*=${Ce}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), ct = /'/g, pt = /"/g, xt = /^(?:script|style|textarea|title)$/i, ti = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), l = ti(1), P = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), ht = /* @__PURE__ */ new WeakMap(), L = H.createTreeWalker(H, 129);
+function $t(t, e) {
+  if (!qe(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return nt !== void 0 ? nt.createHTML(e) : e;
 }
-const Bt = (t, e) => {
+const ii = (t, e) => {
   const i = t.length - 1, s = [];
-  let a, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = Q;
-  for (let l = 0; l < i; l++) {
-    const d = t[l];
-    let p, m, u = -1, w = 0;
-    for (; w < d.length && (o.lastIndex = w, m = o.exec(d), m !== null); ) w = o.lastIndex, o === Q ? m[1] === "!--" ? o = tt : m[1] !== void 0 ? o = it : m[2] !== void 0 ? (ut.test(m[2]) && (a = RegExp("</" + m[2], "g")), o = U) : m[3] !== void 0 && (o = U) : o === U ? m[0] === ">" ? (o = a ?? Q, u = -1) : m[1] === void 0 ? u = -2 : (u = o.lastIndex - m[2].length, p = m[1], o = m[3] === void 0 ? U : m[3] === '"' ? at : st) : o === at || o === st ? o = U : o === tt || o === it ? o = Q : (o = U, a = void 0);
-    const y = o === U && t[l + 1].startsWith("/>") ? " " : "";
-    r += o === Q ? d + Lt : u >= 0 ? (s.push(p), d.slice(0, u) + pt + d.slice(u) + R + y) : d + R + (u === -2 ? l : y);
+  let a, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = te;
+  for (let n = 0; n < i; n++) {
+    const d = t[n];
+    let p, m, h = -1, w = 0;
+    for (; w < d.length && (o.lastIndex = w, m = o.exec(d), m !== null); ) w = o.lastIndex, o === te ? m[1] === "!--" ? o = lt : m[1] !== void 0 ? o = dt : m[2] !== void 0 ? (xt.test(m[2]) && (a = RegExp("</" + m[2], "g")), o = j) : m[3] !== void 0 && (o = j) : o === j ? m[0] === ">" ? (o = a ?? te, h = -1) : m[1] === void 0 ? h = -2 : (h = o.lastIndex - m[2].length, p = m[1], o = m[3] === void 0 ? j : m[3] === '"' ? pt : ct) : o === pt || o === ct ? o = j : o === lt || o === dt ? o = te : (o = j, a = void 0);
+    const y = o === j && t[n + 1].startsWith("/>") ? " " : "";
+    r += o === te ? d + Qt : h >= 0 ? (s.push(p), d.slice(0, h) + yt + d.slice(h) + U + y) : d + U + (h === -2 ? n : y);
   }
-  return [gt(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
+  return [$t(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
 };
-class re {
+class ne {
   constructor({ strings: e, _$litType$: i }, s) {
     let a;
     this.parts = [];
     let r = 0, o = 0;
-    const l = e.length - 1, d = this.parts, [p, m] = Bt(e, i);
-    if (this.el = re.createElement(p, s), j.currentNode = this.el.content, i === 2 || i === 3) {
-      const u = this.el.content.firstChild;
-      u.replaceWith(...u.childNodes);
+    const n = e.length - 1, d = this.parts, [p, m] = ii(e, i);
+    if (this.el = ne.createElement(p, s), L.currentNode = this.el.content, i === 2 || i === 3) {
+      const h = this.el.content.firstChild;
+      h.replaceWith(...h.childNodes);
     }
-    for (; (a = j.nextNode()) !== null && d.length < l; ) {
+    for (; (a = L.nextNode()) !== null && d.length < n; ) {
       if (a.nodeType === 1) {
-        if (a.hasAttributes()) for (const u of a.getAttributeNames()) if (u.endsWith(pt)) {
-          const w = m[o++], y = a.getAttribute(u).split(R), b = /([.?@])?(.*)/.exec(w);
-          d.push({ type: 1, index: r, name: b[2], strings: y, ctor: b[1] === "." ? Wt : b[1] === "?" ? Yt : b[1] === "@" ? Gt : ve }), a.removeAttribute(u);
-        } else u.startsWith(R) && (d.push({ type: 6, index: r }), a.removeAttribute(u));
-        if (ut.test(a.tagName)) {
-          const u = a.textContent.split(R), w = u.length - 1;
+        if (a.hasAttributes()) for (const h of a.getAttributeNames()) if (h.endsWith(yt)) {
+          const w = m[o++], y = a.getAttribute(h).split(U), b = /([.?@])?(.*)/.exec(w);
+          d.push({ type: 1, index: r, name: b[2], strings: y, ctor: b[1] === "." ? ai : b[1] === "?" ? ri : b[1] === "@" ? oi : xe }), a.removeAttribute(h);
+        } else h.startsWith(U) && (d.push({ type: 6, index: r }), a.removeAttribute(h));
+        if (xt.test(a.tagName)) {
+          const h = a.textContent.split(U), w = h.length - 1;
           if (w > 0) {
-            a.textContent = ge ? ge.emptyScript : "";
-            for (let y = 0; y < w; y++) a.append(u[y], se()), j.nextNode(), d.push({ type: 2, index: ++r });
-            a.append(u[w], se());
+            a.textContent = ve ? ve.emptyScript : "";
+            for (let y = 0; y < w; y++) a.append(h[y], re()), L.nextNode(), d.push({ type: 2, index: ++r });
+            a.append(h[w], re());
           }
         }
-      } else if (a.nodeType === 8) if (a.data === ht) d.push({ type: 2, index: r });
+      } else if (a.nodeType === 8) if (a.data === bt) d.push({ type: 2, index: r });
       else {
-        let u = -1;
-        for (; (u = a.data.indexOf(R, u + 1)) !== -1; ) d.push({ type: 7, index: r }), u += R.length - 1;
+        let h = -1;
+        for (; (h = a.data.indexOf(U, h + 1)) !== -1; ) d.push({ type: 7, index: r }), h += U.length - 1;
       }
       r++;
     }
   }
   static createElement(e, i) {
-    const s = L.createElement("template");
+    const s = H.createElement("template");
     return s.innerHTML = e, s;
   }
 }
-function J(t, e, i = t, s) {
+function Q(t, e, i = t, s) {
   if (e === P) return e;
   let a = s !== void 0 ? i._$Co?.[s] : i._$Cl;
-  const r = ae(e) ? void 0 : e._$litDirective$;
-  return a?.constructor !== r && (a?._$AO?.(!1), r === void 0 ? a = void 0 : (a = new r(t), a._$AT(t, i, s)), s !== void 0 ? (i._$Co ??= [])[s] = a : i._$Cl = a), a !== void 0 && (e = J(t, a._$AS(t, e.values), a, s)), e;
+  const r = oe(e) ? void 0 : e._$litDirective$;
+  return a?.constructor !== r && (a?._$AO?.(!1), r === void 0 ? a = void 0 : (a = new r(t), a._$AT(t, i, s)), s !== void 0 ? (i._$Co ??= [])[s] = a : i._$Cl = a), a !== void 0 && (e = Q(t, a._$AS(t, e.values), a, s)), e;
 }
-class Ft {
+class si {
   constructor(e, i) {
     this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = i;
   }
@@ -320,24 +320,24 @@ class Ft {
     return this._$AM._$AU;
   }
   u(e) {
-    const { el: { content: i }, parts: s } = this._$AD, a = (e?.creationScope ?? L).importNode(i, !0);
-    j.currentNode = a;
-    let r = j.nextNode(), o = 0, l = 0, d = s[0];
+    const { el: { content: i }, parts: s } = this._$AD, a = (e?.creationScope ?? H).importNode(i, !0);
+    L.currentNode = a;
+    let r = L.nextNode(), o = 0, n = 0, d = s[0];
     for (; d !== void 0; ) {
       if (o === d.index) {
         let p;
-        d.type === 2 ? p = new ne(r, r.nextSibling, this, e) : d.type === 1 ? p = new d.ctor(r, d.name, d.strings, this, e) : d.type === 6 && (p = new Xt(r, this, e)), this._$AV.push(p), d = s[++l];
+        d.type === 2 ? p = new de(r, r.nextSibling, this, e) : d.type === 1 ? p = new d.ctor(r, d.name, d.strings, this, e) : d.type === 6 && (p = new ni(r, this, e)), this._$AV.push(p), d = s[++n];
       }
-      o !== d?.index && (r = j.nextNode(), o++);
+      o !== d?.index && (r = L.nextNode(), o++);
     }
-    return j.currentNode = L, a;
+    return L.currentNode = H, a;
   }
   p(e) {
     let i = 0;
     for (const s of this._$AV) s !== void 0 && (s.strings !== void 0 ? (s._$AI(e, s, i), i += s.strings.length - 2) : s._$AI(e[i])), i++;
   }
 }
-class ne {
+class de {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
@@ -356,7 +356,7 @@ class ne {
     return this._$AB;
   }
   _$AI(e, i = this) {
-    e = J(this, e, i), ae(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== P && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ht(e) ? this.k(e) : this._(e);
+    e = Q(this, e, i), oe(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== P && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : ei(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -365,38 +365,38 @@ class ne {
     this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
   }
   _(e) {
-    this._$AH !== c && ae(this._$AH) ? this._$AA.nextSibling.data = e : this.T(L.createTextNode(e)), this._$AH = e;
+    this._$AH !== c && oe(this._$AH) ? this._$AA.nextSibling.data = e : this.T(H.createTextNode(e)), this._$AH = e;
   }
   $(e) {
-    const { values: i, _$litType$: s } = e, a = typeof s == "number" ? this._$AC(e) : (s.el === void 0 && (s.el = re.createElement(gt(s.h, s.h[0]), this.options)), s);
+    const { values: i, _$litType$: s } = e, a = typeof s == "number" ? this._$AC(e) : (s.el === void 0 && (s.el = ne.createElement($t(s.h, s.h[0]), this.options)), s);
     if (this._$AH?._$AD === a) this._$AH.p(i);
     else {
-      const r = new Ft(a, this), o = r.u(this.options);
+      const r = new si(a, this), o = r.u(this.options);
       r.p(i), this.T(o), this._$AH = r;
     }
   }
   _$AC(e) {
-    let i = rt.get(e.strings);
-    return i === void 0 && rt.set(e.strings, i = new re(e)), i;
+    let i = ht.get(e.strings);
+    return i === void 0 && ht.set(e.strings, i = new ne(e)), i;
   }
   k(e) {
-    ze(this._$AH) || (this._$AH = [], this._$AR());
+    qe(this._$AH) || (this._$AH = [], this._$AR());
     const i = this._$AH;
     let s, a = 0;
-    for (const r of e) a === i.length ? i.push(s = new ne(this.O(se()), this.O(se()), this, this.options)) : s = i[a], s._$AI(r), a++;
+    for (const r of e) a === i.length ? i.push(s = new de(this.O(re()), this.O(re()), this, this.options)) : s = i[a], s._$AI(r), a++;
     a < i.length && (this._$AR(s && s._$AB.nextSibling, a), i.length = a);
   }
   _$AR(e = this._$AA.nextSibling, i) {
     for (this._$AP?.(!1, !0, i); e !== this._$AB; ) {
-      const s = Qe(e).nextSibling;
-      Qe(e).remove(), e = s;
+      const s = ot(e).nextSibling;
+      ot(e).remove(), e = s;
     }
   }
   setConnected(e) {
     this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
   }
 }
-class ve {
+class xe {
   get tagName() {
     return this.element.tagName;
   }
@@ -409,11 +409,11 @@ class ve {
   _$AI(e, i = this, s, a) {
     const r = this.strings;
     let o = !1;
-    if (r === void 0) e = J(this, e, i, 0), o = !ae(e) || e !== this._$AH && e !== P, o && (this._$AH = e);
+    if (r === void 0) e = Q(this, e, i, 0), o = !oe(e) || e !== this._$AH && e !== P, o && (this._$AH = e);
     else {
-      const l = e;
+      const n = e;
       let d, p;
-      for (e = r[0], d = 0; d < r.length - 1; d++) p = J(this, l[s + d], i, d), p === P && (p = this._$AH[d]), o ||= !ae(p) || p !== this._$AH[d], p === c ? e = c : e !== c && (e += (p ?? "") + r[d + 1]), this._$AH[d] = p;
+      for (e = r[0], d = 0; d < r.length - 1; d++) p = Q(this, n[s + d], i, d), p === P && (p = this._$AH[d]), o ||= !oe(p) || p !== this._$AH[d], p === c ? e = c : e !== c && (e += (p ?? "") + r[d + 1]), this._$AH[d] = p;
     }
     o && !a && this.j(e);
   }
@@ -421,7 +421,7 @@ class ve {
     e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class Wt extends ve {
+class ai extends xe {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -429,7 +429,7 @@ class Wt extends ve {
     this.element[this.name] = e === c ? void 0 : e;
   }
 }
-class Yt extends ve {
+class ri extends xe {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -437,12 +437,12 @@ class Yt extends ve {
     this.element.toggleAttribute(this.name, !!e && e !== c);
   }
 }
-class Gt extends ve {
+class oi extends xe {
   constructor(e, i, s, a, r) {
     super(e, i, s, a, r), this.type = 5;
   }
   _$AI(e, i = this) {
-    if ((e = J(this, e, i, 0) ?? c) === P) return;
+    if ((e = Q(this, e, i, 0) ?? c) === P) return;
     const s = this._$AH, a = e === c && s !== c || e.capture !== s.capture || e.once !== s.once || e.passive !== s.passive, r = e !== c && (s === c || a);
     a && this.element.removeEventListener(this.name, this, s), r && this.element.addEventListener(this.name, this, e), this._$AH = e;
   }
@@ -450,7 +450,7 @@ class Gt extends ve {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
   }
 }
-class Xt {
+class ni {
   constructor(e, i, s) {
     this.element = e, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
   }
@@ -458,22 +458,22 @@ class Xt {
     return this._$AM._$AU;
   }
   _$AI(e) {
-    J(this, e);
+    Q(this, e);
   }
 }
-const Kt = Te.litHtmlPolyfillSupport;
-Kt?.(re, ne), (Te.litHtmlVersions ??= []).push("3.3.3");
-const Jt = (t, e, i) => {
+const li = Ue.litHtmlPolyfillSupport;
+li?.(ne, de), (Ue.litHtmlVersions ??= []).push("3.3.3");
+const di = (t, e, i) => {
   const s = i?.renderBefore ?? e;
   let a = s._$litPart$;
   if (a === void 0) {
     const r = i?.renderBefore ?? null;
-    s._$litPart$ = a = new ne(e.insertBefore(se(), r), r, void 0, i ?? {});
+    s._$litPart$ = a = new de(e.insertBefore(re(), r), r, void 0, i ?? {});
   }
   return a._$AI(t), a;
 };
-const Ie = globalThis;
-let E = class extends K {
+const je = globalThis;
+let E = class extends Z {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -483,7 +483,7 @@ let E = class extends K {
   }
   update(e) {
     const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Jt(i, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = di(i, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -495,61 +495,61 @@ let E = class extends K {
     return P;
   }
 };
-E._$litElement$ = !0, E.finalized = !0, Ie.litElementHydrateSupport?.({ LitElement: E });
-const Zt = Ie.litElementPolyfillSupport;
-Zt?.({ LitElement: E });
-(Ie.litElementVersions ??= []).push("4.2.2");
-const le = (t) => (e, i) => {
+E._$litElement$ = !0, E.finalized = !0, je.litElementHydrateSupport?.({ LitElement: E });
+const ci = je.litElementPolyfillSupport;
+ci?.({ LitElement: E });
+(je.litElementVersions ??= []).push("4.2.2");
+const ce = (t) => (e, i) => {
   i !== void 0 ? i.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
 };
-const Qt = { attribute: !0, type: String, converter: ue, reflect: !1, hasChanged: Me }, ei = (t = Qt, e, i) => {
+const pi = { attribute: !0, type: String, converter: fe, reflect: !1, hasChanged: Ne }, hi = (t = pi, e, i) => {
   const { kind: s, metadata: a } = i;
   let r = globalThis.litPropertyMetadata.get(a);
   if (r === void 0 && globalThis.litPropertyMetadata.set(a, r = /* @__PURE__ */ new Map()), s === "setter" && ((t = Object.create(t)).wrapped = !0), r.set(i.name, t), s === "accessor") {
     const { name: o } = i;
-    return { set(l) {
+    return { set(n) {
       const d = e.get.call(this);
-      e.set.call(this, l), this.requestUpdate(o, d, t, !0, l);
-    }, init(l) {
-      return l !== void 0 && this.C(o, void 0, t, l), l;
+      e.set.call(this, n), this.requestUpdate(o, d, t, !0, n);
+    }, init(n) {
+      return n !== void 0 && this.C(o, void 0, t, n), n;
     } };
   }
   if (s === "setter") {
     const { name: o } = i;
-    return function(l) {
+    return function(n) {
       const d = this[o];
-      e.call(this, l), this.requestUpdate(o, d, t, !0, l);
+      e.call(this, n), this.requestUpdate(o, d, t, !0, n);
     };
   }
   throw Error("Unsupported decorator location: " + s);
 };
-function h(t) {
-  return (e, i) => typeof i == "object" ? ei(t, e, i) : ((s, a, r) => {
+function u(t) {
+  return (e, i) => typeof i == "object" ? hi(t, e, i) : ((s, a, r) => {
     const o = a.hasOwnProperty(r);
     return a.constructor.createProperty(r, s), o ? Object.getOwnPropertyDescriptor(a, r) : void 0;
   })(t, e, i);
 }
 function f(t) {
-  return h({ ...t, state: !0, attribute: !1 });
+  return u({ ...t, state: !0, attribute: !1 });
 }
-const Ee = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, mt = () => ({
+const Ie = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, wt = () => ({
   weight: 1,
   gap: "small",
-  cards: [Ee("clock")]
-}), ft = (t) => ({
+  cards: [Ie("clock")]
+}), _t = (t) => ({
   id: `page_${t}`,
   title: `Page ${t}`,
   durationSeconds: 10,
   enabled: !0,
   transition: { type: "none" },
-  rows: [mt()]
-}), ti = () => ({
+  rows: [wt()]
+}), ui = () => ({
   version: 1,
   defaults: { pageDurationSeconds: 10, theme: "dark" },
-  pages: [ft(1)]
-}), ii = (t, e) => {
+  pages: [_t(1)]
+}), gi = (t, e) => {
   if (t.type === "number") {
     const i = Number(e);
     if (Number.isFinite(i)) {
@@ -563,7 +563,7 @@ const Ee = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
       if (i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)) return { value: i.value, mapped: !0 };
   }
   return { value: e, mapped: !1 };
-}, si = (t, e) => {
+}, mi = (t, e) => {
   if (t.type === "number") {
     const i = Number(e);
     if (Number.isFinite(i))
@@ -575,7 +575,7 @@ const Ee = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
     return (t.colorMappings ?? []).find(
       (i) => i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)
     );
-}, ai = /* @__PURE__ */ new Set(["unknown", "unavailable"]), ri = /* @__PURE__ */ new Set([
+}, fi = /* @__PURE__ */ new Set(["unknown", "unavailable"]), vi = /* @__PURE__ */ new Set([
   "range",
   "number_equals",
   "number_not_equals",
@@ -584,36 +584,35 @@ const Ee = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
   "less_than",
   "less_than_or_equal"
 ]);
-function oi(t, e, i) {
-  const s = e.source === "card" ? i?.source ? t?.states[i.source]?.state : i?.type === "text" ? i.text : void 0 : e.entity ? t?.states[e.entity]?.state : void 0, a = s !== void 0 && !ai.has(s);
+function yi(t, e, i) {
+  const s = e.source === "card" ? i?.source ? t?.states[i.source]?.state : i?.type === "text" ? i.text : void 0 : e.entity ? t?.states[e.entity]?.state : void 0, a = s !== void 0 && !fi.has(s);
   if (e.operator === "available") return a;
   if (e.operator === "unavailable") return !a;
   if (!a) return !1;
-  if (ri.has(e.operator)) {
+  if (vi.has(e.operator)) {
     const o = Number(s);
     if (!Number.isFinite(o)) return !1;
-    if (e.operator === "range")
-      return (e.minimum === void 0 || o >= e.minimum) && (e.maximum === void 0 || o <= e.maximum);
-    const l = e.value;
-    return Number.isFinite(l) ? e.operator === "number_equals" ? o === l : e.operator === "number_not_equals" ? o !== l : e.operator === "greater_than" ? o > l : e.operator === "greater_than_or_equal" ? o >= l : e.operator === "less_than" ? o < l : o <= l : !1;
+    if (e.operator === "range") return (e.minimum === void 0 || o >= e.minimum) && (e.maximum === void 0 || o <= e.maximum);
+    const n = e.value;
+    return Number.isFinite(n) ? e.operator === "number_equals" ? o === n : e.operator === "number_not_equals" ? o !== n : e.operator === "greater_than" ? o > n : e.operator === "greater_than_or_equal" ? o >= n : e.operator === "less_than" ? o < n : o <= n : !1;
   }
   const r = e.match ?? "";
   return e.operator === "equals" ? s === r : e.operator === "not_equals" ? s !== r : e.operator === "starts_with" ? s.startsWith(r) : e.operator === "ends_with" ? s.endsWith(r) : s.includes(r);
 }
-function pe(t, e, i) {
+function ge(t, e, i) {
   if (!e) return !0;
   const s = new Map(e.rules.map((r) => [r.id, r])), a = (r) => {
-    const o = r.type === "rule" ? oi(t, s.get(r.ruleId), i) : r.operator === "and" ? r.children.every(a) : r.children.some(a);
+    const o = r.type === "rule" ? yi(t, s.get(r.ruleId), i) : r.operator === "and" ? r.children.every(a) : r.children.some(a);
     return r.negate ? !o : o;
   };
   return a(e.expression);
 }
-var ni = Object.defineProperty, vt = (t, e, i, s) => {
+var bi = Object.defineProperty, kt = (t, e, i, s) => {
   for (var a = void 0, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = o(e, i, a) || a);
-  return a && ni(e, i, a), a;
+  return a && bi(e, i, a), a;
 };
-const q = {
+const N = {
   background: "#000000",
   surface: "#1e222a",
   primary: "#ffffff",
@@ -623,13 +622,13 @@ const q = {
   success: "#00ff00",
   warning: "#ffa500",
   error: "#ff0000"
-}, Oe = class Oe extends E {
+}, Le = class Le extends E {
   constructor() {
     super(...arguments), this.label = "Color", this.value = "";
   }
   render() {
     const e = this.value.startsWith("#"), i = e ? "custom" : this.value || "default";
-    return n`
+    return l`
       <span>${this.label}</span>
       <div class="control">
         <select .value=${i} @change=${this.selectColor}>
@@ -645,81 +644,42 @@ const q = {
           <option value="error">Red</option>
           <option value="custom">Custom</option>
         </select>
-        <input
-          type="color"
-          aria-label="Custom color"
-          .value=${e ? this.value : q[i] ?? "#ffffff"}
-          ?disabled=${!e}
-          @input=${this.customColor}
-        />
+        <input type="color" aria-label="Custom color" .value=${e ? this.value : N[i] ?? "#ffffff"} ?disabled=${!e} @input=${this.customColor}>
       </div>
     `;
   }
   selectColor(e) {
     const i = e.target.value;
-    this.emit(
-      i === "default" ? "" : i === "custom" ? "#ffffff" : i
-    );
+    this.emit(i === "default" ? "" : i === "custom" ? "#ffffff" : i);
   }
   customColor(e) {
     this.emit(e.target.value);
   }
   emit(e) {
-    this.dispatchEvent(
-      new CustomEvent("color-changed", {
-        detail: e,
-        bubbles: !0,
-        composed: !0
-      })
-    );
+    this.dispatchEvent(new CustomEvent("color-changed", { detail: e, bubbles: !0, composed: !0 }));
   }
 };
-Oe.styles = V`
-    :host {
-      display: grid;
-      gap: 5px;
-      color: var(--secondary-text-color);
-      font: 12px var(--ha-font-family-body, Roboto, sans-serif);
-    }
-    .control {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 42px;
-      gap: 8px;
-    }
-    select,
-    input {
-      width: 100%;
-      min-height: 40px;
-      color: var(--primary-text-color);
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-    }
-    select {
-      padding: 8px;
-      font: inherit;
-      font-size: 14px;
-    }
-    input {
-      height: 40px;
-      padding: 3px;
-      cursor: pointer;
-    }
+Le.styles = V`
+    :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
+    .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
+    select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
+    select { padding: 8px; font: inherit; font-size: 14px; }
+    input { height: 40px; padding: 3px; cursor: pointer; }
   `;
-let oe = Oe;
-vt([
-  h()
-], oe.prototype, "label");
-vt([
-  h()
-], oe.prototype, "value");
-customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", oe);
-var li = Object.defineProperty, k = (t, e, i, s) => {
+let le = Le;
+kt([
+  u()
+], le.prototype, "label");
+kt([
+  u()
+], le.prototype, "value");
+customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", le);
+var xi = Object.defineProperty, k = (t, e, i, s) => {
   for (var a = void 0, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = o(e, i, a) || a);
-  return a && li(e, i, a), a;
+  return a && xi(e, i, a), a;
 };
-const Re = class Re extends E {
+const He = class He extends E {
   constructor() {
     super(...arguments), this.page = 0, this.autoRotate = !1, this.width = 240, this.height = 240, this.displayId = "", this.interactive = !1, this.showHidden = !1, this.now = /* @__PURE__ */ new Date(), this.autoPage = 0, this.dragTarget = "", this.dragPoint = { x: 0, y: 0 }, this.pageShownAt = Date.now(), this.suppressClickUntil = 0, this.preventClickAfterDrag = (e) => {
       Date.now() >= this.suppressClickUntil || (e.preventDefault(), e.stopImmediatePropagation());
@@ -740,17 +700,17 @@ const Re = class Re extends E {
       if (!a || !r) return;
       const o = Array.from(
         this.shadowRoot?.querySelectorAll(".group") ?? []
-      ), l = Array.from(
+      ), n = Array.from(
         r.querySelectorAll(".card")
-      ), d = o.indexOf(r), p = l.indexOf(a), m = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
+      ), d = o.indexOf(r), p = n.indexOf(a), m = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
       if (!m || d < 0 || p < 0) return;
-      const u = m.rows.map((b, ye) => {
-        const be = pe(this.hass, b.visibility), xe = b.cards.map((F, $e) => ({
-          cardIndex: $e,
-          hidden: !be || !pe(this.hass, F.visibility, F)
-        })).filter(({ hidden: F }) => this.showHidden || !F);
-        return { rowIndex: ye, cards: xe };
-      }).filter(({ cards: b }) => b.length > 0), w = u[d]?.rowIndex, y = u[d]?.cards[p]?.cardIndex;
+      const h = m.rows.map((b, $e) => {
+        const we = ge(this.hass, b.visibility), _e = b.cards.map((W, ke) => ({
+          cardIndex: ke,
+          hidden: !we || !ge(this.hass, W.visibility, W)
+        })).filter(({ hidden: W }) => this.showHidden || !W);
+        return { rowIndex: $e, cards: _e };
+      }).filter(({ cards: b }) => b.length > 0), w = h[d]?.rowIndex, y = h[d]?.cards[p]?.cardIndex;
       w === void 0 || y === void 0 || this.startPointer(
         e,
         {
@@ -790,18 +750,18 @@ const Re = class Re extends E {
           { target: "left", value: e.clientX - r.left }
         ];
         this.dragTarget = m.reduce(
-          (u, w) => w.value < u.value ? w : u
+          (h, w) => w.value < h.value ? w : h
         ).target;
         return;
       }
       const o = i.cardElement;
       if (!o) return;
-      const l = o.getBoundingClientRect();
-      if (e.clientX < l.left || e.clientX > l.right || e.clientY < l.top || e.clientY > l.bottom) {
+      const n = o.getBoundingClientRect();
+      if (e.clientX < n.left || e.clientX > n.right || e.clientY < n.top || e.clientY > n.bottom) {
         this.dragTarget = "";
         return;
       }
-      const d = ["left", "center", "right"][Math.min(2, Math.floor((e.clientX - l.left) / (l.width / 3)))], p = ["top", "middle", "bottom"][Math.min(2, Math.floor((e.clientY - l.top) / (l.height / 3)))];
+      const d = ["left", "center", "right"][Math.min(2, Math.floor((e.clientX - n.left) / (n.width / 3)))], p = ["top", "middle", "bottom"][Math.min(2, Math.floor((e.clientY - n.top) / (n.height / 3)))];
       this.dragTarget = `${d}-${p}`;
     }, this.pointerUp = (e) => {
       const i = this.pointerCandidate;
@@ -882,19 +842,19 @@ const Re = class Re extends E {
     if (!this.dragging || this.dragging.kind === "page-title" || this.dragging.row !== e || this.dragging.card !== i)
       return null;
     const s = ["left", "center", "right"];
-    return n`<div class="drop-grid" aria-label="Choose text position">
+    return l`<div class="drop-grid" aria-label="Choose text position">
       ${["top", "middle", "bottom"].flatMap(
       (r) => s.map((o) => {
-        const l = `${o}-${r}`;
-        return n`<div
-            class="drop-cell ${this.dragTarget === l ? "active" : ""}"
+        const n = `${o}-${r}`;
+        return l`<div
+            class="drop-cell ${this.dragTarget === n ? "active" : ""}"
           ></div>`;
       })
     )}
     </div>`;
   }
   pageDropzones() {
-    const e = this.dragging ? n`<div
+    const e = this.dragging ? l`<div
           class="drag-ghost"
           style=${`left:${this.dragPoint.x}px;top:${this.dragPoint.y}px`}
         >
@@ -907,9 +867,9 @@ const Re = class Re extends E {
       bottom: "mdi:arrow-down",
       left: "mdi:arrow-left"
     };
-    return n`${e}
+    return l`${e}
       <div class="page-dropzones">
-        ${i.map((a) => n`<div class="page-dropzone ${a} ${this.dragTarget === a ? "active" : ""}"><ha-icon icon=${s[a]}></ha-icon></div>`)}
+        ${i.map((a) => l`<div class="page-dropzone ${a} ${this.dragTarget === a ? "active" : ""}"><ha-icon icon=${s[a]}></ha-icon></div>`)}
       </div>`;
   }
   cardValue(e) {
@@ -923,38 +883,66 @@ const Re = class Re extends E {
     const i = e.source ? this.hass?.states[e.source]?.state ?? "—" : e.text ?? "—";
     if (e.type === "status")
       return ["on", "true", "1", "open", "home"].includes(i.toLowerCase()) ? e.onText ?? "On" : e.offText ?? "Off";
-    const s = ii(e, i);
+    const s = gi(e, i);
     return `${s.value}${!s.mapped && e.unit ? ` ${e.unit}` : ""}`;
   }
   valueFontSize(e, i, s, a) {
-    const r = [18, 24, 36, 48], o = [22, 29, 42, 56], l = e.valueStyle?.fontSize ?? "auto";
-    let d = l === "small" ? 0 : l === "medium" ? 1 : l === "large" ? 2 : l === "xlarge" || a >= 58 ? 3 : a >= 42 ? 2 : a >= 28 ? 1 : 0;
+    const r = [18, 24, 36, 48], o = [22, 29, 42, 56], n = e.valueStyle?.fontSize ?? "auto";
+    let d = n === "small" ? 0 : n === "medium" ? 1 : n === "large" ? 2 : n === "xlarge" || a >= 58 ? 3 : a >= 42 ? 2 : a >= 28 ? 1 : 0;
     const p = "sans-serif";
     for (this.measureContext ??= document.createElement("canvas").getContext("2d"); d > 0 && !(o[d] <= a && (!this.measureContext || (this.measureContext.font = `700 ${r[d]}px ${p}`, this.measureContext.measureText(i).width <= s - 6))); )
       d -= 1;
     return r[d];
   }
+  textEffectCss(e) {
+    const i = e?.textEffect ?? "none";
+    if (i === "none") return "";
+    const s = e?.effectColor ?? "background", a = N[s] ?? s, r = Math.max(
+      1,
+      Math.min(3, Math.round(e?.effectThickness ?? 1))
+    ), o = [];
+    if (i === "outline")
+      for (let n = 1; n <= r; n += 1)
+        for (const [d, p] of [
+          [-n, 0],
+          [n, 0],
+          [0, -n],
+          [0, n],
+          [-n, -n],
+          [n, -n],
+          [-n, n],
+          [n, n]
+        ])
+          o.push(`${d}px ${p}px 0 ${a}`);
+    else {
+      const n = Math.max(-6, Math.min(6, e?.effectOffsetX ?? 2)), d = Math.max(-6, Math.min(6, e?.effectOffsetY ?? 2)), p = r - 1;
+      for (let m = -p; m <= p; m += 1)
+        for (let h = -p; h <= p; h += 1)
+          o.push(`${n + m}px ${d + h}px 0 ${a}`);
+    }
+    return `text-shadow:${o.join(",")}`;
+  }
   render() {
     const e = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page], i = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
     if (!e)
-      return n`<div class="screen-frame" style=${i}>
+      return l`<div class="screen-frame" style=${i}>
         <div class="screen loading" aria-label="Loading display preview"></div>
       </div>`;
     const s = e.rows.map((x, A) => {
-      const Z = pe(this.hass, x.visibility), W = x.cards.map((O, ce) => ({
-        card: O,
-        cardIndex: ce,
-        hidden: !Z || !pe(this.hass, O.visibility, O)
-      })).filter(({ hidden: O }) => this.showHidden || !O);
-      return { row: x, rowIndex: A, hidden: !Z, cards: W };
+      const ee = ge(this.hass, x.visibility), Y = x.cards.map((R, he) => ({
+        card: R,
+        cardIndex: he,
+        hidden: !ee || !ge(this.hass, R.visibility, R)
+      })).filter(({ hidden: R }) => this.showHidden || !R);
+      return { row: x, rowIndex: A, hidden: !ee, cards: Y };
     }).filter(({ cards: x }) => x.length > 0);
     if (s.length === 0)
-      return n`<div class="screen-frame" style=${i}>
+      return l`<div class="screen-frame" style=${i}>
         <div class="screen">
           <div class="card"><div class="value">No visible content</div></div>
         </div>
       </div>`;
-    const a = !!(e.title && e.showTitle !== !1), r = e.titlePosition ?? "top", o = e.style?.background ?? "", l = (q[o] ?? o) || "#000000", d = e.titleStyle?.background ?? "", p = e.titleStyle?.foreground ?? "", m = (q[d] ?? d) || l, u = (q[p] ?? p) || "#ffffff", w = e.titleStyle?.fontSize ?? "small", y = {
+    const a = !!(e.title && e.showTitle !== !1), r = e.titlePosition ?? "top", o = e.style?.background ?? "", n = (N[o] ?? o) || "#000000", d = e.titleStyle?.background ?? "", p = e.titleStyle?.foreground ?? "", m = (N[d] ?? d) || n, h = (N[p] ?? p) || "#ffffff", w = e.titleStyle?.fontSize ?? "small", y = {
       small: 21,
       medium: 29,
       large: 40,
@@ -966,12 +954,12 @@ const Re = class Re extends E {
       large: 25,
       xlarge: 32,
       auto: 13
-    }[w], ye = a && (r === "top" || r === "bottom") ? y : 0, be = a && (r === "left" || r === "right") ? y : 0, xe = this.width - 12 - be, F = this.height - 12 - ye - 4 * Math.max(0, s.length - 1), $e = s.reduce((x, A) => x + (A.row.weight ?? 1), 0) || 1, yt = a ? r === "top" ? `top:${y + 6}px;right:6px;bottom:6px;left:6px` : r === "bottom" ? `top:6px;right:6px;bottom:${y + 6}px;left:6px` : r === "left" ? `top:6px;right:6px;bottom:6px;left:${y + 6}px` : `top:6px;right:${y + 6}px;bottom:6px;left:6px` : "inset:6px", bt = `${r === "top" || r === "bottom" ? `height:${y}px` : `width:${y}px`};background:${m};color:${u};font-size:${b}px`;
-    return n`<div class="screen-frame" style=${i}>
-      <div class="screen" style=${`background:${l}`}>
-        ${a ? n`<div
+    }[w], $e = a && (r === "top" || r === "bottom") ? y : 0, we = a && (r === "left" || r === "right") ? y : 0, _e = this.width - 12 - we, W = this.height - 12 - $e - 4 * Math.max(0, s.length - 1), ke = s.reduce((x, A) => x + (A.row.weight ?? 1), 0) || 1, St = a ? r === "top" ? `top:${y + 6}px;right:6px;bottom:6px;left:6px` : r === "bottom" ? `top:6px;right:6px;bottom:${y + 6}px;left:6px` : r === "left" ? `top:6px;right:6px;bottom:6px;left:${y + 6}px` : `top:6px;right:${y + 6}px;bottom:6px;left:6px` : "inset:6px", At = `${r === "top" || r === "bottom" ? `height:${y}px` : `width:${y}px`};background:${m};color:${h};font-size:${b}px`;
+    return l`<div class="screen-frame" style=${i}>
+      <div class="screen" style=${`background:${n}`}>
+        ${a ? l`<div
                 class="page-title ${r} ${this.interactive ? "interactive" : ""}"
-                style=${bt}
+                style=${At}
                 @click=${(x) => {
       x.stopPropagation(), this.emit("preview-select", { kind: "page-title" });
     }}
@@ -983,14 +971,14 @@ const Re = class Re extends E {
                   >${e.title}</span
                 >
               </div>` : null}${this.pageDropzones()}
-        <div class="page-content" style=${yt}>
-          ${s.map(({ row: x, rowIndex: A, hidden: Z, cards: W }) => {
-      const O = F * (x.weight ?? 1) / $e, ce = O - (x.title && x.showTitle !== !1 && O >= 24 ? 17 : 0), xt = (xe - 4 * Math.max(0, W.length - 1)) / W.length;
-      return n`<div
-              class="group ${Z ? "hidden-item" : ""}"
+        <div class="page-content" style=${St}>
+          ${s.map(({ row: x, rowIndex: A, hidden: ee, cards: Y }) => {
+      const R = W * (x.weight ?? 1) / ke, he = R - (x.title && x.showTitle !== !1 && R >= 24 ? 17 : 0), Fe = (_e - 4 * Math.max(0, Y.length - 1)) / Y.length;
+      return l`<div
+              class="group ${ee ? "hidden-item" : ""}"
               style="flex:${x.weight ?? 1}"
             >
-              ${x.title && x.showTitle !== !1 ? n`<div
+              ${x.title && x.showTitle !== !1 ? l`<div
                       class="title ${this.interactive ? "interactive" : ""}"
                       @click=${(g) => {
         g.stopPropagation(), this.emit("preview-select", {
@@ -1003,88 +991,101 @@ const Re = class Re extends E {
                     </div>` : null}
               <div
                 class="row"
-                style="grid-template-columns:repeat(${W.length},minmax(0,1fr))"
+                style="grid-template-columns:repeat(${Y.length},minmax(0,1fr))"
               >
-                ${W.map(({ card: g, cardIndex: Y, hidden: $t }) => {
-        const Ne = g.source ? this.hass?.states[g.source]?.state ?? "—" : g.text ?? "—", Ue = Number(Ne), we = g.minimum ?? 0, qe = g.maximum ?? 100, je = Number.isFinite(Ue) && qe > we ? Math.max(
+                ${Y.map(({ card: g, cardIndex: X, hidden: Dt }) => {
+        const Ve = g.source ? this.hass?.states[g.source]?.state ?? "—" : g.text ?? "—", Be = Number(Ve), Se = g.minimum ?? 0, We = g.maximum ?? 100, Ye = Number.isFinite(Be) && We > Se ? Math.max(
           0,
-          Math.min(100, (Ue - we) / (qe - we) * 100)
-        ) : 0, wt = "sans-serif", Le = this.cardValue(g), _t = g.progress === "ring" ? Math.min(22, Math.max(12, ce / 4)) : ce - (g.progress === "bar" ? 9 : 0), kt = this.valueFontSize(
+          Math.min(100, (Be - Se) / (We - Se) * 100)
+        ) : 0, Et = "sans-serif", Xe = this.cardValue(g), Ct = !!(g.title && he >= 28), z = g.titleStyle?.verticalAlign ?? "top", Pt = Ct && (z === "top" || z === "bottom"), Mt = [void 0, "auto", "small"].includes(
+          g.titleStyle?.fontSize
+        ) && [void 0, "default", "sans", "sans-bold"].includes(
+          g.titleStyle?.fontFamily
+        ), Ae = g.progress === "bar" ? 14 : 5, De = he - (g.progress === "bar" ? 9 : 0), G = Pt ? Math.min(Mt ? 12 : 18, De / 2) : 0, Tt = g.progress === "ring" ? Math.min(
+          22,
+          Math.max(12, (De - G) / 4)
+        ) : De - G, zt = this.valueFontSize(
           g,
-          Le,
-          xt,
-          _t
-        ), He = si(g, Ne), Ve = He?.background ?? g.style?.background ?? "", Be = He?.foreground ?? g.style?.foreground ?? "", Fe = (q[Ve] ?? Ve) || "#20242d", We = q[g.style?.accent ?? ""] ?? g.style?.accent ?? "#42a5f5", St = (q[Be] ?? Be) || "white", At = {
+          Xe,
+          Fe,
+          Tt
+        ), Ge = mi(g, Ve), Ke = Ge?.background ?? g.style?.background ?? "", Je = Ge?.foreground ?? g.style?.foreground ?? "", Ze = (N[Ke] ?? Ke) || "#20242d", Qe = N[g.style?.accent ?? ""] ?? g.style?.accent ?? "#42a5f5", It = (N[Je] ?? Je) || "white", Ot = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[g.valueStyle?.horizontalAlign ?? "center"], Dt = {
+        }[g.valueStyle?.horizontalAlign ?? "center"], Rt = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[g.valueStyle?.verticalAlign ?? "middle"], Et = g.valueStyle?.horizontalAlign ?? "center", Ct = {
+        }[g.valueStyle?.verticalAlign ?? "middle"], Nt = g.valueStyle?.horizontalAlign ?? "center", Ut = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[g.titleStyle?.horizontalAlign ?? "left"], Pt = {
+        }[g.titleStyle?.horizontalAlign ?? "left"], qt = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[g.titleStyle?.verticalAlign ?? "top"], Ye = `top:5px;right:5px;bottom:${g.progress && g.progress !== "none" ? 14 : 5}px;left:5px`, Ge = n`<div
+        }[z], jt = 5 + (z === "top" ? G : 0), Lt = Ae + (z === "bottom" ? G : 0), et = `top:${jt}px;right:5px;bottom:${Lt}px;left:5px`, Ht = z === "top" ? `top:5px;right:5px;height:${G}px;left:5px` : z === "bottom" ? `right:5px;bottom:${Ae}px;height:${G}px;left:5px` : `top:5px;right:5px;bottom:${Ae}px;left:5px`;
+        this.measureContext ??= document.createElement("canvas").getContext("2d"), this.measureContext && (this.measureContext.font = "11px sans-serif");
+        const Ee = g.title ? Math.max(
+          0,
+          (this.measureContext?.measureText(g.title).width ?? 0) - (Fe - 10)
+        ) : 0, ue = Ee > 0 && (z === "top" || z === "bottom"), tt = l`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${wt};font-size:${kt}px;font-weight:700`}
-                    @click=${(z) => {
-          z.stopPropagation(), this.emit("preview-select", {
+                    style=${`font-family:${Et};font-size:${zt}px;font-weight:700;${this.textEffectCss(g.valueStyle)}`}
+                    @click=${(I) => {
+          I.stopPropagation(), this.emit("preview-select", {
             kind: "value",
             row: A,
-            card: Y
+            card: X
           });
         }}
-                    @dragstart=${(z) => this.startDrag(z, { kind: "value", row: A, card: Y })}
+                    @dragstart=${(I) => this.startDrag(I, { kind: "value", row: A, card: X })}
                     @dragend=${() => this.stopDrag()}
                   >
-                    ${Le}
+                    ${Xe}
                   </div>`;
-        return n`<div
-                    class="card ${this.interactive ? "interactive" : ""} ${$t && !Z ? "hidden-item" : ""}"
-                    style=${`background:${Fe};color:${St}`}
-                    @click=${(z) => {
-          z.stopPropagation(), this.emit("preview-select", {
+        return l`<div
+                    class="card ${this.interactive ? "interactive" : ""} ${Dt && !ee ? "hidden-item" : ""}"
+                    style=${`background:${Ze};color:${It}`}
+                    @click=${(I) => {
+          I.stopPropagation(), this.emit("preview-select", {
             kind: "card",
             row: A,
-            card: Y
+            card: X
           });
         }}
                   >
-                    ${g.title ? n`<small
-                            style=${`${Ye};align-items:${Pt};justify-content:${Ct};text-align:${g.titleStyle?.horizontalAlign ?? "left"}`}
+                    ${g.title ? l`<small
+                            style=${`${Ht};align-items:${qt};justify-content:${ue ? "flex-start" : Ut};text-align:${ue ? "left" : g.titleStyle?.horizontalAlign ?? "left"}`}
                             ><span
-                              class="card-label"
+                              class="card-label ${ue ? "marquee" : ""}"
+                              style=${`${ue ? `--marquee-distance:-${Ee}px;--marquee-duration:${Math.max(3, 1.7 + Ee * 0.035)}s;` : ""}${this.textEffectCss(g.titleStyle)}`}
                               .draggable=${this.interactive}
-                              @click=${(z) => {
-          z.stopPropagation(), this.emit("preview-select", {
+                              @click=${(I) => {
+          I.stopPropagation(), this.emit("preview-select", {
             kind: "title",
             row: A,
-            card: Y
+            card: X
           });
         }}
-                              @dragstart=${(z) => this.startDrag(z, { kind: "title", row: A, card: Y })}
+                              @dragstart=${(I) => this.startDrag(I, { kind: "title", row: A, card: X })}
                               @dragend=${() => this.stopDrag()}
                               >${g.title}</span
                             ></small
-                          >` : null}${g.progress === "ring" ? n`<div class="ring-stack">
+                          >` : null}${g.progress === "ring" ? l`<div class="ring-stack" style=${et}>
                             <div
                               class="ring"
-                              style=${`background:conic-gradient(${We} ${je}%,#3d424e 0);--ring-bg:${Fe}`}
+                              style=${`background:conic-gradient(${Qe} ${Ye}%,#3d424e 0);--ring-bg:${Ze}`}
                             ></div>
-                            ${Ge}
-                          </div>` : n`<div
+                            ${tt}
+                          </div>` : l`<div
                             class="value-wrap"
-                            style=${`${Ye};align-items:${Dt};justify-content:${At};text-align:${Et}`}
+                            style=${`${et};align-items:${Rt};justify-content:${Ot};text-align:${Nt}`}
                           >
-                            ${Ge}
-                          </div>`}${this.positionGrid(A, Y)}${g.progress === "bar" ? n`<div class="bar"><i style=${`width:${je}%;background:${We}`}></i></div>` : null}
+                            ${tt}
+                          </div>`}${this.positionGrid(A, X)}${g.progress === "bar" ? l`<div class="bar"><i style=${`width:${Ye}%;background:${Qe}`}></i></div>` : null}
                   </div>`;
       })}
               </div>
@@ -1095,7 +1096,7 @@ const Re = class Re extends E {
     </div>`;
   }
 };
-Re.styles = V`
+He.styles = V`
     :host {
       display: block;
       width: 240px;
@@ -1227,7 +1228,7 @@ Re.styles = V`
     .card small {
       z-index: 2;
       height: auto;
-      font: 9px sans-serif;
+      font: 11px/12px sans-serif;
       color: #bbb;
       white-space: nowrap;
       overflow: hidden;
@@ -1236,6 +1237,12 @@ Re.styles = V`
     .card-label,
     .value {
       pointer-events: auto;
+    }
+    .card-label.marquee {
+      display: inline-block;
+      max-width: none;
+      text-overflow: clip;
+      animation: card-title-marquee var(--marquee-duration) linear infinite;
     }
     .value-wrap {
       z-index: 1;
@@ -1418,6 +1425,16 @@ Re.styles = V`
         background-position: -220% 0;
       }
     }
+    @keyframes card-title-marquee {
+      0%,
+      22% {
+        transform: translateX(0);
+      }
+      78%,
+      100% {
+        transform: translateX(var(--marquee-distance));
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       .loading {
         animation: none;
@@ -1427,33 +1444,33 @@ Re.styles = V`
       }
     }
   `;
-let _ = Re;
+let _ = He;
 k([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], _.prototype, "dashboard");
 k([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], _.prototype, "hass");
 k([
-  h({ type: Number })
+  u({ type: Number })
 ], _.prototype, "page");
 k([
-  h({ type: Boolean })
+  u({ type: Boolean })
 ], _.prototype, "autoRotate");
 k([
-  h({ type: Number })
+  u({ type: Number })
 ], _.prototype, "width");
 k([
-  h({ type: Number })
+  u({ type: Number })
 ], _.prototype, "height");
 k([
-  h()
+  u()
 ], _.prototype, "displayId");
 k([
-  h({ type: Boolean })
+  u({ type: Boolean })
 ], _.prototype, "interactive");
 k([
-  h({ type: Boolean })
+  u({ type: Boolean })
 ], _.prototype, "showHidden");
 k([
   f()
@@ -1471,270 +1488,123 @@ k([
   f()
 ], _.prototype, "dragPoint");
 customElements.get("mini-display-preview") || customElements.define("mini-display-preview", _);
-var di = Object.defineProperty, ci = Object.getOwnPropertyDescriptor, T = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? ci(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var $i = Object.defineProperty, wi = Object.getOwnPropertyDescriptor, T = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? wi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && di(e, i, a), a;
+  return s && a && $i(e, i, a), a;
 };
-const ee = (t, e, i) => {
-  t.dispatchEvent(
-    new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
-  );
+const ie = (t, e, i) => {
+  t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let S = class extends E {
   constructor() {
     super(...arguments), this.displays = [], this.dashboards = {}, this.pages = {}, this.dirtyDisplays = /* @__PURE__ */ new Set(), this.selectedDisplayId = "", this.selectedSceneId = "", this.selectedSceneName = "", this.showHidden = !1;
   }
   render() {
-    return n`
+    return l`
       ${this.displays.map((t) => this.renderDisplay(t))}
-      <div class="preview-footer">
-        <label class="show-hidden"
-          ><input
-            type="checkbox"
-            .checked=${this.showHidden}
-            @change=${(t) => this.showHidden = t.target.checked}
-          />Show hidden cards</label
-        >
-      </div>
+      <div class="preview-footer"><label class="show-hidden"><input type="checkbox" .checked=${this.showHidden} @change=${(t) => this.showHidden = t.target.checked}>Show hidden cards</label></div>
     `;
   }
   renderDisplay(t) {
-    const e = this.dashboards[t.config_entry_id], i = Math.min(
-      this.pages[t.config_entry_id] ?? 0,
-      Math.max(0, (e?.pages.length ?? 1) - 1)
-    ), s = t.preview_scene_id === this.selectedSceneId, a = t.active_scene_id === this.selectedSceneId, r = !!e;
-    return n`
+    const e = this.dashboards[t.config_entry_id], i = Math.min(this.pages[t.config_entry_id] ?? 0, Math.max(0, (e?.pages.length ?? 1) - 1)), s = t.preview_scene_id === this.selectedSceneId, a = t.active_scene_id === this.selectedSceneId, r = !!e;
+    return l`
       <ha-card
         class=${t.config_entry_id === this.selectedDisplayId ? "selected" : ""}
-        @click=${() => ee(this, "display-selected", t.config_entry_id)}
+        @click=${() => ie(this, "display-selected", t.config_entry_id)}
       >
         <header>
-          <div>
-            <strong>${t.title}</strong
-            ><small>Active: ${t.active_scene_name ?? "Unknown"}</small>
-          </div>
+          <div><strong>${t.title}</strong><small>Active: ${t.active_scene_name ?? "Unknown"}</small></div>
           <button
             class="icon ${s ? "active" : ""}"
             title=${s ? "Stop temporary preview" : e ? "Show temporarily for 5 minutes" : "Add a layout first"}
             aria-label=${s ? "Stop temporary preview" : "Show temporary preview"}
             ?disabled=${!s && !r}
             @click=${(o) => {
-      o.stopPropagation(), ee(this, "preview-toggle", t);
+      o.stopPropagation(), ie(this, "preview-toggle", t);
     }}
           >
-            <ha-icon
-              icon=${s ? "mdi:eye" : "mdi:eye-off-outline"}
-            ></ha-icon>
+            <ha-icon icon=${s ? "mdi:eye" : "mdi:eye-off-outline"}></ha-icon>
           </button>
         </header>
-        ${e ? n`
-                <mini-display-preview
-                  .dashboard=${e}
-                  .hass=${this.hass}
-                  .page=${i}
-                  .width=${t.width}
-                  .height=${t.height}
-                  .displayId=${t.config_entry_id}
-                  .interactive=${!0}
-                  .showHidden=${this.showHidden}
-                  @click=${(o) => o.stopPropagation()}
-                ></mini-display-preview>
-                ${e.pages.length > 1 ? n`
-                  <nav>
-                    <button
-                      class="icon"
-                      aria-label="Previous page"
-                      @click=${(o) => {
-      o.stopPropagation(), ee(this, "preview-page", {
-        displayId: t.config_entry_id,
-        delta: -1
-      });
-    }}
-                    >
-                      <ha-icon icon="mdi:chevron-left"></ha-icon>
-                    </button>
-                    <span>${i + 1} / ${e.pages.length}</span>
-                    <button
-                      class="icon"
-                      aria-label="Next page"
-                      @click=${(o) => {
-      o.stopPropagation(), ee(this, "preview-page", {
-        displayId: t.config_entry_id,
-        delta: 1
-      });
-    }}
-                    >
-                      <ha-icon icon="mdi:chevron-right"></ha-icon>
-                    </button>
-                  </nav>
-                ` : c}
-              ` : n`<ha-alert alert-type="info"
-                >No layout in this scene.</ha-alert
-              >`}
-        ${!a && e ? n`<ha-button
-                .disabled=${this.dirtyDisplays.has(t.config_entry_id)}
-                @click=${(o) => {
-      o.stopPropagation(), ee(this, "scene-activate", t);
-    }}
-                >Activate ${this.selectedSceneName}</ha-button
-              >` : c}
+        ${e ? l`
+          <mini-display-preview .dashboard=${e} .hass=${this.hass} .page=${i} .width=${t.width} .height=${t.height} .displayId=${t.config_entry_id} .interactive=${!0} .showHidden=${this.showHidden} @click=${(o) => o.stopPropagation()}></mini-display-preview>
+          ${e.pages.length > 1 ? l`
+            <nav>
+              <button class="icon" aria-label="Previous page" @click=${(o) => {
+      o.stopPropagation(), ie(this, "preview-page", { displayId: t.config_entry_id, delta: -1 });
+    }}><ha-icon icon="mdi:chevron-left"></ha-icon></button>
+              <span>${i + 1} / ${e.pages.length}</span>
+              <button class="icon" aria-label="Next page" @click=${(o) => {
+      o.stopPropagation(), ie(this, "preview-page", { displayId: t.config_entry_id, delta: 1 });
+    }}><ha-icon icon="mdi:chevron-right"></ha-icon></button>
+            </nav>
+          ` : c}
+        ` : l`<ha-alert alert-type="info">No layout in this scene.</ha-alert>`}
+        ${!a && e ? l`<ha-button .disabled=${this.dirtyDisplays.has(t.config_entry_id)} @click=${(o) => {
+      o.stopPropagation(), ie(this, "scene-activate", t);
+    }}>Activate ${this.selectedSceneName}</ha-button>` : c}
       </ha-card>
     `;
   }
 };
 S.styles = V`
-    :host {
-      display: grid;
-      gap: 12px;
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-      position: sticky;
-      top: 16px;
-      font-family: var(--ha-font-family-body, Roboto, sans-serif);
-    }
-    .preview-footer {
-      display: flex;
-      justify-content: center;
-    }
-    .show-hidden {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 40px;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .show-hidden input {
-      width: 18px;
-      height: 18px;
-      margin: 0;
-    }
-    ha-card {
-      display: grid;
-      gap: 10px;
-      padding: 12px;
-      border: 2px solid transparent;
-      cursor: pointer;
-    }
-    ha-card.selected {
-      border-color: var(--primary-color);
-    }
-    header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    strong,
-    small {
-      display: block;
-    }
-    strong {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    small {
-      margin-top: 3px;
-      color: var(--secondary-text-color);
-    }
-    .icon {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      color: var(--secondary-text-color);
-      background: transparent;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .icon:hover,
-    .icon.active {
-      color: var(--primary-color);
-      background: var(--secondary-background-color);
-    }
-    mini-display-preview {
-      margin: auto;
-    }
-    nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-    }
-    nav .icon {
-      width: 32px;
-      height: 32px;
-    }
-    ha-button {
-      width: 100%;
-    }
-    @media (max-width: 1100px) {
-      :host {
-        grid-column: 1/-1;
-        grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
-        max-height: none;
-        overflow: visible;
-        position: static;
-      }
-      .preview-footer {
-        grid-column: 1/-1;
-      }
-    }
-    @media (max-width: 700px) {
-      :host {
-        grid-column: auto;
-        grid-template-columns: 1fr;
-      }
-    }
+    :host { display: grid; gap: 12px; max-height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 16px; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
+    .preview-footer{display:flex;justify-content:center}.show-hidden{display:flex;align-items:center;gap:7px;min-height:40px;color:var(--secondary-text-color);font-size:12px;cursor:pointer}.show-hidden input{width:18px;height:18px;margin:0}
+    ha-card { display: grid; gap: 10px; padding: 12px; border: 2px solid transparent; cursor: pointer; }
+    ha-card.selected { border-color: var(--primary-color); }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    strong, small { display: block; }
+    strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    small { margin-top: 3px; color: var(--secondary-text-color); }
+    .icon { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; color: var(--secondary-text-color); background: transparent; border: 0; border-radius: 50%; cursor: pointer; }
+    .icon:hover, .icon.active { color: var(--primary-color); background: var(--secondary-background-color); }
+    mini-display-preview { margin: auto; }
+    nav { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--secondary-text-color); font-size: 12px; }
+    nav .icon { width: 32px; height: 32px; }
+    ha-button { width: 100%; }
+    @media(max-width:1100px) { :host { grid-column: 1/-1; grid-template-columns: repeat(auto-fit,minmax(272px,1fr)); max-height: none; overflow: visible; position: static; } .preview-footer { grid-column: 1/-1; } }
+    @media(max-width:700px) { :host { grid-column: auto; grid-template-columns: 1fr; } }
   `;
 T([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], S.prototype, "hass", 2);
 T([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], S.prototype, "displays", 2);
 T([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], S.prototype, "dashboards", 2);
 T([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], S.prototype, "pages", 2);
 T([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], S.prototype, "dirtyDisplays", 2);
 T([
-  h()
+  u()
 ], S.prototype, "selectedDisplayId", 2);
 T([
-  h()
+  u()
 ], S.prototype, "selectedSceneId", 2);
 T([
-  h()
+  u()
 ], S.prototype, "selectedSceneName", 2);
 T([
   f()
 ], S.prototype, "showHidden", 2);
 S = T([
-  le("mini-display-preview-list")
+  ce("mini-display-preview-list")
 ], S);
-var pi = Object.defineProperty, hi = Object.getOwnPropertyDescriptor, B = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? hi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var _i = Object.defineProperty, ki = Object.getOwnPropertyDescriptor, B = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? ki(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && pi(e, i, a), a;
+  return s && a && _i(e, i, a), a;
 };
 const D = (t, e, i) => {
-  t.dispatchEvent(
-    new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
-  );
+  t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
-let I = class extends E {
+let O = class extends E {
   constructor() {
     super(...arguments), this.displays = [], this.scenes = [], this.selectedDisplayId = "", this.selectedSceneId = "", this.form = null, this.sceneName = "", this.closeActionMenusOnOutsideClick = (t) => {
       const e = t.composedPath();
@@ -1744,18 +1614,10 @@ let I = class extends E {
     };
   }
   connectedCallback() {
-    super.connectedCallback(), window.addEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    );
+    super.connectedCallback(), window.addEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0);
   }
   disconnectedCallback() {
-    window.removeEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    ), super.disconnectedCallback();
+    window.removeEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0), super.disconnectedCallback();
   }
   actionMenuToggled(t) {
     const e = t.currentTarget;
@@ -1764,9 +1626,7 @@ let I = class extends E {
     });
   }
   closeActionMenu(t) {
-    const e = t.composedPath().find(
-      (s) => s instanceof HTMLButtonElement
-    );
+    const e = t.composedPath().find((s) => s instanceof HTMLButtonElement);
     if (!e || e.disabled) return;
     const i = t.currentTarget.closest("details");
     i && (i.open = !1);
@@ -1777,10 +1637,8 @@ let I = class extends E {
     e && (e.open = !1, e.querySelector("summary")?.focus(), t.preventDefault(), t.stopPropagation());
   }
   render() {
-    const t = this.displays.find(
-      (e) => e.config_entry_id === this.selectedDisplayId
-    );
-    return n`
+    const t = this.displays.find((e) => e.config_entry_id === this.selectedDisplayId);
+    return l`
       <ha-card>
         <header><h2>Display</h2></header>
         <div class="picker">
@@ -1790,289 +1648,114 @@ let I = class extends E {
               .value=${this.selectedDisplayId}
               @change=${(e) => D(this, "display-selected", e.target.value)}
             >
-              ${this.displays.map((e) => n`<option value=${e.config_entry_id}>${e.title}</option>`)}
+              ${this.displays.map((e) => l`<option value=${e.config_entry_id}>${e.title}</option>`)}
             </select>
           </label>
-          <span class="status ${t?.available ? "online" : ""}"
-            ><i></i>${t?.available ? "Online" : "Offline"}</span
-          >
+          <span class="status ${t?.available ? "online" : ""}"><i></i>${t?.available ? "Online" : "Offline"}</span>
         </div>
         <header>
           <h2>Scenes</h2>
-          <button
-            class="icon"
-            title="Add scene"
-            aria-label="Add scene"
-            @click=${() => D(this, "scene-create")}
-          >
+          <button class="icon" title="Add scene" aria-label="Add scene" @click=${() => D(this, "scene-create")}>
             <ha-icon icon="mdi:plus"></ha-icon>
           </button>
         </header>
         <div class="list">
-          ${this.scenes.map(
-      (e) => n`
-              <div
-                class="row ${e.id === this.selectedSceneId ? "active" : ""}"
-              >
-                <button
-                  class="scene"
-                  @click=${() => D(this, "scene-selected", e.id)}
-                >
-                  <ha-icon icon="mdi:layers-outline"></ha-icon>
-                  <span>${e.name}</span>
-                  ${e.is_default ? n`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : c}
-                </button>
-                ${e.id === this.selectedSceneId ? n`
-                      <details
-                        class="action-menu"
-                        @toggle=${this.actionMenuToggled}
-                        @keydown=${this.actionMenuKeydown}
-                      >
-                        <summary
-                          aria-label="Scene actions"
-                          aria-haspopup="menu"
-                        >
-                          <ha-icon icon="mdi:dots-vertical"></ha-icon>
-                        </summary>
-                        <div
-                          class="menu"
-                          role="menu"
-                          @click=${this.closeActionMenu}
-                        >
-                          <button @click=${() => D(this, "scene-rename")}>
-                            Rename
-                          </button>
-                          <button @click=${() => D(this, "scene-duplicate")}>
-                            Duplicate
-                          </button>
-                          ${e.is_default ? c : n`<button @click=${() => D(this, "scene-default")}>Set as default</button>`}
-                          ${e.is_default ? c : n`<button class="danger" @click=${() => D(this, "scene-delete")}>Delete</button>`}
-                        </div>
-                      </details>
-                    ` : c}
-              </div>
-            `
-    )}
+          ${this.scenes.map((e) => l`
+            <div class="row ${e.id === this.selectedSceneId ? "active" : ""}">
+              <button class="scene" @click=${() => D(this, "scene-selected", e.id)}>
+                <ha-icon icon="mdi:layers-outline"></ha-icon>
+                <span>${e.name}</span>
+                ${e.is_default ? l`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : c}
+              </button>
+              ${e.id === this.selectedSceneId ? l`
+                <details class="action-menu" @toggle=${this.actionMenuToggled} @keydown=${this.actionMenuKeydown}>
+                  <summary aria-label="Scene actions" aria-haspopup="menu"><ha-icon icon="mdi:dots-vertical"></ha-icon></summary>
+                  <div class="menu" role="menu" @click=${this.closeActionMenu}>
+                    <button @click=${() => D(this, "scene-rename")}>Rename</button>
+                    <button @click=${() => D(this, "scene-duplicate")}>Duplicate</button>
+                    ${e.is_default ? c : l`<button @click=${() => D(this, "scene-default")}>Set as default</button>`}
+                    ${e.is_default ? c : l`<button class="danger" @click=${() => D(this, "scene-delete")}>Delete</button>`}
+                  </div>
+                </details>
+              ` : c}
+            </div>
+          `)}
         </div>
-        ${this.form ? n`
-                <div class="form">
-                  <strong>Rename scene</strong>
-                  <ha-textfield
-                    label="Scene name"
-                    .value=${this.sceneName}
-                    @input=${(e) => D(this, "scene-name", e.target.value)}
-                    @keydown=${(e) => {
+        ${this.form ? l`
+          <div class="form">
+            <strong>Rename scene</strong>
+            <ha-textfield
+              label="Scene name"
+              .value=${this.sceneName}
+              @input=${(e) => D(this, "scene-name", e.target.value)}
+              @keydown=${(e) => {
       e.key === "Enter" && D(this, "scene-save");
     }}
-                  ></ha-textfield>
-                  <div class="actions">
-                    <ha-button @click=${() => D(this, "scene-cancel")}
-                      >Cancel</ha-button
-                    >
-                    <ha-button
-                      .disabled=${!this.sceneName.trim()}
-                      @click=${() => D(this, "scene-save")}
-                      >Save</ha-button
-                    >
-                  </div>
-                </div>
-              ` : c}
+            ></ha-textfield>
+            <div class="actions">
+              <ha-button @click=${() => D(this, "scene-cancel")}>Cancel</ha-button>
+              <ha-button .disabled=${!this.sceneName.trim()} @click=${() => D(this, "scene-save")}>Save</ha-button>
+            </div>
+          </div>
+        ` : c}
       </ha-card>
     `;
   }
 };
-I.styles = V`
-    :host {
-      display: block;
-      font-family: var(--ha-font-family-body, Roboto, sans-serif);
-    }
-    ha-card {
-      overflow: visible;
-      border: 1px solid var(--divider-color);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 52px;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--divider-color);
-    }
-    h2 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 500;
-    }
-    .picker,
-    .form {
-      display: grid;
-      gap: 8px;
-      padding: 12px;
-      border-bottom: 1px solid var(--divider-color);
-    }
-    label {
-      display: grid;
-      gap: 5px;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-    }
-    select {
-      width: 100%;
-      min-height: 40px;
-      padding: 8px;
-      color: var(--primary-text-color);
-      font: inherit;
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-    }
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-    }
-    .status i {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--error-color);
-    }
-    .status.online i {
-      background: var(--success-color);
-    }
-    .list {
-      display: grid;
-      gap: 4px;
-      padding: 8px;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 36px;
-      align-items: center;
-      border-radius: 10px;
-    }
-    .row.active {
-      background: var(--secondary-background-color);
-    }
-    .scene {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-height: 44px;
-      padding: 8px 10px;
-      color: var(--primary-text-color);
-      font: inherit;
-      text-align: left;
-      background: transparent;
-      border: 0;
-      cursor: pointer;
-    }
-    .scene span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .scene .default {
-      flex: none;
-      color: var(--primary-color);
-    }
-    .scene ha-icon {
-      color: var(--secondary-text-color);
-    }
-    .active .scene ha-icon {
-      color: var(--primary-color);
-    }
-    .icon {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      color: var(--primary-text-color);
-      background: transparent;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .icon:hover {
-      background: var(--card-background-color);
-    }
-    details {
-      position: relative;
-    }
-    summary {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      list-style: none;
-      cursor: pointer;
-    }
-    summary::-webkit-details-marker {
-      display: none;
-    }
-    .menu {
-      position: absolute;
-      right: 0;
-      z-index: 20;
-      display: grid;
-      width: 150px;
-      padding: 6px;
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 10px;
-      box-shadow: var(--ha-card-box-shadow);
-    }
-    .menu button {
-      min-height: 38px;
-      padding: 8px;
-      color: var(--primary-text-color);
-      font: inherit;
-      text-align: left;
-      background: transparent;
-      border: 0;
-      cursor: pointer;
-    }
-    .menu .danger {
-      color: var(--error-color);
-    }
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-    .form strong {
-      font-size: 14px;
-    }
-    .form small {
-      color: var(--secondary-text-color);
-      line-height: 1.4;
-    }
+O.styles = V`
+    :host { display: block; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
+    ha-card { overflow: visible; border: 1px solid var(--divider-color); }
+    header { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 10px 12px; border-bottom: 1px solid var(--divider-color); }
+    h2 { margin: 0; font-size: 16px; font-weight: 500; }
+    .picker, .form { display: grid; gap: 8px; padding: 12px; border-bottom: 1px solid var(--divider-color); }
+    label { display: grid; gap: 5px; color: var(--secondary-text-color); font-size: 12px; }
+    select { width: 100%; min-height: 40px; padding: 8px; color: var(--primary-text-color); font: inherit; background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+    .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--error-color); }
+    .status.online i { background: var(--success-color); }
+    .list { display: grid; gap: 4px; padding: 8px; }
+    .row { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; border-radius: 10px; }
+    .row.active { background: var(--secondary-background-color); }
+    .scene { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 10px; color: var(--primary-text-color); font: inherit; text-align: left; background: transparent; border: 0; cursor: pointer; }
+    .scene span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .scene .default { flex: none; color: var(--primary-color); }
+    .scene ha-icon { color: var(--secondary-text-color); }
+    .active .scene ha-icon { color: var(--primary-color); }
+    .icon { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; color: var(--primary-text-color); background: transparent; border: 0; border-radius: 50%; cursor: pointer; }
+    .icon:hover { background: var(--card-background-color); }
+    details { position: relative; }
+    summary { display: grid; place-items: center; width: 36px; height: 36px; list-style: none; cursor: pointer; }
+    summary::-webkit-details-marker { display: none; }
+    .menu { position: absolute; right: 0; z-index: 20; display: grid; width: 150px; padding: 6px; background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 10px; box-shadow: var(--ha-card-box-shadow); }
+    .menu button { min-height: 38px; padding: 8px; color: var(--primary-text-color); font: inherit; text-align: left; background: transparent; border: 0; cursor: pointer; }
+    .menu .danger { color: var(--error-color); }
+    .actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .form strong { font-size: 14px; }
+    .form small { color: var(--secondary-text-color); line-height: 1.4; }
   `;
 B([
-  h({ attribute: !1 })
-], I.prototype, "displays", 2);
+  u({ attribute: !1 })
+], O.prototype, "displays", 2);
 B([
-  h({ attribute: !1 })
-], I.prototype, "scenes", 2);
+  u({ attribute: !1 })
+], O.prototype, "scenes", 2);
 B([
-  h()
-], I.prototype, "selectedDisplayId", 2);
+  u()
+], O.prototype, "selectedDisplayId", 2);
 B([
-  h()
-], I.prototype, "selectedSceneId", 2);
+  u()
+], O.prototype, "selectedSceneId", 2);
 B([
-  h()
-], I.prototype, "form", 2);
+  u()
+], O.prototype, "form", 2);
 B([
-  h()
-], I.prototype, "sceneName", 2);
-I = B([
-  le("mini-display-scene-sidebar")
-], I);
-const G = { ATTRIBUTE: 1, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4 }, ui = (t) => (...e) => ({ _$litDirective$: t, values: e });
-class gi {
+  u()
+], O.prototype, "sceneName", 2);
+O = B([
+  ce("mini-display-scene-sidebar")
+], O);
+const K = { ATTRIBUTE: 1, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4 }, Si = (t) => (...e) => ({ _$litDirective$: t, values: e });
+class Ai {
   constructor(e) {
   }
   get _$AU() {
@@ -2088,11 +1771,11 @@ class gi {
     return this.render(...i);
   }
 }
-const mi = (t) => t.strings === void 0, fi = {}, vi = (t, e = fi) => t._$AH = e;
-const X = ui(class extends gi {
+const Di = (t) => t.strings === void 0, Ei = {}, Ci = (t, e = Ei) => t._$AH = e;
+const J = Si(class extends Ai {
   constructor(t) {
-    if (super(t), t.type !== G.PROPERTY && t.type !== G.ATTRIBUTE && t.type !== G.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-    if (!mi(t)) throw Error("`live` bindings can only contain a single expression");
+    if (super(t), t.type !== K.PROPERTY && t.type !== K.ATTRIBUTE && t.type !== K.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
+    if (!Di(t)) throw Error("`live` bindings can only contain a single expression");
   }
   render(t) {
     return t;
@@ -2100,20 +1783,20 @@ const X = ui(class extends gi {
   update(t, [e]) {
     if (e === P || e === c) return e;
     const i = t.element, s = t.name;
-    if (t.type === G.PROPERTY) {
+    if (t.type === K.PROPERTY) {
       if (e === i[s]) return P;
-    } else if (t.type === G.BOOLEAN_ATTRIBUTE) {
+    } else if (t.type === K.BOOLEAN_ATTRIBUTE) {
       if (!!e === i.hasAttribute(s)) return P;
-    } else if (t.type === G.ATTRIBUTE && i.getAttribute(s) === e + "") return P;
-    return vi(t), e;
+    } else if (t.type === K.ATTRIBUTE && i.getAttribute(s) === e + "") return P;
+    return Ci(t), e;
   }
 });
-var yi = Object.defineProperty, bi = Object.getOwnPropertyDescriptor, N = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? bi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Pi = Object.defineProperty, Mi = Object.getOwnPropertyDescriptor, q = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Mi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && yi(e, i, a), a;
+  return s && a && Pi(e, i, a), a;
 };
-const ot = {
+const ut = {
   range: "is in number range",
   number_equals: "equals",
   number_not_equals: "does not equal",
@@ -2128,7 +1811,7 @@ const ot = {
   contains: "contains",
   available: "is available",
   unavailable: "is unavailable"
-}, me = [
+}, ye = [
   "number_equals",
   "number_not_equals",
   "greater_than",
@@ -2136,327 +1819,101 @@ const ot = {
   "less_than",
   "less_than_or_equal",
   "range"
-], ke = new Set(
-  me.filter((t) => t !== "range")
-), Se = [
-  "equals",
-  "not_equals",
-  "starts_with",
-  "ends_with",
-  "contains"
-], te = [
-  "available",
-  "unavailable"
-], Ae = (t) => me.includes(t), nt = () => ({
-  rules: [
-    {
-      id: "rule_a",
-      source: "entity",
-      entity: "",
-      operator: "equals",
-      match: ""
-    }
-  ],
-  expression: {
-    type: "group",
-    operator: "and",
-    children: [{ type: "rule", ruleId: "rule_a" }]
-  }
-}), lt = [
-  "#039be5",
-  "#8e24aa",
-  "#fb8c00",
-  "#43a047",
-  "#e53935",
-  "#00897b",
-  "#d81b60",
-  "#3949ab",
-  "#f9a825",
-  "#00acc1",
-  "#f4511e",
-  "#7cb342"
-], C = (t) => t.replace("rule_", "").toUpperCase(), dt = (t) => lt[Math.max(0, t.charCodeAt(t.length - 1) - 97) % lt.length], De = (t, e, i) => {
-  t.dispatchEvent(
-    new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
-  );
+], Pe = new Set(ye.filter((t) => t !== "range")), Me = ["equals", "not_equals", "starts_with", "ends_with", "contains"], se = ["available", "unavailable"], Te = (t) => ye.includes(t), gt = () => ({
+  rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
+  expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_a" }] }
+}), mt = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"], C = (t) => t.replace("rule_", "").toUpperCase(), ft = (t) => mt[Math.max(0, t.charCodeAt(t.length - 1) - 97) % mt.length], ze = (t, e, i) => {
+  t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let M = class extends E {
   constructor() {
-    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = nt(), this.advanced = !1, this.draftInitialized = !1;
+    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = gt(), this.advanced = !1, this.draftInitialized = !1;
   }
   connectedCallback() {
-    super.connectedCallback(), this.valueRefreshTimer = window.setInterval(
-      () => this.requestUpdate(),
-      3e3
-    );
+    super.connectedCallback(), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
   }
   willUpdate() {
-    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? nt()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
+    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? gt()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
   }
   disconnectedCallback() {
     this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
   }
   render() {
     const t = this.validationError;
-    return n` <ha-card
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="visibility-title"
-      @click=${(e) => e.stopPropagation()}
-    >
-      <header>
-        <h2 id="visibility-title">${this.targetName} visibility</h2>
-      </header>
-      <main>
-        <div
-          class="mode-switch"
-          role="tablist"
-          aria-label="Visibility editor mode"
-        >
-          <button
-            class=${this.advanced ? "" : "active"}
-            role="tab"
-            aria-selected=${!this.advanced}
-            @click=${() => this.advanced = !1}
-          >
-            Simple</button
-          ><button
-            class=${this.advanced ? "active" : ""}
-            role="tab"
-            aria-selected=${this.advanced}
-            @click=${() => this.advanced = !0}
-          >
-            Advanced
-          </button>
-        </div>
-        <p>
-          ${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}
-        </p>
-        ${!this.advanced && this.draft.rules.length > 1 ? n`<label
-                  >Match<select
-                    .value=${X(this.draft.expression.operator)}
-                    @change=${(e) => this.updateGroup([], { operator: e.target.value })}
-                  >
-                    <option value="and">All conditions</option>
-                    <option value="or">Any condition</option>
-                  </select></label
-                >` : c}
-        ${!this.advanced && this.hasAdvancedLogic ? n`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : c}
-        <section>
-          <div class="section-head">
-            <h3>Conditions</h3>
-            <ha-button
-              .disabled=${this.draft.rules.length >= 12}
-              @click=${this.addRule}
-              >Add condition</ha-button
-            >
-          </div>
-          <div class="rule-list">
-            ${this.draft.rules.map((e, i) => this.renderRule(e, i))}
-          </div>
-        </section>
-        ${this.advanced ? n`<section>
-                  <div class="section-head"><h3>Logic</h3></div>
-                  <div class="logic">
-                    ${this.renderGroup(this.draft.expression, [])}
-                  </div>
-                </section>` : c}
-        ${t ? n`<p class="error" role="alert">${t}</p>` : c}
-      </main>
-      <footer class="actions">
-        <ha-button @click=${() => De(this, "visibility-clear")}
-          >Always visible</ha-button
-        >
-        <div class="right">
-          <ha-button @click=${() => De(this, "visibility-cancel")}
-            >Cancel</ha-button
-          ><ha-button .disabled=${!!t} @click=${this.save}
-            >Save</ha-button
-          >
-        </div>
-      </footer>
-    </ha-card>`;
+    return l`
+      <ha-card role="dialog" aria-modal="true" aria-labelledby="visibility-title" @click=${(e) => e.stopPropagation()}>
+        <header><h2 id="visibility-title">${this.targetName} visibility</h2></header>
+        <main>
+          <div class="mode-switch" role="tablist" aria-label="Visibility editor mode"><button class=${this.advanced ? "" : "active"} role="tab" aria-selected=${!this.advanced} @click=${() => this.advanced = !1}>Simple</button><button class=${this.advanced ? "active" : ""} role="tab" aria-selected=${this.advanced} @click=${() => this.advanced = !0}>Advanced</button></div>
+          <p>${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}</p>
+          ${!this.advanced && this.draft.rules.length > 1 ? l`<label>Match<select .value=${J(this.draft.expression.operator)} @change=${(e) => this.updateGroup([], { operator: e.target.value })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : c}
+          ${!this.advanced && this.hasAdvancedLogic ? l`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : c}
+          <section><div class="section-head"><h3>Conditions</h3><ha-button .disabled=${this.draft.rules.length >= 12} @click=${this.addRule}>Add condition</ha-button></div><div class="rule-list">${this.draft.rules.map((e, i) => this.renderRule(e, i))}</div></section>
+          ${this.advanced ? l`<section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div></section>` : c}
+          ${t ? l`<p class="error" role="alert">${t}</p>` : c}
+        </main>
+        <footer class="actions"><ha-button @click=${() => ze(this, "visibility-clear")}>Always visible</ha-button><div class="right"><ha-button @click=${() => ze(this, "visibility-cancel")}>Cancel</ha-button><ha-button .disabled=${!!t} @click=${this.save}>Save</ha-button></div></footer>
+      </ha-card>`;
   }
   get canUseCardValue() {
     return this.targetKind === "card" && !!(this.card?.source || this.card?.type === "text" && this.card.text !== void 0);
   }
   renderRule(t, e) {
-    const i = t.source === "entity", s = Se.includes(t.operator), a = ke.has(t.operator);
-    return n`<article class="rule">
+    const i = t.source === "entity", s = Me.includes(t.operator), a = Pe.has(t.operator);
+    return l`<article class="rule">
       <div class="rule-head">
-        <span class="rule-marker" style=${`background:${dt(t.id)}`}
-          >${C(t.id)}</span
-        >
-        <label
-          >Value source<select
-            .value=${X(t.source)}
-            @change=${(r) => this.changeSource(e, r.target.value)}
-          >
-            <option value="card" ?disabled=${!this.canUseCardValue}>
-              This card
-            </option>
-            <option value="entity">Another entity</option>
-          </select></label
-        >
-        <button
-          class="icon danger"
-          ?disabled=${this.draft.rules.length === 1}
-          aria-label=${`Remove condition ${C(t.id)}`}
-          @click=${() => this.removeRule(e)}
-        >
-          <ha-icon icon="mdi:delete-outline"></ha-icon>
-        </button>
+        <span class="rule-marker" style=${`background:${ft(t.id)}`}>${C(t.id)}</span>
+        <label>Value source<select .value=${J(t.source)} @change=${(r) => this.changeSource(e, r.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${C(t.id)}`} @click=${() => this.removeRule(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
-        <label
-          >Comparison<select
-            .value=${X(t.operator)}
-            @change=${(r) => this.changeOperator(e, r.target.value)}
-          >
-            ${this.operatorOptions(t).map((r) => n`<option value=${r}>${ot[r]}</option>`)}
-          </select></label
-        >
-        ${i ? n`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(r) => this.updateRule(e, { entity: r.detail.value.entity })}></ha-form>${this.currentValue(t)}</div>` : n`<div class="entity-source">${this.currentValue(t)}</div>`}
-        ${t.operator === "range" ? n`<div class="range">${this.numberField("From", t.minimum, (r) => this.updateRule(e, { minimum: r }))}${this.numberField("To", t.maximum, (r) => this.updateRule(e, { maximum: r }))}</div>` : a ? this.numberField("Value", t.value, (r) => this.updateRule(e, { value: r })) : s ? this.matchField(t, e) : c}
+        <label>Comparison<select .value=${J(t.operator)} @change=${(r) => this.changeOperator(e, r.target.value)}>${this.operatorOptions(t).map((r) => l`<option value=${r}>${ut[r]}</option>`)}</select></label>
+        ${i ? l`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(r) => this.updateRule(e, { entity: r.detail.value.entity })}></ha-form>${this.currentValue(t)}</div>` : l`<div class="entity-source">${this.currentValue(t)}</div>`}
+        ${t.operator === "range" ? l`<div class="range">${this.numberField("From", t.minimum, (r) => this.updateRule(e, { minimum: r }))}${this.numberField("To", t.maximum, (r) => this.updateRule(e, { maximum: r }))}</div>` : a ? this.numberField("Value", t.value, (r) => this.updateRule(e, { value: r })) : s ? this.matchField(t, e) : c}
       </div>
     </article>`;
   }
   numberField(t, e, i) {
-    return n`<label
-      >${t}<input
-        type="number"
-        .value=${e === void 0 ? "" : String(e)}
-        @input=${(s) => {
+    return l`<label>${t}<input type="number" .value=${e === void 0 ? "" : String(e)} @input=${(s) => {
       const a = s.target.value;
       i(a === "" ? void 0 : Number(a));
-    }}
-    /></label>`;
+    }}></label>`;
   }
   renderGroup(t, e) {
-    return n`<div class="group ${e.length ? "nested" : ""}">
-      <div class="group-head">
-        <label
-          >Group logic<select
-            .value=${X(t.operator)}
-            @change=${(i) => this.updateGroup(e, { operator: i.target.value })}
-          >
-            <option value="and">All must match (AND)</option>
-            <option value="or">Any may match (OR)</option>
-          </select></label
-        ><label class="invert"
-          ><input
-            type="checkbox"
-            .checked=${t.negate === !0}
-            @change=${(i) => this.updateGroup(e, { negate: i.target.checked })}
-          />Invert result</label
-        >
-      </div>
+    return l`<div class="group ${e.length ? "nested" : ""}">
+      <div class="group-head"><label>Group logic<select .value=${J(t.operator)} @change=${(i) => this.updateGroup(e, { operator: i.target.value })}><option value="and">All must match (AND)</option><option value="or">Any may match (OR)</option></select></label><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(i) => this.updateGroup(e, { negate: i.target.checked })}>Invert result</label></div>
       ${t.children.map((i, s) => this.renderExpression(i, [...e, s], s, t.children.length))}
-      <div class="group-actions">
-        <ha-button @click=${() => this.addRuleReference(e)}
-          >Add condition</ha-button
-        ><ha-button
-          .disabled=${e.length >= 3}
-          @click=${() => this.addGroup(e)}
-          >Add group</ha-button
-        >
-      </div>
+      <div class="group-actions"><ha-button @click=${() => this.addRuleReference(e)}>Add condition</ha-button><ha-button .disabled=${e.length >= 3} @click=${() => this.addGroup(e)}>Add group</ha-button></div>
     </div>`;
   }
   renderExpression(t, e, i, s) {
-    return t.type === "group" ? n`<div class="logic-child">
-        <span class="logic-index">${i + 1}</span
-        >${this.renderGroup(t, e)}${this.moveButtons(e, i, s)}<button
-          class="icon danger"
-          ?disabled=${s === 1}
-          aria-label="Remove group"
-          @click=${() => this.removeExpression(e)}
-        >
-          <ha-icon icon="mdi:delete-outline"></ha-icon>
-        </button>
-      </div>` : n`<div class="logic-child">
-      <span class="logic-index">${i + 1}</span>
-      <div>
-        <div class="rule-reference">
-          <span
-            class="rule-marker"
-            style=${`background:${dt(t.ruleId)}`}
-            >${C(t.ruleId)}</span
-          ><label
-            >Condition<select
-              .value=${X(t.ruleId)}
-              @change=${(a) => this.updateExpression(e, { ...t, ruleId: a.target.value })}
-            >
-              ${this.draft.rules.map((a) => n`<option value=${a.id}>Condition ${C(a.id)}</option>`)}
-            </select></label
-          >
-        </div>
-        <label class="invert"
-          ><input
-            type="checkbox"
-            .checked=${t.negate === !0}
-            @change=${(a) => this.updateExpression(e, { ...t, negate: a.target.checked })}
-          />Invert condition</label
-        >
-      </div>
-      ${this.moveButtons(e, i, s)}<button
-        class="icon danger"
-        ?disabled=${s === 1}
-        aria-label="Remove condition from logic"
-        @click=${() => this.removeExpression(e)}
-      >
-        <ha-icon icon="mdi:delete-outline"></ha-icon>
-      </button>
-    </div>`;
+    return t.type === "group" ? l`<div class="logic-child"><span class="logic-index">${i + 1}</span>${this.renderGroup(t, e)}${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove group" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>` : l`<div class="logic-child"><span class="logic-index">${i + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${ft(t.ruleId)}`}>${C(t.ruleId)}</span><label>Condition<select .value=${J(t.ruleId)} @change=${(a) => this.updateExpression(e, { ...t, ruleId: a.target.value })}>${this.draft.rules.map((a) => l`<option value=${a.id}>Condition ${C(a.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(a) => this.updateExpression(e, { ...t, negate: a.target.checked })}>Invert condition</label></div>${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
   }
   moveButtons(t, e, i) {
-    return n`<div class="move">
-      <button
-        class="icon"
-        ?disabled=${e === 0}
-        aria-label="Move up"
-        @click=${() => this.moveExpression(t, -1)}
-      >
-        <ha-icon icon="mdi:chevron-up"></ha-icon></button
-      ><button
-        class="icon"
-        ?disabled=${e === i - 1}
-        aria-label="Move down"
-        @click=${() => this.moveExpression(t, 1)}
-      >
-        <ha-icon icon="mdi:chevron-down"></ha-icon>
-      </button>
-    </div>`;
+    return l`<div class="move"><button class="icon" ?disabled=${e === 0} aria-label="Move up" @click=${() => this.moveExpression(t, -1)}><ha-icon icon="mdi:chevron-up"></ha-icon></button><button class="icon" ?disabled=${e === i - 1} aria-label="Move down" @click=${() => this.moveExpression(t, 1)}><ha-icon icon="mdi:chevron-down"></ha-icon></button></div>`;
   }
   updateRule(t, e) {
-    this.draft = {
-      ...this.draft,
-      rules: this.draft.rules.map(
-        (i, s) => s === t ? { ...i, ...e } : i
-      )
-    };
+    this.draft = { ...this.draft, rules: this.draft.rules.map((i, s) => s === t ? { ...i, ...e } : i) };
   }
   changeSource(t, e) {
     const i = this.draft.rules[t];
-    if (e === "card" && this.card?.type === "number" && ![...me, ...te].includes(i.operator)) {
+    if (e === "card" && this.card?.type === "number" && ![...ye, ...se].includes(i.operator)) {
       this.changeOperator(t, "range"), this.updateRule(t, { source: e });
       return;
     }
-    if (e === "card" && this.card?.type !== "number" && Ae(i.operator)) {
+    if (e === "card" && this.card?.type !== "number" && Te(i.operator)) {
       this.changeOperator(t, "equals"), this.updateRule(t, { source: e });
       return;
     }
     this.updateRule(t, { source: e });
   }
   operatorOptions(t) {
-    return t.source !== "card" ? Object.keys(ot) : this.card?.type === "number" ? [...me, ...te] : [...Se, ...te];
+    return t.source !== "card" ? Object.keys(ut) : this.card?.type === "number" ? [...ye, ...se] : [...Me, ...se];
   }
   entitySelector(t) {
     if (["available", "unavailable"].includes(t.operator)) return {};
-    const e = Ae(t.operator);
-    return { include_entities: Object.entries(this.hass?.states ?? {}).filter(
-      ([s, a]) => s === t.entity || this.isNumericState(s, a) === e
-    ).map(([s]) => s) };
+    const e = Te(t.operator);
+    return { include_entities: Object.entries(this.hass?.states ?? {}).filter(([s, a]) => s === t.entity || this.isNumericState(s, a) === e).map(([s]) => s) };
   }
   isNumericState(t, e) {
     if (["number", "input_number", "counter"].includes(t.split(".", 1)[0]) || e.attributes?.unit_of_measurement !== void 0) return !0;
@@ -2468,118 +1925,54 @@ let M = class extends E {
     return e ? this.hass?.states[e] : void 0;
   }
   currentValue(t) {
-    if (t.source === "entity" && !t.entity)
-      return n`<div class="current-value">
-        Select an entity to see its current value.
-      </div>`;
+    if (t.source === "entity" && !t.entity) return l`<div class="current-value">Select an entity to see its current value.</div>`;
     if (t.source === "card" && this.card?.type === "text" && !this.card.source)
-      return n`<div class="current-value">
-        <span>Current value: </span><strong>${this.card.text ?? ""}</strong>
-      </div>`;
+      return l`<div class="current-value"><span>Current value: </span><strong>${this.card.text ?? ""}</strong></div>`;
     const e = t.source === "card" ? this.card?.source : t.entity, i = e ? this.hass?.states[e] : void 0;
-    if (!i)
-      return n`<div class="current-value unavailable">
-        <span>Current value: </span><strong>not available</strong>
-      </div>`;
+    if (!i) return l`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
     const s = typeof i.attributes?.unit_of_measurement == "string" ? ` ${i.attributes.unit_of_measurement}` : "", a = ["unknown", "unavailable"].includes(i.state);
-    return n`<div class="current-value ${a ? "unavailable" : ""}">
-      <span>Current value: </span><strong>${i.state}${s}</strong>
-    </div>`;
+    return l`<div class="current-value ${a ? "unavailable" : ""}"><span>Current value: </span><strong>${i.state}${s}</strong></div>`;
   }
   knownValues(t) {
     if (!["equals", "not_equals"].includes(t.operator)) return [];
-    if (t.source === "card" && this.card?.type === "status")
-      return ["on", "off"];
+    if (t.source === "card" && this.card?.type === "status") return ["on", "off"];
     const e = t.source === "card" ? this.card?.source : t.entity, s = this.sourceState(t)?.attributes?.options;
     if (Array.isArray(s)) return [...new Set(s.map(String))];
     const a = e?.split(".", 1)[0];
-    return a && [
-      "binary_sensor",
-      "switch",
-      "input_boolean",
-      "light",
-      "fan",
-      "lock",
-      "cover"
-    ].includes(a) ? ["on", "off"] : [];
+    return a && ["binary_sensor", "switch", "input_boolean", "light", "fan", "lock", "cover"].includes(a) ? ["on", "off"] : [];
   }
   matchField(t, e) {
     const i = this.knownValues(t);
     if (i.length) {
       const a = t.match && !i.includes(t.match) ? [t.match, ...i] : i;
-      return n`<label
-        >Value<select
-          .value=${X(t.match ?? "")}
-          @change=${(r) => this.updateRule(e, { match: r.target.value })}
-        >
-          <option value="" disabled>Select value</option>
-          ${a.map((r) => n`<option value=${r}>${r}</option>`)}
-        </select></label
-      >`;
+      return l`<label>Value<select .value=${J(t.match ?? "")} @change=${(r) => this.updateRule(e, { match: r.target.value })}><option value="" disabled>Select value</option>${a.map((r) => l`<option value=${r}>${r}</option>`)}</select></label>`;
     }
     const s = this.sourceState(t)?.state;
-    return n`<label
-      >Value<input
-        maxlength="64"
-        placeholder=${s ? `Current: ${s}` : "Value"}
-        .value=${t.match ?? ""}
-        @input=${(a) => this.updateRule(e, { match: a.target.value })}
-    /></label>`;
+    return l`<label>Value<input maxlength="64" placeholder=${s ? `Current: ${s}` : "Value"} .value=${t.match ?? ""} @input=${(a) => this.updateRule(e, { match: a.target.value })}></label>`;
   }
   changeOperator(t, e) {
-    const i = this.draft.rules[t], s = {
-      id: i.id,
-      source: i.source,
-      entity: i.entity,
-      operator: e
-    };
-    e === "range" ? (s.minimum = i.minimum, s.maximum = i.maximum) : ke.has(e) ? s.value = i.value : te.includes(e) || (s.match = i.match ?? "");
+    const i = this.draft.rules[t], s = { id: i.id, source: i.source, entity: i.entity, operator: e };
+    e === "range" ? (s.minimum = i.minimum, s.maximum = i.maximum) : Pe.has(e) ? s.value = i.value : se.includes(e) || (s.match = i.match ?? "");
     const a = s.entity ? this.hass?.states[s.entity] : void 0;
-    s.source === "entity" && s.entity && a && !te.includes(e) && this.isNumericState(s.entity, a) !== Ae(e) && delete s.entity, this.draft = {
-      ...this.draft,
-      rules: this.draft.rules.map(
-        (r, o) => o === t ? s : r
-      )
-    };
+    s.source === "entity" && s.entity && a && !se.includes(e) && this.isNumericState(s.entity, a) !== Te(e) && delete s.entity, this.draft = { ...this.draft, rules: this.draft.rules.map((r, o) => o === t ? s : r) };
   }
   addRule() {
     const t = new Set(this.draft.rules.map((a) => a.id));
     let e = 97;
     for (; t.has(`rule_${String.fromCharCode(e)}`); ) e += 1;
-    const i = this.canUseCardValue && this.card?.type === "number", s = {
-      id: `rule_${String.fromCharCode(e)}`,
-      source: this.canUseCardValue ? "card" : "entity",
-      entity: "",
-      operator: i ? "range" : "equals",
-      ...i ? {} : { match: "" }
-    };
-    this.draft = {
-      rules: [...this.draft.rules, s],
-      expression: {
-        ...this.draft.expression,
-        children: [
-          ...this.draft.expression.children,
-          { type: "rule", ruleId: s.id }
-        ]
-      }
-    };
+    const i = this.canUseCardValue && this.card?.type === "number", s = { id: `rule_${String.fromCharCode(e)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: i ? "range" : "equals", ...i ? {} : { match: "" } };
+    this.draft = { rules: [...this.draft.rules, s], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: s.id }] } };
   }
   removeRule(t) {
     if (this.draft.rules.length === 1) return;
-    const e = this.draft.rules[t].id, i = this.draft.rules.filter(
-      (r, o) => o !== t
-    ), s = i[0].id, a = (r) => r.type === "rule" ? r.ruleId === e ? { ...r, ruleId: s } : r : { ...r, children: r.children.map(a) };
-    this.draft = {
-      rules: i,
-      expression: a(this.draft.expression)
-    };
+    const e = this.draft.rules[t].id, i = this.draft.rules.filter((r, o) => o !== t), s = i[0].id, a = (r) => r.type === "rule" ? r.ruleId === e ? { ...r, ruleId: s } : r : { ...r, children: r.children.map(a) };
+    this.draft = { rules: i, expression: a(this.draft.expression) };
   }
   groupAt(t, e) {
     let i = t;
     for (const s of e) {
       const a = i.children[s];
-      if (!a || a.type !== "group")
-        throw new Error("Invalid visibility group path");
+      if (!a || a.type !== "group") throw new Error("Invalid visibility group path");
       i = a;
     }
     return i;
@@ -2592,9 +1985,7 @@ let M = class extends E {
     t(e), this.draft = { ...this.draft, expression: e };
   }
   updateGroup(t, e) {
-    this.mutateExpression(
-      (i) => Object.assign(this.groupAt(i, t), e)
-    );
+    this.mutateExpression((i) => Object.assign(this.groupAt(i, t), e));
   }
   updateExpression(t, e) {
     this.mutateExpression((i) => {
@@ -2602,21 +1993,10 @@ let M = class extends E {
     });
   }
   addRuleReference(t) {
-    this.mutateExpression(
-      (e) => this.groupAt(e, t).children.push({
-        type: "rule",
-        ruleId: this.draft.rules[0].id
-      })
-    );
+    this.mutateExpression((e) => this.groupAt(e, t).children.push({ type: "rule", ruleId: this.draft.rules[0].id }));
   }
   addGroup(t) {
-    this.mutateExpression(
-      (e) => this.groupAt(e, t).children.push({
-        type: "group",
-        operator: "and",
-        children: [{ type: "rule", ruleId: this.draft.rules[0].id }]
-      })
-    );
+    this.mutateExpression((e) => this.groupAt(e, t).children.push({ type: "group", operator: "and", children: [{ type: "rule", ruleId: this.draft.rules[0].id }] }));
   }
   removeExpression(t) {
     this.mutateExpression((e) => {
@@ -2627,368 +2007,80 @@ let M = class extends E {
   moveExpression(t, e) {
     this.mutateExpression((i) => {
       const s = this.parentAt(i, t), a = t.at(-1), r = a + e;
-      r < 0 || r >= s.children.length || ([s.children[a], s.children[r]] = [
-        s.children[r],
-        s.children[a]
-      ]);
+      r < 0 || r >= s.children.length || ([s.children[a], s.children[r]] = [s.children[r], s.children[a]]);
     });
   }
   get hasAdvancedLogic() {
-    const t = (e) => e.negate === !0 || e.type === "group" && e.children.some(
-      (i) => i.type === "group" || t(i)
-    );
+    const t = (e) => e.negate === !0 || e.type === "group" && e.children.some((i) => i.type === "group" || t(i));
     return t(this.draft.expression);
   }
   get validationError() {
     for (const t of this.draft.rules) {
-      if (t.source === "card" && !this.canUseCardValue)
-        return "This item has no card value to test.";
-      if (t.source === "entity" && !t.entity?.trim())
-        return `Condition ${C(t.id)} needs an entity.`;
+      if (t.source === "card" && !this.canUseCardValue) return "This item has no card value to test.";
+      if (t.source === "entity" && !t.entity?.trim()) return `Condition ${C(t.id)} needs an entity.`;
       if (t.operator === "range") {
-        if (t.minimum === void 0 && t.maximum === void 0)
-          return `Condition ${C(t.id)} needs a lower or upper limit.`;
-        if (t.minimum !== void 0 && !Number.isFinite(t.minimum) || t.maximum !== void 0 && !Number.isFinite(t.maximum))
-          return `Condition ${C(t.id)} needs valid number limits.`;
-        if (t.minimum !== void 0 && t.maximum !== void 0 && t.minimum > t.maximum)
-          return `Condition ${C(t.id)} has an invalid range.`;
+        if (t.minimum === void 0 && t.maximum === void 0) return `Condition ${C(t.id)} needs a lower or upper limit.`;
+        if (t.minimum !== void 0 && !Number.isFinite(t.minimum) || t.maximum !== void 0 && !Number.isFinite(t.maximum)) return `Condition ${C(t.id)} needs valid number limits.`;
+        if (t.minimum !== void 0 && t.maximum !== void 0 && t.minimum > t.maximum) return `Condition ${C(t.id)} has an invalid range.`;
       }
-      if (ke.has(t.operator) && !Number.isFinite(t.value))
-        return `Condition ${C(t.id)} needs a numeric value.`;
-      if (Se.includes(t.operator) && !t.match?.length)
-        return `Condition ${C(t.id)} needs a value.`;
+      if (Pe.has(t.operator) && !Number.isFinite(t.value)) return `Condition ${C(t.id)} needs a numeric value.`;
+      if (Me.includes(t.operator) && !t.match?.length) return `Condition ${C(t.id)} needs a value.`;
     }
   }
   save() {
     if (this.validationError) return;
     const t = structuredClone(this.draft);
-    for (const e of t.rules)
-      e.entity !== void 0 && (e.entity = e.entity.trim());
-    De(this, "visibility-save", t);
+    for (const e of t.rules) e.entity !== void 0 && (e.entity = e.entity.trim());
+    ze(this, "visibility-save", t);
   }
 };
 M.styles = V`
-    :host {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      display: grid;
-      place-items: center;
-      padding: 16px;
-      font-family: var(--ha-font-family-body, Roboto, sans-serif);
-      background: rgba(0, 0, 0, 0.48);
-    }
-    ha-card {
-      width: min(760px, 100%);
-      max-height: min(880px, calc(100vh - 32px));
-      overflow: auto;
-    }
-    header {
-      padding: 16px;
-      border-bottom: 1px solid var(--divider-color);
-    }
-    h2,
-    h3 {
-      margin: 0;
-      font-weight: 500;
-    }
-    h2 {
-      font-size: 20px;
-    }
-    h3 {
-      font-size: 16px;
-    }
-    main {
-      display: grid;
-      gap: 20px;
-      padding: 16px;
-    }
-    section {
-      display: grid;
-      gap: 10px;
-    }
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    p {
-      margin: 0;
-      color: var(--secondary-text-color);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .mode-switch {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      padding: 3px;
-      background: var(--secondary-background-color);
-      border-radius: 10px;
-    }
-    .mode-switch button {
-      min-height: 36px;
-      padding: 6px 16px;
-      color: var(--secondary-text-color);
-      font: inherit;
-      background: transparent;
-      border: 0;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .mode-switch button.active {
-      color: var(--primary-text-color);
-      font-weight: 500;
-      background: var(--card-background-color);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-    }
-    label {
-      display: grid;
-      gap: 5px;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-    }
-    select,
-    input {
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 40px;
-      padding: 8px;
-      color: var(--primary-text-color);
-      font: inherit;
-      background: var(--card-background-color);
-      border: 1px solid var(--divider-color);
-      border-radius: 8px;
-    }
-    select:focus-visible,
-    input:focus-visible,
-    button:focus-visible {
-      outline: 2px solid var(--primary-color);
-      outline-offset: 2px;
-    }
-    .rule-list {
-      display: grid;
-      gap: 10px;
-    }
-    .rule {
-      display: grid;
-      gap: 10px;
-      padding: 12px;
-      border: 1px solid var(--divider-color);
-      border-radius: 12px;
-      background: var(--card-background-color);
-    }
-    .rule-head {
-      display: grid;
-      grid-template-columns: 34px 1fr 40px;
-      gap: 8px;
-      align-items: end;
-    }
-    .rule-fields {
-      display: grid;
-      grid-template-columns: 150px minmax(180px, 1fr) minmax(180px, 1fr);
-      gap: 8px;
-      align-items: end;
-    }
-    .range {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .entity-source {
-      display: grid;
-      gap: 4px;
-    }
-    .current-value {
-      min-height: 18px;
-      padding: 0 4px;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-      line-height: 18px;
-    }
-    .current-value strong {
-      color: var(--primary-text-color);
-      font-weight: 500;
-    }
-    .current-value.unavailable strong {
-      color: var(--warning-color);
-    }
-    .rule-marker {
-      display: grid;
-      place-items: center;
-      align-self: center;
-      width: 28px;
-      height: 28px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: 50%;
-    }
-    .rule-reference {
-      display: grid;
-      grid-template-columns: 28px 1fr;
-      gap: 8px;
-      align-items: end;
-    }
-    .rule-reference .rule-marker {
-      margin-bottom: 6px;
-    }
-    .icon {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      color: var(--secondary-text-color);
-      background: transparent;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .icon.danger {
-      color: var(--error-color);
-    }
-    .icon:disabled {
-      opacity: 0.38;
-      cursor: default;
-    }
-    .logic {
-      padding: 12px;
-      border: 1px solid var(--divider-color);
-      border-radius: 12px;
-      background: color-mix(
-        in srgb,
-        var(--secondary-background-color) 60%,
-        transparent
-      );
-    }
-    .group {
-      display: grid;
-      gap: 8px;
-    }
-    .group.nested {
-      margin-left: 18px;
-      padding: 10px 0 4px 12px;
-      border-left: 3px solid var(--primary-color);
-    }
-    .group-head {
-      display: flex;
-      align-items: end;
-      gap: 8px;
-    }
-    .group-head label:first-child {
-      width: 170px;
-    }
-    .invert {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 40px;
-      color: var(--primary-text-color);
-      font-size: 13px;
-    }
-    .invert input {
-      width: 18px;
-      min-height: 18px;
-    }
-    .logic-child {
-      display: grid;
-      grid-template-columns: 28px minmax(180px, 1fr) auto 40px;
-      gap: 6px;
-      align-items: center;
-    }
-    .logic-index {
-      display: grid;
-      place-items: center;
-      width: 24px;
-      height: 24px;
-      color: var(--text-primary-color);
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--primary-color);
-      border-radius: 50%;
-    }
-    .move {
-      display: flex;
-    }
-    .move .icon {
-      width: 34px;
-      height: 34px;
-    }
-    .group-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding-top: 4px;
-    }
-    .error {
-      color: var(--error-color);
-    }
-    .actions {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 12px 16px;
-      border-top: 1px solid var(--divider-color);
-    }
-    .right {
-      display: flex;
-      gap: 8px;
-    }
-    @media (max-width: 700px) {
-      .rule-head,
-      .rule-fields {
-        grid-template-columns: 1fr;
-      }
-      .rule-head .icon {
-        justify-self: end;
-      }
-      .logic-child {
-        grid-template-columns: 28px minmax(0, 1fr) 40px;
-      }
-      .move {
-        grid-column: 2;
-      }
-      .group.nested {
-        margin-left: 8px;
-      }
-      .actions {
-        align-items: stretch;
-        flex-direction: column;
-      }
-      .right {
-        justify-content: flex-end;
-      }
-    }
+    :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
+    ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
+    h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px}p{margin:0;color:var(--secondary-text-color);font-size:13px;line-height:1.45}
+    .mode-switch{display:grid;grid-template-columns:1fr 1fr;padding:3px;background:var(--secondary-background-color);border-radius:10px}.mode-switch button{min-height:36px;padding:6px 16px;color:var(--secondary-text-color);font:inherit;background:transparent;border:0;border-radius:8px;cursor:pointer}.mode-switch button.active{color:var(--primary-text-color);font-weight:500;background:var(--card-background-color);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+    label{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}select,input{box-sizing:border-box;width:100%;min-height:40px;padding:8px;color:var(--primary-text-color);font:inherit;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}
+    select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--primary-color);outline-offset:2px}.rule-list{display:grid;gap:10px}
+    .rule{display:grid;gap:10px;padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)}
+    .rule-head{display:grid;grid-template-columns:34px 1fr 40px;gap:8px;align-items:end}.rule-fields{display:grid;grid-template-columns:150px minmax(180px,1fr) minmax(180px,1fr);gap:8px;align-items:end}.range{display:grid;grid-template-columns:1fr 1fr;gap:8px}.entity-source{display:grid;gap:4px}.current-value{min-height:18px;padding:0 4px;color:var(--secondary-text-color);font-size:12px;line-height:18px}.current-value strong{color:var(--primary-text-color);font-weight:500}.current-value.unavailable strong{color:var(--warning-color)}
+    .rule-marker{display:grid;place-items:center;align-self:center;width:28px;height:28px;color:#fff;font-size:13px;font-weight:700;border-radius:50%}.rule-reference{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:end}.rule-reference .rule-marker{margin-bottom:6px}
+    .icon{display:grid;place-items:center;width:40px;height:40px;padding:0;color:var(--secondary-text-color);background:transparent;border:0;border-radius:50%;cursor:pointer}.icon.danger{color:var(--error-color)}.icon:disabled{opacity:.38;cursor:default}
+    .logic{padding:12px;border:1px solid var(--divider-color);border-radius:12px;background:color-mix(in srgb,var(--secondary-background-color) 60%,transparent)}.group{display:grid;gap:8px}.group.nested{margin-left:18px;padding:10px 0 4px 12px;border-left:3px solid var(--primary-color)}
+    .group-head{display:flex;align-items:end;gap:8px}.group-head label:first-child{width:170px}.invert{display:flex;align-items:center;gap:7px;min-height:40px;color:var(--primary-text-color);font-size:13px}.invert input{width:18px;min-height:18px}
+    .logic-child{display:grid;grid-template-columns:28px minmax(180px,1fr) auto 40px;gap:6px;align-items:center}.logic-index{display:grid;place-items:center;width:24px;height:24px;color:var(--text-primary-color);font-size:12px;font-weight:600;background:var(--primary-color);border-radius:50%}
+    .move{display:flex}.move .icon{width:34px;height:34px}.group-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}.error{color:var(--error-color)}
+    .actions{display:flex;justify-content:space-between;gap:8px;padding:12px 16px;border-top:1px solid var(--divider-color)}.right{display:flex;gap:8px}
+    @media(max-width:700px){.rule-head,.rule-fields{grid-template-columns:1fr}.rule-head .icon{justify-self:end}.logic-child{grid-template-columns:28px minmax(0,1fr) 40px}.move{grid-column:2}.group.nested{margin-left:8px}.actions{align-items:stretch;flex-direction:column}.right{justify-content:flex-end}}
   `;
-N([
-  h({ attribute: !1 })
+q([
+  u({ attribute: !1 })
 ], M.prototype, "hass", 2);
-N([
-  h()
+q([
+  u()
 ], M.prototype, "targetName", 2);
-N([
-  h()
+q([
+  u()
 ], M.prototype, "targetKind", 2);
-N([
-  h({ attribute: !1 })
+q([
+  u({ attribute: !1 })
 ], M.prototype, "card", 2);
-N([
-  h({ attribute: !1 })
+q([
+  u({ attribute: !1 })
 ], M.prototype, "value", 2);
-N([
+q([
   f()
 ], M.prototype, "draft", 2);
-N([
+q([
   f()
 ], M.prototype, "advanced", 2);
-M = N([
-  le("mini-display-visibility-dialog")
+M = q([
+  ce("mini-display-visibility-dialog")
 ], M);
-var xi = Object.defineProperty, $i = Object.getOwnPropertyDescriptor, $ = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? $i(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Ti = Object.defineProperty, zi = Object.getOwnPropertyDescriptor, $ = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? zi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && xi(e, i, a), a;
+  return s && a && Ti(e, i, a), a;
 };
 let v = class extends E {
   constructor() {
@@ -3335,7 +2427,7 @@ let v = class extends E {
   createLayout() {
     !this.selectedDisplayId || this.dashboard || (this.dashboards = {
       ...this.dashboards,
-      [this.selectedDisplayId]: ti()
+      [this.selectedDisplayId]: ui()
     }, this.pageIndex = 0, this.previewPages = { ...this.previewPages, [this.selectedDisplayId]: 0 }, this.selected = { row: 0, card: 0 }, this.dirtyDisplays = new Set(this.dirtyDisplays).add(
       this.selectedDisplayId
     ), this.syncState = "idle", this.syncMessage = "Unsaved changes");
@@ -3436,7 +2528,7 @@ let v = class extends E {
     }
   }
   field(t, e, i, s = "text") {
-    return n`<label class="field"
+    return l`<label class="field"
       >${t}<input
         type=${s}
         .value=${String(e ?? "")}
@@ -3444,12 +2536,30 @@ let v = class extends E {
     /></label>`;
   }
   select(t, e, i, s) {
-    return n`<label class="field"
+    return l`<label class="field"
       >${t}<select
         @change=${(a) => s(a.target.value)}
       >
-        ${i.map((a) => n`<option value=${a} ?selected=${a === e}>${a}</option>`)}
+        ${i.map((a) => l`<option value=${a} ?selected=${a === e}>${a}</option>`)}
       </select></label
+    >`;
+  }
+  numberField(t, e, i, s, a, r) {
+    return l`<label class="field"
+      >${t}<input
+        type="number"
+        min=${s}
+        max=${a}
+        step="1"
+        .value=${String(e ?? i)}
+        @change=${(o) => {
+      const n = o.target, d = Number(n.value), p = Math.max(
+        s,
+        Math.min(a, Number.isFinite(d) ? d : i)
+      );
+      n.value = String(p), r(p);
+    }}
+      /></label
     >`;
   }
   fontSelect(t, e, i) {
@@ -3458,21 +2568,21 @@ let v = class extends E {
     ), o = s?.default_font, d = [
       { value: "default", label: `Default · ${o && o !== "builtin" && r.get(o)?.installed ? r.get(o)?.name || (o === "font1" ? "Font 1" : "Font 2") : "Inter Tight Bold"}` },
       ...["font1", "font2"].map((p, m) => {
-        const u = r.get(p);
+        const h = r.get(p);
         return {
           value: p,
-          label: `Font ${m + 1} · ${u?.installed ? u.name || "Installed" : "Empty"}`
+          label: `Font ${m + 1} · ${h?.installed ? h.name || "Installed" : "Empty"}`
         };
       })
     ];
-    return n`<label class="field"
+    return l`<label class="field"
       >${t}<select
         @change=${(p) => i(
       p.target.value
     )}
       >
         ${d.map(
-      (p) => n`<option
+      (p) => l`<option
               value=${p.value}
               ?selected=${p.value === a}
             >
@@ -3483,7 +2593,7 @@ let v = class extends E {
     >`;
   }
   checkbox(t, e, i, s = !1, a = "") {
-    return n`<label class="check" title=${a}
+    return l`<label class="check" title=${a}
       ><input
         type="checkbox"
         .checked=${e}
@@ -3493,10 +2603,10 @@ let v = class extends E {
     >`;
   }
   segmented(t, e, i, s) {
-    return n`<div class="segmented-field">
+    return l`<div class="segmented-field">
       <span>${t}</span>
       <div class="segmented" role="radiogroup" aria-label=${t}>
-        ${i.map((a) => n`<button class="segment ${a.value === e ? "active" : ""}" role="radio" aria-checked=${a.value === e} title=${a.label} @click=${() => s(a.value)}>${a.icon ? n`<ha-icon icon=${a.icon}></ha-icon>` : c}<span>${a.label}</span></button>`)}
+        ${i.map((a) => l`<button class="segment ${a.value === e ? "active" : ""}" role="radio" aria-checked=${a.value === e} title=${a.label} @click=${() => s(a.value)}>${a.icon ? l`<ha-icon icon=${a.icon}></ha-icon>` : c}<span>${a.label}</span></button>`)}
       </div>
     </div>`;
   }
@@ -3511,15 +2621,15 @@ let v = class extends E {
       { horizontal: "left", vertical: "bottom", label: "Bottom left" },
       { horizontal: "center", vertical: "bottom", label: "Bottom center" },
       { horizontal: "right", vertical: "bottom", label: "Bottom right" }
-    ], l = o.find(
+    ], n = o.find(
       (d) => d.horizontal === a && d.vertical === r
     );
-    return n`<details class="position-field">
-      <summary>${t} · ${l.label}</summary>
+    return l`<details class="position-field">
+      <summary>${t} · ${n.label}</summary>
       <div class="position-grid" role="radiogroup" aria-label=${t}>
         ${o.map((d) => {
       const p = d.horizontal === a && d.vertical === r;
-      return n`<button
+      return l`<button
             class="position-button ${p ? "active" : ""}"
             role="radio"
             aria-checked=${p}
@@ -3532,6 +2642,58 @@ let v = class extends E {
             <span class="position-dot"></span>
           </button>`;
     })}
+      </div>
+    </details>`;
+  }
+  textEffectEditor(t, e) {
+    const i = e.textEffect ?? "none";
+    return l`<details class="position-field effect-field">
+      <summary>${t} · ${i === "shadow" ? "Shadow" : i === "outline" ? "Outline" : "None"}</summary>
+      <div class="grid effect-grid">
+        ${this.select(
+      "Effect",
+      i,
+      ["none", "shadow", "outline"],
+      (a) => {
+        e.textEffect = a, this.changed();
+      }
+    )}
+        ${i !== "none" ? l`<mini-display-color-field
+                label="Effect color"
+                .value=${e.effectColor ?? "background"}
+                @color-changed=${(a) => {
+      e.effectColor = a.detail || "background", this.changed();
+    }}
+              ></mini-display-color-field>
+              ${this.numberField(
+      "Thickness",
+      e.effectThickness,
+      1,
+      1,
+      3,
+      (a) => {
+        e.effectThickness = a, this.changed();
+      }
+    )}
+              ${i === "shadow" ? l`${this.numberField(
+      "Horizontal offset",
+      e.effectOffsetX,
+      2,
+      -6,
+      6,
+      (a) => {
+        e.effectOffsetX = a, this.changed();
+      }
+    )}${this.numberField(
+      "Vertical offset",
+      e.effectOffsetY,
+      2,
+      -6,
+      6,
+      (a) => {
+        e.effectOffsetY = a, this.changed();
+      }
+    )}` : c}` : c}
       </div>
     </details>`;
   }
@@ -3550,7 +2712,7 @@ let v = class extends E {
       text: ["sensor", "text", "input_text", "select", "input_select"],
       clock: []
     };
-    return n`<ha-form
+    return l`<ha-form
       .hass=${this.hass}
       .data=${{ entity: t.source ?? "" }}
       .schema=${[{ name: "entity", required: t.type !== "text", selector: { entity: { domain: e[t.type] } } }]}
@@ -3561,7 +2723,7 @@ let v = class extends E {
     ></ha-form>`;
   }
   menu(t) {
-    return n`<details
+    return l`<details
       class="menu"
       @toggle=${this.actionMenuToggled}
       @keydown=${this.actionMenuKeydown}
@@ -3576,7 +2738,7 @@ let v = class extends E {
   }
   styleEditor(t) {
     const e = t.style ??= {}, i = t.valueStyle ??= {}, s = t.titleStyle ??= {};
-    return n`<details class="style">
+    return l`<details class="style">
       <summary>Appearance</summary>
       <div class="grid">
         <mini-display-color-field
@@ -3609,13 +2771,21 @@ let v = class extends E {
       (a) => {
         i.fontSize = a, this.changed();
       }
-    )}${this.textPosition("Text position", i)}${t.title?.trim() ? n`${this.fontSelect(
+    )}${this.textPosition("Text position", i)}${this.textEffectEditor(
+      "Value effect",
+      i
+    )}${t.title?.trim() ? l`${this.fontSelect(
       "Title font",
       s.fontFamily,
       (a) => {
         s.fontFamily = a, this.changed();
       }
-    )}${this.textPosition("Title position", s, "left", "top")}` : c}
+    )}${this.textPosition(
+      "Title position",
+      s,
+      "left",
+      "top"
+    )}${this.textEffectEditor("Title effect", s)}` : c}
       </div>
     </details>`;
   }
@@ -3649,21 +2819,21 @@ let v = class extends E {
       { value: "right", label: "Right", icon: "mdi:arrow-right" },
       { value: "up", label: "Up", icon: "mdi:arrow-up" },
       { value: "down", label: "Down", icon: "mdi:arrow-down" }
-    ], l = [
+    ], n = [
       { value: "slow", label: "Slow" },
       { value: "normal", label: "Normal" },
       { value: "fast", label: "Fast" }
     ];
-    return n`<details class="transition-settings">
+    return l`<details class="transition-settings">
       <summary class="transition-summary">
         Transition to next page ·
         ${a.find((d) => d.type === e.type)?.label ?? "None"}
       </summary>
       <div class="effect-grid">
-        ${a.map((d) => n`<button class="effect ${e.type === d.type ? "active" : ""}" aria-pressed=${d.type === e.type} @click=${() => i(r(d.type))}><ha-icon icon=${d.icon}></ha-icon><span>${d.label}</span></button>`)}
+        ${a.map((d) => l`<button class="effect ${e.type === d.type ? "active" : ""}" aria-pressed=${d.type === e.type} @click=${() => i(r(d.type))}><ha-icon icon=${d.icon}></ha-icon><span>${d.label}</span></button>`)}
       </div>
-      ${e.type !== "none" ? n`<div class="transition-options">
-              ${["slide", "bounce", "wipe", "curtain", "blinds"].includes(e.type) ? this.segmented("Direction", e.direction ?? "left", o, (d) => s({ direction: d })) : c}${this.segmented("Speed", e.speed ?? "normal", l, (d) => s({ speed: d }))}${["bounce", "fade"].includes(e.type) ? this.segmented(
+      ${e.type !== "none" ? l`<div class="transition-options">
+              ${["slide", "bounce", "wipe", "curtain", "blinds"].includes(e.type) ? this.segmented("Direction", e.direction ?? "left", o, (d) => s({ direction: d })) : c}${this.segmented("Speed", e.speed ?? "normal", n, (d) => s({ speed: d }))}${["bounce", "fade"].includes(e.type) ? this.segmented(
       "Intensity",
       e.intensity ?? "subtle",
       [
@@ -3700,7 +2870,7 @@ let v = class extends E {
     r.splice(i, 0, o), this.changed();
   }
   dragHandle(t, e) {
-    return n`<span
+    return l`<span
       class="drag-handle"
       draggable="true"
       title="Drag to reorder"
@@ -3730,12 +2900,12 @@ let v = class extends E {
   valueMappingsEditor(t) {
     if (t.type !== "number" && t.type !== "text") return c;
     const e = t.valueMappings ?? [], i = (a, r, o) => {
-      const l = e[a];
-      o.trim() === "" ? delete l[r] : l[r] = Number(o), this.changed();
+      const n = e[a];
+      o.trim() === "" ? delete n[r] : n[r] = Number(o), this.changed();
     }, s = (a) => {
       e.splice(a, 1), e.length || delete t.valueMappings, this.changed();
     };
-    return n`<details class="mappings">
+    return l`<details class="mappings">
       <summary>
         Value mappings${e.length ? ` (${e.length})` : ""}
       </summary>
@@ -3744,7 +2914,7 @@ let v = class extends E {
           Rules are checked from top to bottom. The first match wins.
         </p>
         ${e.map(
-      (a, r) => t.type === "number" ? n`
+      (a, r) => t.type === "number" ? l`
                 <div
                   class="mapping-rule ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === r ? "dragging" : ""}"
                   @dragover=${(o) => o.preventDefault()}
@@ -3765,7 +2935,7 @@ let v = class extends E {
                     <ha-icon icon="mdi:delete-outline"></ha-icon>
                   </button>
                 </div>
-              ` : n`
+              ` : l`
                 <div
                   class="mapping-rule text ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === r ? "dragging" : ""}"
                   @dragover=${(o) => o.preventDefault()}
@@ -3801,7 +2971,7 @@ let v = class extends E {
                 </div>
               `
     )}
-        ${e.length < 12 ? n`<button
+        ${e.length < 12 ? l`<button
                 class="add-button"
                 @click=${() => {
       const a = t.type === "number" ? { minimum: 0, maximum: 100, value: "" } : { operator: "equals", match: "", value: "" };
@@ -3815,15 +2985,15 @@ let v = class extends E {
   }
   colorMappingsEditor(t) {
     if (t.type !== "number" && t.type !== "text") return c;
-    const e = t.colorMappings ?? [], i = (r, o, l) => {
+    const e = t.colorMappings ?? [], i = (r, o, n) => {
       const d = e[r];
-      l.trim() === "" ? delete d[o] : d[o] = Number(l), this.changed();
-    }, s = (r, o, l) => {
-      l ? r[o] = l : delete r[o], this.changed();
+      n.trim() === "" ? delete d[o] : d[o] = Number(n), this.changed();
+    }, s = (r, o, n) => {
+      n ? r[o] = n : delete r[o], this.changed();
     }, a = (r) => {
       e.splice(r, 1), e.length || delete t.colorMappings, this.changed();
     };
-    return n`<details class="mappings">
+    return l`<details class="mappings">
       <summary>
         Color mappings${e.length ? ` (${e.length})` : ""}
       </summary>
@@ -3832,24 +3002,24 @@ let v = class extends E {
           The first matching rule sets the card colors.
         </p>
         ${e.map(
-      (r, o) => t.type === "number" ? n`
+      (r, o) => t.type === "number" ? l`
                 <div
                   class="mapping-rule colors ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === o ? "dragging" : ""}"
-                  @dragover=${(l) => l.preventDefault()}
-                  @drop=${(l) => this.dropMapping(t, "color", o, l)}
+                  @dragover=${(n) => n.preventDefault()}
+                  @drop=${(n) => this.dropMapping(t, "color", o, n)}
                 >
                   ${this.dragHandle("color", o)}
-                  ${this.field("From", r.minimum, (l) => i(o, "minimum", l), "number")}
-                  ${this.field("To", r.maximum, (l) => i(o, "maximum", l), "number")}
+                  ${this.field("From", r.minimum, (n) => i(o, "minimum", n), "number")}
+                  ${this.field("To", r.maximum, (n) => i(o, "maximum", n), "number")}
                   <mini-display-color-field
                     label="Background"
                     .value=${r.background ?? ""}
-                    @color-changed=${(l) => s(r, "background", l.detail)}
+                    @color-changed=${(n) => s(r, "background", n.detail)}
                   ></mini-display-color-field>
                   <mini-display-color-field
                     label="Text color"
                     .value=${r.foreground ?? ""}
-                    @color-changed=${(l) => s(r, "foreground", l.detail)}
+                    @color-changed=${(n) => s(r, "foreground", n.detail)}
                   ></mini-display-color-field>
                   <button
                     class="icon-button danger"
@@ -3860,37 +3030,37 @@ let v = class extends E {
                     <ha-icon icon="mdi:delete-outline"></ha-icon>
                   </button>
                 </div>
-              ` : n`
+              ` : l`
                 <div
                   class="mapping-rule colors text ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === o ? "dragging" : ""}"
-                  @dragover=${(l) => l.preventDefault()}
-                  @drop=${(l) => this.dropMapping(t, "color", o, l)}
+                  @dragover=${(n) => n.preventDefault()}
+                  @drop=${(n) => this.dropMapping(t, "color", o, n)}
                 >
                   ${this.dragHandle("color", o)}
                   ${this.select(
         "Match",
         r.operator,
         ["equals", "starts_with", "ends_with", "contains"],
-        (l) => {
-          r.operator = l, this.changed();
+        (n) => {
+          r.operator = n, this.changed();
         }
       )}
                   ${this.field(
         "Text",
         r.match,
-        (l) => {
-          r.match = l, this.changed();
+        (n) => {
+          r.match = n, this.changed();
         }
       )}
                   <mini-display-color-field
                     label="Background"
                     .value=${r.background ?? ""}
-                    @color-changed=${(l) => s(r, "background", l.detail)}
+                    @color-changed=${(n) => s(r, "background", n.detail)}
                   ></mini-display-color-field>
                   <mini-display-color-field
                     label="Text color"
                     .value=${r.foreground ?? ""}
-                    @color-changed=${(l) => s(r, "foreground", l.detail)}
+                    @color-changed=${(n) => s(r, "foreground", n.detail)}
                   ></mini-display-color-field>
                   <button
                     class="icon-button danger"
@@ -3903,7 +3073,7 @@ let v = class extends E {
                 </div>
               `
     )}
-        ${e.length < 12 ? n`<button
+        ${e.length < 12 ? l`<button
                 class="add-button"
                 @click=${() => {
       const r = t.type === "number" ? { minimum: 0, maximum: 100 } : { operator: "equals", match: "" };
@@ -3922,14 +3092,14 @@ let v = class extends E {
       status: "Maps a state entity to two readable labels.",
       clock: "Displays local time without using an entity."
     };
-    return n`<section class="card-settings">
+    return l`<section class="card-settings">
       <div class="card-head">
         <div class="card-title">
-          <strong>${t.title?.trim() || n`<em>Unnamed card</em>`}</strong
-          >${t.visibility ? n`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
+          <strong>${t.title?.trim() || l`<em>Unnamed card</em>`}</strong
+          >${t.visibility ? l`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
         </div>
         ${this.menu(
-      n`<button
+      l`<button
               @click=${() => this.openVisibility("card", e, i)}
             >
               Visibility</button
@@ -3958,13 +3128,13 @@ let v = class extends E {
       (r) => {
         Object.keys(t).forEach(
           (o) => delete t[o]
-        ), Object.assign(t, Ee(r)), this.changed();
+        ), Object.assign(t, Ie(r)), this.changed();
       }
     )}${this.field("Title", t.title, (r) => {
       t.title = r, this.changed();
     })}
         <p class="hint">${a[t.type]}</p>
-        ${["number", "status", "text"].includes(t.type) ? this.entity(t) : c}${t.type === "number" ? n`${this.field("Unit", t.unit, (r) => {
+        ${["number", "status", "text"].includes(t.type) ? this.entity(t) : c}${t.type === "number" ? l`${this.field("Unit", t.unit, (r) => {
       t.unit = r, this.changed();
     })}${this.select(
       "Progress",
@@ -3973,7 +3143,7 @@ let v = class extends E {
       (r) => {
         t.progress = r, this.changed();
       }
-    )}${t.progress && t.progress !== "none" ? n`${this.field(
+    )}${t.progress && t.progress !== "none" ? l`${this.field(
       "Minimum",
       t.minimum,
       (r) => {
@@ -3989,7 +3159,7 @@ let v = class extends E {
       "number"
     )}` : c}` : c}${t.type === "text" ? this.field("Static text", t.text, (r) => {
       t.text = r, this.changed();
-    }) : c}${t.type === "status" ? n`${this.field("On text", t.onText, (r) => {
+    }) : c}${t.type === "status" ? l`${this.field("On text", t.onText, (r) => {
       t.onText = r, this.changed();
     })}${this.field("Off text", t.offText, (r) => {
       t.offText = r, this.changed();
@@ -4000,17 +3170,17 @@ let v = class extends E {
   }
   rowEditor(t, e) {
     const i = this.dashboard.pages[this.pageIndex];
-    return n`<section class="row-panel">
+    return l`<section class="row-panel">
       <div class="row-head">
         <div class="row-title">
           <strong>Row ${e + 1}</strong
           ><small
             >${t.cards.length}
             ${t.cards.length === 1 ? "card" : "cards"}</small
-          >${t.visibility ? n`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
+          >${t.visibility ? l`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
         </div>
         ${this.menu(
-      n`<button @click=${() => this.openVisibility("row", e)}>
+      l`<button @click=${() => this.openVisibility("row", e)}>
               Visibility</button
             ><button
               @click=${() => {
@@ -4044,7 +3214,7 @@ let v = class extends E {
       <nav class="card-tabs" aria-label=${`Cards in row ${e + 1}`}>
         ${t.cards.map((s, a) => {
       const r = this.selected?.row === e && this.selected?.card === a;
-      return n`<button
+      return l`<button
             draggable="true"
             class="tab ${r ? "active" : ""} ${this.draggedCard?.row === e && this.draggedCard.index === a ? "dragging" : ""}"
             aria-label=${s.title?.trim() || `Unnamed card ${a + 1}`}
@@ -4057,14 +3227,14 @@ let v = class extends E {
       }}
             @click=${() => this.selected = r ? void 0 : { row: e, card: a }}
           >
-            ${s.title?.trim() || n`<em>Unnamed card</em>`}
+            ${s.title?.trim() || l`<em>Unnamed card</em>`}
           </button>`;
-    })}${t.cards.length < 3 ? n`<button
+    })}${t.cards.length < 3 ? l`<button
                 class="icon-button"
                 title="Add card"
                 aria-label="Add card"
                 @click=${() => {
-      t.cards.push(Ee()), this.selected = { row: e, card: t.cards.length - 1 }, this.changed();
+      t.cards.push(Ie()), this.selected = { row: e, card: t.cards.length - 1 }, this.changed();
     }}
               >
                 <ha-icon icon="mdi:plus"></ha-icon>
@@ -4075,7 +3245,7 @@ let v = class extends E {
   }
   renderEditor() {
     const t = this.dashboard, e = t?.pages[this.pageIndex], i = this.dirtyDisplays.has(this.selectedDisplayId), s = t?.pages.filter((o) => o.enabled !== !1).length ?? 0, a = e?.style ?? {}, r = e?.titleStyle ?? {};
-    return n`
+    return l`
       <ha-card class="editor-card">
         <div class="editor-heading">
           <div class="editor-title">
@@ -4103,19 +3273,19 @@ let v = class extends E {
             </div>
           </div>
         </div>
-        ${e && t ? n`
+        ${e && t ? l`
                 <div class="editor-content">
                   <nav class="tabs" aria-label="Dashboard pages">
                     ${t.pages.map(
-      (o, l) => n`
+      (o, n) => l`
                   <button
-                    class="tab ${l === this.pageIndex ? "active" : ""} ${o.enabled === !1 ? "inactive" : ""}"
-                    aria-pressed=${l === this.pageIndex}
+                    class="tab ${n === this.pageIndex ? "active" : ""} ${o.enabled === !1 ? "inactive" : ""}"
+                    aria-pressed=${n === this.pageIndex}
                     @click=${() => {
-        this.showPage(l);
+        this.showPage(n);
       }}
                   >
-                    ${o.enabled === !1 ? n`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : c}${o.title || o.id}
+                    ${o.enabled === !1 ? l`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : c}${o.title || o.id}
                   </button>
                 `
     )}
@@ -4124,7 +3294,7 @@ let v = class extends E {
                       aria-label="Add page"
                       title="Add page"
                       @click=${() => {
-      t.pages.push(ft(t.pages.length + 1)), this.pageIndex = t.pages.length - 1, this.previewPages = {
+      t.pages.push(_t(t.pages.length + 1)), this.pageIndex = t.pages.length - 1, this.previewPages = {
         ...this.previewPages,
         [this.selectedDisplayId]: this.pageIndex
       }, this.selected = { row: 0, card: 0 }, this.changed();
@@ -4183,7 +3353,7 @@ let v = class extends E {
       }
     )}
                       </div>
-                      ${e.showTitle !== !1 ? n`<div class="page-title-position">
+                      ${e.showTitle !== !1 ? l`<div class="page-title-position">
                         ${this.segmented(
       "Title position",
       e.titlePosition ?? "top",
@@ -4227,7 +3397,7 @@ let v = class extends E {
       }, this.changed();
     }}
                           ></mini-display-color-field>
-                          ${e.showTitle !== !1 ? n`
+                          ${e.showTitle !== !1 ? l`
                             <mini-display-color-field
                               label="Title background"
                               .value=${r.background ?? ""}
@@ -4284,18 +3454,18 @@ let v = class extends E {
                   </details>
                   ${this.transitionEditor(e)}
                   <div class="rows">
-                    ${e.rows.map((o, l) => this.rowEditor(o, l))}
+                    ${e.rows.map((o, n) => this.rowEditor(o, n))}
                   </div>
-                  ${e.rows.length < 6 ? n`<button
+                  ${e.rows.length < 6 ? l`<button
                     class="add-button"
                     @click=${() => {
-      e.rows.push(mt()), this.changed();
+      e.rows.push(wt()), this.changed();
     }}
                   >
                     Add row
                   </button>` : c}
                 </div>
-              ` : n`<div class="loading">
+              ` : l`<div class="loading">
                 <p>No layout configured for this display.</p>
                 <ha-button @click=${this.createLayout}>Create layout</ha-button>
               </div>`}
@@ -4303,9 +3473,9 @@ let v = class extends E {
     `;
   }
   render() {
-    if (!this.loaded) return n`<div class="loading">Loading displays…</div>`;
+    if (!this.loaded) return l`<div class="loading">Loading displays…</div>`;
     if (this.displays.length === 0)
-      return n`<ha-card class="empty"
+      return l`<ha-card class="empty"
         ><ha-icon icon="mdi:monitor-off"></ha-icon>
         <h2>No Mini Displays yet</h2>
         <p>
@@ -4320,7 +3490,7 @@ let v = class extends E {
         ></ha-card
       >`;
     const t = this.visibilityObject()?.visibility, e = this.visibilityTarget?.kind === "row" ? "Row" : "Card", i = this.visibilityTarget?.kind === "card" ? this.visibilityObject() : void 0;
-    return n`
+    return l`
       <div class="layout">
         <mini-display-scene-sidebar
           .displays=${this.displays}
@@ -4381,7 +3551,7 @@ let v = class extends E {
         ></mini-display-preview-list>
       </div>
 
-      ${this.visibilityTarget ? n`
+      ${this.visibilityTarget ? l`
               <mini-display-visibility-dialog
                 .hass=${this.hass}
                 .targetName=${e}
@@ -4393,7 +3563,7 @@ let v = class extends E {
                 @visibility-cancel=${() => this.visibilityTarget = void 0}
               ></mini-display-visibility-dialog>
             ` : c}
-      ${this.confirmation ? n`
+      ${this.confirmation ? l`
               <div class="modal-backdrop" @click=${this.closeConfirmation}>
                 <ha-card
                   class="confirm-modal"
@@ -5200,6 +4370,9 @@ v.styles = V`
       color: var(--secondary-text-color);
       font-size: 13px;
     }
+    .effect-grid {
+      margin-top: 10px;
+    }
     .position-grid {
       display: grid;
       grid-template-columns: repeat(3, 38px);
@@ -5390,7 +4563,7 @@ v.styles = V`
     }
   `;
 $([
-  h({ attribute: !1 })
+  u({ attribute: !1 })
 ], v.prototype, "hass", 2);
 $([
   f()
@@ -5444,19 +4617,19 @@ $([
   f()
 ], v.prototype, "confirmation", 2);
 v = $([
-  le("mini-display-editor")
+  ce("mini-display-editor")
 ], v);
-var wi = Object.defineProperty, _i = Object.getOwnPropertyDescriptor, de = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? _i(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Ii = Object.defineProperty, Oi = Object.getOwnPropertyDescriptor, pe = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Oi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && wi(e, i, a), a;
+  return s && a && Ii(e, i, a), a;
 };
-let H = class extends E {
+let F = class extends E {
   constructor() {
     super(...arguments), this.narrow = !1;
   }
   render() {
-    return n`
+    return l`
       <div class="shell">
         <header>
           <ha-icon icon="mdi:monitor-dashboard"></ha-icon>
@@ -5470,7 +4643,7 @@ let H = class extends E {
     `;
   }
 };
-H.styles = V`
+F.styles = V`
     :host {
       display: block;
       min-height: 100%;
@@ -5504,30 +4677,24 @@ H.styles = V`
       color: var(--secondary-text-color);
     }
     @media (max-width: 600px) {
-      .shell {
-        padding: 16px;
-      }
-      header {
-        margin-bottom: 16px;
-      }
-      h1 {
-        font-size: 21px;
-      }
+      .shell { padding: 16px; }
+      header { margin-bottom: 16px; }
+      h1 { font-size: 21px; }
     }
   `;
-de([
-  h({ attribute: !1 })
-], H.prototype, "hass", 2);
-de([
-  h({ attribute: !1 })
-], H.prototype, "narrow", 2);
-de([
-  h({ attribute: !1 })
-], H.prototype, "route", 2);
-de([
-  h({ attribute: !1 })
-], H.prototype, "panel", 2);
-H = de([
-  le("mini-display-panel")
-], H);
+pe([
+  u({ attribute: !1 })
+], F.prototype, "hass", 2);
+pe([
+  u({ attribute: !1 })
+], F.prototype, "narrow", 2);
+pe([
+  u({ attribute: !1 })
+], F.prototype, "route", 2);
+pe([
+  u({ attribute: !1 })
+], F.prototype, "panel", 2);
+F = pe([
+  ce("mini-display-panel")
+], F);
 //# sourceMappingURL=mini-display-panel.js.map

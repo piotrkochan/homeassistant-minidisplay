@@ -185,6 +185,29 @@
           "enum": ["auto", "small", "medium", "large", "xlarge"],
           "default": "auto"
         },
+        "textEffect": {
+          "enum": ["none", "shadow", "outline"],
+          "default": "none"
+        },
+        "effectColor": { "$ref": "#/$defs/color" },
+        "effectThickness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "default": 1
+        },
+        "effectOffsetX": {
+          "type": "integer",
+          "minimum": -6,
+          "maximum": 6,
+          "default": 2
+        },
+        "effectOffsetY": {
+          "type": "integer",
+          "minimum": -6,
+          "maximum": 6,
+          "default": 2
+        },
         "horizontalAlign": { "enum": ["left", "center", "right"], "default": "center" },
         "verticalAlign": { "enum": ["top", "middle", "bottom"], "default": "middle" }
       }
