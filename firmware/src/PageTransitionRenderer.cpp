@@ -55,6 +55,15 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
   const int16_t clipBottom = clipY + clipHeight;
   canvas.fillRect(offsetX, offsetY, kDisplaySize, kDisplaySize,
                   page.background);
+  if (page.hasTitleArea) {
+    const CachedArea &area = page.titleArea;
+    const int16_t x = area.x + offsetX;
+    const int16_t y = area.y + offsetY;
+    if (x < clipRight && x + area.width > clipX && y < clipBottom &&
+        y + area.height > clipY) {
+      canvas.fillRect(x, y, area.width, area.height, area.color);
+    }
+  }
   for (uint8_t index = 0; index < page.cardCount; ++index) {
     const CachedCard &card = page.cards[index];
     const int16_t x = card.x + offsetX;

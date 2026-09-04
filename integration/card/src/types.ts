@@ -71,6 +71,7 @@ export type DisplayCard = {
   onText?: string;
   offText?: string;
   style?: Style;
+  titleStyle?: Style;
   valueStyle?: Style;
   visibility?: Visibility;
   valueMappings?: NumberValueMapping[] | TextValueMapping[];
@@ -78,7 +79,7 @@ export type DisplayCard = {
 };
 
 export type DisplayRow = { title?: string; showTitle?: boolean; weight?: number; gap?: "none" | "small" | "medium"; cards: DisplayCard[]; visibility?: Visibility };
-export type DisplayPage = { id: string; title?: string; showTitle?: boolean; durationSeconds?: number; enabled?: boolean; transition?: PageTransition; rows: DisplayRow[] };
+export type DisplayPage = { id: string; title?: string; showTitle?: boolean; titlePosition?: "top" | "right" | "bottom" | "left"; titleStyle?: Style; style?: Style; durationSeconds?: number; enabled?: boolean; transition?: PageTransition; rows: DisplayRow[] };
 export type Dashboard = { version: 1; defaults?: Record<string, unknown>; pages: DisplayPage[] };
 export type Display = {
   config_entry_id: string;

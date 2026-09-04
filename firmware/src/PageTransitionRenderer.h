@@ -47,8 +47,18 @@ struct CachedProgress {
   uint16_t foreground;
 };
 
+struct CachedArea {
+  int16_t x;
+  int16_t y;
+  int16_t width;
+  int16_t height;
+  uint16_t color;
+};
+
 struct CachedPage {
   uint16_t background;
+  bool hasTitleArea;
+  CachedArea titleArea;
   uint8_t cardCount;
   uint8_t textCount;
   uint8_t progressCount;

@@ -100,6 +100,10 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
         enabled = page.get("enabled", True)
         if not isinstance(enabled, bool):
             raise DashboardValidationError("enabled must be a boolean", f"{page_path}/enabled")
+        if page.get("titlePosition", "top") not in {"top", "right", "bottom", "left"}:
+            raise DashboardValidationError(
+                "Unsupported page title position", f"{page_path}/titlePosition"
+            )
         if enabled:
             enabled_pages += 1
         if "transition" not in page and legacy_transition is not None:

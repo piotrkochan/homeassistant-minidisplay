@@ -218,6 +218,8 @@
         "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
         "title": { "type": "string", "maxLength": 48 },
         "showTitle": { "type": "boolean", "default": true },
+        "titlePosition": { "enum": ["top", "right", "bottom", "left"], "default": "top" },
+        "titleStyle": { "$ref": "#/$defs/style" },
         "durationSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
         "enabled": { "type": "boolean", "default": true },
         "transition": { "$ref": "#/$defs/transition" },

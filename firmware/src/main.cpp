@@ -387,9 +387,12 @@ const GFXfont *selectBestFont(const String &text, JsonVariantConst style,
 
 void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
                        int16_t y, int16_t width, int16_t height,
-                       uint16_t foreground, uint16_t background) {
-  const char *horizontal = style["horizontalAlign"] | "center";
-  const char *vertical = style["verticalAlign"] | "middle";
+                       uint16_t foreground, uint16_t background,
+                       const char *defaultHorizontal = "center",
+                       const char *defaultVertical = "middle",
+                       int16_t fontHeight = 0) {
+  const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
+  const char *vertical = style["verticalAlign"] | defaultVertical;
   const bool left = strcmp(horizontal, "left") == 0;
   const bool right = strcmp(horizontal, "right") == 0;
   const bool top = strcmp(vertical, "top") == 0;
@@ -403,7 +406,8 @@ void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
                                             : right ? MR_DATUM : MC_DATUM);
   display.setTextDatum(datum);
   display.setTextColor(foreground, background);
-  selectBestFont(text, style, width, height);
+  selectBestFont(text, style, width,
+                 fontHeight > 0 ? min(height, fontHeight) : height);
   String clipped = text;
   while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
     clipped.remove(clipped.length() - 1);
@@ -523,7 +527,8 @@ void fillCardEdgeBackground(int16_t x, int16_t y, int16_t width,
 }
 
 void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
-              int16_t height, uint8_t edgeExtensions = 0) {
+              int16_t height, uint8_t edgeExtensions = 0,
+              uint16_t edgeBackground = TFT_BLACK) {
   JsonObjectConst colorMapping;
   const char *source = card["source"];
   DashboardValue *sourceValue = findValue(source, false);
@@ -540,34 +545,26 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const uint16_t foreground =
       parseColor(foregroundValue, TFT_WHITE);
   const uint16_t accent = parseColor(card["style"]["accent"], TFT_CYAN);
-  fillCardEdgeBackground(x, y, width, height, background, edgeExtensions);
+  fillCardEdgeBackground(x, y, width, height, edgeBackground, edgeExtensions);
   display.fillRoundRect(x, y, width, height, 5, background);
 
   const char *title = card["title"];
-  int16_t contentY = y;
   int16_t contentHeight = height;
-  if (title && title[0] && height >= 28) {
-    display.setTextDatum(TL_DATUM);
-    display.setTextColor(TFT_LIGHTGREY, background);
-    String clipped(title);
-    JsonVariantConst titleStyle = card["titleStyle"];
-    if (titleStyle.isNull()) titleStyle = card["style"];
-    selectBestFont(clipped, titleStyle, width, 18);
-    while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
-      clipped.remove(clipped.length() - 1);
-    }
-    display.drawString(clipped, x + 4, y + 2);
-    contentY += 21;
-    contentHeight -= 21;
-  }
-
   const char *progressType = card["progress"] | "none";
   const bool progress = strcmp(progressType, "none") != 0;
   if (progress && contentHeight >= 20) contentHeight -= 9;
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
-  drawPositionedFit(cardValue(card), valueStyle, x, contentY, width,
+  drawPositionedFit(cardValue(card), valueStyle, x, y, width,
                     contentHeight, foreground, background);
+  if (title && title[0] && height >= 28) {
+    JsonVariantConst titleStyle = card["titleStyle"];
+    if (titleStyle.isNull()) titleStyle = card["style"];
+    const uint16_t titleForeground =
+        parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
+    drawPositionedFit(String(title), titleStyle, x, y, width, contentHeight,
+                      titleForeground, background, "left", "top", 18);
+  }
 
   if (progress) {
     const char *source = card["source"];
@@ -620,9 +617,12 @@ bool cacheText(CachedPage &page, const String &value, const GFXfont *font,
 bool cachePositionedText(CachedPage &page, String value,
                          JsonVariantConst style, int16_t x, int16_t y,
                          int16_t width, int16_t height, uint16_t foreground,
-                         uint16_t background) {
-  const char *horizontal = style["horizontalAlign"] | "center";
-  const char *vertical = style["verticalAlign"] | "middle";
+                         uint16_t background,
+                         const char *defaultHorizontal = "center",
+                         const char *defaultVertical = "middle",
+                         int16_t fontHeight = 0) {
+  const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
+  const char *vertical = style["verticalAlign"] | defaultVertical;
   const bool left = strcmp(horizontal, "left") == 0;
   const bool right = strcmp(horizontal, "right") == 0;
   const bool top = strcmp(vertical, "top") == 0;
@@ -634,7 +634,8 @@ bool cachePositionedText(CachedPage &page, String value,
                                           : right ? BR_DATUM : BC_DATUM)
                                   : (left ? ML_DATUM
                                           : right ? MR_DATUM : MC_DATUM);
-  const GFXfont *font = selectBestFont(value, style, width, height);
+  const GFXfont *font = selectBestFont(
+      value, style, width, fontHeight > 0 ? min(height, fontHeight) : height);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
@@ -670,32 +671,26 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   cachedCard.background = background;
 
   const char *title = card["title"];
-  int16_t contentY = y;
   int16_t contentHeight = height;
-  if (title && title[0] && height >= 28) {
-    String clipped(title);
-    JsonVariantConst titleStyle = card["titleStyle"];
-    if (titleStyle.isNull()) titleStyle = card["style"];
-    const GFXfont *font = selectBestFont(clipped, titleStyle, width, 18);
-    while (clipped.length() > 1 && display.textWidth(clipped) > width - 8) {
-      clipped.remove(clipped.length() - 1);
-    }
-    if (!cacheText(page, clipped, font, TL_DATUM, x + 4, y + 2,
-                   TFT_LIGHTGREY, background)) {
-      return false;
-    }
-    contentY += 21;
-    contentHeight -= 21;
-  }
-
   const char *progressType = card["progress"] | "none";
   const bool hasProgress = strcmp(progressType, "none") != 0;
   if (hasProgress && contentHeight >= 20) contentHeight -= 9;
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
-  if (!cachePositionedText(page, cardValue(card), valueStyle, x, contentY,
+  if (!cachePositionedText(page, cardValue(card), valueStyle, x, y,
                            width, contentHeight, foreground, background)) {
     return false;
+  }
+  if (title && title[0] && height >= 28) {
+    JsonVariantConst titleStyle = card["titleStyle"];
+    if (titleStyle.isNull()) titleStyle = card["style"];
+    const uint16_t titleForeground =
+        parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
+    if (!cachePositionedText(page, String(title), titleStyle, x, y, width,
+                             contentHeight, titleForeground, background,
+                             "left", "top", 18)) {
+      return false;
+    }
   }
 
   if (hasProgress) {
@@ -718,43 +713,147 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   return true;
 }
 
+struct PageContentLayout {
+  int16_t x;
+  int16_t y;
+  int16_t right;
+  int16_t bottom;
+  int16_t titleThickness;
+  const char *titlePosition;
+  bool hasTitle;
+};
+
+uint8_t pageTitleFontSize(JsonVariantConst style) {
+  const char *size = style["fontSize"] | "small";
+  if (strcmp(size, "medium") == 0) return 1;
+  if (strcmp(size, "large") == 0) return 2;
+  if (strcmp(size, "xlarge") == 0) return 3;
+  return 0;
+}
+
+int16_t pageTitleThickness(JsonVariantConst style) {
+  const uint8_t size = pageTitleFontSize(style);
+  const int16_t thickness[] = {21, 29, 40, 52};
+  return thickness[size];
+}
+
+const GFXfont *pageTitleFont(JsonVariantConst style) {
+  return fontFor("sans-bold", pageTitleFontSize(style));
+}
+
+PageContentLayout pageContentLayout(JsonObjectConst page) {
+  PageContentLayout layout{6, 6, 234, 234, 0, "top", false};
+  const char *title = page["title"];
+  layout.hasTitle = (page["showTitle"] | true) && title && title[0];
+  layout.titlePosition = page["titlePosition"] | "top";
+  if (!layout.hasTitle) return layout;
+  layout.titleThickness = pageTitleThickness(page["titleStyle"]);
+  if (strcmp(layout.titlePosition, "bottom") == 0) {
+    layout.bottom -= layout.titleThickness;
+  } else if (strcmp(layout.titlePosition, "left") == 0) {
+    layout.x += layout.titleThickness;
+  } else if (strcmp(layout.titlePosition, "right") == 0) {
+    layout.right -= layout.titleThickness;
+  } else {
+    layout.y += layout.titleThickness;
+  }
+  return layout;
+}
+
+void drawVerticalPageTitle(const char *title, bool right, int16_t offsetX,
+                           int16_t offsetY, int16_t thickness,
+                           JsonVariantConst style, uint16_t foreground,
+                           uint16_t background) {
+  if (!title || !title[0]) return;
+  const GFXfont *font = pageTitleFont(style);
+  display.setFreeFont(font);
+  String clipped(title);
+  while (clipped.length() > 1 && display.textWidth(clipped) > 218) {
+    clipped.remove(clipped.length() - 1);
+  }
+  const int16_t width = max<int16_t>(1, display.textWidth(clipped) + 4);
+  const int16_t height = thickness;
+  TFT_eSprite titleSprite(&display);
+  titleSprite.setColorDepth(1);
+  if (titleSprite.createSprite(width, height) == nullptr) return;
+  titleSprite.setBitmapColor(foreground, background);
+  titleSprite.fillSprite(TFT_BLACK);
+  titleSprite.setTextColor(TFT_WHITE, TFT_BLACK);
+  titleSprite.setFreeFont(font);
+  titleSprite.setTextDatum(MC_DATUM);
+  titleSprite.drawString(clipped, width / 2, height / 2);
+  display.setPivot((right ? 240 - thickness / 2 : thickness / 2) + offsetX,
+                   120 + offsetY);
+  titleSprite.setPivot(width / 2, height / 2);
+  titleSprite.pushRotated(right ? 90 : 270);
+  titleSprite.deleteSprite();
+  display.setPivot(120, 120);
+}
+
 bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
   memset(&page, 0, sizeof(page));
   page.background = parseColor(source["style"]["background"], TFT_BLACK);
   JsonArrayConst rows = source["rows"].as<JsonArrayConst>();
-  int16_t top = 1;
+  const PageContentLayout layout = pageContentLayout(source);
   const char *pageTitle = source["title"];
-  const bool showPageTitle = source["showTitle"] | true;
-  if (showPageTitle && pageTitle && pageTitle[0]) {
-    if (!cacheText(page, String(pageTitle), &FreeSansBold9pt7b, TC_DATUM, 120,
-                   top, TFT_WHITE, page.background)) {
+  JsonVariantConst titleStyle = source["titleStyle"];
+  const uint16_t titleBackground =
+      parseColor(titleStyle["background"], page.background);
+  const uint16_t titleForeground =
+      parseColor(titleStyle["foreground"], TFT_WHITE);
+  if (layout.hasTitle) {
+    page.hasTitleArea = true;
+    page.titleArea.color = titleBackground;
+    if (strcmp(layout.titlePosition, "bottom") == 0) {
+      page.titleArea = {0, static_cast<int16_t>(240 - layout.titleThickness),
+                        240, layout.titleThickness, titleBackground};
+    } else if (strcmp(layout.titlePosition, "left") == 0) {
+      page.titleArea = {0, 0, layout.titleThickness, 240, titleBackground};
+    } else if (strcmp(layout.titlePosition, "right") == 0) {
+      page.titleArea = {static_cast<int16_t>(240 - layout.titleThickness), 0,
+                        layout.titleThickness, 240, titleBackground};
+    } else {
+      page.titleArea = {0, 0, 240, layout.titleThickness, titleBackground};
+    }
+  }
+  if (layout.hasTitle && strcmp(layout.titlePosition, "top") == 0) {
+    if (!cacheText(page, String(pageTitle), pageTitleFont(titleStyle), MC_DATUM,
+                   120, layout.titleThickness / 2, titleForeground,
+                   titleBackground)) {
       return false;
     }
-    top += 21;
+  } else if (layout.hasTitle &&
+             strcmp(layout.titlePosition, "bottom") == 0) {
+    if (!cacheText(page, String(pageTitle), pageTitleFont(titleStyle), MC_DATUM,
+                   120, 240 - layout.titleThickness / 2, titleForeground,
+                   titleBackground)) {
+      return false;
+    }
   }
 
   uint16_t totalWeight = 0;
   for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
   if (totalWeight == 0 || rows.size() == 0) return false;
   const int16_t gap = 4;
-  const int16_t availableHeight = 236 - top - gap * (rows.size() - 1);
-  int16_t rowY = top;
+  const int16_t availableHeight =
+      layout.bottom - layout.y - gap * (rows.size() - 1);
+  int16_t rowY = layout.y;
   uint16_t consumedWeight = 0;
   for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
     JsonObjectConst row = rows[rowIndex];
     const uint16_t weight = row["weight"] | 1;
     consumedWeight += weight;
     const int16_t nextY = rowIndex + 1 == rows.size()
-                              ? 236
-                              : top + availableHeight * consumedWeight /
-                                          totalWeight +
+                              ? layout.bottom
+                              : layout.y + availableHeight * consumedWeight /
+                                               totalWeight +
                                     gap * rowIndex;
     int16_t rowHeight = nextY - rowY;
     const char *rowTitle = row["title"];
     const bool showTitle = row["showTitle"] | true;
     if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
-      if (!cacheText(page, String(rowTitle), &FreeSans9pt7b, TL_DATUM, 4,
-                     rowY, TFT_LIGHTGREY, page.background)) {
+      if (!cacheText(page, String(rowTitle), &FreeSans9pt7b, TL_DATUM,
+                     layout.x + 2, rowY, TFT_LIGHTGREY, page.background)) {
         return false;
       }
       rowY += 17;
@@ -762,8 +861,9 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
     }
     JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
     if (cards.size() == 0) return false;
-    const int16_t cardWidth = (236 - gap * (cards.size() - 1)) / cards.size();
-    int16_t cardX = 2;
+    const int16_t cardWidth =
+        (layout.right - layout.x - gap * (cards.size() - 1)) / cards.size();
+    int16_t cardX = layout.x;
     for (JsonObjectConst card : cards) {
       if (!cacheCard(page, card, cardX, rowY, cardWidth, rowHeight)) {
         return false;
@@ -784,32 +884,53 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
       parseColor(page["style"]["background"], TFT_BLACK);
   const bool partial = changedValues != nullptr;
   if (!partial && clear) display.fillScreen(pageBackground);
-  int16_t top = 1;
+  const PageContentLayout layout = pageContentLayout(page);
   const char *pageTitle = page["title"];
-  const bool showPageTitle = page["showTitle"] | true;
-  if (showPageTitle && pageTitle && pageTitle[0]) {
-    if (!partial) {
-      display.setTextDatum(TC_DATUM);
-      display.setTextColor(TFT_WHITE, pageBackground);
-      display.setFreeFont(&FreeSansBold9pt7b);
-      display.drawString(pageTitle, 120 + offsetX, top + offsetY);
+  if (layout.hasTitle && !partial) {
+    JsonVariantConst titleStyle = page["titleStyle"];
+    const uint16_t titleBackground =
+        parseColor(titleStyle["background"], pageBackground);
+    const uint16_t titleForeground =
+        parseColor(titleStyle["foreground"], TFT_WHITE);
+    if (strcmp(layout.titlePosition, "left") == 0 ||
+        strcmp(layout.titlePosition, "right") == 0) {
+      const bool right = strcmp(layout.titlePosition, "right") == 0;
+      display.fillRect((right ? 240 - layout.titleThickness : 0) + offsetX,
+                       offsetY, layout.titleThickness, 240, titleBackground);
+      drawVerticalPageTitle(pageTitle,
+                            right, offsetX, offsetY, layout.titleThickness,
+                            titleStyle, titleForeground, titleBackground);
+    } else {
+      const bool bottom = strcmp(layout.titlePosition, "bottom") == 0;
+      const int16_t titleY = bottom ? 240 - layout.titleThickness : 0;
+      display.fillRect(offsetX, titleY + offsetY, 240,
+                       layout.titleThickness, titleBackground);
+      display.setTextDatum(MC_DATUM);
+      display.setTextColor(titleForeground, titleBackground);
+      display.setFreeFont(pageTitleFont(titleStyle));
+      String clipped(pageTitle);
+      while (clipped.length() > 1 && display.textWidth(clipped) > 232) {
+        clipped.remove(clipped.length() - 1);
+      }
+      display.drawString(clipped, 120 + offsetX,
+                         titleY + layout.titleThickness / 2 + offsetY);
     }
-    top += 21;
   }
 
   uint16_t totalWeight = 0;
   for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
   const int16_t gap = 4;
-  const int16_t availableHeight = 236 - top - gap * (rows.size() - 1);
-  int16_t rowY = top;
+  const int16_t availableHeight =
+      layout.bottom - layout.y - gap * (rows.size() - 1);
+  int16_t rowY = layout.y;
   uint16_t consumedWeight = 0;
   for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
     JsonObjectConst row = rows[rowIndex];
     const uint16_t weight = row["weight"] | 1;
     consumedWeight += weight;
     const int16_t nextY = rowIndex + 1 == rows.size()
-                              ? 236
-                              : top + availableHeight * consumedWeight / totalWeight +
+                              ? layout.bottom
+                              : layout.y + availableHeight * consumedWeight / totalWeight +
                                     gap * rowIndex;
     int16_t rowHeight = nextY - rowY;
     const char *rowTitle = row["title"];
@@ -821,14 +942,16 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
         display.setTextDatum(TL_DATUM);
         display.setTextColor(TFT_LIGHTGREY, pageBackground);
         display.setFreeFont(&FreeSans9pt7b);
-        display.drawString(rowTitle, 4 + offsetX, rowY + offsetY);
+        display.drawString(rowTitle, layout.x + 2 + offsetX,
+                           rowY + offsetY);
       }
       rowY += 17;
       rowHeight -= 17;
     }
     JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
-    const int16_t cardWidth = (236 - gap * (cards.size() - 1)) / cards.size();
-    int16_t cardX = 2 + offsetX;
+    const int16_t cardWidth =
+        (layout.right - layout.x - gap * (cards.size() - 1)) / cards.size();
+    int16_t cardX = layout.x + offsetX;
     size_t cardIndex = 0;
     for (JsonObjectConst card : cards) {
       const char *source = card["source"];
@@ -838,14 +961,18 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
           (*changedValues & (1UL << (sourceValue - dashboardValues))) != 0;
       if (!partial || sourceChanged) {
         uint8_t edgeExtensions = 0;
-        if (cardIndex == 0) edgeExtensions |= kExtendLeft;
-        if (cardIndex + 1 == cards.size()) edgeExtensions |= kExtendRight;
-        if (rowIndex == 0 && top <= 1 && !rowTitleShown) {
+        if (cardIndex == 0 && layout.x <= 6) edgeExtensions |= kExtendLeft;
+        if (cardIndex + 1 == cards.size() && layout.right >= 234) {
+          edgeExtensions |= kExtendRight;
+        }
+        if (rowIndex == 0 && layout.y <= 6 && !rowTitleShown) {
           edgeExtensions |= kExtendTop;
         }
-        if (rowIndex + 1 == rows.size()) edgeExtensions |= kExtendBottom;
+        if (rowIndex + 1 == rows.size() && layout.bottom >= 234) {
+          edgeExtensions |= kExtendBottom;
+        }
         drawCard(card, cardX, rowY + offsetY, cardWidth, rowHeight,
-                 edgeExtensions);
+                 edgeExtensions, pageBackground);
       }
       cardX += cardWidth + gap;
       ++cardIndex;
