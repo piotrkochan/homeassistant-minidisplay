@@ -2078,7 +2078,7 @@ export class MiniDisplayEditor extends LitElement {
           "Value effect",
           value,
         )}${
-          card.title?.trim()
+          card.title?.trim() && card.showTitle !== false
             ? html`${this.fontSelect(
                 "Title font",
                 title.fontFamily,
@@ -2532,7 +2532,7 @@ export class MiniDisplayEditor extends LitElement {
       <div class="card-head">
         <div class="card-title">
           <strong>${card.title?.trim() || html`<em>Unnamed card</em>`}</strong
-          >${card.visibility ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : nothing}
+          >${card.title?.trim() && card.showTitle === false ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Title hidden</span>` : nothing}${card.visibility ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : nothing}
         </div>
         ${this.menu(
           html`<button
@@ -2577,7 +2577,15 @@ export class MiniDisplayEditor extends LitElement {
         )}${this.field("Title", card.title, (input) => {
           card.title = input;
           this.changed();
-        })}
+        })}${this.checkbox(
+          "Show title on display",
+          card.showTitle !== false,
+          (input) => {
+            card.showTitle = input;
+            this.changed();
+          },
+          !card.title?.trim(),
+        )}
         <p class="hint">${hints[card.type]}</p>
         ${["number", "status", "text"].includes(card.type) ? this.entity(card) : nothing}${
           card.type === "number"

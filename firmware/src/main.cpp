@@ -1237,7 +1237,8 @@ bool usesCompactCardTitle(JsonObjectConst card) {
 CardTextLayout cardTextLayout(JsonObjectConst card, int16_t y,
                               int16_t height) {
   const char *title = card["title"];
-  const bool hasTitle = title && title[0] && height >= 28;
+  const bool hasTitle = (card["showTitle"] | true) && title && title[0] &&
+                        height >= 28;
   const bool bar = strcmp(card["progress"] | "none", "bar") == 0;
   const int16_t contentHeight =
       max<int16_t>(1, height - (bar && height >= 20 ? 9 : 0));

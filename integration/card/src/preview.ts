@@ -940,7 +940,9 @@ export class MiniDisplayPreview extends LitElement {
                       : 0;
                   const family = "sans-serif";
                   const displayValue = this.cardValue(card);
-                  const hasTitle = Boolean(card.title && cardHeight >= 28);
+                  const hasTitle = Boolean(
+                    card.title && card.showTitle !== false && cardHeight >= 28,
+                  );
                   const titleVerticalKey =
                     card.titleStyle?.verticalAlign ?? "top";
                   const reservesTitle =
@@ -1070,7 +1072,7 @@ export class MiniDisplayPreview extends LitElement {
                     }}
                   >
                     ${
-                      card.title
+                      card.title && card.showTitle !== false
                         ? html`<small
                             style=${`${titleArea};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")}`}
                             ><span

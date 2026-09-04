@@ -525,14 +525,14 @@ const pi = { attribute: !0, type: String, converter: fe, reflect: !1, hasChanged
   }
   throw Error("Unsupported decorator location: " + s);
 };
-function u(t) {
+function g(t) {
   return (e, i) => typeof i == "object" ? hi(t, e, i) : ((s, a, r) => {
     const o = a.hasOwnProperty(r);
     return a.constructor.createProperty(r, s), o ? Object.getOwnPropertyDescriptor(a, r) : void 0;
   })(t, e, i);
 }
 function f(t) {
-  return u({ ...t, state: !0, attribute: !1 });
+  return g({ ...t, state: !0, attribute: !1 });
 }
 const Ie = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, wt = () => ({
   weight: 1,
@@ -668,10 +668,10 @@ Le.styles = V`
   `;
 let le = Le;
 kt([
-  u()
+  g()
 ], le.prototype, "label");
 kt([
-  u()
+  g()
 ], le.prototype, "value");
 customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", le);
 var xi = Object.defineProperty, k = (t, e, i, s) => {
@@ -980,8 +980,8 @@ const He = class He extends E {
             >
               ${x.title && x.showTitle !== !1 ? l`<div
                       class="title ${this.interactive ? "interactive" : ""}"
-                      @click=${(g) => {
-        g.stopPropagation(), this.emit("preview-select", {
+                      @click=${(u) => {
+        u.stopPropagation(), this.emit("preview-select", {
           kind: "row",
           row: A
         });
@@ -993,47 +993,47 @@ const He = class He extends E {
                 class="row"
                 style="grid-template-columns:repeat(${Y.length},minmax(0,1fr))"
               >
-                ${Y.map(({ card: g, cardIndex: X, hidden: Dt }) => {
-        const Ve = g.source ? this.hass?.states[g.source]?.state ?? "—" : g.text ?? "—", Be = Number(Ve), Se = g.minimum ?? 0, We = g.maximum ?? 100, Ye = Number.isFinite(Be) && We > Se ? Math.max(
+                ${Y.map(({ card: u, cardIndex: X, hidden: Dt }) => {
+        const Ve = u.source ? this.hass?.states[u.source]?.state ?? "—" : u.text ?? "—", Be = Number(Ve), Se = u.minimum ?? 0, We = u.maximum ?? 100, Ye = Number.isFinite(Be) && We > Se ? Math.max(
           0,
           Math.min(100, (Be - Se) / (We - Se) * 100)
-        ) : 0, Et = "sans-serif", Xe = this.cardValue(g), Ct = !!(g.title && he >= 28), z = g.titleStyle?.verticalAlign ?? "top", Pt = Ct && (z === "top" || z === "bottom"), Mt = [void 0, "auto", "small"].includes(
-          g.titleStyle?.fontSize
+        ) : 0, Et = "sans-serif", Xe = this.cardValue(u), Ct = !!(u.title && u.showTitle !== !1 && he >= 28), z = u.titleStyle?.verticalAlign ?? "top", Pt = Ct && (z === "top" || z === "bottom"), Mt = [void 0, "auto", "small"].includes(
+          u.titleStyle?.fontSize
         ) && [void 0, "default", "sans", "sans-bold"].includes(
-          g.titleStyle?.fontFamily
-        ), Ae = g.progress === "bar" ? 14 : 5, De = he - (g.progress === "bar" ? 9 : 0), G = Pt ? Math.min(Mt ? 12 : 18, De / 2) : 0, Tt = g.progress === "ring" ? Math.min(
+          u.titleStyle?.fontFamily
+        ), Ae = u.progress === "bar" ? 14 : 5, De = he - (u.progress === "bar" ? 9 : 0), G = Pt ? Math.min(Mt ? 12 : 18, De / 2) : 0, Tt = u.progress === "ring" ? Math.min(
           22,
           Math.max(12, (De - G) / 4)
         ) : De - G, zt = this.valueFontSize(
-          g,
+          u,
           Xe,
           Fe,
           Tt
-        ), Ge = mi(g, Ve), Ke = Ge?.background ?? g.style?.background ?? "", Je = Ge?.foreground ?? g.style?.foreground ?? "", Ze = (N[Ke] ?? Ke) || "#20242d", Qe = N[g.style?.accent ?? ""] ?? g.style?.accent ?? "#42a5f5", It = (N[Je] ?? Je) || "white", Ot = {
+        ), Ge = mi(u, Ve), Ke = Ge?.background ?? u.style?.background ?? "", Je = Ge?.foreground ?? u.style?.foreground ?? "", Ze = (N[Ke] ?? Ke) || "#20242d", Qe = N[u.style?.accent ?? ""] ?? u.style?.accent ?? "#42a5f5", It = (N[Je] ?? Je) || "white", Ot = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[g.valueStyle?.horizontalAlign ?? "center"], Rt = {
+        }[u.valueStyle?.horizontalAlign ?? "center"], Rt = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[g.valueStyle?.verticalAlign ?? "middle"], Nt = g.valueStyle?.horizontalAlign ?? "center", Ut = {
+        }[u.valueStyle?.verticalAlign ?? "middle"], Nt = u.valueStyle?.horizontalAlign ?? "center", Ut = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[g.titleStyle?.horizontalAlign ?? "left"], qt = {
+        }[u.titleStyle?.horizontalAlign ?? "left"], qt = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
         }[z], jt = 5 + (z === "top" ? G : 0), Lt = Ae + (z === "bottom" ? G : 0), et = `top:${jt}px;right:5px;bottom:${Lt}px;left:5px`, Ht = z === "top" ? `top:5px;right:5px;height:${G}px;left:5px` : z === "bottom" ? `right:5px;bottom:${Ae}px;height:${G}px;left:5px` : `top:5px;right:5px;bottom:${Ae}px;left:5px`;
         this.measureContext ??= document.createElement("canvas").getContext("2d"), this.measureContext && (this.measureContext.font = "11px sans-serif");
-        const Ee = g.title ? Math.max(
+        const Ee = u.title ? Math.max(
           0,
-          (this.measureContext?.measureText(g.title).width ?? 0) - (Fe - 10)
+          (this.measureContext?.measureText(u.title).width ?? 0) - (Fe - 10)
         ) : 0, ue = Ee > 0 && (z === "top" || z === "bottom"), tt = l`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${Et};font-size:${zt}px;font-weight:700;${this.textEffectCss(g.valueStyle)}`}
+                    style=${`font-family:${Et};font-size:${zt}px;font-weight:700;${this.textEffectCss(u.valueStyle)}`}
                     @click=${(I) => {
           I.stopPropagation(), this.emit("preview-select", {
             kind: "value",
@@ -1057,11 +1057,11 @@ const He = class He extends E {
           });
         }}
                   >
-                    ${g.title ? l`<small
-                            style=${`${Ht};align-items:${qt};justify-content:${ue ? "flex-start" : Ut};text-align:${ue ? "left" : g.titleStyle?.horizontalAlign ?? "left"}`}
+                    ${u.title && u.showTitle !== !1 ? l`<small
+                            style=${`${Ht};align-items:${qt};justify-content:${ue ? "flex-start" : Ut};text-align:${ue ? "left" : u.titleStyle?.horizontalAlign ?? "left"}`}
                             ><span
                               class="card-label ${ue ? "marquee" : ""}"
-                              style=${`${ue ? `--marquee-distance:-${Ee}px;--marquee-duration:${Math.max(3, 1.7 + Ee * 0.035)}s;` : ""}${this.textEffectCss(g.titleStyle)}`}
+                              style=${`${ue ? `--marquee-distance:-${Ee}px;--marquee-duration:${Math.max(3, 1.7 + Ee * 0.035)}s;` : ""}${this.textEffectCss(u.titleStyle)}`}
                               .draggable=${this.interactive}
                               @click=${(I) => {
           I.stopPropagation(), this.emit("preview-select", {
@@ -1072,9 +1072,9 @@ const He = class He extends E {
         }}
                               @dragstart=${(I) => this.startDrag(I, { kind: "title", row: A, card: X })}
                               @dragend=${() => this.stopDrag()}
-                              >${g.title}</span
+                              >${u.title}</span
                             ></small
-                          >` : null}${g.progress === "ring" ? l`<div class="ring-stack" style=${et}>
+                          >` : null}${u.progress === "ring" ? l`<div class="ring-stack" style=${et}>
                             <div
                               class="ring"
                               style=${`background:conic-gradient(${Qe} ${Ye}%,#3d424e 0);--ring-bg:${Ze}`}
@@ -1085,7 +1085,7 @@ const He = class He extends E {
                             style=${`${et};align-items:${Rt};justify-content:${Ot};text-align:${Nt}`}
                           >
                             ${tt}
-                          </div>`}${this.positionGrid(A, X)}${g.progress === "bar" ? l`<div class="bar"><i style=${`width:${Ye}%;background:${Qe}`}></i></div>` : null}
+                          </div>`}${this.positionGrid(A, X)}${u.progress === "bar" ? l`<div class="bar"><i style=${`width:${Ye}%;background:${Qe}`}></i></div>` : null}
                   </div>`;
       })}
               </div>
@@ -1446,31 +1446,31 @@ He.styles = V`
   `;
 let _ = He;
 k([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], _.prototype, "dashboard");
 k([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], _.prototype, "hass");
 k([
-  u({ type: Number })
+  g({ type: Number })
 ], _.prototype, "page");
 k([
-  u({ type: Boolean })
+  g({ type: Boolean })
 ], _.prototype, "autoRotate");
 k([
-  u({ type: Number })
+  g({ type: Number })
 ], _.prototype, "width");
 k([
-  u({ type: Number })
+  g({ type: Number })
 ], _.prototype, "height");
 k([
-  u()
+  g()
 ], _.prototype, "displayId");
 k([
-  u({ type: Boolean })
+  g({ type: Boolean })
 ], _.prototype, "interactive");
 k([
-  u({ type: Boolean })
+  g({ type: Boolean })
 ], _.prototype, "showHidden");
 k([
   f()
@@ -1567,28 +1567,28 @@ S.styles = V`
     @media(max-width:700px) { :host { grid-column: auto; grid-template-columns: 1fr; } }
   `;
 T([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], S.prototype, "hass", 2);
 T([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], S.prototype, "displays", 2);
 T([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], S.prototype, "dashboards", 2);
 T([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], S.prototype, "pages", 2);
 T([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], S.prototype, "dirtyDisplays", 2);
 T([
-  u()
+  g()
 ], S.prototype, "selectedDisplayId", 2);
 T([
-  u()
+  g()
 ], S.prototype, "selectedSceneId", 2);
 T([
-  u()
+  g()
 ], S.prototype, "selectedSceneName", 2);
 T([
   f()
@@ -1734,22 +1734,22 @@ O.styles = V`
     .form small { color: var(--secondary-text-color); line-height: 1.4; }
   `;
 B([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], O.prototype, "displays", 2);
 B([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], O.prototype, "scenes", 2);
 B([
-  u()
+  g()
 ], O.prototype, "selectedDisplayId", 2);
 B([
-  u()
+  g()
 ], O.prototype, "selectedSceneId", 2);
 B([
-  u()
+  g()
 ], O.prototype, "form", 2);
 B([
-  u()
+  g()
 ], O.prototype, "sceneName", 2);
 O = B([
   ce("mini-display-scene-sidebar")
@@ -2054,19 +2054,19 @@ M.styles = V`
     @media(max-width:700px){.rule-head,.rule-fields{grid-template-columns:1fr}.rule-head .icon{justify-self:end}.logic-child{grid-template-columns:28px minmax(0,1fr) 40px}.move{grid-column:2}.group.nested{margin-left:8px}.actions{align-items:stretch;flex-direction:column}.right{justify-content:flex-end}}
   `;
 q([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], M.prototype, "hass", 2);
 q([
-  u()
+  g()
 ], M.prototype, "targetName", 2);
 q([
-  u()
+  g()
 ], M.prototype, "targetKind", 2);
 q([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], M.prototype, "card", 2);
 q([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], M.prototype, "value", 2);
 q([
   f()
@@ -2774,7 +2774,7 @@ let v = class extends E {
     )}${this.textPosition("Text position", i)}${this.textEffectEditor(
       "Value effect",
       i
-    )}${t.title?.trim() ? l`${this.fontSelect(
+    )}${t.title?.trim() && t.showTitle !== !1 ? l`${this.fontSelect(
       "Title font",
       s.fontFamily,
       (a) => {
@@ -3096,7 +3096,7 @@ let v = class extends E {
       <div class="card-head">
         <div class="card-title">
           <strong>${t.title?.trim() || l`<em>Unnamed card</em>`}</strong
-          >${t.visibility ? l`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
+          >${t.title?.trim() && t.showTitle === !1 ? l`<span class="condition-mark"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Title hidden</span>` : c}${t.visibility ? l`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
         </div>
         ${this.menu(
       l`<button
@@ -3132,7 +3132,14 @@ let v = class extends E {
       }
     )}${this.field("Title", t.title, (r) => {
       t.title = r, this.changed();
-    })}
+    })}${this.checkbox(
+      "Show title on display",
+      t.showTitle !== !1,
+      (r) => {
+        t.showTitle = r, this.changed();
+      },
+      !t.title?.trim()
+    )}
         <p class="hint">${a[t.type]}</p>
         ${["number", "status", "text"].includes(t.type) ? this.entity(t) : c}${t.type === "number" ? l`${this.field("Unit", t.unit, (r) => {
       t.unit = r, this.changed();
@@ -4563,7 +4570,7 @@ v.styles = V`
     }
   `;
 $([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], v.prototype, "hass", 2);
 $([
   f()
@@ -4683,16 +4690,16 @@ F.styles = V`
     }
   `;
 pe([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], F.prototype, "hass", 2);
 pe([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], F.prototype, "narrow", 2);
 pe([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], F.prototype, "route", 2);
 pe([
-  u({ attribute: !1 })
+  g({ attribute: !1 })
 ], F.prototype, "panel", 2);
 F = pe([
   ce("mini-display-panel")

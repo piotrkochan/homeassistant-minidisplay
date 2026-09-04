@@ -110,6 +110,7 @@ export type TextColorMapping = {
 export type DisplayCard = {
   type: "clock" | "number" | "status" | "text";
   title?: string;
+  showTitle?: boolean;
   source?: string;
   text?: string;
   unit?: string;
