@@ -24,7 +24,8 @@ namespace {
 
 constexpr uint32_t kLegacyConfigMagic = 0x53445031;
 constexpr uint32_t kV2ConfigMagic = 0x53445032;
-constexpr uint32_t kConfigMagic = 0x53445033;
+constexpr uint32_t kV3ConfigMagic = 0x53445033;
+constexpr uint32_t kConfigMagic = 0x53445034;
 constexpr size_t kEepromSize = 512;
 constexpr uint32_t kConnectTimeoutMs = 20000;
 constexpr uint8_t kDefaultWifiRetryLimit = 3;
@@ -73,6 +74,23 @@ struct LegacyDeviceConfig {
 };
 
 struct DeviceConfig {
+  uint32_t magic;
+  char ssid[33];
+  char wifiPassword[65];
+  char apiPassword[33];
+  char otaPassword[33];
+  char hostname[33];
+  char username[33];
+  uint8_t apiAuthEnabled;
+  uint8_t otaAuthEnabled;
+  uint8_t wifiRetryLimit;
+  uint8_t resetApiAuthOnRecovery;
+  uint8_t directOtaEnabled;
+  uint8_t reserved[3];
+  uint32_t checksum;
+};
+
+struct V3DeviceConfig {
   uint32_t magic;
   char ssid[33];
   char wifiPassword[65];
@@ -253,6 +271,16 @@ uint32_t checksum(const V2DeviceConfig &value) {
   return hash;
 }
 
+uint32_t checksum(const V3DeviceConfig &value) {
+  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
+  uint32_t hash = 2166136261UL;
+  for (size_t index = 0; index < offsetof(V3DeviceConfig, checksum); ++index) {
+    hash ^= bytes[index];
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
 bool configValid() {
   return config.magic == kConfigMagic && config.checksum == checksum(config) &&
          config.ssid[0] != '\0';
@@ -269,12 +297,39 @@ bool v2ConfigValid(const V2DeviceConfig &value) {
          value.ssid[0] != '\0';
 }
 
+bool v3ConfigValid(const V3DeviceConfig &value) {
+  return value.magic == kV3ConfigMagic && value.checksum == checksum(value) &&
+         value.ssid[0] != '\0';
+}
+
 void saveConfig();
 
 void loadConfig() {
   EEPROM.begin(kEepromSize);
   EEPROM.get(0, config);
   if (configValid()) return;
+
+  V3DeviceConfig v3{};
+  EEPROM.get(0, v3);
+  if (v3ConfigValid(v3)) {
+    memset(&config, 0, sizeof(config));
+    strlcpy(config.ssid, v3.ssid, sizeof(config.ssid));
+    strlcpy(config.wifiPassword, v3.wifiPassword,
+            sizeof(config.wifiPassword));
+    strlcpy(config.apiPassword, v3.apiPassword,
+            sizeof(config.apiPassword));
+    strlcpy(config.otaPassword, v3.otaPassword,
+            sizeof(config.otaPassword));
+    strlcpy(config.hostname, v3.hostname, sizeof(config.hostname));
+    strlcpy(config.username, "admin", sizeof(config.username));
+    config.apiAuthEnabled = v3.apiAuthEnabled;
+    config.otaAuthEnabled = v3.otaAuthEnabled;
+    config.wifiRetryLimit = v3.wifiRetryLimit;
+    config.resetApiAuthOnRecovery = v3.resetApiAuthOnRecovery;
+    config.directOtaEnabled = v3.directOtaEnabled;
+    saveConfig();
+    return;
+  }
 
   V2DeviceConfig v2{};
   EEPROM.get(0, v2);
@@ -288,6 +343,7 @@ void loadConfig() {
     strlcpy(config.otaPassword, v2.otaPassword,
             sizeof(config.otaPassword));
     strlcpy(config.hostname, v2.hostname, sizeof(config.hostname));
+    strlcpy(config.username, "admin", sizeof(config.username));
     config.apiAuthEnabled = v2.apiAuthEnabled;
     config.otaAuthEnabled = v2.otaAuthEnabled;
     config.wifiRetryLimit = v2.wifiRetryLimit;
@@ -308,6 +364,7 @@ void loadConfig() {
             sizeof(config.apiPassword));
     strlcpy(config.otaPassword, legacy.otaPassword,
             sizeof(config.otaPassword));
+    strlcpy(config.username, "admin", sizeof(config.username));
     config.apiAuthEnabled = 1;
     config.otaAuthEnabled = 1;
     config.directOtaEnabled = 1;
@@ -341,6 +398,23 @@ String configuredHostname() {
   return "mini-display-" + deviceSuffix();
 }
 
+const char *configuredUsername() {
+  return config.username[0] ? config.username : "admin";
+}
+
+bool usernameValid(const char *username) {
+  const size_t length = strlen(username);
+  if (length == 0 || length > 32) return false;
+  for (size_t index = 0; index < length; ++index) {
+    const char character = username[index];
+    if (!isalnum(static_cast<unsigned char>(character)) && character != '-' &&
+        character != '_' && character != '.') {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool hostnameValid(const char *hostname) {
   const size_t length = strlen(hostname);
   if (length == 0 || length > 32 || hostname[0] == '-' ||
@@ -367,7 +441,7 @@ bool directOtaAuthenticated() {
     return false;
   }
   if (!config.otaAuthEnabled) return true;
-  if (server.authenticate("admin", config.otaPassword)) return true;
+  if (server.authenticate(configuredUsername(), config.otaPassword)) return true;
   server.requestAuthentication();
   return false;
 }
@@ -375,7 +449,7 @@ bool directOtaAuthenticated() {
 bool webAuthenticated() {
   if (accessPointRunning) return true;
   if (!config.apiAuthEnabled) return true;
-  if (server.authenticate("admin", config.apiPassword)) return true;
+  if (server.authenticate(configuredUsername(), config.apiPassword)) return true;
   server.requestAuthentication();
   return false;
 }
@@ -393,7 +467,7 @@ bool apiAuthenticated() {
   char expected[sizeof(config.apiPassword) + 8];
   snprintf(expected, sizeof(expected), "Bearer %s", config.apiPassword);
   if (server.header("Authorization") == expected) return true;
-  if (server.authenticate("admin", config.apiPassword)) return true;
+  if (server.authenticate(configuredUsername(), config.apiPassword)) return true;
   server.requestAuthentication();
   return false;
 }
@@ -1644,6 +1718,7 @@ void sendApiSetup() {
   document["configured"] = configured;
   document["ssid"] = configured ? config.ssid : "";
   document["hostname"] = configuredHostname();
+  document["username"] = configured ? configuredUsername() : "admin";
   document["retryLimit"] = configured && config.wifiRetryLimit
                                ? config.wifiRetryLimit
                                : kDefaultWifiRetryLimit;
@@ -1672,13 +1747,15 @@ void receiveApiSetup() {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
   }
+  const bool configured = configValid();
   const char *ssid = document["ssid"] | "";
   const char *wifiPassword = document["wifiPassword"] | "";
   const char *hostname = document["hostname"] | "";
+  const char *username =
+      document["username"] | (configured ? configuredUsername() : "admin");
   const char *legacyPassword = document["password"] | "";
   const char *apiPassword = document["apiPassword"] | legacyPassword;
   const char *otaPassword = document["otaPassword"] | legacyPassword;
-  const bool configured = configValid();
   const bool apiAuthEnabled =
       document["apiAuthEnabled"] | (configured && config.apiAuthEnabled);
   const bool otaAuthEnabled =
@@ -1692,7 +1769,8 @@ void receiveApiSetup() {
   const size_t nextOtaPasswordLength =
       otaPassword[0] ? strlen(otaPassword) : strlen(config.otaPassword);
   if (!ssid[0] || strlen(ssid) > 32 || strlen(wifiPassword) > 64 ||
-      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10 ||
+      !hostnameValid(hostname) || !usernameValid(username) || retryLimit < 1 ||
+      retryLimit > 10 ||
       strlen(apiPassword) > 32 || strlen(otaPassword) > 32 ||
       (apiAuthEnabled && nextApiPasswordLength < 8) ||
       (directOtaEnabled && otaAuthEnabled && nextOtaPasswordLength < 8)) {
@@ -1706,6 +1784,7 @@ void receiveApiSetup() {
     strlcpy(next.wifiPassword, wifiPassword, sizeof(next.wifiPassword));
   }
   strlcpy(next.hostname, hostname, sizeof(next.hostname));
+  strlcpy(next.username, username, sizeof(next.username));
   if (apiPassword[0]) {
     strlcpy(next.apiPassword, apiPassword, sizeof(next.apiPassword));
   }
@@ -1779,12 +1858,13 @@ void receiveApiNetwork() {
 
 void sendApiSecurity() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<96> document;
+  StaticJsonDocument<160> document;
   document["apiAuthEnabled"] = config.apiAuthEnabled != 0;
   document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
   document["directOtaEnabled"] = config.directOtaEnabled != 0;
+  document["username"] = configuredUsername();
   String body;
-  body.reserve(96);
+  body.reserve(128);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
@@ -1802,17 +1882,19 @@ void receiveApiSecurity() {
       document["otaAuthEnabled"] | (config.otaAuthEnabled != 0);
   const bool directOtaEnabled =
       document["directOtaEnabled"] | (config.directOtaEnabled != 0);
+  const char *username = document["username"] | configuredUsername();
   const char *apiPassword = document["apiPassword"] | "";
   const char *otaPassword = document["otaPassword"] | "";
   const size_t nextApiPasswordLength =
       apiPassword[0] ? strlen(apiPassword) : strlen(config.apiPassword);
   const size_t nextOtaPasswordLength =
       otaPassword[0] ? strlen(otaPassword) : strlen(config.otaPassword);
-  if (strlen(apiPassword) > 32 || strlen(otaPassword) > 32 ||
+  if (!usernameValid(username) || strlen(apiPassword) > 32 ||
+      strlen(otaPassword) > 32 ||
       (apiAuthEnabled && nextApiPasswordLength < 8) ||
       (directOtaEnabled && otaAuthEnabled && nextOtaPasswordLength < 8)) {
-    sendJsonError(422, F("invalid_password"),
-                  F("Enabled passwords must contain 8-32 characters"));
+    sendJsonError(422, F("invalid_security"),
+                  F("Check username and password settings"));
     return;
   }
   if (apiPassword[0]) {
@@ -1821,6 +1903,7 @@ void receiveApiSecurity() {
   if (otaPassword[0]) {
     strlcpy(config.otaPassword, otaPassword, sizeof(config.otaPassword));
   }
+  strlcpy(config.username, username, sizeof(config.username));
   config.apiAuthEnabled = apiAuthEnabled;
   config.otaAuthEnabled = otaAuthEnabled;
   config.directOtaEnabled = directOtaEnabled;

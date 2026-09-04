@@ -193,6 +193,15 @@ class MiniDisplayDevice extends LitElement {
       display: grid;
       gap: 14px;
     }
+    .dependent {
+      display: grid;
+      gap: 14px;
+      padding-left: 28px;
+      transition: opacity 160ms ease;
+    }
+    .dependent.disabled {
+      opacity: 0.42;
+    }
     .field {
       display: grid;
       gap: 6px;
@@ -358,6 +367,7 @@ class MiniDisplayDevice extends LitElement {
         this.network = await request<NetworkStatus>("/api/v1/network");
       if (this.page === "security") {
         this.security = await request<SecurityStatus>("/api/v1/security");
+        this.setupApiAuth = this.security.apiAuthEnabled;
         this.setupOtaAuth = this.security.otaAuthEnabled;
         this.directOta = this.security.directOtaEnabled;
       }
@@ -694,13 +704,14 @@ class MiniDisplayDevice extends LitElement {
             void this.submit(
               "/api/v1/security",
               {
+                username: data.get("username"),
                 apiAuthEnabled: data.has("apiAuthEnabled"),
                 apiPassword: data.get("apiPassword"),
                 directOtaEnabled: this.directOta,
                 otaAuthEnabled: this.setupOtaAuth,
                 otaPassword: data.get("otaPassword"),
               },
-              "Security settings saved. Reload if the panel password changed.",
+              "Security settings saved. Reload if login credentials changed.",
             );
           }}
         >
@@ -708,20 +719,41 @@ class MiniDisplayDevice extends LitElement {
             ><input
               type="checkbox"
               name="apiAuthEnabled"
-              .checked=${security.apiAuthEnabled}
+              .checked=${this.setupApiAuth}
+              @change=${(event: Event) =>
+                (this.setupApiAuth = (
+                  event.target as HTMLInputElement
+                ).checked)}
             />Protect panel and Home Assistant API</label
           >
-          <label class="field"
-            >New panel/API password
-            <small
-              >Leave empty to keep the current password · 8-32 characters</small
-            ><input
-              name="apiPassword"
-              type="password"
-              minlength="8"
-              maxlength="32"
-              autocomplete="new-password"
-          /></label>
+          <div class="dependent ${this.setupApiAuth ? "" : "disabled"}">
+            <label class="field"
+              >Username <small>Used for panel login and direct OTA</small
+              ><input
+                name="username"
+                type="text"
+                minlength="1"
+                maxlength="32"
+                pattern="[A-Za-z0-9._-]+"
+                required
+                ?disabled=${!this.setupApiAuth}
+                autocomplete="username"
+                .value=${security.username || "admin"}
+            /></label>
+            <label class="field"
+              >New panel/API password
+              <small
+                >Leave empty to keep the current password · 8-32
+                characters</small
+              ><input
+                name="apiPassword"
+                type="password"
+                minlength="8"
+                maxlength="32"
+                ?disabled=${!this.setupApiAuth}
+                autocomplete="new-password"
+            /></label>
+          </div>
           <label class="check"
             ><input
               type="checkbox"
@@ -729,26 +761,38 @@ class MiniDisplayDevice extends LitElement {
               @change=${(event: Event) => (this.directOta = (event.target as HTMLInputElement).checked)}
             />Allow direct OTA firmware updates</label
           >
-          <label class="check"
-            ><input
-              type="checkbox"
-              .checked=${this.setupOtaAuth}
-              ?disabled=${!this.directOta}
-              @change=${(event: Event) => (this.setupOtaAuth = (event.target as HTMLInputElement).checked)}
-            />Protect direct OTA with password</label
-          >
-          <label class="field"
-            >OTA firmware update password
-            <small
-              >Leave empty to keep the current password · 8-32 characters</small
-            ><input
-              name="otaPassword"
-              type="password"
-              minlength="8"
-              maxlength="32"
-              ?disabled=${!this.directOta || !this.setupOtaAuth}
-              autocomplete="new-password"
-          /></label>
+          <div class="dependent ${this.directOta ? "" : "disabled"}">
+            <label class="check"
+              ><input
+                type="checkbox"
+                .checked=${this.setupOtaAuth}
+                ?disabled=${!this.directOta}
+                @change=${(event: Event) =>
+                  (this.setupOtaAuth = (
+                    event.target as HTMLInputElement
+                  ).checked)}
+              />Protect direct OTA with password</label
+            >
+            <div
+              class="dependent ${
+                this.directOta && this.setupOtaAuth ? "" : "disabled"
+              }"
+            >
+              <label class="field"
+                >OTA firmware update password
+                <small
+                  >Leave empty to keep the current password · 8-32
+                  characters</small
+                ><input
+                  name="otaPassword"
+                  type="password"
+                  minlength="8"
+                  maxlength="32"
+                  ?disabled=${!this.directOta || !this.setupOtaAuth}
+                  autocomplete="new-password"
+              /></label>
+            </div>
+          </div>
           <button type="submit" ?disabled=${this.saving}>
             Save security settings
           </button>
@@ -791,6 +835,7 @@ class MiniDisplayDevice extends LitElement {
                 ssid: data.get("ssid"),
                 wifiPassword: data.get("wifiPassword"),
                 hostname: data.get("hostname"),
+                username: data.get("username"),
                 retryLimit: Number(data.get("retryLimit")),
                 resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
                 apiAuthEnabled: this.setupApiAuth,
@@ -846,43 +891,75 @@ class MiniDisplayDevice extends LitElement {
               .checked=${this.setupApiAuth}
               @change=${(event: Event) => (this.setupApiAuth = (event.target as HTMLInputElement).checked)}
             />Protect panel and Home Assistant API</label
-          ><label class="field"
-            >Panel/API password
-            <small
-              >${setup?.apiPasswordSet ? "Leave empty to keep the current password" : "8-32 characters"}</small
-            ><input
-              name="apiPassword"
-              type="password"
-              minlength="8"
-              maxlength="32"
-              ?required=${this.setupApiAuth && !setup?.apiPasswordSet}
-              autocomplete="new-password" /></label
-          ><label class="check"
+          >
+          <div class="dependent ${this.setupApiAuth ? "" : "disabled"}">
+            <label class="field"
+              >Username <small>Used for panel login and direct OTA</small
+              ><input
+                name="username"
+                type="text"
+                minlength="1"
+                maxlength="32"
+                pattern="[A-Za-z0-9._-]+"
+                required
+                ?disabled=${!this.setupApiAuth}
+                autocomplete="username"
+                .value=${setup?.username ?? "admin"}
+            /></label>
+            <label class="field"
+              >Panel/API password
+              <small
+                >${setup?.apiPasswordSet ? "Leave empty to keep the current password" : "8-32 characters"}</small
+              ><input
+                name="apiPassword"
+                type="password"
+                minlength="8"
+                maxlength="32"
+                ?required=${this.setupApiAuth && !setup?.apiPasswordSet}
+                ?disabled=${!this.setupApiAuth}
+                autocomplete="new-password"
+            /></label>
+          </div>
+          <label class="check"
             ><input
               type="checkbox"
               .checked=${this.directOta}
               @change=${(event: Event) => (this.directOta = (event.target as HTMLInputElement).checked)}
             />Allow direct OTA firmware updates</label
-          ><label class="check"
-            ><input
-              type="checkbox"
-              .checked=${this.setupOtaAuth}
-              ?disabled=${!this.directOta}
-              @change=${(event: Event) => (this.setupOtaAuth = (event.target as HTMLInputElement).checked)}
-            />Protect direct OTA with password</label
-          ><label class="field"
-            >OTA firmware update password
-            <small
-              >${setup?.otaPasswordSet ? "Leave empty to keep the current password" : "8-32 characters"}</small
-            ><input
-              name="otaPassword"
-              type="password"
-              minlength="8"
-              maxlength="32"
-              ?required=${this.directOta && this.setupOtaAuth && !setup?.otaPasswordSet}
-              ?disabled=${!this.directOta || !this.setupOtaAuth}
-              autocomplete="new-password" /></label
-          ><button type="submit" ?disabled=${this.saving}>
+          >
+          <div class="dependent ${this.directOta ? "" : "disabled"}">
+            <label class="check"
+              ><input
+                type="checkbox"
+                .checked=${this.setupOtaAuth}
+                ?disabled=${!this.directOta}
+                @change=${(event: Event) =>
+                  (this.setupOtaAuth = (
+                    event.target as HTMLInputElement
+                  ).checked)}
+              />Protect direct OTA with password</label
+            >
+            <div
+              class="dependent ${
+                this.directOta && this.setupOtaAuth ? "" : "disabled"
+              }"
+            >
+              <label class="field"
+                >OTA firmware update password
+                <small
+                  >${setup?.otaPasswordSet ? "Leave empty to keep the current password" : "8-32 characters"}</small
+                ><input
+                  name="otaPassword"
+                  type="password"
+                  minlength="8"
+                  maxlength="32"
+                  ?required=${this.directOta && this.setupOtaAuth && !setup?.otaPasswordSet}
+                  ?disabled=${!this.directOta || !this.setupOtaAuth}
+                  autocomplete="new-password"
+              /></label>
+            </div>
+          </div>
+          <button type="submit" ?disabled=${this.saving}>
             Save and restart
           </button>
         </form>

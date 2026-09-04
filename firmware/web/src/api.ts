@@ -35,6 +35,7 @@ export type NetworkStatus = {
 };
 
 export type SecurityStatus = {
+  username: string;
   apiAuthEnabled: boolean;
   otaAuthEnabled: boolean;
   directOtaEnabled: boolean;
@@ -44,6 +45,7 @@ export type SetupStatus = {
   configured: boolean;
   ssid: string;
   hostname: string;
+  username: string;
   retryLimit: number;
   resetApiAuthOnRecovery: boolean;
   apiAuthEnabled: boolean;

@@ -48,9 +48,10 @@ minify it, then embed one gzip-compressed asset in flash. Source lives in
 
 The local device UI provides separate Overview, Display, Network, Security and
 Firmware pages. Panel/API and firmware-update passwords are independent and
-either can be disabled for trusted networks. Changing the panel/API password
-starts Home Assistant's reauthentication flow without requiring the integration
-to be removed.
+either can be disabled for trusted networks. One configurable username is used
+for panel login and direct OTA. Changing the panel/API password starts Home
+Assistant's reauthentication flow without requiring the integration to be
+removed.
 
 Missing Wi-Fi configuration and repeated connection failures use the same setup
 mode. Its temporary access point exposes only setup and firmware recovery;
