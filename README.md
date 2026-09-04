@@ -63,6 +63,13 @@ validation before restart. Recovery credentials are never returned by the API;
 the password is shown on the physical display only while recovery mode is
 active. The Network page also reports signal quality, gateway, DNS, channel,
 BSSID, MAC address, reconnect count, and last disconnect reason.
+NTP can use a custom server or DHCP option 42 when IP assignment also uses
+DHCP.
+
+Display settings include a persistent time zone used by clock cards. Common
+zones are available as presets, with a custom POSIX rule for other locations.
+Home Assistant exposes the presets as a per-display select entity and reports
+the active time zone and NTP server as diagnostic sensors.
 
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted

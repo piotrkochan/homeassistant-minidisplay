@@ -13,6 +13,10 @@ export type DeviceStatus = {
   displayOn: boolean;
   brightness: number;
   pixelShift: number;
+  timezone: string;
+  localTime: string;
+  localDate: string;
+  ntpServer: string;
   page: string;
   rotation: "auto" | "manual";
   uptimeSeconds: number;
@@ -41,6 +45,8 @@ export type NetworkStatus = {
   resetApiAuthOnRecovery: boolean;
   recoverySsid: string;
   recoveryPasswordSet: boolean;
+  ntpServer: string;
+  ntpFromDhcp: boolean;
   staticIpEnabled: boolean;
   staticIp: string;
   staticGateway: string;
@@ -70,6 +76,8 @@ export type SetupStatus = {
   directOtaEnabled: boolean;
   recoverySsid: string;
   recoveryPasswordSet: boolean;
+  ntpServer: string;
+  ntpFromDhcp: boolean;
   staticIpEnabled: boolean;
   staticIp: string;
   gateway: string;

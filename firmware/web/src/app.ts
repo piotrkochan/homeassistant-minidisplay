@@ -39,6 +39,19 @@ const signalQuality = (rssi: number) => {
   return "Weak";
 };
 
+const timezones = [
+  { label: "Europe/Warsaw", value: "CET-1CEST,M3.5.0,M10.5.0/3" },
+  { label: "UTC", value: "UTC0" },
+  { label: "Europe/London", value: "GMT0BST,M3.5.0/1,M10.5.0" },
+  { label: "America/New York", value: "EST5EDT,M3.2.0/2,M11.1.0/2" },
+  { label: "America/Los Angeles", value: "PST8PDT,M3.2.0/2,M11.1.0/2" },
+  { label: "Asia/Tokyo", value: "JST-9" },
+  { label: "Australia/Sydney", value: "AEST-10AEDT,M10.1.0,M4.1.0/3" },
+] as const;
+
+const timezonePreset = (rule: string) =>
+  timezones.some((timezone) => timezone.value === rule) ? rule : "custom";
+
 const lastUpdateAge = (seconds: number) => {
   if (seconds < 0) return { text: "Never", tone: "stale" };
   if (seconds < 60) return { text: `${seconds}s ago`, tone: "fresh" };
@@ -66,11 +79,14 @@ class MiniDisplayDevice extends LitElement {
   @state() private setup?: SetupStatus;
   @state() private brightness = 100;
   @state() private pixelShift = 0;
+  @state() private timezone: string = timezones[0].value;
+  @state() private selectedTimezone: string = timezones[0].value;
   @state() private setupApiAuth = true;
   @state() private setupOtaAuth = true;
   @state() private directOta = true;
   @state() private recoveryProtected = false;
   @state() private staticIp = false;
+  @state() private ntpFromDhcp = false;
 
   private readonly page = pageFromPath();
   private statusTimer?: number;
@@ -403,10 +419,13 @@ class MiniDisplayDevice extends LitElement {
       this.status = status;
       this.brightness = status.brightness;
       this.pixelShift = status.pixelShift;
+      this.timezone = status.timezone;
+      this.selectedTimezone = timezonePreset(status.timezone);
       if (this.page === "network") {
         this.network = await request<NetworkStatus>("/api/v1/network");
         this.recoveryProtected = this.network.recoveryPasswordSet;
         this.staticIp = this.network.staticIpEnabled;
+        this.ntpFromDhcp = this.network.ntpFromDhcp;
       }
       if (this.page === "security") {
         this.security = await request<SecurityStatus>("/api/v1/security");
@@ -424,6 +443,7 @@ class MiniDisplayDevice extends LitElement {
           this.directOta = this.setup.directOtaEnabled;
           this.recoveryProtected = this.setup.recoveryPasswordSet;
           this.staticIp = this.setup.staticIpEnabled;
+          this.ntpFromDhcp = this.setup.ntpFromDhcp;
         } catch (setupError) {
           this.error =
             setupError instanceof Error
@@ -553,6 +573,12 @@ class MiniDisplayDevice extends LitElement {
           <div class="metric age-${updateAge.tone}">${updateAge.text}</div>
         </section>
         <section class="card">
+          <h2>Time</h2>
+          <div class="metric">${status.localTime}</div>
+          <div>${status.localDate}</div>
+          <div class="muted">NTP ${status.ntpServer}</div>
+        </section>
+        <section class="card">
           <h2>Memory</h2>
           <div class="metric">
             ${formatMemory(status.totalHeapBytes - status.freeHeapBytes)} used
@@ -585,6 +611,7 @@ class MiniDisplayDevice extends LitElement {
                   on: data.has("on"),
                   brightness: this.brightness,
                   pixelShift: this.pixelShift,
+                  timezone: this.timezone,
                 },
                 "Display settings saved.",
               );
@@ -618,6 +645,44 @@ class MiniDisplayDevice extends LitElement {
                 .value=${String(this.pixelShift)}
                 @input=${(event: Event) => (this.pixelShift = Number((event.target as HTMLInputElement).value))}
             /></label>
+            <label class="field"
+              >Time zone
+              <small
+                >Used by clock cards. Time stays synchronized over NTP.</small
+              >
+              <select
+                .value=${this.selectedTimezone}
+                @change=${(event: Event) => {
+                  const value = (event.target as HTMLSelectElement).value;
+                  this.selectedTimezone = value;
+                  if (value !== "custom") this.timezone = value;
+                }}
+              >
+                ${timezones.map(
+                  (timezone) =>
+                    html`<option value=${timezone.value}>
+                      ${timezone.label}
+                    </option>`,
+                )}
+                <option value="custom">Custom POSIX rule</option>
+              </select>
+            </label>
+            ${
+              this.selectedTimezone === "custom"
+                ? html`<label class="field"
+                    >POSIX time zone rule
+                    <input
+                      maxlength="63"
+                      required
+                      .value=${this.timezone}
+                      @input=${(event: Event) =>
+                        (this.timezone = (
+                          event.target as HTMLInputElement
+                        ).value)}
+                    />
+                  </label>`
+                : nothing
+            }
             <button type="submit" ?disabled=${this.saving}>
               Save display settings
             </button>
@@ -657,6 +722,8 @@ class MiniDisplayDevice extends LitElement {
       resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
       recoveryPasswordEnabled: this.recoveryProtected,
       recoveryPassword: data.get("recoveryPassword"),
+      ntpServer: data.get("ntpServer"),
+      ntpFromDhcp: this.ntpFromDhcp,
       staticIpEnabled: this.staticIp,
       staticIp: data.get("staticIp"),
       gateway: data.get("gateway"),
@@ -739,6 +806,14 @@ class MiniDisplayDevice extends LitElement {
                 ${network.lastDisconnectReason}</span
               >
             </div>
+            <div class="fact">
+              <strong>NTP source</strong
+              ><span
+                >${
+                  network.ntpFromDhcp ? "DHCP option 42" : network.ntpServer
+                }</span
+              >
+            </div>
           </div>
         </section>
         <section class="card">
@@ -801,7 +876,10 @@ class MiniDisplayDevice extends LitElement {
                   name="ipMode"
                   value="static"
                   .checked=${this.staticIp}
-                  @change=${() => (this.staticIp = true)}
+                  @change=${() => {
+                    this.staticIp = true;
+                    this.ntpFromDhcp = false;
+                  }}
                 />Static</label
               >
             </fieldset>
@@ -814,6 +892,41 @@ class MiniDisplayDevice extends LitElement {
                 dns2: network.staticDns2,
               })}
             </div>
+            <fieldset class="choice">
+              <legend>NTP server</legend>
+              <label class="check"
+                ><input
+                  type="radio"
+                  name="ntpMode"
+                  value="custom"
+                  .checked=${!this.ntpFromDhcp}
+                  @change=${() => (this.ntpFromDhcp = false)}
+                />Custom</label
+              >
+              <label class="check"
+                ><input
+                  type="radio"
+                  name="ntpMode"
+                  value="dhcp"
+                  ?disabled=${this.staticIp}
+                  .checked=${this.ntpFromDhcp}
+                  @change=${() => (this.ntpFromDhcp = true)}
+                />From DHCP</label
+              >
+            </fieldset>
+            <label class="field dependent ${this.ntpFromDhcp ? "disabled" : ""}"
+              >NTP server address
+              <small
+                >Hostname or IP address. DHCP mode uses option 42 and requires
+                DHCP address assignment.</small
+              ><input
+                name="ntpServer"
+                type="text"
+                maxlength="63"
+                required
+                ?disabled=${this.ntpFromDhcp}
+                .value=${network.ntpServer || "pool.ntp.org"}
+            /></label>
             <label class="field"
               >Attempts before recovery Wi-Fi
               <small
@@ -1041,6 +1154,8 @@ class MiniDisplayDevice extends LitElement {
                 hostname: data.get("hostname"),
                 recoveryPasswordEnabled: this.recoveryProtected,
                 recoveryPassword: data.get("recoveryPassword"),
+                ntpServer: data.get("ntpServer"),
+                ntpFromDhcp: this.ntpFromDhcp,
                 staticIpEnabled: this.staticIp,
                 staticIp: data.get("staticIp"),
                 gateway: data.get("gateway"),
@@ -1099,7 +1214,10 @@ class MiniDisplayDevice extends LitElement {
                 name="ipMode"
                 value="static"
                 .checked=${this.staticIp}
-                @change=${() => (this.staticIp = true)}
+                @change=${() => {
+                  this.staticIp = true;
+                  this.ntpFromDhcp = false;
+                }}
               />Static</label
             >
           </fieldset>
@@ -1112,6 +1230,41 @@ class MiniDisplayDevice extends LitElement {
               dns2: setup?.dns2 ?? "",
             })}
           </div>
+          <fieldset class="choice">
+            <legend>NTP server</legend>
+            <label class="check"
+              ><input
+                type="radio"
+                name="ntpMode"
+                value="custom"
+                .checked=${!this.ntpFromDhcp}
+                @change=${() => (this.ntpFromDhcp = false)}
+              />Custom</label
+            >
+            <label class="check"
+              ><input
+                type="radio"
+                name="ntpMode"
+                value="dhcp"
+                ?disabled=${this.staticIp}
+                .checked=${this.ntpFromDhcp}
+                @change=${() => (this.ntpFromDhcp = true)}
+              />From DHCP</label
+            >
+          </fieldset>
+          <label class="field dependent ${this.ntpFromDhcp ? "disabled" : ""}"
+            >NTP server address
+            <small
+              >Hostname or IP address. DHCP mode uses option 42 and requires
+              DHCP address assignment.</small
+            ><input
+              name="ntpServer"
+              type="text"
+              maxlength="63"
+              required
+              ?disabled=${this.ntpFromDhcp}
+              .value=${setup?.ntpServer || "pool.ntp.org"}
+          /></label>
           <label class="field"
             >Attempts before setup Wi-Fi
             <small>Each attempt lasts up to 20 seconds</small

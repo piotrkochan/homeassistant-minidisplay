@@ -6,8 +6,10 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
+#include <sntp.h>
 #include <Updater.h>
 #else
+#include <esp_sntp.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
 #include <WiFi.h>
@@ -62,6 +64,8 @@ constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
 constexpr uint8_t kMaxPixelShift = 10;
 constexpr uint32_t kPixelShiftIntervalMs = 60000;
+constexpr char kDefaultTimezone[] = "CET-1CEST,M3.5.0,M10.5.0/3";
+constexpr char kDefaultNtpServer[] = "pool.ntp.org";
 constexpr uint8_t kExtendLeft = 1U << 0;
 constexpr uint8_t kExtendRight = 1U << 1;
 constexpr uint8_t kExtendTop = 1U << 2;
@@ -124,12 +128,14 @@ struct V2DeviceConfig {
 
 struct NetworkSettings {
   char recoveryPassword[64];
+  char ntpServer[64] = "pool.ntp.org";
   char staticIp[16];
   char gateway[16];
   char subnet[16];
   char dns1[16];
   char dns2[16];
   bool staticIpEnabled;
+  bool ntpFromDhcp;
 };
 
 DeviceConfig config{};
@@ -154,17 +160,21 @@ bool mdnsReady = false;
 bool displayOn = true;
 uint8_t displayBrightness = 100;
 uint8_t displayPixelShift = 0;
+char displayTimezone[64] = "CET-1CEST,M3.5.0,M10.5.0/3";
 int8_t pixelShiftX = 0;
 int8_t pixelShiftY = 0;
 uint32_t pixelShiftAt = 0;
 bool pageRotationAuto = true;
 uint8_t activePageIndex = 0;
 uint32_t pageShownAt = 0;
+time_t lastClockTick = static_cast<time_t>(-1);
 
 struct DashboardPage {
   char id[33];
   uint32_t durationMs;
   PageTransitionConfig transition;
+  bool hasClock;
+  bool clockShowsSeconds;
 };
 
 DashboardPage dashboardPages[kMaxPages]{};
@@ -224,12 +234,14 @@ void loadDisplaySettings() {
   if (!filesystemReady || !LittleFS.exists(kDisplaySettingsPath)) return;
   File file = LittleFS.open(kDisplaySettingsPath, "r");
   if (!file) return;
-  StaticJsonDocument<96> document;
+  StaticJsonDocument<192> document;
   const auto error = deserializeJson(document, file);
   file.close();
   if (error) return;
   const int brightness = document["brightness"] | 100;
   const int pixelShift = document["pixelShift"] | 0;
+  strlcpy(displayTimezone, document["timezone"] | kDefaultTimezone,
+          sizeof(displayTimezone));
   if (brightness >= 0 && brightness <= 100) displayBrightness = brightness;
   if (pixelShift >= 0 && pixelShift <= kMaxPixelShift) {
     displayPixelShift = pixelShift;
@@ -242,9 +254,10 @@ void saveDisplaySettings() {
   if (!filesystemReady) return;
   File file = LittleFS.open(kDisplaySettingsTempPath, "w");
   if (!file) return;
-  StaticJsonDocument<96> document;
+  StaticJsonDocument<192> document;
   document["brightness"] = displayBrightness;
   document["pixelShift"] = displayPixelShift;
+  document["timezone"] = displayTimezone;
   if (serializeJson(document, file) == 0) {
     file.close();
     LittleFS.remove(kDisplaySettingsTempPath);
@@ -253,6 +266,21 @@ void saveDisplaySettings() {
   file.close();
   LittleFS.remove(kDisplaySettingsPath);
   LittleFS.rename(kDisplaySettingsTempPath, kDisplaySettingsPath);
+}
+
+bool timezoneValid(const char *value) {
+  const size_t length = strlen(value);
+  if (length == 0 || length >= sizeof(displayTimezone)) return false;
+  for (size_t index = 0; index < length; ++index) {
+    const unsigned char character = value[index];
+    if (character < 0x20 || character > 0x7e) return false;
+  }
+  return true;
+}
+
+void applyTimezone() {
+  setenv("TZ", displayTimezone, 1);
+  tzset();
 }
 
 void loadNetworkSettings() {
@@ -266,6 +294,9 @@ void loadNetworkSettings() {
   strlcpy(networkSettings.recoveryPassword,
           document["recoveryPassword"] | "",
           sizeof(networkSettings.recoveryPassword));
+  strlcpy(networkSettings.ntpServer,
+          document["ntpServer"] | kDefaultNtpServer,
+          sizeof(networkSettings.ntpServer));
   strlcpy(networkSettings.staticIp, document["staticIp"] | "",
           sizeof(networkSettings.staticIp));
   strlcpy(networkSettings.gateway, document["gateway"] | "",
@@ -277,6 +308,7 @@ void loadNetworkSettings() {
   strlcpy(networkSettings.dns2, document["dns2"] | "",
           sizeof(networkSettings.dns2));
   networkSettings.staticIpEnabled = document["staticIpEnabled"] | false;
+  networkSettings.ntpFromDhcp = document["ntpFromDhcp"] | false;
 }
 
 bool saveNetworkSettings() {
@@ -285,6 +317,8 @@ bool saveNetworkSettings() {
   if (!file) return false;
   StaticJsonDocument<512> document;
   document["recoveryPassword"] = networkSettings.recoveryPassword;
+  document["ntpServer"] = networkSettings.ntpServer;
+  document["ntpFromDhcp"] = networkSettings.ntpFromDhcp;
   document["staticIpEnabled"] = networkSettings.staticIpEnabled;
   document["staticIp"] = networkSettings.staticIp;
   document["gateway"] = networkSettings.gateway;
@@ -307,6 +341,19 @@ bool ipv4Valid(const char *value, bool required) {
   return address.fromString(value);
 }
 
+bool ntpServerValid(const char *value) {
+  const size_t length = strlen(value);
+  if (length == 0 || length >= sizeof(networkSettings.ntpServer)) return false;
+  for (size_t index = 0; index < length; ++index) {
+    const unsigned char character = value[index];
+    if (!isalnum(character) && character != '.' && character != '-' &&
+        character != ':' && character != '_') {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool networkExtrasValid(const JsonDocument &document) {
   const bool recoveryPasswordEnabled =
       document["recoveryPasswordEnabled"] |
@@ -317,6 +364,9 @@ bool networkExtrasValid(const JsonDocument &document) {
                           : strlen(networkSettings.recoveryPassword);
   const bool staticIpEnabled =
       document["staticIpEnabled"] | networkSettings.staticIpEnabled;
+  const bool ntpFromDhcp =
+      document["ntpFromDhcp"] | networkSettings.ntpFromDhcp;
+  const char *ntpServer = document["ntpServer"] | networkSettings.ntpServer;
   const char *staticIp = document["staticIp"] | networkSettings.staticIp;
   const char *gateway = document["gateway"] | networkSettings.gateway;
   const char *subnet = document["subnet"] | networkSettings.subnet;
@@ -325,6 +375,8 @@ bool networkExtrasValid(const JsonDocument &document) {
   return (!recoveryPasswordEnabled ||
           (nextRecoveryPasswordLength >= 8 &&
            nextRecoveryPasswordLength <= 63)) &&
+         (!ntpFromDhcp || !staticIpEnabled) &&
+         (ntpFromDhcp || ntpServerValid(ntpServer)) &&
          (!staticIpEnabled ||
           (ipv4Valid(staticIp, true) && ipv4Valid(gateway, true) &&
            ipv4Valid(subnet, true) && ipv4Valid(dns1, false) &&
@@ -345,6 +397,11 @@ void updateNetworkExtras(const JsonDocument &document) {
   }
   networkSettings.staticIpEnabled =
       document["staticIpEnabled"] | networkSettings.staticIpEnabled;
+  networkSettings.ntpFromDhcp =
+      document["ntpFromDhcp"] | networkSettings.ntpFromDhcp;
+  strlcpy(networkSettings.ntpServer,
+          document["ntpServer"] | networkSettings.ntpServer,
+          sizeof(networkSettings.ntpServer));
   strlcpy(networkSettings.staticIp,
           document["staticIp"] | networkSettings.staticIp,
           sizeof(networkSettings.staticIp));
@@ -568,6 +625,33 @@ void configureIpAddress() {
   if (!dns1.fromString(networkSettings.dns1)) dns1 = gateway;
   dns2.fromString(networkSettings.dns2);
   WiFi.config(address, gateway, subnet, dns1, dns2);
+}
+
+void configureTimeService() {
+  const char *server = networkSettings.ntpServer[0]
+                           ? networkSettings.ntpServer
+                           : kDefaultNtpServer;
+#if defined(ESP8266)
+  configTime(displayTimezone, server);
+  sntp_servermode_dhcp(networkSettings.ntpFromDhcp ? 1 : 0);
+#else
+  configTzTime(displayTimezone, server);
+  esp_sntp_servermode_dhcp(networkSettings.ntpFromDhcp);
+#endif
+}
+
+String currentNtpServer() {
+#if defined(ESP8266)
+  const char *name = sntp_getservername(0);
+  const ip_addr_t *address = sntp_getserver(0);
+#else
+  const char *name = esp_sntp_getservername(0);
+  const ip_addr_t *address = esp_sntp_getserver(0);
+#endif
+  if (name && name[0]) return String(name);
+  if (address && !ip_addr_isany(address)) return String(ipaddr_ntoa(address));
+  return networkSettings.ntpFromDhcp ? "Waiting for DHCP"
+                                     : String(networkSettings.ntpServer);
 }
 
 bool hostnameValid(const char *hostname) {
@@ -1498,6 +1582,7 @@ bool loadDashboardMetadata(Stream &stream) {
   filter["pages"][0]["transition"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["type"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["source"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["showSeconds"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
   filter["transition"] = true;
 
@@ -1557,6 +1642,17 @@ bool loadDashboardMetadata(Stream &stream) {
     strlcpy(parsed.id, page["id"], sizeof(parsed.id));
     const uint32_t seconds = page["durationSeconds"] | defaultSeconds;
     parsed.durationMs = seconds * 1000UL;
+    parsed.hasClock = false;
+    parsed.clockShowsSeconds = false;
+    for (JsonObject row : page["rows"].as<JsonArray>()) {
+      for (JsonObject card : row["cards"].as<JsonArray>()) {
+        if (strcmp(card["type"] | "", "clock") == 0) {
+          parsed.hasClock = true;
+          parsed.clockShowsSeconds =
+              parsed.clockShowsSeconds || (card["showSeconds"] | false);
+        }
+      }
+    }
     if (page["transition"].isNull()) {
       parsed.transition = legacyTransition;
     } else {
@@ -1605,7 +1701,7 @@ void sendApiInfo() {
 
 void sendApiStatus() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<1024> document;
+  StaticJsonDocument<1280> document;
   document["connected"] = WiFi.status() == WL_CONNECTED;
   document["ip"] = WiFi.status() == WL_CONNECTED
                        ? WiFi.localIP().toString()
@@ -1613,6 +1709,22 @@ void sendApiStatus() {
   document["displayOn"] = displayOn;
   document["brightness"] = displayBrightness;
   document["pixelShift"] = displayPixelShift;
+  document["timezone"] = displayTimezone;
+  time_t now = time(nullptr);
+  if (now > 1000000000) {
+    struct tm localTime;
+    localtime_r(&now, &localTime);
+    char timeBuffer[9];
+    char dateBuffer[11];
+    strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &localTime);
+    strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d", &localTime);
+    document["localTime"] = timeBuffer;
+    document["localDate"] = dateBuffer;
+  } else {
+    document["localTime"] = "--:--:--";
+    document["localDate"] = "Not synchronized";
+  }
+  document["ntpServer"] = currentNtpServer();
   document["page"] = dashboardPageCount ? dashboardPages[activePageIndex].id : "";
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
   document["uptimeSeconds"] = millis() / 1000UL;
@@ -1743,7 +1855,7 @@ void receiveApiData() {
 
 void receiveApiDisplay() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<192> document;
+  StaticJsonDocument<256> document;
   if (deserializeJson(document, server.arg("plain"))) {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
@@ -1771,6 +1883,22 @@ void receiveApiDisplay() {
     updatePixelShift();
     pixelShiftAt = millis();
     showCurrentPage();
+  }
+  if (document.containsKey("timezone")) {
+    const char *value = document["timezone"] | "";
+    if (!timezoneValid(value)) {
+      sendJsonError(422, F("invalid_timezone"),
+                    F("Timezone rule must contain 1-63 printable characters"));
+      return;
+    }
+    const bool timezoneChanged = strcmp(displayTimezone, value) != 0;
+    settingsChanged = settingsChanged || timezoneChanged;
+    strlcpy(displayTimezone, value, sizeof(displayTimezone));
+    applyTimezone();
+    if (timezoneChanged) {
+      lastClockTick = static_cast<time_t>(-1);
+      showCurrentPage();
+    }
   }
   if (settingsChanged) saveDisplaySettings();
   applyBacklight();
@@ -1892,6 +2020,8 @@ void sendApiSetup() {
   document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
   document["recoveryPasswordSet"] =
       networkSettings.recoveryPassword[0] != '\0';
+  document["ntpServer"] = networkSettings.ntpServer;
+  document["ntpFromDhcp"] = networkSettings.ntpFromDhcp;
   document["staticIpEnabled"] = networkSettings.staticIpEnabled;
   document["staticIp"] = networkSettings.staticIp;
   document["gateway"] = networkSettings.gateway;
@@ -2003,6 +2133,8 @@ void sendApiNetwork() {
   document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
   document["recoveryPasswordSet"] =
       networkSettings.recoveryPassword[0] != '\0';
+  document["ntpServer"] = networkSettings.ntpServer;
+  document["ntpFromDhcp"] = networkSettings.ntpFromDhcp;
   document["staticIpEnabled"] = networkSettings.staticIpEnabled;
   document["staticIp"] = networkSettings.staticIp;
   document["staticGateway"] = networkSettings.gateway;
@@ -2316,9 +2448,7 @@ void setup() {
   filesystemReady = LittleFS.begin();
   loadDisplaySettings();
   loadNetworkSettings();
-  configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
-  setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
-  tzset();
+  configureTimeService();
   loadStoredDashboard();
   showDisplayTest();
   configureRoutes();
@@ -2366,6 +2496,18 @@ void loop() {
   if (pageRotationAuto && dashboardPageCount > 1 &&
       millis() - pageShownAt >= dashboardPages[activePageIndex].durationMs) {
     showPageWithTransition((activePageIndex + 1) % dashboardPageCount);
+  }
+  if (dashboardPageCount && dashboardPages[activePageIndex].hasClock) {
+    const time_t now = time(nullptr);
+    if (now > 1000000000) {
+      const time_t tick = dashboardPages[activePageIndex].clockShowsSeconds
+                              ? now
+                              : now / 60;
+      if (tick != lastClockTick) {
+        lastClockTick = tick;
+        renderDashboardPage(nullptr, false);
+      }
+    }
   }
   if (displayPixelShift > 0 &&
       millis() - pixelShiftAt >= kPixelShiftIntervalMs) {
