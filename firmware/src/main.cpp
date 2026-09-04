@@ -978,7 +978,8 @@ void drawMarqueeTitle(MarqueeTitle &item, int16_t offset) {
 bool addMarqueeTitle(const char *text, const RenderFont &font,
                      int16_t textWidth, int16_t x, int16_t y, int16_t width,
                      int16_t height, uint16_t foreground,
-                     uint16_t background, const TextEffect &effect) {
+                     uint16_t background, const TextEffect &effect,
+                     bool drawInitial = true) {
   const size_t bytes = min<size_t>(strlen(text), 48) + 1;
   if (marqueeTitleCount >= kMaxMarqueeTitles ||
       marqueeTextBytes + bytes > kMarqueeTextBytes) {
@@ -1004,11 +1005,11 @@ bool addMarqueeTitle(const char *text, const RenderFont &font,
   item.textX = textAreaX;
   item.textY = y + height / 2;
   item.overflow = max<int16_t>(1, textWidth - textAreaWidth);
-  item.drawnOffset = -1;
+  item.drawnOffset = drawInitial ? -1 : 0;
   item.effect = effect;
   strlcpy(marqueeTextPool + marqueeTextBytes, text, bytes);
   marqueeTextBytes += bytes;
-  drawMarqueeTitle(item, 0);
+  if (drawInitial) drawMarqueeTitle(item, 0);
   return true;
 }
 
@@ -1317,6 +1318,42 @@ CardTextLayout cardTextLayout(JsonObjectConst card, int16_t width, int16_t y,
     layout.titleY += contentHeight - titleBand;
   }
   return layout;
+}
+
+void registerCardMarquee(JsonObjectConst card, int16_t x, int16_t y,
+                         int16_t width, int16_t height) {
+  const char *title = card["title"];
+  if (!(card["showTitle"] | true) || !title || !title[0]) return;
+
+  JsonVariantConst titleStyle = card["titleStyle"];
+  if (titleStyle.isNull()) titleStyle = card["style"];
+  const char *vertical = titleStyle["verticalAlign"] | "top";
+  if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
+    return;
+  }
+
+  const CardTextLayout layout = cardTextLayout(card, width, y, height);
+  if (!layout.hasTitle) return;
+  applyDisplayFont(layout.titleFont);
+  const int16_t titleWidth = display.textWidth(title);
+  if (titleWidth <= width - 10) return;
+
+  JsonObjectConst colorMapping;
+  const char *source = card["source"];
+  DashboardValue *sourceValue = findValue(source, false);
+  if (sourceValue != nullptr && sourceValue->available) {
+    findCardMapping(card, "colorMappings", String(sourceValue->state),
+                    colorMapping);
+  }
+  JsonVariantConst backgroundValue = colorMapping["background"];
+  if (backgroundValue.isNull()) backgroundValue = card["style"]["background"];
+  const uint16_t background =
+      parseColor(backgroundValue, display.color565(30, 34, 42));
+  const uint16_t foreground =
+      parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
+  addMarqueeTitle(title, layout.titleFont, titleWidth, x, layout.titleY, width,
+                  layout.titleHeight, foreground, background,
+                  parseTextEffect(titleStyle), false);
 }
 
 void fillCardEdgeBackground(int16_t x, int16_t y, int16_t width,
@@ -1941,6 +1978,56 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
                            changedValues, pixelShiftX, pixelShiftY, clear);
 }
 
+void registerDashboardMarquees(JsonObjectConst page) {
+  resetMarqueeTitles();
+  JsonArrayConst rows = page["rows"].as<JsonArrayConst>();
+  if (rows.size() == 0) return;
+
+  const PageContentLayout layout = pageContentLayout(page);
+  uint16_t totalWeight = 0;
+  for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
+  if (totalWeight == 0) return;
+
+  constexpr int16_t gap = 4;
+  const int16_t availableHeight =
+      layout.bottom - layout.y - gap * (rows.size() - 1);
+  int16_t rowY = layout.y;
+  uint16_t consumedWeight = 0;
+  for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
+    JsonObjectConst row = rows[rowIndex];
+    consumedWeight += row["weight"] | 1;
+    const int16_t nextY = rowIndex + 1 == rows.size()
+                              ? layout.bottom
+                              : layout.y + availableHeight * consumedWeight /
+                                               totalWeight +
+                                    gap * rowIndex;
+    int16_t rowHeight = nextY - rowY;
+    const char *rowTitle = row["title"];
+    if ((row["showTitle"] | true) && rowTitle && rowTitle[0] &&
+        rowHeight >= 24) {
+      JsonVariantConst rowTitleStyle = row["titleStyle"];
+      if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
+      const int16_t titleHeight = rowTitleHeight(rowTitleStyle);
+      rowY += titleHeight;
+      rowHeight -= titleHeight;
+    }
+
+    JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
+    if (cards.size() == 0) {
+      rowY = nextY + gap;
+      continue;
+    }
+    const int16_t cardWidth =
+        (layout.right - layout.x - gap * (cards.size() - 1)) / cards.size();
+    int16_t cardX = layout.x;
+    for (JsonObjectConst card : cards) {
+      registerCardMarquee(card, cardX, rowY, cardWidth, rowHeight);
+      cardX += cardWidth + gap;
+    }
+    rowY = nextY + gap;
+  }
+}
+
 void showPageWithTransition(uint8_t nextPageIndex) {
   if (nextPageIndex >= dashboardPageCount || nextPageIndex == activePageIndex) {
     return;
@@ -1998,6 +2085,10 @@ void showPageWithTransition(uint8_t nextPageIndex) {
                               currentPage)) &&
           cacheDashboardPage(pages[nextPageIndex].as<JsonObjectConst>(),
                              nextPage);
+      if (cached) {
+        registerDashboardMarquees(
+            pages[nextPageIndex].as<JsonObjectConst>());
+      }
     }
   }
   if (!cached) {
@@ -2012,7 +2103,8 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   pageTransitionActive = false;
   transitionPages.reset();
   activePageIndex = nextPageIndex;
-  renderDashboardPage(nullptr, false);
+  marqueeStartedAt = millis();
+  marqueeFrameAt = 0;
   pendingChangedValues |= transitionDeferredValues;
   transitionDeferredValues = 0;
   pageShownAt = millis();
