@@ -13,7 +13,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
@@ -123,10 +123,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ),
     )
     await dashboard.async_load()
+    last_boot_id = coordinator.data.get("bootId")
+
+    @callback
+    def _status_updated() -> None:
+        nonlocal last_boot_id
+        boot_id = coordinator.data.get("bootId")
+        if boot_id is None or boot_id == last_boot_id:
+            return
+        last_boot_id = boot_id
+        hass.async_create_task(dashboard.async_resynchronize())
+
+    entry.async_on_unload(coordinator.async_add_listener(_status_updated))
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "dashboard": dashboard,
     }
+    await dashboard.async_resynchronize()
     await _async_reconcile_scenes(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))

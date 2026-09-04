@@ -645,6 +645,7 @@ class MiniDisplayDashboardManager:
         self._cancel_preview: Callable[[], None] | None = None
         self._pending_sources: set[str] = set()
         self._flush_in_progress = False
+        self._resync_in_progress = False
         self._last_rendered_dashboard: dict[str, Any] | None = None
         self.data_forwarding_enabled = True
 
@@ -965,6 +966,24 @@ class MiniDisplayDashboardManager:
             for entity_id in self.sources
         }
         await self.client.async_patch_values(values)
+
+    async def async_resynchronize(self) -> None:
+        """Restore the complete dashboard state after a display restart."""
+        if not self.data_forwarding_enabled or self._resync_in_progress:
+            return
+        self._resync_in_progress = True
+        try:
+            shown_dashboard = (
+                self.preview_dashboard
+                if self.preview_scene_id is not None
+                else self.scenes[self.active_scene_id]["dashboard"]
+            )
+            if shown_dashboard is not None:
+                await self._async_send_dashboard(
+                    shown_dashboard, self.preview_page_id
+                )
+        finally:
+            self._resync_in_progress = False
 
     def _replace_subscriptions(self) -> None:
         if self._unsubscribe_states is not None:

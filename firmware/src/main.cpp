@@ -172,6 +172,7 @@ WebServer server(80);
 TlsCertificateManager tlsCertificates;
 #endif
 MiniDisplay display;
+uint32_t bootId = 0;
 uint32_t connectStartedAt = 0;
 uint8_t wifiAttemptCount = 0;
 bool wifiWasConnected = false;
@@ -2202,6 +2203,7 @@ void sendApiStatus() {
   document["trackedValueCount"] = dashboardValueCount;
   document["page"] = dashboardPageCount ? dashboardPages[activePageIndex].id : "";
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
+  document["bootId"] = bootId;
   document["uptimeSeconds"] = millis() / 1000UL;
   document["freeHeapBytes"] = ESP.getFreeHeap();
 #if defined(ESP8266)
@@ -3399,6 +3401,7 @@ void startMdns() {
 
 void setup() {
   Serial.begin(115200);
+  bootId = ESP.random();
   Serial.println();
   Serial.printf("Home Assistant Mini-Display firmware %s\n", kFirmwareVersion);
 #if defined(ESP8266)
