@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <ctype.h>
 #include <EEPROM.h>
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
@@ -17,12 +18,16 @@
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
+#include "WebAssets.generated.h"
 
 namespace {
 
-constexpr uint32_t kConfigMagic = 0x53445031;
+constexpr uint32_t kLegacyConfigMagic = 0x53445031;
+constexpr uint32_t kV2ConfigMagic = 0x53445032;
+constexpr uint32_t kConfigMagic = 0x53445033;
 constexpr size_t kEepromSize = 512;
 constexpr uint32_t kConnectTimeoutMs = 20000;
+constexpr uint8_t kDefaultWifiRetryLimit = 3;
 #ifndef MINI_DISPLAY_VERSION
 #define MINI_DISPLAY_VERSION "0.3.0-dev"
 #endif
@@ -59,11 +64,41 @@ constexpr uint8_t kExtendRight = 1U << 1;
 constexpr uint8_t kExtendTop = 1U << 2;
 constexpr uint8_t kExtendBottom = 1U << 3;
 
-struct DeviceConfig {
+struct LegacyDeviceConfig {
   uint32_t magic;
   char ssid[33];
   char wifiPassword[65];
   char otaPassword[33];
+  uint32_t checksum;
+};
+
+struct DeviceConfig {
+  uint32_t magic;
+  char ssid[33];
+  char wifiPassword[65];
+  char apiPassword[33];
+  char otaPassword[33];
+  char hostname[33];
+  uint8_t apiAuthEnabled;
+  uint8_t otaAuthEnabled;
+  uint8_t wifiRetryLimit;
+  uint8_t resetApiAuthOnRecovery;
+  uint8_t directOtaEnabled;
+  uint8_t reserved[3];
+  uint32_t checksum;
+};
+
+struct V2DeviceConfig {
+  uint32_t magic;
+  char ssid[33];
+  char wifiPassword[65];
+  char apiPassword[33];
+  char otaPassword[33];
+  char hostname[33];
+  uint8_t apiAuthEnabled;
+  uint8_t otaAuthEnabled;
+  uint8_t wifiRetryLimit;
+  uint8_t resetApiAuthOnRecovery;
   uint32_t checksum;
 };
 
@@ -75,7 +110,11 @@ WebServer server(80);
 #endif
 MiniDisplay display;
 uint32_t connectStartedAt = 0;
+uint8_t wifiAttemptCount = 0;
+bool wifiWasConnected = false;
 bool accessPointRunning = false;
+uint8_t setupStationCount = UINT8_MAX;
+uint32_t setupScreenUpdatedAt = 0;
 bool routesReady = false;
 bool filesystemReady = false;
 bool mdnsReady = false;
@@ -109,6 +148,8 @@ uint8_t dashboardValueCount = 0;
 CachedPage transitionPages[2]{};
 uint32_t pendingChangedValues = 0;
 bool fullRenderPending = false;
+uint32_t lastValueUpdateAt = 0;
+bool hasValueUpdate = false;
 uint32_t minimumFreeHeapBytes = UINT32_MAX;
 #if defined(ESP8266)
 char lastResetReason[48]{};
@@ -118,6 +159,7 @@ bool renderDashboardPage();
 bool renderDashboardPage(const uint32_t *changedValues,
                          bool clear = true);
 void showPageWithTransition(uint8_t nextPageIndex);
+void showSetupScreen();
 
 void recordFreeHeap() {
   minimumFreeHeapBytes = min(minimumFreeHeapBytes, ESP.getFreeHeap());
@@ -190,15 +232,90 @@ uint32_t checksum(const DeviceConfig &value) {
   return hash;
 }
 
+uint32_t checksum(const LegacyDeviceConfig &value) {
+  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
+  uint32_t hash = 2166136261UL;
+  for (size_t index = 0; index < offsetof(LegacyDeviceConfig, checksum);
+       ++index) {
+    hash ^= bytes[index];
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
+uint32_t checksum(const V2DeviceConfig &value) {
+  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
+  uint32_t hash = 2166136261UL;
+  for (size_t index = 0; index < offsetof(V2DeviceConfig, checksum); ++index) {
+    hash ^= bytes[index];
+    hash *= 16777619UL;
+  }
+  return hash;
+}
+
 bool configValid() {
   return config.magic == kConfigMagic && config.checksum == checksum(config) &&
-         config.ssid[0] != '\0' && strlen(config.otaPassword) >= 8;
+         config.ssid[0] != '\0';
 }
+
+bool legacyConfigValid(const LegacyDeviceConfig &value) {
+  return value.magic == kLegacyConfigMagic &&
+         value.checksum == checksum(value) && value.ssid[0] != '\0' &&
+         strlen(value.otaPassword) >= 8;
+}
+
+bool v2ConfigValid(const V2DeviceConfig &value) {
+  return value.magic == kV2ConfigMagic && value.checksum == checksum(value) &&
+         value.ssid[0] != '\0';
+}
+
+void saveConfig();
 
 void loadConfig() {
   EEPROM.begin(kEepromSize);
   EEPROM.get(0, config);
-  if (!configValid()) memset(&config, 0, sizeof(config));
+  if (configValid()) return;
+
+  V2DeviceConfig v2{};
+  EEPROM.get(0, v2);
+  if (v2ConfigValid(v2)) {
+    memset(&config, 0, sizeof(config));
+    strlcpy(config.ssid, v2.ssid, sizeof(config.ssid));
+    strlcpy(config.wifiPassword, v2.wifiPassword,
+            sizeof(config.wifiPassword));
+    strlcpy(config.apiPassword, v2.apiPassword,
+            sizeof(config.apiPassword));
+    strlcpy(config.otaPassword, v2.otaPassword,
+            sizeof(config.otaPassword));
+    strlcpy(config.hostname, v2.hostname, sizeof(config.hostname));
+    config.apiAuthEnabled = v2.apiAuthEnabled;
+    config.otaAuthEnabled = v2.otaAuthEnabled;
+    config.wifiRetryLimit = v2.wifiRetryLimit;
+    config.resetApiAuthOnRecovery = v2.resetApiAuthOnRecovery;
+    config.directOtaEnabled = 1;
+    saveConfig();
+    return;
+  }
+
+  LegacyDeviceConfig legacy{};
+  EEPROM.get(0, legacy);
+  if (legacyConfigValid(legacy)) {
+    memset(&config, 0, sizeof(config));
+    strlcpy(config.ssid, legacy.ssid, sizeof(config.ssid));
+    strlcpy(config.wifiPassword, legacy.wifiPassword,
+            sizeof(config.wifiPassword));
+    strlcpy(config.apiPassword, legacy.otaPassword,
+            sizeof(config.apiPassword));
+    strlcpy(config.otaPassword, legacy.otaPassword,
+            sizeof(config.otaPassword));
+    config.apiAuthEnabled = 1;
+    config.otaAuthEnabled = 1;
+    config.directOtaEnabled = 1;
+    config.wifiRetryLimit = kDefaultWifiRetryLimit;
+    saveConfig();
+    return;
+  }
+  memset(&config, 0, sizeof(config));
 }
 
 void saveConfig() {
@@ -219,41 +336,65 @@ String deviceSuffix() {
   return String(suffix);
 }
 
-String htmlEscape(const String &input) {
-  String output;
-  output.reserve(input.length() + 16);
-  for (const char character : input) {
-    switch (character) {
-      case '&': output += F("&amp;"); break;
-      case '<': output += F("&lt;"); break;
-      case '>': output += F("&gt;"); break;
-      case '"': output += F("&quot;"); break;
-      default: output += character; break;
-    }
-  }
-  return output;
+String configuredHostname() {
+  if (config.hostname[0]) return String(config.hostname);
+  return "mini-display-" + deviceSuffix();
 }
 
-bool otaAuthenticated() {
-  if (!configValid()) {
-    server.send(403, "text/plain", "Configure device first");
+bool hostnameValid(const char *hostname) {
+  const size_t length = strlen(hostname);
+  if (length == 0 || length > 32 || hostname[0] == '-' ||
+      hostname[length - 1] == '-') {
     return false;
   }
+  for (size_t index = 0; index < length; ++index) {
+    const char character = hostname[index];
+    if (!isalnum(static_cast<unsigned char>(character)) && character != '-') {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool directOtaAuthenticated() {
+  if (!configValid()) {
+    if (accessPointRunning) return true;
+    server.send(403, "text/plain", "Setup mode is not active");
+    return false;
+  }
+  if (!config.directOtaEnabled) {
+    server.send(403, "text/plain", "Direct OTA is disabled");
+    return false;
+  }
+  if (!config.otaAuthEnabled) return true;
   if (server.authenticate("admin", config.otaPassword)) return true;
   server.requestAuthentication();
   return false;
 }
 
+bool webAuthenticated() {
+  if (accessPointRunning) return true;
+  if (!config.apiAuthEnabled) return true;
+  if (server.authenticate("admin", config.apiPassword)) return true;
+  server.requestAuthentication();
+  return false;
+}
+
 bool apiAuthenticated() {
+  if (accessPointRunning) {
+    server.send(403, "application/json", "{\"error\":\"setup_mode\"}");
+    return false;
+  }
   if (!configValid()) {
     server.send(403, "application/json", "{\"error\":\"not_configured\"}");
     return false;
   }
-  char expected[sizeof(config.otaPassword) + 8];
-  snprintf(expected, sizeof(expected), "Bearer %s", config.otaPassword);
+  if (!config.apiAuthEnabled) return true;
+  char expected[sizeof(config.apiPassword) + 8];
+  snprintf(expected, sizeof(expected), "Bearer %s", config.apiPassword);
   if (server.header("Authorization") == expected) return true;
-  server.sendHeader("WWW-Authenticate", "Bearer");
-  server.send(401, "application/json", "{\"error\":\"invalid_auth\"}");
+  if (server.authenticate("admin", config.apiPassword)) return true;
+  server.requestAuthentication();
   return false;
 }
 
@@ -1237,6 +1378,9 @@ void sendApiStatus() {
   if (!apiAuthenticated()) return;
   StaticJsonDocument<1024> document;
   document["connected"] = WiFi.status() == WL_CONNECTED;
+  document["ip"] = WiFi.status() == WL_CONNECTED
+                       ? WiFi.localIP().toString()
+                       : WiFi.softAPIP().toString();
   document["displayOn"] = displayOn;
   document["brightness"] = displayBrightness;
   document["pixelShift"] = displayPixelShift;
@@ -1245,12 +1389,21 @@ void sendApiStatus() {
   document["uptimeSeconds"] = millis() / 1000UL;
   document["freeHeapBytes"] = ESP.getFreeHeap();
 #if defined(ESP8266)
+  document["totalHeapBytes"] = 81920;
   document["minimumFreeHeapBytes"] = minimumFreeHeapBytes;
   document["maximumFreeBlockBytes"] = ESP.getMaxFreeBlockSize();
   document["heapFragmentationPercent"] = ESP.getHeapFragmentation();
   document["resetReason"] = lastResetReason;
+#else
+  document["totalHeapBytes"] = ESP.getHeapSize();
 #endif
   document["wifiRssiDbm"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
+  if (hasValueUpdate) {
+    document["lastValueUpdateAgeSeconds"] =
+        (millis() - lastValueUpdateAt) / 1000UL;
+  } else {
+    document["lastValueUpdateAgeSeconds"] = -1;
+  }
   document["firmwareVersion"] = kFirmwareVersion;
   JsonArray pages = document.createNestedArray("pages");
   for (uint8_t index = 0; index < dashboardPageCount; ++index) {
@@ -1354,6 +1507,8 @@ void receiveApiData() {
   if (document["render"] | true) {
     pendingChangedValues |= changedValueMask;
   }
+  lastValueUpdateAt = millis();
+  hasValueUpdate = true;
   server.send(204);
 }
 
@@ -1455,67 +1610,225 @@ void receiveApiRestart() {
 
 void startAccessPoint() {
   if (accessPointRunning) return;
+  if (configValid() && config.resetApiAuthOnRecovery) {
+    memset(config.apiPassword, 0, sizeof(config.apiPassword));
+    config.apiAuthEnabled = 0;
+    saveConfig();
+  }
   WiFi.mode(configValid() ? WIFI_AP_STA : WIFI_AP);
   const String ssid = "SDPRO-Setup-" + deviceSuffix();
   WiFi.softAP(ssid.c_str());
   accessPointRunning = true;
+  setupStationCount = UINT8_MAX;
+  showSetupScreen();
   Serial.printf("Setup AP: %s, http://%s/\n", ssid.c_str(),
                 WiFi.softAPIP().toString().c_str());
 }
 
-void sendHome() {
-  const bool connected = WiFi.status() == WL_CONNECTED;
-  String page = F(
-      "<!doctype html><html><head><meta charset=utf-8>"
-      "<meta name=viewport content='width=device-width,initial-scale=1'>"
-      "<title>SD PRO Recovery</title><style>body{font:16px sans-serif;"
-      "max-width:34rem;margin:2rem auto;padding:0 1rem}input,button{display:block;"
-      "box-sizing:border-box;width:100%;padding:.7rem;margin:.5rem 0}</style>"
-      "</head><body><h1>SD PRO Recovery</h1>");
-  page += connected ? F("<p>Wi-Fi connected. IP: ") : F("<p>Wi-Fi not connected.");
-  if (connected) page += htmlEscape(WiFi.localIP().toString());
-  page += F("</p><form method=post action=/save><label>Wi-Fi SSID</label>"
-            "<input name=ssid maxlength=32 required value=\"");
-  if (configValid()) page += htmlEscape(config.ssid);
-  page += F("\"><label>Wi-Fi password</label><input name=wifi type=password "
-            "maxlength=64><label>OTA password (minimum 8 characters)</label>"
-            "<input name=ota type=password minlength=8 maxlength=32 required>"
-            "<button type=submit>Save and restart</button></form>");
-  if (configValid()) page += F("<p><a href=/update>Firmware update</a></p>");
-  page += F("</body></html>");
-  server.send(200, "text/html; charset=utf-8", page);
+void sendWebApp() {
+  if (!accessPointRunning && configValid() && !webAuthenticated()) return;
+  server.sendHeader("Cache-Control", "no-store");
+  server.sendHeader("Content-Encoding", "gzip");
+  server.sendHeader("Vary", "Accept-Encoding");
+  server.send_P(200, PSTR("text/html; charset=utf-8"),
+                reinterpret_cast<PGM_P>(kWebAppGzip), kWebAppGzipSize);
 }
 
-void saveFromForm() {
-  const String ssid = server.arg("ssid");
-  const String wifiPassword = server.arg("wifi");
-  const String otaPassword = server.arg("ota");
-  if (ssid.isEmpty() || ssid.length() > 32 || wifiPassword.length() > 64 ||
-      otaPassword.length() < 8 || otaPassword.length() > 32) {
-    server.send(400, "text/plain", "Invalid configuration");
+void sendApiSetup() {
+  if (!accessPointRunning) {
+    sendJsonError(409, F("setup_inactive"), F("Setup mode is not active"));
     return;
   }
-  memset(&config, 0, sizeof(config));
-  strlcpy(config.ssid, ssid.c_str(), sizeof(config.ssid));
-  strlcpy(config.wifiPassword, wifiPassword.c_str(), sizeof(config.wifiPassword));
-  strlcpy(config.otaPassword, otaPassword.c_str(), sizeof(config.otaPassword));
+  const bool configured = configValid();
+  StaticJsonDocument<512> document;
+  document["configured"] = configured;
+  document["ssid"] = configured ? config.ssid : "";
+  document["hostname"] = configuredHostname();
+  document["retryLimit"] = configured && config.wifiRetryLimit
+                               ? config.wifiRetryLimit
+                               : kDefaultWifiRetryLimit;
+  document["resetApiAuthOnRecovery"] =
+      configured && config.resetApiAuthOnRecovery;
+  document["apiAuthEnabled"] = configured ? config.apiAuthEnabled != 0 : true;
+  document["apiPasswordSet"] = configured && config.apiPassword[0];
+  document["otaAuthEnabled"] = configured ? config.otaAuthEnabled != 0 : true;
+  document["otaPasswordSet"] = configured && config.otaPassword[0];
+  document["directOtaEnabled"] =
+      configured ? config.directOtaEnabled != 0 : true;
+  document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
+  String body;
+  body.reserve(384);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
+}
+
+void receiveApiSetup() {
+  if (!accessPointRunning) {
+    sendJsonError(409, F("setup_inactive"), F("Setup mode is not active"));
+    return;
+  }
+  StaticJsonDocument<512> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const char *ssid = document["ssid"] | "";
+  const char *wifiPassword = document["wifiPassword"] | "";
+  const char *hostname = document["hostname"] | "";
+  const char *legacyPassword = document["password"] | "";
+  const char *apiPassword = document["apiPassword"] | legacyPassword;
+  const char *otaPassword = document["otaPassword"] | legacyPassword;
+  const bool configured = configValid();
+  const bool apiAuthEnabled =
+      document["apiAuthEnabled"] | (configured && config.apiAuthEnabled);
+  const bool otaAuthEnabled =
+      document["otaAuthEnabled"] | (configured && config.otaAuthEnabled);
+  const bool directOtaEnabled =
+      document["directOtaEnabled"] | (configured && config.directOtaEnabled);
+  const int retryLimit = document["retryLimit"] |
+                         static_cast<int>(kDefaultWifiRetryLimit);
+  const size_t nextApiPasswordLength =
+      apiPassword[0] ? strlen(apiPassword) : strlen(config.apiPassword);
+  const size_t nextOtaPasswordLength =
+      otaPassword[0] ? strlen(otaPassword) : strlen(config.otaPassword);
+  if (!ssid[0] || strlen(ssid) > 32 || strlen(wifiPassword) > 64 ||
+      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10 ||
+      strlen(apiPassword) > 32 || strlen(otaPassword) > 32 ||
+      (apiAuthEnabled && nextApiPasswordLength < 8) ||
+      (directOtaEnabled && otaAuthEnabled && nextOtaPasswordLength < 8)) {
+    sendJsonError(422, F("invalid_configuration"),
+                  F("Check Wi-Fi and password values"));
+    return;
+  }
+  DeviceConfig next = configured ? config : DeviceConfig{};
+  strlcpy(next.ssid, ssid, sizeof(next.ssid));
+  if (!configured || wifiPassword[0]) {
+    strlcpy(next.wifiPassword, wifiPassword, sizeof(next.wifiPassword));
+  }
+  strlcpy(next.hostname, hostname, sizeof(next.hostname));
+  if (apiPassword[0]) {
+    strlcpy(next.apiPassword, apiPassword, sizeof(next.apiPassword));
+  }
+  if (otaPassword[0]) {
+    strlcpy(next.otaPassword, otaPassword, sizeof(next.otaPassword));
+  }
+  next.apiAuthEnabled = apiAuthEnabled;
+  next.otaAuthEnabled = otaAuthEnabled;
+  next.directOtaEnabled = directOtaEnabled;
+  next.wifiRetryLimit = retryLimit;
+  next.resetApiAuthOnRecovery =
+      document["resetApiAuthOnRecovery"] | false;
+  config = next;
   saveConfig();
-  server.send(200, "text/html", "Saved. Restarting...");
-  delay(250);
+  server.send(204);
+  delay(400);
   ESP.restart();
 }
 
-void sendUpdatePage() {
-  if (!otaAuthenticated()) return;
-  server.send(200, "text/html; charset=utf-8",
-              "<!doctype html><meta name=viewport content='width=device-width'>"
-              "<h1>SD PRO OTA</h1><form method=post enctype=multipart/form-data>"
-              "<input type=file name=firmware accept=.bin required>"
-              "<button type=submit>Update</button></form>");
+void sendApiNetwork() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<320> document;
+  document["ssid"] = config.ssid;
+  document["hostname"] = configuredHostname();
+  document["ip"] = WiFi.status() == WL_CONNECTED
+                       ? WiFi.localIP().toString()
+                       : WiFi.softAPIP().toString();
+  document["rssiDbm"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
+  document["retryLimit"] = config.wifiRetryLimit
+                               ? config.wifiRetryLimit
+                               : kDefaultWifiRetryLimit;
+  document["resetApiAuthOnRecovery"] =
+      config.resetApiAuthOnRecovery != 0;
+  document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
+  String body;
+  body.reserve(160);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
 }
 
-void finishUpdate() {
-  if (!otaAuthenticated()) return;
+void receiveApiNetwork() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<320> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const char *ssid = document["ssid"] | "";
+  const char *password = document["password"] | "";
+  const char *hostname = document["hostname"] | "";
+  const int retryLimit = document["retryLimit"] |
+                         static_cast<int>(kDefaultWifiRetryLimit);
+  if (!ssid[0] || strlen(ssid) > 32 || strlen(password) > 64 ||
+      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10) {
+    sendJsonError(422, F("invalid_network"), F("Invalid Wi-Fi settings"));
+    return;
+  }
+  strlcpy(config.ssid, ssid, sizeof(config.ssid));
+  if (password[0]) {
+    strlcpy(config.wifiPassword, password, sizeof(config.wifiPassword));
+  }
+  strlcpy(config.hostname, hostname, sizeof(config.hostname));
+  config.wifiRetryLimit = retryLimit;
+  config.resetApiAuthOnRecovery =
+      document["resetApiAuthOnRecovery"] | false;
+  saveConfig();
+  server.send(204);
+  delay(400);
+  ESP.restart();
+}
+
+void sendApiSecurity() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<96> document;
+  document["apiAuthEnabled"] = config.apiAuthEnabled != 0;
+  document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
+  document["directOtaEnabled"] = config.directOtaEnabled != 0;
+  String body;
+  body.reserve(96);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
+}
+
+void receiveApiSecurity() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<256> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const bool apiAuthEnabled =
+      document["apiAuthEnabled"] | (config.apiAuthEnabled != 0);
+  const bool otaAuthEnabled =
+      document["otaAuthEnabled"] | (config.otaAuthEnabled != 0);
+  const bool directOtaEnabled =
+      document["directOtaEnabled"] | (config.directOtaEnabled != 0);
+  const char *apiPassword = document["apiPassword"] | "";
+  const char *otaPassword = document["otaPassword"] | "";
+  const size_t nextApiPasswordLength =
+      apiPassword[0] ? strlen(apiPassword) : strlen(config.apiPassword);
+  const size_t nextOtaPasswordLength =
+      otaPassword[0] ? strlen(otaPassword) : strlen(config.otaPassword);
+  if (strlen(apiPassword) > 32 || strlen(otaPassword) > 32 ||
+      (apiAuthEnabled && nextApiPasswordLength < 8) ||
+      (directOtaEnabled && otaAuthEnabled && nextOtaPasswordLength < 8)) {
+    sendJsonError(422, F("invalid_password"),
+                  F("Enabled passwords must contain 8-32 characters"));
+    return;
+  }
+  if (apiPassword[0]) {
+    strlcpy(config.apiPassword, apiPassword, sizeof(config.apiPassword));
+  }
+  if (otaPassword[0]) {
+    strlcpy(config.otaPassword, otaPassword, sizeof(config.otaPassword));
+  }
+  config.apiAuthEnabled = apiAuthEnabled;
+  config.otaAuthEnabled = otaAuthEnabled;
+  config.directOtaEnabled = directOtaEnabled;
+  saveConfig();
+  server.send(204);
+}
+
+void finishFirmwareUpdate() {
   const bool success = !Update.hasError();
   server.send(success ? 200 : 500, "text/plain",
               success ? "Update complete. Restarting..." : "Update failed");
@@ -1525,8 +1838,7 @@ void finishUpdate() {
   }
 }
 
-void receiveUpdate() {
-  if (!server.authenticate("admin", config.otaPassword)) return;
+void receiveFirmwareUpdate() {
   HTTPUpload &upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
 #if defined(ESP8266)
@@ -1545,14 +1857,44 @@ void receiveUpdate() {
   yield();
 }
 
+void finishDirectUpdate() {
+  if (!directOtaAuthenticated()) return;
+  finishFirmwareUpdate();
+}
+
+void receiveDirectUpdate() {
+  if (!directOtaAuthenticated()) return;
+  receiveFirmwareUpdate();
+}
+
+void finishPanelUpdate() {
+  if (!apiAuthenticated()) return;
+  finishFirmwareUpdate();
+}
+
+void receivePanelUpdate() {
+  if (!apiAuthenticated()) return;
+  receiveFirmwareUpdate();
+}
+
 void configureRoutes() {
   if (routesReady) return;
-  server.on("/", HTTP_GET, sendHome);
-  server.on("/save", HTTP_POST, saveFromForm);
-  server.on("/update", HTTP_GET, sendUpdatePage);
-  server.on("/update", HTTP_POST, finishUpdate, receiveUpdate);
+  server.on("/", HTTP_GET, sendWebApp);
+  server.on("/display", HTTP_GET, sendWebApp);
+  server.on("/network", HTTP_GET, sendWebApp);
+  server.on("/security", HTTP_GET, sendWebApp);
+  server.on("/update", HTTP_GET, sendWebApp);
+  server.on("/update", HTTP_POST, finishDirectUpdate, receiveDirectUpdate);
+  server.on("/api/v1/firmware", HTTP_POST, finishPanelUpdate,
+            receivePanelUpdate);
+  server.on("/api/v1/setup", HTTP_GET, sendApiSetup);
+  server.on("/api/v1/setup", HTTP_PUT, receiveApiSetup);
   server.on("/api/v1/info", HTTP_GET, sendApiInfo);
   server.on("/api/v1/status", HTTP_GET, sendApiStatus);
+  server.on("/api/v1/network", HTTP_GET, sendApiNetwork);
+  server.on("/api/v1/network", HTTP_PUT, receiveApiNetwork);
+  server.on("/api/v1/security", HTTP_GET, sendApiSecurity);
+  server.on("/api/v1/security", HTTP_PUT, receiveApiSecurity);
   server.on("/api/v1/dashboard", HTTP_GET, sendApiDashboard);
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
@@ -1572,12 +1914,14 @@ void connectToWiFi() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
 #if defined(ESP8266)
-  WiFi.hostname(("sdpro-" + deviceSuffix()).c_str());
+  WiFi.hostname(configuredHostname().c_str());
 #else
-  WiFi.setHostname(("mini-display-" + deviceSuffix()).c_str());
+  WiFi.setHostname(configuredHostname().c_str());
 #endif
   WiFi.begin(config.ssid, config.wifiPassword);
   connectStartedAt = millis();
+  wifiAttemptCount = 1;
+  wifiWasConnected = false;
 }
 
 void showDisplayTest() {
@@ -1599,9 +1943,38 @@ void showDisplayTest() {
   display.drawString("OTA + WIFI OK", 120, 200, 2);
 }
 
+void showSetupScreen() {
+  if (!accessPointRunning) return;
+  setupStationCount = WiFi.softAPgetStationNum();
+  setupScreenUpdatedAt = millis();
+
+  const uint16_t background = display.color565(9, 14, 23);
+  const uint16_t panel = display.color565(25, 34, 47);
+  const uint16_t muted = display.color565(150, 164, 181);
+  const uint16_t accent = display.color565(3, 169, 244);
+  display.fillScreen(background);
+  display.fillRoundRect(12, 12, 216, 216, 12, panel);
+  display.fillRoundRect(12, 12, 216, 6, 3, accent);
+
+  display.setTextDatum(MC_DATUM);
+  display.setTextColor(TFT_WHITE, panel);
+  display.drawString("SETUP MODE", 120, 42, 4);
+  display.setTextColor(muted, panel);
+  display.drawString("WI-FI NETWORK", 120, 79, 2);
+  display.setTextColor(TFT_WHITE, panel);
+  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120, 104, 2);
+  display.setTextColor(muted, panel);
+  display.drawString("CONNECTED DEVICES", 120, 146, 2);
+  display.setTextColor(accent, panel);
+  display.drawString(String(setupStationCount), 120, 184, 4);
+
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+}
+
 void startMdns() {
   if (mdnsReady || WiFi.status() != WL_CONNECTED) return;
-  const String host = "mini-display-" + deviceSuffix();
+  const String host = configuredHostname();
   if (!MDNS.begin(host.c_str())) return;
   MDNS.addService("mini-display", "tcp", 80);
   MDNS.addServiceTxt("mini-display", "tcp", "api", "1");
@@ -1627,16 +2000,36 @@ void setup() {
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
   tzset();
   loadStoredDashboard();
+  showDisplayTest();
   configureRoutes();
   connectToWiFi();
-  showDisplayTest();
-  if (dashboardPageCount) showCurrentPage();
-  applyBacklight();
+  if (accessPointRunning) {
+    showSetupScreen();
+  } else {
+    if (dashboardPageCount) showCurrentPage();
+    applyBacklight();
+  }
   recordFreeHeap();
 }
 
 void loop() {
   server.handleClient();
+  if (accessPointRunning) {
+    if (configValid() && WiFi.status() == WL_CONNECTED) {
+      WiFi.softAPdisconnect(true);
+      accessPointRunning = false;
+      wifiWasConnected = true;
+      wifiAttemptCount = 0;
+      showCurrentPage();
+      applyBacklight();
+    } else if (millis() - setupScreenUpdatedAt >= 1000 &&
+               WiFi.softAPgetStationNum() != setupStationCount) {
+      showSetupScreen();
+    }
+    recordFreeHeap();
+    delay(2);
+    return;
+  }
   if (fullRenderPending) {
     fullRenderPending = false;
     pendingChangedValues = 0;
@@ -1660,9 +2053,28 @@ void loop() {
     pixelShiftAt = millis();
     showCurrentPage();
   }
-  if (configValid() && WiFi.status() != WL_CONNECTED && !accessPointRunning &&
-      millis() - connectStartedAt >= kConnectTimeoutMs) {
-    startAccessPoint();
+  if (configValid() && !accessPointRunning) {
+    if (WiFi.status() == WL_CONNECTED) {
+      wifiWasConnected = true;
+      wifiAttemptCount = 0;
+    } else if (wifiWasConnected) {
+      wifiWasConnected = false;
+      wifiAttemptCount = 1;
+      connectStartedAt = millis();
+      WiFi.reconnect();
+    } else if (millis() - connectStartedAt >= kConnectTimeoutMs) {
+      const uint8_t retryLimit = config.wifiRetryLimit
+                                     ? config.wifiRetryLimit
+                                     : kDefaultWifiRetryLimit;
+      if (wifiAttemptCount >= retryLimit) {
+        startAccessPoint();
+      } else {
+        ++wifiAttemptCount;
+        connectStartedAt = millis();
+        WiFi.disconnect();
+        WiFi.begin(config.ssid, config.wifiPassword);
+      }
+    }
   }
   recordFreeHeap();
   delay(2);
