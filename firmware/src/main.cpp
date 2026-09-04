@@ -1701,7 +1701,7 @@ void sendApiInfo() {
 
 void sendApiStatus() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<1280> document;
+  DynamicJsonDocument document(2560);
   document["connected"] = WiFi.status() == WL_CONNECTED;
   document["ip"] = WiFi.status() == WL_CONNECTED
                        ? WiFi.localIP().toString()
@@ -1725,18 +1725,49 @@ void sendApiStatus() {
     document["localDate"] = "Not synchronized";
   }
   document["ntpServer"] = currentNtpServer();
+  document["ntpFromDhcp"] = networkSettings.ntpFromDhcp;
+  document["timeSynchronized"] = now > 1000000000;
+  document["ssid"] = config.ssid;
+  document["hostname"] = configuredHostname();
+  document["staticIpEnabled"] = networkSettings.staticIpEnabled;
+  document["gateway"] = WiFi.gatewayIP().toString();
+  document["dns1"] = WiFi.dnsIP(0).toString();
+  document["dns2"] = WiFi.dnsIP(1).toString();
+  document["wifiChannel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
+  document["bssid"] = WiFi.status() == WL_CONNECTED ? WiFi.BSSIDstr() : "";
+  document["mac"] = WiFi.macAddress();
+  document["reconnectCount"] = reconnectCount;
+  document["lastDisconnectReason"] = disconnectReason();
+  document["wifiRetryLimit"] = config.wifiRetryLimit
+                                     ? config.wifiRetryLimit
+                                     : kDefaultWifiRetryLimit;
+  document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
+  document["recoveryPasswordSet"] =
+      networkSettings.recoveryPassword[0] != '\0';
+  document["apiAuthEnabled"] = config.apiAuthEnabled != 0;
+  document["apiPasswordSet"] = config.apiPassword[0] != '\0';
+  document["directOtaEnabled"] = config.directOtaEnabled != 0;
+  document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
+  document["otaPasswordSet"] = config.otaPassword[0] != '\0';
+  document["filesystemReady"] = filesystemReady;
+  document["mdnsReady"] = mdnsReady;
+  document["setupMode"] = accessPointRunning;
+  document["dashboardPageCount"] = dashboardPageCount;
+  document["trackedValueCount"] = dashboardValueCount;
   document["page"] = dashboardPageCount ? dashboardPages[activePageIndex].id : "";
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
   document["uptimeSeconds"] = millis() / 1000UL;
   document["freeHeapBytes"] = ESP.getFreeHeap();
 #if defined(ESP8266)
   document["totalHeapBytes"] = 81920;
+  document["usedHeapBytes"] = 81920 - ESP.getFreeHeap();
   document["minimumFreeHeapBytes"] = minimumFreeHeapBytes;
   document["maximumFreeBlockBytes"] = ESP.getMaxFreeBlockSize();
   document["heapFragmentationPercent"] = ESP.getHeapFragmentation();
   document["resetReason"] = lastResetReason;
 #else
   document["totalHeapBytes"] = ESP.getHeapSize();
+  document["usedHeapBytes"] = ESP.getHeapSize() - ESP.getFreeHeap();
 #endif
   document["wifiRssiDbm"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
   if (hasValueUpdate) {
@@ -1751,7 +1782,7 @@ void sendApiStatus() {
     pages.add(dashboardPages[index].id);
   }
   String body;
-  body.reserve(640);
+  body.reserve(2048);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
