@@ -30,12 +30,23 @@ void drawProgressRing(Canvas &canvas, int16_t x, int16_t y, int16_t diameter,
                       float ratio, uint16_t track, uint16_t fill,
                       uint16_t center) {
   if (diameter < 8) return;
-  const int16_t radius = diameter / 2;
+  const int16_t radius = max<int16_t>(3, diameter / 2 - 1);
   const int16_t thickness = max(static_cast<int16_t>(2),
                                 min(static_cast<int16_t>(5),
                                     static_cast<int16_t>(diameter / 8)));
-  const int16_t centerX = x + radius;
-  const int16_t centerY = y + radius;
+  const int16_t centerX = x + diameter / 2;
+  const int16_t centerY = y + diameter / 2;
+#if defined(ESP8266)
+  const int16_t innerRadius = max<int16_t>(1, radius - thickness + 1);
+  canvas.drawSmoothArc(centerX, centerY, radius, innerRadius, 0, 360, track,
+                       center);
+  const uint16_t endDegree = static_cast<uint16_t>(
+      constrain(ratio, 0.0F, 1.0F) * 360.0F);
+  if (endDegree > 0) {
+    canvas.drawSmoothArc(centerX, centerY, radius, innerRadius, 0, endDegree,
+                         fill, track, endDegree < 360);
+  }
+#else
   canvas.fillCircle(centerX, centerY, radius, track);
   canvas.fillCircle(centerX, centerY, radius - thickness, center);
 
@@ -51,4 +62,5 @@ void drawProgressRing(Canvas &canvas, int16_t x, int16_t y, int16_t diameter,
         strokeRadius * progress_renderer::sin3Degrees(sinIndex) / 127;
     canvas.fillCircle(centerX + offsetX, centerY + offsetY, dotRadius, fill);
   }
+#endif
 }

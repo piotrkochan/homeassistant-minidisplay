@@ -151,7 +151,7 @@ export class MiniDisplayPreview extends LitElement {
       min-height: 0;
     }
     .title {
-      font: 9px sans-serif;
+      font: 700 13px/17px sans-serif;
       color: #aaa;
     }
     .card {
@@ -172,7 +172,7 @@ export class MiniDisplayPreview extends LitElement {
     .card small {
       z-index: 2;
       height: auto;
-      font: 11px/12px sans-serif;
+      font: 700 13px/17px sans-serif;
       color: #bbb;
       white-space: nowrap;
       overflow: hidden;
@@ -300,7 +300,7 @@ export class MiniDisplayPreview extends LitElement {
       right: 5px;
       bottom: 5px;
       left: 5px;
-      height: 4px;
+      height: 5px;
       background: #3d424e;
       border-radius: 2px;
     }
@@ -832,18 +832,18 @@ export class MiniDisplayPreview extends LitElement {
       "#ffffff";
     const titleSize = page.titleStyle?.fontSize ?? "small";
     const titleThickness = {
-      small: 21,
-      medium: 29,
-      large: 40,
-      xlarge: 52,
-      auto: 21,
+      small: 25,
+      medium: 32,
+      large: 46,
+      xlarge: 61,
+      auto: 25,
     }[titleSize];
     const titleFontSize = {
-      small: 13,
-      medium: 17,
-      large: 25,
-      xlarge: 32,
-      auto: 13,
+      small: 18,
+      medium: 24,
+      large: 36,
+      xlarge: 48,
+      auto: 18,
     }[titleSize];
     const horizontalTitle =
       showPageTitle && (titlePosition === "top" || titlePosition === "bottom")
@@ -961,7 +961,7 @@ export class MiniDisplayPreview extends LitElement {
                   const contentHeight =
                     cardHeight - (card.progress === "bar" ? 9 : 0);
                   const titleBand = reservesTitle
-                    ? Math.min(compactTitle ? 12 : 18, contentHeight / 2)
+                    ? Math.min(compactTitle ? 17 : 24, contentHeight / 2)
                     : 0;
                   const valueHeight =
                     card.progress === "ring"

@@ -943,17 +943,17 @@ const He = class He extends E {
         </div>
       </div>`;
     const a = !!(e.title && e.showTitle !== !1), r = e.titlePosition ?? "top", o = e.style?.background ?? "", n = (N[o] ?? o) || "#000000", d = e.titleStyle?.background ?? "", p = e.titleStyle?.foreground ?? "", m = (N[d] ?? d) || n, h = (N[p] ?? p) || "#ffffff", w = e.titleStyle?.fontSize ?? "small", y = {
-      small: 21,
-      medium: 29,
-      large: 40,
-      xlarge: 52,
-      auto: 21
+      small: 25,
+      medium: 32,
+      large: 46,
+      xlarge: 61,
+      auto: 25
     }[w], b = {
-      small: 13,
-      medium: 17,
-      large: 25,
-      xlarge: 32,
-      auto: 13
+      small: 18,
+      medium: 24,
+      large: 36,
+      xlarge: 48,
+      auto: 18
     }[w], $e = a && (r === "top" || r === "bottom") ? y : 0, we = a && (r === "left" || r === "right") ? y : 0, _e = this.width - 12 - we, W = this.height - 12 - $e - 4 * Math.max(0, s.length - 1), ke = s.reduce((x, A) => x + (A.row.weight ?? 1), 0) || 1, St = a ? r === "top" ? `top:${y + 6}px;right:6px;bottom:6px;left:6px` : r === "bottom" ? `top:6px;right:6px;bottom:${y + 6}px;left:6px` : r === "left" ? `top:6px;right:6px;bottom:6px;left:${y + 6}px` : `top:6px;right:${y + 6}px;bottom:6px;left:6px` : "inset:6px", At = `${r === "top" || r === "bottom" ? `height:${y}px` : `width:${y}px`};background:${m};color:${h};font-size:${b}px`;
     return l`<div class="screen-frame" style=${i}>
       <div class="screen" style=${`background:${n}`}>
@@ -1001,7 +1001,7 @@ const He = class He extends E {
           u.titleStyle?.fontSize
         ) && [void 0, "default", "sans", "sans-bold"].includes(
           u.titleStyle?.fontFamily
-        ), Ae = u.progress === "bar" ? 14 : 5, De = he - (u.progress === "bar" ? 9 : 0), G = Pt ? Math.min(Mt ? 12 : 18, De / 2) : 0, Tt = u.progress === "ring" ? Math.min(
+        ), Ae = u.progress === "bar" ? 14 : 5, De = he - (u.progress === "bar" ? 9 : 0), G = Pt ? Math.min(Mt ? 17 : 24, De / 2) : 0, Tt = u.progress === "ring" ? Math.min(
           22,
           Math.max(12, (De - G) / 4)
         ) : De - G, zt = this.valueFontSize(
@@ -1207,7 +1207,7 @@ He.styles = V`
       min-height: 0;
     }
     .title {
-      font: 9px sans-serif;
+      font: 700 13px/17px sans-serif;
       color: #aaa;
     }
     .card {
@@ -1228,7 +1228,7 @@ He.styles = V`
     .card small {
       z-index: 2;
       height: auto;
-      font: 11px/12px sans-serif;
+      font: 700 13px/17px sans-serif;
       color: #bbb;
       white-space: nowrap;
       overflow: hidden;
@@ -1356,7 +1356,7 @@ He.styles = V`
       right: 5px;
       bottom: 5px;
       left: 5px;
-      height: 4px;
+      height: 5px;
       background: #3d424e;
       border-radius: 2px;
     }

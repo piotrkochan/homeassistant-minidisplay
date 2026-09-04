@@ -34,7 +34,7 @@
 #endif
 #include "UserFonts.h"
 #include "WebAssets.generated.h"
-#include "fonts/InterTightCompact12.h"
+#include "fonts/InterTightCompact13.h"
 #include "fonts/InterTightBold18.h"
 #include "fonts/InterTightBold24.h"
 #include "fonts/InterTightBold36.h"
@@ -222,6 +222,8 @@ struct DashboardValue {
 DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
 uint32_t pendingChangedValues = 0;
+uint32_t transitionDeferredValues = 0;
+bool pageTransitionActive = false;
 bool fullRenderPending = false;
 uint32_t fullRenderNotBefore = 0;
 uint32_t lastValueUpdateAt = 0;
@@ -1067,7 +1069,7 @@ RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
                              strcmp(family, "sans") == 0 ||
                              strcmp(family, "sans-bold") == 0;
   if (compactSize && builtInFamily) {
-    const RenderFont font{&InterTightCompact12, -1, 0};
+    const RenderFont font{&InterTightCompact13, -1, 0};
     applyDisplayFont(font);
     return font;
   }
@@ -1262,8 +1264,8 @@ CardTextLayout cardTextLayout(JsonObjectConst card, int16_t y,
   if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
     return layout;
   }
-  const int16_t titleBand =
-      min<int16_t>(usesCompactCardTitle(card) ? 12 : 18, contentHeight / 2);
+  const int16_t titleBand = min<int16_t>(
+      usesCompactCardTitle(card) ? 17 : 24, contentHeight / 2);
   layout.titleHeight = titleBand;
   layout.valueHeight = max<int16_t>(1, contentHeight - titleBand);
   if (strcmp(vertical, "top") == 0) {
@@ -1589,15 +1591,28 @@ uint8_t pageTitleFontSize(JsonVariantConst style) {
   return 0;
 }
 
-int16_t pageTitleThickness(JsonVariantConst style) {
-  const uint8_t size = pageTitleFontSize(style);
-  const int16_t thickness[] = {21, 29, 40, 52};
-  return thickness[size];
-}
-
 RenderFont pageTitleFont(JsonVariantConst style) {
   return renderFontFor(style["fontFamily"] | "default",
                        pageTitleFontSize(style));
+}
+
+int16_t pageTitleThickness(JsonVariantConst style) {
+  applyDisplayFont(pageTitleFont(style));
+  return min<int16_t>(64, display.fontHeight() + 2);
+}
+
+RenderFont rowTitleFont(JsonVariantConst style) {
+  const char *family = style["fontFamily"] | "default";
+  const bool builtInFamily = strcmp(family, "default") == 0 ||
+                             strcmp(family, "sans") == 0 ||
+                             strcmp(family, "sans-bold") == 0;
+  if (builtInFamily) return {&InterTightCompact13, -1, 0};
+  return renderFontFor(family, 0);
+}
+
+int16_t rowTitleHeight(JsonVariantConst style) {
+  applyDisplayFont(rowTitleFont(style));
+  return display.fontHeight();
 }
 
 PageContentLayout pageContentLayout(JsonObjectConst page) {
@@ -1719,16 +1734,16 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
     if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
       JsonVariantConst rowTitleStyle = row["titleStyle"];
       if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
-      const RenderFont rowFont = renderFontFor(
-          rowTitleStyle["fontFamily"] | "default", 0);
+      const RenderFont rowFont = rowTitleFont(rowTitleStyle);
+      const int16_t titleHeight = rowTitleHeight(rowTitleStyle);
       const uint16_t rowForeground =
           parseColor(rowTitleStyle["foreground"], TFT_LIGHTGREY);
       if (!cacheText(page, String(rowTitle), rowFont, TL_DATUM, layout.x + 2,
                      rowY, rowForeground, page.background)) {
         return false;
       }
-      rowY += 17;
-      rowHeight -= 17;
+      rowY += titleHeight;
+      rowHeight -= titleHeight;
     }
     JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
     if (cards.size() == 0) return false;
@@ -1810,20 +1825,20 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
     const bool rowTitleShown =
         showTitle && rowTitle && rowTitle[0] && rowHeight >= 24;
     if (rowTitleShown) {
+      JsonVariantConst rowTitleStyle = row["titleStyle"];
+      if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
       if (!partial) {
-        JsonVariantConst rowTitleStyle = row["titleStyle"];
-        if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
         display.setTextDatum(TL_DATUM);
         display.setTextColor(
             parseColor(rowTitleStyle["foreground"], TFT_LIGHTGREY),
             pageBackground);
-        applyDisplayFont(renderFontFor(
-            rowTitleStyle["fontFamily"] | "default", 0));
+        applyDisplayFont(rowTitleFont(rowTitleStyle));
         display.drawString(rowTitle, layout.x + 2 + offsetX,
                            rowY + offsetY);
       }
-      rowY += 17;
-      rowHeight -= 17;
+      const int16_t titleHeight = rowTitleHeight(rowTitleStyle);
+      rowY += titleHeight;
+      rowHeight -= titleHeight;
     }
     JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
     const int16_t cardWidth =
@@ -1946,9 +1961,13 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   }
   PageTransitionRenderer renderer(display, displayOn, displayBrightness,
                                   applyBacklight, displayFontState);
+  pageTransitionActive = true;
   renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
+  pageTransitionActive = false;
   activePageIndex = nextPageIndex;
   renderDashboardPage(nullptr, false);
+  pendingChangedValues |= transitionDeferredValues;
+  transitionDeferredValues = 0;
   pageShownAt = millis();
 }
 
@@ -2304,7 +2323,11 @@ void receiveApiData() {
     changedValueMask |= 1UL << (slot - dashboardValues);
   }
   if (document["render"] | true) {
-    pendingChangedValues |= changedValueMask;
+    if (pageTransitionActive) {
+      transitionDeferredValues |= changedValueMask;
+    } else {
+      pendingChangedValues |= changedValueMask;
+    }
   }
   lastValueUpdateAt = millis();
   hasValueUpdate = true;

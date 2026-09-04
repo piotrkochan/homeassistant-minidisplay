@@ -81,6 +81,10 @@ class MiniDisplay {
     background_ = background;
     gfx_->setTextColor(foreground, background);
   }
+  void setTextColor(uint16_t foreground) {
+    foreground_ = foreground;
+    gfx_->setTextColor(foreground);
+  }
   void setFreeFont(const GFXfont *font) {
     font_ = font;
     textSize_ = 1;
