@@ -4,6 +4,12 @@
 #include "ProgressRenderer.h"
 #include "UserFonts.h"
 
+inline bool sameCachedFont(const CachedText &left, const CachedText &right) {
+  return left.font == right.font && left.smoothFont == right.smoothFont &&
+         left.userFontSlot == right.userFontSlot &&
+         left.userFontSize == right.userFontSize;
+}
+
 template <typename Canvas>
 void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
                      int16_t offsetY, int16_t clipX, int16_t clipY,
@@ -31,29 +37,52 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     }
     canvas.fillRoundRect(x, y, card.width, card.height, 5, card.background);
   }
-  for (uint8_t index = 0; index < page.textCount; ++index) {
-    const CachedText &text = page.texts[index];
-    const int16_t boundsX = text.boundsX + offsetX;
-    const int16_t boundsY = text.boundsY + offsetY;
-    if (boundsX >= clipRight || boundsX + text.boundsWidth <= clipX ||
-        boundsY >= clipBottom || boundsY + text.boundsHeight <= clipY) {
-      continue;
+  uint64_t paintedTexts = 0;
+  while (true) {
+    int8_t first = -1;
+    for (uint8_t index = 0; index < page.textCount; ++index) {
+      if ((paintedTexts & (1ULL << index)) != 0) continue;
+      const CachedText &text = page.texts[index];
+      const int16_t boundsX = text.boundsX + offsetX;
+      const int16_t boundsY = text.boundsY + offsetY;
+      if (boundsX >= clipRight || boundsX + text.boundsWidth <= clipX ||
+          boundsY >= clipBottom || boundsY + text.boundsHeight <= clipY) {
+        paintedTexts |= 1ULL << index;
+        continue;
+      }
+      first = index;
+      break;
     }
-    canvas.setTextDatum(text.datum);
+    if (first < 0) break;
+    const CachedText &fontText = page.texts[first];
     applyRenderFont(
         canvas,
-        RenderFont{text.font, text.userFontSlot, text.userFontSize,
-                   text.smoothFont},
+        RenderFont{fontText.font, fontText.userFontSlot, fontText.userFontSize,
+                   fontText.smoothFont},
         fontState);
+    for (uint8_t index = first; index < page.textCount; ++index) {
+      if ((paintedTexts & (1ULL << index)) != 0) continue;
+      const CachedText &text = page.texts[index];
+      if (!sameCachedFont(fontText, text)) continue;
+      const int16_t boundsX = text.boundsX + offsetX;
+      const int16_t boundsY = text.boundsY + offsetY;
+      if (boundsX >= clipRight || boundsX + text.boundsWidth <= clipX ||
+          boundsY >= clipBottom || boundsY + text.boundsHeight <= clipY) {
+        paintedTexts |= 1ULL << index;
+        continue;
+      }
+      paintedTexts |= 1ULL << index;
+      canvas.setTextDatum(text.datum);
 #if defined(ESP8266)
-    drawTextWithEffect(canvas, page.textPool + text.valueOffset,
-                       text.x + offsetX, text.y + offsetY, text.foreground,
-                       text.background, text.effect);
+      drawTextWithEffect(canvas, page.textPool + text.valueOffset,
+                         text.x + offsetX, text.y + offsetY, text.foreground,
+                         text.background, text.effect);
 #else
-    drawTextWithEffect(canvas, String(page.textPool + text.valueOffset),
-                       text.x + offsetX, text.y + offsetY, text.foreground,
-                       text.background, text.effect);
+      drawTextWithEffect(canvas, String(page.textPool + text.valueOffset),
+                         text.x + offsetX, text.y + offsetY, text.foreground,
+                         text.background, text.effect);
 #endif
+    }
   }
   for (uint8_t index = 0; index < page.progressCount; ++index) {
     const CachedProgress &progress = page.progress[index];

@@ -16,12 +16,10 @@ SYMBOLS = "€–—…←↑→↓•✓✕"
 
 
 def sharpen_alpha(value: int) -> int:
-    if value < 56:
+    if value < 128:
         return 0
-    if value < 136:
-        return 96
-    if value < 216:
-        return 208
+    if value < 224:
+        return 192
     return 255
 
 

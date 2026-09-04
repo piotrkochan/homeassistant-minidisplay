@@ -28,7 +28,7 @@ def generate(font_path: Path, output: Path, family: str, size: int) -> None:
         advance = max(1, round(font.getlength(character)))
         offset = len(bitmap)
         if width and height:
-            image = Image.new("1", (width, height))
+            image = Image.new("L", (width, height))
             draw = ImageDraw.Draw(image)
             # Measure and draw against the same left-baseline anchor.  Using
             # Pillow's default anchor here moves most glyphs outside the tiny
@@ -39,7 +39,9 @@ def generate(font_path: Path, output: Path, family: str, size: int) -> None:
             bit = 0x80
             for y in range(height):
                 for x in range(width):
-                    if pixels[x, y]:
+                    alpha = pixels[x, y]
+                    edge_pixel = ((x & 1) != 1) or ((y & 1) != 1)
+                    if alpha >= 224 or (alpha >= 128 and edge_pixel):
                         current |= bit
                     bit >>= 1
                     if bit == 0:
