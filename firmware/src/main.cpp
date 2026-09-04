@@ -1976,6 +1976,7 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   pageTransitionActive = true;
   renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
   pageTransitionActive = false;
+  transitionPages.reset();
   activePageIndex = nextPageIndex;
   renderDashboardPage(nullptr, false);
   pendingChangedValues |= transitionDeferredValues;

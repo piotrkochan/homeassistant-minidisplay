@@ -608,4 +608,8 @@ void PageTransitionRenderer::render(
     drawPage(nextPage, contentOffsetX, contentOffsetY);
   }
   displayFontState_.smoothAllowed = true;
+  // Animation frames use the lightweight bitmap fallback. Settle the final
+  // frame with the normal font renderer before control returns to the live
+  // dashboard, so its glyph metrics and text effects already match.
+  drawPage(nextPage, contentOffsetX, contentOffsetY);
 }
