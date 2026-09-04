@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.number import NumberEntity, NumberMode
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import EntityCategory, PERCENTAGE
 
 from .const import DOMAIN
 from .entity import MiniDisplayEntity
@@ -53,6 +53,7 @@ class MiniDisplayPixelShiftNumber(MiniDisplayEntity, NumberEntity):
 
     _attr_name = "Pixel shift"
     _attr_icon = "mdi:move-resize"
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_min_value = 0
     _attr_native_max_value = 10
     _attr_native_step = 1

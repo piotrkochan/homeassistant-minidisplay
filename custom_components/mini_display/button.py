@@ -16,16 +16,30 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
             MiniDisplayCommandButton(
                 coordinator, "previous_page", "Previous page", "previous"
             ),
-            MiniDisplayCommandButton(coordinator, "reload_dashboard", "Reload dashboard", "reload"),
+            MiniDisplayCommandButton(
+                coordinator,
+                "reload_dashboard",
+                "Reload dashboard",
+                "reload",
+                EntityCategory.CONFIG,
+            ),
             MiniDisplayRestartButton(coordinator),
         ]
     )
 
 
 class MiniDisplayCommandButton(MiniDisplayEntity, ButtonEntity):
-    def __init__(self, coordinator, key: str, name: str, command: str) -> None:
+    def __init__(
+        self,
+        coordinator,
+        key: str,
+        name: str,
+        command: str,
+        category: EntityCategory | None = None,
+    ) -> None:
         super().__init__(coordinator, key)
         self._attr_name = name
+        self._attr_entity_category = category
         self._command = command
 
     async def async_press(self) -> None:
