@@ -222,8 +222,10 @@ DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
 uint32_t pendingChangedValues = 0;
 bool fullRenderPending = false;
+uint32_t fullRenderNotBefore = 0;
 uint32_t lastValueUpdateAt = 0;
 bool hasValueUpdate = false;
+constexpr uint16_t kRenderRetryDelayMs = 750;
 constexpr uint8_t kMaxMarqueeTitles = 8;
 constexpr uint16_t kMarqueeTextBytes = 384;
 constexpr uint16_t kMarqueeStartPauseMs = 1000;
@@ -804,20 +806,30 @@ void applyBacklight() {
   analogWrite(TFT_BL, pwm);
 }
 
+void requestFullRender(uint16_t delayMs = 0) {
+  fullRenderPending = true;
+  fullRenderNotBefore = millis() + delayMs;
+}
+
 void showCurrentPage() {
-  if (dashboardPageCount && renderDashboardPage()) return;
+  if (dashboardPageCount) {
+    if (renderDashboardPage()) {
+      fullRenderPending = false;
+      fullRenderNotBefore = 0;
+      return;
+    }
+    // Rendering needs a contiguous JSON allocation. HTTP handling can
+    // temporarily fragment the small ESP8266 heap, so preserve the last good
+    // frame and retry after request-owned buffers have been released.
+    requestFullRender(kRenderRetryDelayMs);
+    return;
+  }
   display.fillScreen(TFT_BLACK);
   display.setTextDatum(MC_DATUM);
   display.setTextColor(TFT_WHITE, TFT_BLACK);
-  if (dashboardPageCount == 0) {
-    display.drawString("MINI-DISPLAY", 120, 92, 4);
-    display.setTextColor(TFT_YELLOW, TFT_BLACK);
-    display.drawString("WAITING FOR DASHBOARD", 120, 135, 2);
-    return;
-  }
-  display.drawString(dashboardPages[activePageIndex].id, 120, 105, 4);
-  display.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  display.drawString(pageRotationAuto ? "AUTO" : "MANUAL", 120, 145, 2);
+  display.drawString("MINI-DISPLAY", 120, 92, 4);
+  display.setTextColor(TFT_YELLOW, TFT_BLACK);
+  display.drawString("WAITING FOR DASHBOARD", 120, 135, 2);
 }
 
 void fingerprintSource(const char *source, uint32_t &hash, uint32_t &check) {
@@ -2255,7 +2267,7 @@ void receiveApiDashboard() {
   if (server.arg("render") != "false") {
     pageRotationAuto = true;
     pageShownAt = millis();
-    fullRenderPending = true;
+    requestFullRender();
   }
   server.send(204);
 }
@@ -2346,7 +2358,7 @@ void receiveApiDisplay() {
     displayPixelShift = value;
     updatePixelShift();
     pixelShiftAt = millis();
-    showCurrentPage();
+    requestFullRender();
   }
   if (document.containsKey("timezone")) {
     const char *value = document["timezone"] | "";
@@ -2361,7 +2373,7 @@ void receiveApiDisplay() {
     applyTimezone();
     if (timezoneChanged) {
       lastClockTick = static_cast<time_t>(-1);
-      showCurrentPage();
+      requestFullRender();
     }
   }
   if (settingsChanged) saveDisplaySettings();
@@ -2411,7 +2423,7 @@ void receiveApiFontSelection() {
     return;
   }
   displayFontState = FontRenderState{};
-  showCurrentPage();
+  requestFullRender();
   server.send(204);
 }
 
@@ -2465,7 +2477,7 @@ void receiveApiFontDelete(uint8_t slot) {
     return;
   }
   displayFontState = FontRenderState{};
-  showCurrentPage();
+  requestFullRender();
   server.send(204);
 }
 
@@ -2518,7 +2530,7 @@ void receiveApiPage() {
     return;
   }
   pageShownAt = millis();
-  showCurrentPage();
+  requestFullRender();
   server.send(204);
 }
 
@@ -3425,11 +3437,12 @@ void loop() {
     applyBacklight();
   }
 
-  if (fullRenderPending) {
+  if (fullRenderPending &&
+      static_cast<int32_t>(millis() - fullRenderNotBefore) >= 0) {
     fullRenderPending = false;
     pendingChangedValues = 0;
     showCurrentPage();
-  } else if (pendingChangedValues != 0) {
+  } else if (!fullRenderPending && pendingChangedValues != 0) {
     const uint32_t changedValues = pendingChangedValues;
     pendingChangedValues = 0;
     if (!renderDashboardPage(&changedValues)) showCurrentPage();
@@ -3438,7 +3451,7 @@ void loop() {
 #if defined(ESP8266)
   if (mdnsReady) MDNS.update();
 #endif
-  if (pageRotationAuto && dashboardPageCount > 1 &&
+  if (!fullRenderPending && pageRotationAuto && dashboardPageCount > 1 &&
       millis() - pageShownAt >= dashboardPages[activePageIndex].durationMs) {
     showPageWithTransition((activePageIndex + 1) % dashboardPageCount);
   }
