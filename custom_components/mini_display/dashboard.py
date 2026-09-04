@@ -646,6 +646,7 @@ class MiniDisplayDashboardManager:
         self._pending_sources: set[str] = set()
         self._flush_in_progress = False
         self._last_rendered_dashboard: dict[str, Any] | None = None
+        self.data_forwarding_enabled = True
 
     async def async_load(self) -> None:
         stored = await self._store.async_load()
@@ -665,6 +666,9 @@ class MiniDisplayDashboardManager:
             self.default_scene_id = DEFAULT_SCENE_ID
             await self._async_save()
         elif stored.get("sceneDocumentVersion") == SCENE_DOCUMENT_VERSION:
+            self.data_forwarding_enabled = stored.get(
+                "dataForwardingEnabled", True
+            )
             raw_scenes = stored.get("scenes")
             if not isinstance(raw_scenes, list) or not raw_scenes:
                 raise DashboardValidationError("Scene document requires scenes")
@@ -929,9 +933,29 @@ class MiniDisplayDashboardManager:
                 "sceneDocumentVersion": SCENE_DOCUMENT_VERSION,
                 "activeSceneId": self.active_scene_id,
                 "defaultSceneId": self.default_scene_id,
+                "dataForwardingEnabled": self.data_forwarding_enabled,
                 "scenes": list(self.scenes.values()),
             }
         )
+
+    async def async_set_data_forwarding_enabled(self, enabled: bool) -> None:
+        """Enable or pause periodic Home Assistant state forwarding."""
+        if self.data_forwarding_enabled == enabled:
+            return
+        self.data_forwarding_enabled = enabled
+        self._pending_sources.clear()
+        if self._cancel_batch is not None:
+            self._cancel_batch()
+            self._cancel_batch = None
+        self._replace_subscriptions()
+        await self._async_save()
+        if enabled:
+            try:
+                await self.async_send_snapshot()
+            except MiniDisplayApiError:
+                _LOGGER.debug(
+                    "Mini-Display snapshot delayed; display unavailable"
+                )
 
     async def async_send_snapshot(self) -> None:
         if not self.sources:
@@ -955,7 +979,7 @@ class MiniDisplayDashboardManager:
         self.visibility_sources = (
             extract_visibility_sources(shown_dashboard) if shown_dashboard else set()
         )
-        if self.sources:
+        if self.sources and self.data_forwarding_enabled:
             self._unsubscribe_states = async_track_state_change_event(
                 self.hass, self.sources, self._state_changed
             )
