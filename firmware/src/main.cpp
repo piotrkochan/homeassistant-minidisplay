@@ -1064,23 +1064,40 @@ RenderFont selectBestFont(const String &text, JsonVariantConst style,
   return font;
 }
 
+bool isBuiltInCardTitleFamily(const char *family) {
+  return strcmp(family, "default") == 0 || strcmp(family, "sans") == 0 ||
+         strcmp(family, "sans-bold") == 0;
+}
+
+RenderFont compactCardTitleFont() {
+  return RenderFont{&InterTightCompact13, -1, 0,
+#if defined(ESP8266)
+                    InterTightSmooth13
+#else
+                    nullptr
+#endif
+  };
+}
+
 RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
-                               int16_t width, int16_t height) {
+                               int16_t width, int16_t height,
+                               int8_t maximumAutoSize) {
   const char *size = style["fontSize"] | "auto";
   const char *family = style["fontFamily"] | "sans";
-  const bool compactSize = strcmp(size, "auto") == 0 ||
-                           strcmp(size, "small") == 0;
-  const bool builtInFamily = strcmp(family, "default") == 0 ||
-                             strcmp(family, "sans") == 0 ||
-                             strcmp(family, "sans-bold") == 0;
-  if (compactSize && builtInFamily) {
-    const RenderFont font{&InterTightCompact13, -1, 0,
-#if defined(ESP8266)
-                          InterTightSmooth13
-#else
-                          nullptr
-#endif
-    };
+  const bool automatic = strcmp(size, "auto") == 0;
+  if (automatic) {
+    for (int8_t candidate = maximumAutoSize; candidate >= 0; --candidate) {
+      const RenderFont font = renderFontFor(family, candidate);
+      applyDisplayFont(font);
+      if (display.fontHeight() <= height &&
+          display.textWidth(text) <= width - 6) {
+        return font;
+      }
+    }
+  }
+  if ((automatic || strcmp(size, "small") == 0) &&
+      isBuiltInCardTitleFamily(family)) {
+    const RenderFont font = compactCardTitleFont();
     applyDisplayFont(font);
     return font;
   }
@@ -1248,19 +1265,10 @@ struct CardTextLayout {
   int16_t titleY;
   int16_t titleHeight;
   bool hasTitle;
+  RenderFont titleFont;
 };
 
-bool usesCompactCardTitle(JsonObjectConst card) {
-  JsonVariantConst style = card["titleStyle"];
-  if (style.isNull()) style = card["style"];
-  const char *size = style["fontSize"] | "auto";
-  const char *family = style["fontFamily"] | "sans";
-  return (strcmp(size, "auto") == 0 || strcmp(size, "small") == 0) &&
-         (strcmp(family, "default") == 0 || strcmp(family, "sans") == 0 ||
-          strcmp(family, "sans-bold") == 0);
-}
-
-CardTextLayout cardTextLayout(JsonObjectConst card, int16_t y,
+CardTextLayout cardTextLayout(JsonObjectConst card, int16_t width, int16_t y,
                               int16_t height) {
   const char *title = card["title"];
   const bool hasTitle = (card["showTitle"] | true) && title && title[0] &&
@@ -1268,15 +1276,39 @@ CardTextLayout cardTextLayout(JsonObjectConst card, int16_t y,
   const bool bar = strcmp(card["progress"] | "none", "bar") == 0;
   const int16_t contentHeight =
       max<int16_t>(1, height - (bar && height >= 20 ? 9 : 0));
-  CardTextLayout layout{y, contentHeight, y, contentHeight, hasTitle};
+  CardTextLayout layout{y, contentHeight, y, contentHeight, hasTitle,
+                        compactCardTitleFont()};
   if (!hasTitle) return layout;
 
-  const char *vertical = card["titleStyle"]["verticalAlign"] | "top";
+  JsonVariantConst titleStyle = card["titleStyle"];
+  if (titleStyle.isNull()) titleStyle = card["style"];
+  JsonVariantConst valueStyle = card["valueStyle"];
+  if (valueStyle.isNull()) valueStyle = card["style"];
+  const int16_t provisionalValueHeight = max<int16_t>(1, contentHeight - 17);
+  const RenderFont valueFont = selectBestFont(
+      cardValue(card), valueStyle, width, provisionalValueHeight);
+  applyDisplayFont(valueFont);
+  const int16_t valueFontHeight = display.fontHeight();
+  const int8_t maximumAutoTitleSize =
+      valueFont.size >= 3 ? 1 : valueFont.size >= 1 ? 0 : -1;
+
+  const char *vertical = titleStyle["verticalAlign"] | "top";
   if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
+    layout.titleFont = selectCardTitleFont(
+        String(title), titleStyle, width - 10, contentHeight,
+        maximumAutoTitleSize);
     return layout;
   }
-  const int16_t titleBand = min<int16_t>(
-      usesCompactCardTitle(card) ? 17 : 24, contentHeight / 2);
+
+  const int16_t maximumTitleHeight =
+      max<int16_t>(1, min<int16_t>(contentHeight / 2,
+                                  contentHeight - valueFontHeight));
+  layout.titleFont = selectCardTitleFont(
+      String(title), titleStyle, width - 10, maximumTitleHeight,
+      maximumAutoTitleSize);
+  applyDisplayFont(layout.titleFont);
+  const int16_t titleBand =
+      min<int16_t>(maximumTitleHeight, display.fontHeight());
   layout.titleHeight = titleBand;
   layout.valueHeight = max<int16_t>(1, contentHeight - titleBand);
   if (strcmp(vertical, "top") == 0) {
@@ -1348,7 +1380,7 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const char *progressType = card["progress"] | "none";
   const bool bar = strcmp(progressType, "bar") == 0;
   const bool ring = strcmp(progressType, "ring") == 0;
-  const CardTextLayout textLayout = cardTextLayout(card, y, height);
+  const CardTextLayout textLayout = cardTextLayout(card, width, y, height);
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   if (ring) {
@@ -1372,8 +1404,8 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
     const bool marqueePosition = strcmp(titleVertical, "top") == 0 ||
                                   strcmp(titleVertical, "bottom") == 0;
     const String titleText(title);
-    const RenderFont titleFont = selectCardTitleFont(
-        titleText, titleStyle, width - 10, textLayout.titleHeight);
+    const RenderFont titleFont = textLayout.titleFont;
+    applyDisplayFont(titleFont);
     const int16_t titleWidth = display.textWidth(titleText);
     if (!captureMarquee || !marqueePosition || titleWidth <= width - 10 ||
         !addMarqueeTitle(title, titleFont, titleWidth, x,
@@ -1465,7 +1497,8 @@ bool cachePositionedText(CachedPage &page, String value,
                          const char *defaultHorizontal = "center",
                          const char *defaultVertical = "middle",
                          int16_t fontHeight = 0,
-                         bool compactTitle = false) {
+                         const RenderFont *selectedFont = nullptr,
+                         bool tightVerticalEdges = false) {
   const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
   const char *vertical = style["verticalAlign"] | defaultVertical;
   const bool left = strcmp(horizontal, "left") == 0;
@@ -1481,16 +1514,17 @@ bool cachePositionedText(CachedPage &page, String value,
                                           : right ? MR_DATUM : MC_DATUM);
   const int16_t availableHeight =
       fontHeight > 0 ? min(height, fontHeight) : height;
-  const RenderFont font =
-      compactTitle
-          ? selectCardTitleFont(value, style, width, availableHeight)
-          : selectBestFont(value, style, width, availableHeight);
+  const RenderFont font = selectedFont != nullptr
+                              ? *selectedFont
+                              : selectBestFont(value, style, width,
+                                               availableHeight);
+  applyDisplayFont(font);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
   const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
-  const int16_t textY = top    ? y + (compactTitle ? 0 : 3)
-                        : bottom ? y + height - (compactTitle ? 1 : 3)
+  const int16_t textY = top    ? y + (tightVerticalEdges ? 0 : 3)
+                        : bottom ? y + height - (tightVerticalEdges ? 1 : 3)
                                  : y + height / 2;
   return cacheText(page, value, font, datum, textX, textY, foreground,
                    background, parseTextEffect(style));
@@ -1537,7 +1571,7 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   const char *progressType = card["progress"] | "none";
   const bool bar = strcmp(progressType, "bar") == 0;
   const bool ring = strcmp(progressType, "ring") == 0;
-  const CardTextLayout textLayout = cardTextLayout(card, y, height);
+  const CardTextLayout textLayout = cardTextLayout(card, width, y, height);
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   RingLayout ringGeometry{};
@@ -1564,8 +1598,8 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
     if (!cachePositionedText(page, String(title), titleStyle, x,
                              textLayout.titleY, width, textLayout.titleHeight,
                              titleForeground, background, "left", "top",
-                             textLayout.titleHeight,
-                             usesCompactCardTitle(card))) {
+                             textLayout.titleHeight, &textLayout.titleFont,
+                             true)) {
       return false;
     }
   }

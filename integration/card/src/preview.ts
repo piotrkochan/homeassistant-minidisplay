@@ -753,6 +753,50 @@ export class MiniDisplayPreview extends LitElement {
     return sizes[index];
   }
 
+  private fontLineHeight(size: number) {
+    return ({ 13: 17, 18: 22, 24: 29, 36: 42, 48: 56 } as const)[
+      size as 13 | 18 | 24 | 36 | 48
+    ];
+  }
+
+  private titleFontSize(
+    card: Dashboard["pages"][number]["rows"][number]["cards"][number],
+    title: string,
+    width: number,
+    height: number,
+    valueSize: number,
+  ) {
+    const requested = card.titleStyle?.fontSize ?? "auto";
+    const family = card.titleStyle?.fontFamily ?? "sans";
+    const builtIn = ["default", "sans", "sans-bold"].includes(family);
+    const requestedSize =
+      requested === "small"
+        ? 13
+        : requested === "medium"
+          ? 24
+          : requested === "large"
+            ? 36
+            : requested === "xlarge"
+              ? 48
+              : valueSize >= 48
+                ? 24
+                : valueSize >= 24
+                  ? 18
+                  : 13;
+    const candidates = [48, 36, 24, 18, 13].filter(
+      (size) => size <= requestedSize && (size !== 13 || builtIn),
+    );
+    this.measureContext ??= document.createElement("canvas").getContext("2d");
+    for (const size of candidates) {
+      if (this.fontLineHeight(size) > height) continue;
+      if (!this.measureContext) return size;
+      this.measureContext.font = `700 ${size}px sans-serif`;
+      if (this.measureContext.measureText(title).width <= width - 6)
+        return size;
+    }
+    return builtIn ? 13 : 18;
+  }
+
   private textEffectCss(style?: Style) {
     const effect = style?.textEffect ?? "none";
     if (effect === "none") return "";
@@ -949,19 +993,38 @@ export class MiniDisplayPreview extends LitElement {
                     hasTitle &&
                     (titleVerticalKey === "top" ||
                       titleVerticalKey === "bottom");
-                  const compactTitle =
-                    [undefined, "auto", "small"].includes(
-                      card.titleStyle?.fontSize,
-                    ) &&
-                    [undefined, "default", "sans", "sans-bold"].includes(
-                      card.titleStyle?.fontFamily,
-                    );
                   const baseContentBottom =
                     card.progress === "bar" ? 14 : 5;
                   const contentHeight =
                     cardHeight - (card.progress === "bar" ? 9 : 0);
+                  const provisionalValueSize = this.valueFontSize(
+                    card,
+                    displayValue,
+                    cardWidth,
+                    Math.max(1, contentHeight - 17),
+                  );
+                  const maximumTitleHeight = Math.max(
+                    1,
+                    Math.min(
+                      contentHeight / 2,
+                      contentHeight -
+                        this.fontLineHeight(provisionalValueSize),
+                    ),
+                  );
+                  const titleSize = hasTitle
+                    ? this.titleFontSize(
+                        card,
+                        card.title ?? "",
+                        cardWidth - 10,
+                        reservesTitle ? maximumTitleHeight : contentHeight,
+                        provisionalValueSize,
+                      )
+                    : 13;
                   const titleBand = reservesTitle
-                    ? Math.min(compactTitle ? 17 : 24, contentHeight / 2)
+                    ? Math.min(
+                        maximumTitleHeight,
+                        this.fontLineHeight(titleSize),
+                      )
                     : 0;
                   const valueHeight =
                     card.progress === "ring"
@@ -1029,7 +1092,7 @@ export class MiniDisplayPreview extends LitElement {
                     .createElement("canvas")
                     .getContext("2d");
                   if (this.measureContext)
-                    this.measureContext.font = "11px sans-serif";
+                    this.measureContext.font = `700 ${titleSize}px sans-serif`;
                   const titleOverflow = card.title
                     ? Math.max(
                         0,
@@ -1074,7 +1137,7 @@ export class MiniDisplayPreview extends LitElement {
                     ${
                       card.title && card.showTitle !== false
                         ? html`<small
-                            style=${`${titleArea};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")}`}
+                            style=${`${titleArea};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")};font-size:${titleSize}px;line-height:${this.fontLineHeight(titleSize)}px`}
                             ><span
                               class="card-label ${titleMarquee ? "marquee" : ""}"
                               style=${`${titleMarquee ? `--marquee-distance:-${titleOverflow}px;--marquee-duration:${Math.max(3, 1.7 + titleOverflow * 0.035)}s;` : ""}${this.textEffectCss(card.titleStyle)}`}
