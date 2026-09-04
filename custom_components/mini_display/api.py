@@ -53,7 +53,9 @@ class MiniDisplayClient:
     ) -> None:
         self._session = session
         self._base_url = f"http://{host}:{port}/api/v1"
-        self._headers = {"Authorization": f"Bearer {api_token}"}
+        self._headers = (
+            {"Authorization": f"Bearer {api_token}"} if api_token else {}
+        )
         self._timeout = ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
         self._request_lock = asyncio.Lock()
 

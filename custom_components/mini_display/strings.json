@@ -3,22 +3,30 @@
     "step": {
       "user": {
         "title": "Connect a Mini-Display",
-        "description": "Enter the local address and API token shown by the display.",
+        "description": "Enter the local address and optional panel/API password configured on the display.",
         "data": {
           "host": "Host",
           "port": "Port",
-          "api_token": "API token"
+          "api_token": "Panel/API password (optional)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update Mini-Display password",
+        "description": "Enter the current panel/API password for {name}, or leave it empty when API protection is disabled.",
+        "data": {
+          "api_token": "Panel/API password (optional)"
         }
       }
     },
     "error": {
       "cannot_connect": "Cannot connect to the display",
-      "invalid_auth": "Invalid API token",
+      "invalid_auth": "Invalid device password",
       "unsupported_device": "Unsupported device or API version"
     },
     "abort": {
       "already_configured": "This display is already configured",
-      "invalid_discovery_info": "Discovery did not contain a stable device ID"
+      "invalid_discovery_info": "Discovery did not contain a stable device ID",
+      "wrong_device": "The password belongs to a different display"
     }
   },
   "options": {

@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryAuthFailed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import MiniDisplayApiError, MiniDisplayClient
+from .api import MiniDisplayApiError, MiniDisplayAuthError, MiniDisplayClient
 from .const import DEFAULT_SCAN_INTERVAL_SECONDS, DOMAIN
 
 
@@ -36,5 +36,7 @@ class MiniDisplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             status = await self.client.async_get_status()
             status["lastSync"] = datetime.now(UTC)
             return status
+        except MiniDisplayAuthError as err:
+            raise ConfigEntryAuthFailed("Device password was rejected") from err
         except MiniDisplayApiError as err:
             raise UpdateFailed(str(err)) from err

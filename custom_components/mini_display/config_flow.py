@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -62,7 +63,11 @@ class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_HOST, default=self._discovered_host or "mini-display.local"
                 ): str,
                 vol.Required(CONF_PORT, default=self._discovered_port): int,
-                vol.Required(CONF_API_TOKEN): str,
+                vol.Optional(CONF_API_TOKEN, default=""): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.PASSWORD
+                    )
+                ),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -80,6 +85,50 @@ class MiniDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_port = discovery_info.port
         self.context["title_placeholders"] = {"name": discovery_info.name}
         return await self.async_step_user()
+
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Start re-authentication after the device rejects its password."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Validate and store a replacement device password."""
+        entry = self._get_reauth_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            candidate = {
+                CONF_HOST: entry.data[CONF_HOST],
+                CONF_PORT: entry.data[CONF_PORT],
+                CONF_API_TOKEN: user_input[CONF_API_TOKEN],
+            }
+            result = await self._async_validate(candidate)
+            if isinstance(result, dict):
+                errors = result
+            else:
+                info, _ = result
+                if info.device_id != entry.data[CONF_DEVICE_ID]:
+                    return self.async_abort(reason="wrong_device")
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={CONF_API_TOKEN: user_input[CONF_API_TOKEN]},
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_API_TOKEN, default=""): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.PASSWORD
+                        )
+                    )
+                }
+            ),
+            errors=errors,
+        )
 
     async def _async_validate(self, user_input: dict[str, Any]):
         client = MiniDisplayClient(
