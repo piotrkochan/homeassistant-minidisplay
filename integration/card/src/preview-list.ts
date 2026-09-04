@@ -1,5 +1,5 @@
 import { css, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type { Dashboard, Display, Hass } from "./types";
 import "./preview";
 
@@ -17,10 +17,11 @@ export class MiniDisplayPreviewList extends LitElement {
   @property() selectedDisplayId = "";
   @property() selectedSceneId = "";
   @property() selectedSceneName = "";
+  @state() private showHidden = false;
 
   static styles = css`
     :host { display: grid; gap: 12px; max-height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 16px; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
-    h2 { margin: 0 2px; font-size: 16px; font-weight: 500; }
+    .preview-footer{display:flex;justify-content:center}.show-hidden{display:flex;align-items:center;gap:7px;min-height:40px;color:var(--secondary-text-color);font-size:12px;cursor:pointer}.show-hidden input{width:18px;height:18px;margin:0}
     ha-card { display: grid; gap: 10px; padding: 12px; border: 2px solid transparent; cursor: pointer; }
     ha-card.selected { border-color: var(--primary-color); }
     header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
@@ -33,14 +34,14 @@ export class MiniDisplayPreviewList extends LitElement {
     nav { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--secondary-text-color); font-size: 12px; }
     nav .icon { width: 32px; height: 32px; }
     ha-button { width: 100%; }
-    @media(max-width:1100px) { :host { grid-column: 1/-1; grid-template-columns: repeat(auto-fit,minmax(272px,1fr)); max-height: none; overflow: visible; position: static; } h2 { grid-column: 1/-1; } }
+    @media(max-width:1100px) { :host { grid-column: 1/-1; grid-template-columns: repeat(auto-fit,minmax(272px,1fr)); max-height: none; overflow: visible; position: static; } .preview-footer { grid-column: 1/-1; } }
     @media(max-width:700px) { :host { grid-column: auto; grid-template-columns: 1fr; } }
   `;
 
   render() {
     return html`
-      <h2>Preview</h2>
       ${this.displays.map((display) => this.renderDisplay(display))}
+      <div class="preview-footer"><label class="show-hidden"><input type="checkbox" .checked=${this.showHidden} @change=${(event: Event) => this.showHidden = (event.target as HTMLInputElement).checked}>Show hidden cards</label></div>
     `;
   }
 
@@ -69,7 +70,7 @@ export class MiniDisplayPreviewList extends LitElement {
           </button>
         </header>
         ${dashboard ? html`
-          <mini-display-preview .dashboard=${dashboard} .hass=${this.hass} .page=${page} .width=${display.width} .height=${display.height}></mini-display-preview>
+          <mini-display-preview .dashboard=${dashboard} .hass=${this.hass} .page=${page} .width=${display.width} .height=${display.height} .displayId=${display.config_entry_id} .interactive=${true} .showHidden=${this.showHidden} @click=${(event: Event) => event.stopPropagation()}></mini-display-preview>
           ${dashboard.pages.length > 1 ? html`
             <nav>
               <button class="icon" aria-label="Previous page" @click=${(event: Event) => { event.stopPropagation(); emit(this, "preview-page", { displayId: display.config_entry_id, delta: -1 }); }}><ha-icon icon="mdi:chevron-left"></ha-icon></button>

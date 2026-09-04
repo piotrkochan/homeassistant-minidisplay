@@ -42,7 +42,7 @@ export class MiniDisplayEditor extends LitElement {
     .scene-menu,.menu{position:relative}.scene-menu>summary,.menu>summary{display:grid;place-items:center;width:36px;height:36px;list-style:none;cursor:pointer;border-radius:50%}.menu>summary{width:40px;height:40px}.scene-menu>summary::-webkit-details-marker,.menu>summary::-webkit-details-marker{display:none}.scene-menu>summary:hover,.menu>summary:hover{background:var(--card-background-color)}.scene-popover,.menu-popover{position:absolute;right:0;z-index:10;display:grid;width:150px;padding:6px;background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:10px;box-shadow:var(--ha-card-box-shadow)}.menu-popover{width:160px}.scene-popover button,.menu-popover button{min-height:38px;padding:8px;color:var(--primary-text-color);text-align:left;background:transparent;border:0;border-radius:6px}.scene-popover button:hover,.menu-popover button:hover{background:var(--secondary-background-color)}.scene-popover .danger,.menu-popover .danger{color:var(--error-color)}
     .display-picker{display:grid;gap:8px;padding:12px;border-bottom:1px solid var(--divider-color)}.display-picker label{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}.display-picker select{width:100%;min-height:40px;padding:8px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}.scene-form{display:grid;gap:10px;padding:12px;border-top:1px solid var(--divider-color)}.scene-form-actions{display:flex;justify-content:flex-end;gap:8px}.editor-card{min-width:0}.editor-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--divider-color)}.editor-title{min-width:0}.editor-title strong,.editor-title small{display:block}.editor-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.editor-title small{margin-top:2px;color:var(--secondary-text-color)}
     .save-area,.save-actions{display:flex;align-items:center;gap:8px}.save-area{flex-wrap:wrap;justify-content:flex-end}.sync{display:flex;align-items:center;gap:7px;min-height:20px;color:var(--secondary-text-color);font-size:12px;white-space:nowrap}.sync i{width:8px;height:8px;border-radius:50%;background:var(--disabled-text-color)}.sync.syncing i{background:var(--warning-color)}.sync.success i{background:var(--success-color)}.sync.error{color:var(--error-color)}.sync.error i{background:var(--error-color)}.editor-content{display:grid;gap:14px;padding:16px}
-    .tabs,.card-tabs{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px;scrollbar-width:thin}.tab{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:7px 12px;color:var(--primary-text-color);white-space:nowrap;background:var(--secondary-background-color);border:1px solid transparent;border-radius:9px}.tab ha-icon{width:16px;height:16px}.tab.inactive{color:var(--secondary-text-color);opacity:.72}.card-tabs .tab{cursor:grab}.card-tabs .tab:active{cursor:grabbing}.tab.active{color:var(--text-primary-color);background:var(--primary-color);opacity:1}.tab.dragging{opacity:.4}.page-settings,.row-panel,.card-settings{padding:12px;border:1px solid var(--divider-color);border-radius:12px}.page-settings[open],.card-settings{display:grid;gap:10px}.page-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.page-summary::marker{content:""}.page-summary-copy{display:grid;gap:2px}.page-summary-copy>span{font-weight:500}.page-summary-copy>small{color:var(--secondary-text-color);font-size:12px;font-weight:400}.rows{display:grid;gap:12px}.row-panel{display:grid;gap:12px;background:color-mix(in srgb,var(--card-background-color),var(--primary-color) 2%)}
+    .tabs,.card-tabs{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px;scrollbar-width:thin}.tab{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:7px 12px;color:var(--primary-text-color);white-space:nowrap;background:var(--secondary-background-color);border:1px solid transparent;border-radius:9px}.tab ha-icon{width:16px;height:16px}.tab.inactive{color:var(--secondary-text-color);opacity:.72}.card-tabs .tab{cursor:grab}.card-tabs .tab:active{cursor:grabbing}.tab.active{color:var(--text-primary-color);background:var(--primary-color);opacity:1}.tab.dragging{opacity:.4}.page-settings,.row-panel,.card-settings{padding:12px;border:1px solid var(--divider-color);border-radius:12px;scroll-margin-top:16px}.page-settings[open],.card-settings{display:grid;gap:10px}.page-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer}.page-summary::marker{content:""}.page-summary-copy{display:grid;gap:2px}.page-summary-copy>span{font-weight:500}.page-summary-copy>small{color:var(--secondary-text-color);font-size:12px;font-weight:400}.rows{display:grid;gap:12px}.row-panel{display:grid;gap:12px;background:color-mix(in srgb,var(--card-background-color),var(--primary-color) 2%)}
     .page-settings-grid{display:grid;grid-template-columns:minmax(180px,1fr) 130px auto;gap:8px;align-items:end}.page-settings .field input{min-height:36px}.page-options{display:flex;align-items:center;gap:16px;min-height:36px;padding:0 4px}.page-options .check{white-space:nowrap}.page-title-position{grid-column:1/-1;max-width:460px}.page-appearance,.advanced-settings{grid-column:1/-1;padding:8px 10px;border:1px solid var(--divider-color);border-radius:9px}.page-appearance>summary,.advanced-settings>summary{width:max-content;color:var(--secondary-text-color);font-size:13px;cursor:pointer}.page-appearance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}.advanced-settings-content{display:grid;grid-template-columns:minmax(180px,1fr) 130px;gap:8px;margin-top:10px}
     .row-head,.card-head,.row-title,.card-title{display:flex;align-items:center;gap:8px}.row-head,.card-head{justify-content:space-between}.row-title,.card-title{min-width:0;flex-wrap:wrap}.card-title strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card-head>.menu{flex:none}.row-title small{color:var(--secondary-text-color)}.card-settings{border-color:var(--primary-color);background:var(--card-background-color)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid>ha-form{grid-column:1/-1}.field{display:grid;gap:5px;color:var(--secondary-text-color);font-size:12px}.field input,.field select{width:100%;min-height:40px;padding:8px 11px;color:var(--primary-text-color);background:var(--card-background-color);border:1px solid var(--divider-color);border-radius:8px}.check{display:flex;align-items:center;gap:8px;color:var(--primary-text-color);font-size:14px}.check input{width:18px;height:18px}.hint{grid-column:1/-1;margin:0;color:var(--secondary-text-color);font-size:12px;line-height:1.5}.add-button{width:100%;min-height:42px;color:var(--primary-color);background:transparent;border:1px dashed var(--primary-color);border-radius:10px}.style{padding-top:4px}.style>summary{cursor:pointer}
     .previews{display:grid;gap:12px;max-height:calc(100vh - 120px);overflow-y:auto;padding-right:2px;position:sticky;top:16px}.preview-title{margin:0;padding:0 2px;font-size:16px;font-weight:500}.display-card{display:grid;gap:10px;padding:12px;border:2px solid transparent;transition:border-color 150ms ease,background-color 150ms ease;cursor:pointer}.display-card.selected{border-color:var(--primary-color)}.display-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.display-name{min-width:0}.display-name strong,.display-name small{display:block}.display-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.display-name small{margin-top:3px;color:var(--secondary-text-color)}.status{display:inline-flex;align-items:center;gap:5px;font-size:12px}.status i{width:7px;height:7px;border-radius:50%;background:var(--error-color)}.status.online i{background:var(--success-color)}.preview-eye.active{color:var(--primary-color);background:var(--secondary-background-color)}mini-display-preview{margin:0 auto}.preview-nav{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--secondary-text-color);font-size:12px}.preview-nav .icon-button{width:32px;height:32px}.activate{width:100%}
@@ -235,10 +235,15 @@ export class MiniDisplayEditor extends LitElement {
   }
 
   private changed() {
-    if (!this.dashboard) return;
-    this.stopPreviewFor(this.selectedDisplayId);
-    this.dashboards = { ...this.dashboards, [this.selectedDisplayId]: structuredClone(this.dashboard) };
-    this.dirtyDisplays = new Set(this.dirtyDisplays).add(this.selectedDisplayId);
+    this.changedDisplay(this.selectedDisplayId);
+  }
+
+  private changedDisplay(displayId: string) {
+    const dashboard = this.dashboards[displayId];
+    if (!dashboard) return;
+    this.stopPreviewFor(displayId);
+    this.dashboards = { ...this.dashboards, [displayId]: structuredClone(dashboard) };
+    this.dirtyDisplays = new Set(this.dirtyDisplays).add(displayId);
     this.syncState = "idle";
     this.syncMessage = "Unsaved changes";
   }
@@ -501,6 +506,50 @@ export class MiniDisplayEditor extends LitElement {
     const next = (current + delta + dashboard.pages.length) % dashboard.pages.length;
     this.previewPages = { ...this.previewPages, [displayId]: next };
     if (displayId === this.selectedDisplayId) { this.pageIndex = next; this.selected = { row: 0, card: 0 }; }
+  }
+
+  private async openFromPreview(detail: { displayId: string; page: number; kind: "page-title" | "row" | "card" | "title" | "value"; row?: number; card?: number }) {
+    this.selectedDisplayId = detail.displayId;
+    this.pageIndex = detail.page;
+    this.previewPages = { ...this.previewPages, [detail.displayId]: detail.page };
+    this.selected = detail.row !== undefined && detail.card !== undefined ? { row: detail.row, card: detail.card } : undefined;
+    await this.updateComplete;
+
+    let target: HTMLElement | null = null;
+    if (detail.kind === "page-title") {
+      const settings = this.shadowRoot?.querySelector<HTMLDetailsElement>(".page-settings");
+      if (settings) settings.open = true;
+      const appearance = this.shadowRoot?.querySelector<HTMLDetailsElement>(".page-appearance");
+      if (appearance) appearance.open = true;
+      target = appearance ?? settings ?? null;
+    } else if (detail.row !== undefined) {
+      target = this.shadowRoot?.querySelectorAll<HTMLElement>(".row-panel")[detail.row] ?? null;
+      if (detail.card !== undefined) {
+        const cardEditor = target?.querySelector<HTMLElement>(".card-settings") ?? null;
+        if (detail.kind === "title" || detail.kind === "value") {
+          const appearance = cardEditor?.querySelector<HTMLDetailsElement>(".style");
+          if (appearance) appearance.open = true;
+          target = appearance ?? cardEditor ?? target;
+        } else {
+          target = cardEditor ?? target;
+        }
+      }
+    }
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  private updateFromPreview(detail: { displayId: string; page: number; kind: "page-title" | "title" | "value"; row?: number; card?: number; position?: "top" | "right" | "bottom" | "left"; horizontalAlign?: NonNullable<Style["horizontalAlign"]>; verticalAlign?: NonNullable<Style["verticalAlign"]> }) {
+    const page = this.dashboards[detail.displayId]?.pages[detail.page];
+    if (!page) return;
+    if (detail.kind === "page-title" && detail.position) {
+      page.titlePosition = detail.position;
+    } else if (detail.row !== undefined && detail.card !== undefined && detail.horizontalAlign && detail.verticalAlign) {
+      const card = page.rows[detail.row]?.cards[detail.card];
+      if (!card) return;
+      const key = detail.kind === "title" ? "titleStyle" : "valueStyle";
+      card[key] = { ...(card[key] ?? {}), horizontalAlign: detail.horizontalAlign, verticalAlign: detail.verticalAlign };
+    }
+    this.changedDisplay(detail.displayId);
   }
 
   private field(label: string, value: unknown, update: (value: string) => void, type = "text") {
@@ -869,6 +918,8 @@ export class MiniDisplayEditor extends LitElement {
           @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
           @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
           @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}
+          @preview-select=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "row" | "card" | "title" | "value"; row?: number; card?: number }>) => void this.openFromPreview(event.detail)}
+          @preview-position=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "title" | "value"; row?: number; card?: number; position?: "top" | "right" | "bottom" | "left"; horizontalAlign?: NonNullable<Style["horizontalAlign"]>; verticalAlign?: NonNullable<Style["verticalAlign"]> }>) => void this.updateFromPreview(event.detail)}
           @scene-activate=${(event: CustomEvent<Display>) => void this.activateScene(event.detail)}
         ></mini-display-preview-list>
       </div>
