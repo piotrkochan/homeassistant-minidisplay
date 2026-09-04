@@ -50,6 +50,11 @@ void drawTextWithEffect(Canvas &canvas, const Text &text, int16_t x, int16_t y,
                         y + effect.offsetY + spread);
     }
   } else if (effect.type == TextEffectType::Outline) {
+    // Keep the glyph visible while its outline is rebuilt. Drawing the eight
+    // outline offsets first made live value updates briefly show only the
+    // effect color on the physical panel.
+    canvas.setTextColor(foreground);
+    canvas.drawString(text, x, y);
     canvas.setTextColor(effect.color);
     const int8_t radius = effect.thickness;
     const int8_t diagonal = max<int8_t>(1, radius * 181 / 256);

@@ -96,6 +96,35 @@ void finishFrame(uint32_t startedAt, uint16_t frameDurationMs) {
   }
 }
 
+uint8_t curtainFramesForPage(const CachedPage &page, bool horizontal,
+                             uint8_t requestedFrames) {
+  constexpr uint16_t kTextPassBudget = 36;
+  constexpr uint8_t kMinimumFrames = 4;
+  uint8_t frames = max<uint8_t>(kMinimumFrames, requestedFrames);
+  while (frames > kMinimumFrames) {
+    const uint16_t stripSize = max<uint16_t>(1, 120 / frames);
+    uint16_t cost = 0;
+    for (uint8_t index = 0; index < page.textCount; ++index) {
+      const CachedText &text = page.texts[index];
+      const uint16_t span =
+          horizontal ? text.boundsWidth : text.boundsHeight;
+      const uint8_t segments = max<uint8_t>(1, (span + stripSize - 1) /
+                                                   stripSize);
+      uint8_t passes = 1;
+      if (text.effect.type == TextEffectType::Outline) {
+        passes = 10;
+      } else if (text.effect.type == TextEffectType::Shadow) {
+        passes = text.effect.thickness > 1 ? 10 : 2;
+      }
+      cost += segments * passes;
+      if (cost > kTextPassBudget) break;
+    }
+    if (cost <= kTextPassBudget) break;
+    --frames;
+  }
+  return frames;
+}
+
 }  // namespace
 
 PageTransitionRenderer::PageTransitionRenderer(
@@ -348,14 +377,21 @@ void PageTransitionRenderer::curtain(
     const CachedPage &nextPage, const PageTransitionConfig &transition,
     uint8_t frameCount, uint16_t durationMs, int8_t contentOffsetX,
     int8_t contentOffsetY) {
-  int16_t previous = 0;
-  const uint16_t frameDurationMs =
-      max<uint16_t>(1, durationMs / frameCount);
+  const uint8_t maximumFrames = min<uint8_t>(
+      frameCount, transition.speed == PageTransitionSpeed::Slow
+                      ? 12
+                      : transition.speed == PageTransitionSpeed::Fast ? 6 : 8);
   const bool horizontal = transition.direction == PageTransitionDirection::Left ||
                           transition.direction == PageTransitionDirection::Right;
-  for (uint8_t step = 1; step <= frameCount; ++step) {
+  const uint8_t curtainFrames =
+      curtainFramesForPage(nextPage, horizontal, maximumFrames);
+  int16_t previous = 0;
+  const uint16_t frameDurationMs =
+      max<uint16_t>(1, durationMs / curtainFrames);
+  for (uint8_t step = 1; step <= curtainFrames; ++step) {
     const uint32_t startedAt = millis();
-    const int16_t revealed = (kDisplaySize / 2) * step / frameCount;
+    const int16_t revealed =
+        (kDisplaySize / 2) * step / curtainFrames;
     const int16_t extent = revealed - previous;
     if (horizontal) {
       drawRegion(nextPage, kDisplaySize / 2 - revealed, 0, extent,
