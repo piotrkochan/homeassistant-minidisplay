@@ -1,5 +1,5 @@
 import { css, html, LitElement } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { property } from "lit/decorators.js";
 
 export const displayColors: Record<string, string> = {
   background: "#000000",
@@ -13,7 +13,6 @@ export const displayColors: Record<string, string> = {
   error: "#ff0000",
 };
 
-@customElement("mini-display-color-field")
 export class MiniDisplayColorField extends LitElement {
   @property() label = "Color";
   @property() value = "";
@@ -62,4 +61,8 @@ export class MiniDisplayColorField extends LitElement {
   private emit(value: string) {
     this.dispatchEvent(new CustomEvent("color-changed", { detail: value, bubbles: true, composed: true }));
   }
+}
+
+if (!customElements.get("mini-display-color-field")) {
+  customElements.define("mini-display-color-field", MiniDisplayColorField);
 }
