@@ -33,7 +33,7 @@ def generate(font_path: Path, output: Path, family: str, size: int) -> None:
             # Measure and draw against the same left-baseline anchor.  Using
             # Pillow's default anchor here moves most glyphs outside the tiny
             # bitmap because `top` is relative to the baseline.
-            draw.text((-left, -top), character, font=font, fill=1, anchor="ls")
+            draw.text((-left, -top), character, font=font, fill=255, anchor="ls")
             pixels = image.load()
             current = 0
             bit = 0x80
