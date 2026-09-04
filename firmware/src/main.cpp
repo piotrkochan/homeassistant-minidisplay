@@ -54,6 +54,8 @@ constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
 constexpr char kDisplaySettingsPath[] = "/display.json";
 constexpr char kDisplaySettingsTempPath[] = "/display.tmp";
+constexpr char kNetworkSettingsPath[] = "/network.json";
+constexpr char kNetworkSettingsTempPath[] = "/network.tmp";
 constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
@@ -120,7 +122,18 @@ struct V2DeviceConfig {
   uint32_t checksum;
 };
 
+struct NetworkSettings {
+  char recoveryPassword[64];
+  char staticIp[16];
+  char gateway[16];
+  char subnet[16];
+  char dns1[16];
+  char dns2[16];
+  bool staticIpEnabled;
+};
+
 DeviceConfig config{};
+NetworkSettings networkSettings{};
 #if defined(ESP8266)
 ESP8266WebServer server(80);
 #else
@@ -133,6 +146,8 @@ bool wifiWasConnected = false;
 bool accessPointRunning = false;
 uint8_t setupStationCount = UINT8_MAX;
 uint32_t setupScreenUpdatedAt = 0;
+uint32_t reconnectCount = 0;
+wl_status_t lastDisconnectStatus = WL_IDLE_STATUS;
 bool routesReady = false;
 bool filesystemReady = false;
 bool mdnsReady = false;
@@ -238,6 +253,111 @@ void saveDisplaySettings() {
   file.close();
   LittleFS.remove(kDisplaySettingsPath);
   LittleFS.rename(kDisplaySettingsTempPath, kDisplaySettingsPath);
+}
+
+void loadNetworkSettings() {
+  if (!filesystemReady || !LittleFS.exists(kNetworkSettingsPath)) return;
+  File file = LittleFS.open(kNetworkSettingsPath, "r");
+  if (!file) return;
+  StaticJsonDocument<512> document;
+  const auto error = deserializeJson(document, file);
+  file.close();
+  if (error) return;
+  strlcpy(networkSettings.recoveryPassword,
+          document["recoveryPassword"] | "",
+          sizeof(networkSettings.recoveryPassword));
+  strlcpy(networkSettings.staticIp, document["staticIp"] | "",
+          sizeof(networkSettings.staticIp));
+  strlcpy(networkSettings.gateway, document["gateway"] | "",
+          sizeof(networkSettings.gateway));
+  strlcpy(networkSettings.subnet, document["subnet"] | "",
+          sizeof(networkSettings.subnet));
+  strlcpy(networkSettings.dns1, document["dns1"] | "",
+          sizeof(networkSettings.dns1));
+  strlcpy(networkSettings.dns2, document["dns2"] | "",
+          sizeof(networkSettings.dns2));
+  networkSettings.staticIpEnabled = document["staticIpEnabled"] | false;
+}
+
+bool saveNetworkSettings() {
+  if (!filesystemReady) return false;
+  File file = LittleFS.open(kNetworkSettingsTempPath, "w");
+  if (!file) return false;
+  StaticJsonDocument<512> document;
+  document["recoveryPassword"] = networkSettings.recoveryPassword;
+  document["staticIpEnabled"] = networkSettings.staticIpEnabled;
+  document["staticIp"] = networkSettings.staticIp;
+  document["gateway"] = networkSettings.gateway;
+  document["subnet"] = networkSettings.subnet;
+  document["dns1"] = networkSettings.dns1;
+  document["dns2"] = networkSettings.dns2;
+  if (serializeJson(document, file) == 0) {
+    file.close();
+    LittleFS.remove(kNetworkSettingsTempPath);
+    return false;
+  }
+  file.close();
+  LittleFS.remove(kNetworkSettingsPath);
+  return LittleFS.rename(kNetworkSettingsTempPath, kNetworkSettingsPath);
+}
+
+bool ipv4Valid(const char *value, bool required) {
+  if (!value[0]) return !required;
+  IPAddress address;
+  return address.fromString(value);
+}
+
+bool networkExtrasValid(const JsonDocument &document) {
+  const bool recoveryPasswordEnabled =
+      document["recoveryPasswordEnabled"] |
+      (networkSettings.recoveryPassword[0] != '\0');
+  const char *recoveryPassword = document["recoveryPassword"] | "";
+  const size_t nextRecoveryPasswordLength =
+      recoveryPassword[0] ? strlen(recoveryPassword)
+                          : strlen(networkSettings.recoveryPassword);
+  const bool staticIpEnabled =
+      document["staticIpEnabled"] | networkSettings.staticIpEnabled;
+  const char *staticIp = document["staticIp"] | networkSettings.staticIp;
+  const char *gateway = document["gateway"] | networkSettings.gateway;
+  const char *subnet = document["subnet"] | networkSettings.subnet;
+  const char *dns1 = document["dns1"] | networkSettings.dns1;
+  const char *dns2 = document["dns2"] | networkSettings.dns2;
+  return (!recoveryPasswordEnabled ||
+          (nextRecoveryPasswordLength >= 8 &&
+           nextRecoveryPasswordLength <= 63)) &&
+         (!staticIpEnabled ||
+          (ipv4Valid(staticIp, true) && ipv4Valid(gateway, true) &&
+           ipv4Valid(subnet, true) && ipv4Valid(dns1, false) &&
+           ipv4Valid(dns2, false)));
+}
+
+void updateNetworkExtras(const JsonDocument &document) {
+  const bool recoveryPasswordEnabled =
+      document["recoveryPasswordEnabled"] |
+      (networkSettings.recoveryPassword[0] != '\0');
+  const char *recoveryPassword = document["recoveryPassword"] | "";
+  if (!recoveryPasswordEnabled) {
+    memset(networkSettings.recoveryPassword, 0,
+           sizeof(networkSettings.recoveryPassword));
+  } else if (recoveryPassword[0]) {
+    strlcpy(networkSettings.recoveryPassword, recoveryPassword,
+            sizeof(networkSettings.recoveryPassword));
+  }
+  networkSettings.staticIpEnabled =
+      document["staticIpEnabled"] | networkSettings.staticIpEnabled;
+  strlcpy(networkSettings.staticIp,
+          document["staticIp"] | networkSettings.staticIp,
+          sizeof(networkSettings.staticIp));
+  strlcpy(networkSettings.gateway,
+          document["gateway"] | networkSettings.gateway,
+          sizeof(networkSettings.gateway));
+  strlcpy(networkSettings.subnet,
+          document["subnet"] | networkSettings.subnet,
+          sizeof(networkSettings.subnet));
+  strlcpy(networkSettings.dns1, document["dns1"] | networkSettings.dns1,
+          sizeof(networkSettings.dns1));
+  strlcpy(networkSettings.dns2, document["dns2"] | networkSettings.dns2,
+          sizeof(networkSettings.dns2));
 }
 
 uint32_t checksum(const DeviceConfig &value) {
@@ -413,6 +533,41 @@ bool usernameValid(const char *username) {
     }
   }
   return true;
+}
+
+const char *disconnectReason() {
+  if (reconnectCount == 0) return "None";
+  switch (lastDisconnectStatus) {
+    case WL_NO_SSID_AVAIL:
+      return "Network not found";
+    case WL_CONNECT_FAILED:
+      return "Authentication failed";
+    case WL_CONNECTION_LOST:
+      return "Connection lost";
+    case WL_DISCONNECTED:
+      return "Disconnected";
+    default:
+      return "Unknown";
+  }
+}
+
+void configureIpAddress() {
+  IPAddress zero(static_cast<uint32_t>(0));
+  if (!networkSettings.staticIpEnabled) {
+    WiFi.config(zero, zero, zero);
+    return;
+  }
+  IPAddress address;
+  IPAddress gateway;
+  IPAddress subnet;
+  IPAddress dns1;
+  IPAddress dns2;
+  address.fromString(networkSettings.staticIp);
+  gateway.fromString(networkSettings.gateway);
+  subnet.fromString(networkSettings.subnet);
+  if (!dns1.fromString(networkSettings.dns1)) dns1 = gateway;
+  dns2.fromString(networkSettings.dns2);
+  WiFi.config(address, gateway, subnet, dns1, dns2);
 }
 
 bool hostnameValid(const char *hostname) {
@@ -1691,7 +1846,11 @@ void startAccessPoint() {
   }
   WiFi.mode(configValid() ? WIFI_AP_STA : WIFI_AP);
   const String ssid = "SDPRO-Setup-" + deviceSuffix();
-  WiFi.softAP(ssid.c_str());
+  if (networkSettings.recoveryPassword[0]) {
+    WiFi.softAP(ssid.c_str(), networkSettings.recoveryPassword);
+  } else {
+    WiFi.softAP(ssid.c_str());
+  }
   accessPointRunning = true;
   setupStationCount = UINT8_MAX;
   showSetupScreen();
@@ -1714,7 +1873,7 @@ void sendApiSetup() {
     return;
   }
   const bool configured = configValid();
-  StaticJsonDocument<512> document;
+  StaticJsonDocument<1024> document;
   document["configured"] = configured;
   document["ssid"] = configured ? config.ssid : "";
   document["hostname"] = configuredHostname();
@@ -1731,8 +1890,16 @@ void sendApiSetup() {
   document["directOtaEnabled"] =
       configured ? config.directOtaEnabled != 0 : true;
   document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
+  document["recoveryPasswordSet"] =
+      networkSettings.recoveryPassword[0] != '\0';
+  document["staticIpEnabled"] = networkSettings.staticIpEnabled;
+  document["staticIp"] = networkSettings.staticIp;
+  document["gateway"] = networkSettings.gateway;
+  document["subnet"] = networkSettings.subnet;
+  document["dns1"] = networkSettings.dns1;
+  document["dns2"] = networkSettings.dns2;
   String body;
-  body.reserve(384);
+  body.reserve(768);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
@@ -1742,7 +1909,7 @@ void receiveApiSetup() {
     sendJsonError(409, F("setup_inactive"), F("Setup mode is not active"));
     return;
   }
-  StaticJsonDocument<512> document;
+  StaticJsonDocument<1024> document;
   if (deserializeJson(document, server.arg("plain"))) {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
@@ -1772,6 +1939,7 @@ void receiveApiSetup() {
       !hostnameValid(hostname) || !usernameValid(username) || retryLimit < 1 ||
       retryLimit > 10 ||
       strlen(apiPassword) > 32 || strlen(otaPassword) > 32 ||
+      !networkExtrasValid(document) ||
       (apiAuthEnabled && nextApiPasswordLength < 8) ||
       (directOtaEnabled && otaAuthEnabled && nextOtaPasswordLength < 8)) {
     sendJsonError(422, F("invalid_configuration"),
@@ -1797,6 +1965,11 @@ void receiveApiSetup() {
   next.wifiRetryLimit = retryLimit;
   next.resetApiAuthOnRecovery =
       document["resetApiAuthOnRecovery"] | false;
+  updateNetworkExtras(document);
+  if (!saveNetworkSettings()) {
+    sendJsonError(500, F("storage_error"), F("Could not save network settings"));
+    return;
+  }
   config = next;
   saveConfig();
   server.send(204);
@@ -1806,28 +1979,45 @@ void receiveApiSetup() {
 
 void sendApiNetwork() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<320> document;
+  StaticJsonDocument<1024> document;
   document["ssid"] = config.ssid;
   document["hostname"] = configuredHostname();
   document["ip"] = WiFi.status() == WL_CONNECTED
                        ? WiFi.localIP().toString()
                        : WiFi.softAPIP().toString();
   document["rssiDbm"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : -127;
+  document["gateway"] = WiFi.gatewayIP().toString();
+  document["dns1Current"] = WiFi.dnsIP(0).toString();
+  document["dns2Current"] = WiFi.dnsIP(1).toString();
+  document["channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
+  document["bssid"] =
+      WiFi.status() == WL_CONNECTED ? WiFi.BSSIDstr() : "";
+  document["mac"] = WiFi.macAddress();
+  document["reconnectCount"] = reconnectCount;
+  document["lastDisconnectReason"] = disconnectReason();
   document["retryLimit"] = config.wifiRetryLimit
                                ? config.wifiRetryLimit
                                : kDefaultWifiRetryLimit;
   document["resetApiAuthOnRecovery"] =
       config.resetApiAuthOnRecovery != 0;
   document["recoverySsid"] = "SDPRO-Setup-" + deviceSuffix();
+  document["recoveryPasswordSet"] =
+      networkSettings.recoveryPassword[0] != '\0';
+  document["staticIpEnabled"] = networkSettings.staticIpEnabled;
+  document["staticIp"] = networkSettings.staticIp;
+  document["staticGateway"] = networkSettings.gateway;
+  document["staticSubnet"] = networkSettings.subnet;
+  document["staticDns1"] = networkSettings.dns1;
+  document["staticDns2"] = networkSettings.dns2;
   String body;
-  body.reserve(160);
+  body.reserve(768);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
 
 void receiveApiNetwork() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<320> document;
+  StaticJsonDocument<768> document;
   if (deserializeJson(document, server.arg("plain"))) {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
@@ -1838,7 +2028,8 @@ void receiveApiNetwork() {
   const int retryLimit = document["retryLimit"] |
                          static_cast<int>(kDefaultWifiRetryLimit);
   if (!ssid[0] || strlen(ssid) > 32 || strlen(password) > 64 ||
-      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10) {
+      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10 ||
+      !networkExtrasValid(document)) {
     sendJsonError(422, F("invalid_network"), F("Invalid Wi-Fi settings"));
     return;
   }
@@ -1850,10 +2041,36 @@ void receiveApiNetwork() {
   config.wifiRetryLimit = retryLimit;
   config.resetApiAuthOnRecovery =
       document["resetApiAuthOnRecovery"] | false;
+  updateNetworkExtras(document);
+  if (!saveNetworkSettings()) {
+    sendJsonError(500, F("storage_error"), F("Could not save network settings"));
+    return;
+  }
   saveConfig();
   server.send(204);
   delay(400);
   ESP.restart();
+}
+
+void receiveApiNetworkTest() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<768> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const char *ssid = document["ssid"] | "";
+  const char *password = document["password"] | "";
+  const char *hostname = document["hostname"] | "";
+  const int retryLimit = document["retryLimit"] |
+                         static_cast<int>(kDefaultWifiRetryLimit);
+  if (!ssid[0] || strlen(ssid) > 32 || strlen(password) > 64 ||
+      !hostnameValid(hostname) || retryLimit < 1 || retryLimit > 10 ||
+      !networkExtrasValid(document)) {
+    sendJsonError(422, F("invalid_network"), F("Invalid network settings"));
+    return;
+  }
+  server.send(204);
 }
 
 void sendApiSecurity() {
@@ -1976,6 +2193,7 @@ void configureRoutes() {
   server.on("/api/v1/status", HTTP_GET, sendApiStatus);
   server.on("/api/v1/network", HTTP_GET, sendApiNetwork);
   server.on("/api/v1/network", HTTP_PUT, receiveApiNetwork);
+  server.on("/api/v1/network/test", HTTP_POST, receiveApiNetworkTest);
   server.on("/api/v1/security", HTTP_GET, sendApiSecurity);
   server.on("/api/v1/security", HTTP_PUT, receiveApiSecurity);
   server.on("/api/v1/dashboard", HTTP_GET, sendApiDashboard);
@@ -1996,6 +2214,7 @@ void connectToWiFi() {
   }
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
+  configureIpAddress();
 #if defined(ESP8266)
   WiFi.hostname(configuredHostname().c_str());
 #else
@@ -2043,13 +2262,30 @@ void showSetupScreen() {
   display.setTextColor(TFT_WHITE, panel);
   display.drawString("SETUP MODE", 120, 42, 4);
   display.setTextColor(muted, panel);
-  display.drawString("WI-FI NETWORK", 120, 79, 2);
+  display.drawString("WI-FI NETWORK", 120, 70, 2);
   display.setTextColor(TFT_WHITE, panel);
-  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120, 104, 2);
+  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120, 92, 2);
+  if (networkSettings.recoveryPassword[0]) {
+    display.setTextColor(muted, panel);
+    display.drawString("PASSWORD", 120, 122, 2);
+    display.setTextColor(TFT_WHITE, panel);
+    const String password = networkSettings.recoveryPassword;
+    if (password.length() <= 24) {
+      display.drawString(password, 120, 144, 2);
+    } else if (password.length() <= 36) {
+      display.drawString(password, 120, 144, 1);
+    } else {
+      const size_t split = (password.length() + 1) / 2;
+      display.drawString(password.substring(0, split), 120, 138, 1);
+      display.drawString(password.substring(split), 120, 151, 1);
+    }
+  }
   display.setTextColor(muted, panel);
-  display.drawString("CONNECTED DEVICES", 120, 146, 2);
+  display.drawString("CONNECTED DEVICES", 120,
+                     networkSettings.recoveryPassword[0] ? 174 : 142, 2);
   display.setTextColor(accent, panel);
-  display.drawString(String(setupStationCount), 120, 184, 4);
+  display.drawString(String(setupStationCount), 120,
+                     networkSettings.recoveryPassword[0] ? 205 : 180, 4);
 
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
@@ -2079,6 +2315,7 @@ void setup() {
   loadConfig();
   filesystemReady = LittleFS.begin();
   loadDisplaySettings();
+  loadNetworkSettings();
   configTime(0, 0, "pool.ntp.org", "time.cloudflare.com");
   setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
   tzset();
@@ -2142,6 +2379,8 @@ void loop() {
       wifiAttemptCount = 0;
     } else if (wifiWasConnected) {
       wifiWasConnected = false;
+      lastDisconnectStatus = WiFi.status();
+      ++reconnectCount;
       wifiAttemptCount = 1;
       connectStartedAt = millis();
       WiFi.reconnect();
@@ -2152,6 +2391,8 @@ void loop() {
       if (wifiAttemptCount >= retryLimit) {
         startAccessPoint();
       } else {
+        lastDisconnectStatus = WiFi.status();
+        ++reconnectCount;
         ++wifiAttemptCount;
         connectStartedAt = millis();
         WiFi.disconnect();

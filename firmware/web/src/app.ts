@@ -32,6 +32,13 @@ const formatUptime = (seconds: number) => {
 
 const formatMemory = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
 
+const signalQuality = (rssi: number) => {
+  if (rssi >= -50) return "Excellent";
+  if (rssi >= -60) return "Good";
+  if (rssi >= -70) return "Fair";
+  return "Weak";
+};
+
 const lastUpdateAge = (seconds: number) => {
   if (seconds < 0) return { text: "Never", tone: "stale" };
   if (seconds < 60) return { text: `${seconds}s ago`, tone: "fresh" };
@@ -62,6 +69,8 @@ class MiniDisplayDevice extends LitElement {
   @state() private setupApiAuth = true;
   @state() private setupOtaAuth = true;
   @state() private directOta = true;
+  @state() private recoveryProtected = false;
+  @state() private staticIp = false;
 
   private readonly page = pageFromPath();
   private statusTimer?: number;
@@ -248,6 +257,37 @@ class MiniDisplayDevice extends LitElement {
     .actions form {
       margin: 0;
     }
+    .choice {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .choice legend {
+      width: 100%;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .fact {
+      min-width: 0;
+    }
+    .fact strong,
+    .fact span {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+    .fact strong {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
     button {
       border: 0;
       border-radius: 8px;
@@ -363,8 +403,11 @@ class MiniDisplayDevice extends LitElement {
       this.status = status;
       this.brightness = status.brightness;
       this.pixelShift = status.pixelShift;
-      if (this.page === "network")
+      if (this.page === "network") {
         this.network = await request<NetworkStatus>("/api/v1/network");
+        this.recoveryProtected = this.network.recoveryPasswordSet;
+        this.staticIp = this.network.staticIpEnabled;
+      }
       if (this.page === "security") {
         this.security = await request<SecurityStatus>("/api/v1/security");
         this.setupApiAuth = this.security.apiAuthEnabled;
@@ -379,6 +422,8 @@ class MiniDisplayDevice extends LitElement {
           this.setupApiAuth = this.setup.apiAuthEnabled;
           this.setupOtaAuth = this.setup.otaAuthEnabled;
           this.directOta = this.setup.directOtaEnabled;
+          this.recoveryProtected = this.setup.recoveryPasswordSet;
+          this.staticIp = this.setup.staticIpEnabled;
         } catch (setupError) {
           this.error =
             setupError instanceof Error
@@ -603,87 +648,246 @@ class MiniDisplayDevice extends LitElement {
     );
   }
 
+  private networkPayload(data: FormData) {
+    return {
+      ssid: data.get("ssid"),
+      password: data.get("password"),
+      hostname: data.get("hostname"),
+      retryLimit: Number(data.get("retryLimit")),
+      resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
+      recoveryPasswordEnabled: this.recoveryProtected,
+      recoveryPassword: data.get("recoveryPassword"),
+      staticIpEnabled: this.staticIp,
+      staticIp: data.get("staticIp"),
+      gateway: data.get("gateway"),
+      subnet: data.get("subnet"),
+      dns1: data.get("dns1"),
+      dns2: data.get("dns2"),
+    };
+  }
+
+  private ipv4Fields(values: {
+    staticIp: string;
+    gateway: string;
+    subnet: string;
+    dns1: string;
+    dns2: string;
+  }) {
+    const fields: [keyof typeof values, string, string, boolean][] = [
+      ["staticIp", "IP address", "192.168.1.50", true],
+      ["gateway", "Gateway", "192.168.1.1", true],
+      ["subnet", "Subnet mask", "255.255.255.0", true],
+      ["dns1", "Primary DNS", "192.168.1.1", false],
+      ["dns2", "Secondary DNS", "1.1.1.1", false],
+    ];
+    return fields.map(
+      ([name, label, placeholder, required]) =>
+        html`<label class="field"
+          >${label}<input
+            name=${name}
+            type="text"
+            inputmode="decimal"
+            maxlength="15"
+            placeholder=${placeholder}
+            ?required=${this.staticIp && required}
+            ?disabled=${!this.staticIp}
+            .value=${values[name]}
+        /></label>`,
+    );
+  }
+
   private networkPage() {
+    const network = this.network!;
     return this.shell(
-      html`<section class="card">
-        <h2>Wi-Fi</h2>
-        <form
-          class="stack"
-          @submit=${(event: SubmitEvent) => {
-            event.preventDefault();
-            const data = new FormData(event.currentTarget as HTMLFormElement);
-            void this.submit(
-              "/api/v1/network",
-              {
-                ssid: data.get("ssid"),
-                password: data.get("password"),
-                hostname: data.get("hostname"),
-                retryLimit: Number(data.get("retryLimit")),
-                resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
-              },
-              "Network settings saved. The display is restarting.",
-            );
-          }}
-        >
-          <label class="field"
-            >Network name<input
-              name="ssid"
-              type="text"
-              maxlength="32"
-              required
-              .value=${this.network?.ssid ?? ""}
-          /></label>
-          <label class="field"
-            >Wi-Fi password
-            <small>Leave empty to keep the current password</small
-            ><input
-              name="password"
-              type="password"
-              maxlength="64"
-              autocomplete="new-password"
-          /></label>
-          <label class="field"
-            >Device hostname
-            <small
-              >Available as
-              ${this.network?.hostname ?? "mini-display"}.local</small
-            ><input
-              name="hostname"
-              type="text"
-              minlength="1"
-              maxlength="32"
-              pattern="[A-Za-z0-9](?:[A-Za-z0-9-]{0,30}[A-Za-z0-9])?"
-              required
-              .value=${this.network?.hostname ?? ""}
-          /></label>
-          <label class="field"
-            >Attempts before recovery Wi-Fi
-            <small
-              >Each attempt lasts up to 20 seconds. Recovery network:
-              ${this.network?.recoverySsid ?? "SDPRO-Setup"}</small
-            ><input
-              name="retryLimit"
-              type="number"
-              min="1"
-              max="10"
-              required
-              .value=${String(this.network?.retryLimit ?? 3)}
-          /></label>
-          <label class="check"
-            ><input
-              type="checkbox"
-              name="resetApiAuthOnRecovery"
-              .checked=${this.network?.resetApiAuthOnRecovery ?? false}
-            />Disable panel/API password when recovery Wi-Fi starts</label
+      html`<div class="stack">
+        <section class="card">
+          <h2>Connection</h2>
+          <div class="facts">
+            <div class="fact">
+              <strong>Signal</strong
+              ><span
+                >${signalQuality(network.rssiDbm)} · ${network.rssiDbm}
+                dBm</span
+              >
+            </div>
+            <div class="fact">
+              <strong>IP address</strong><span>${network.ip}</span>
+            </div>
+            <div class="fact">
+              <strong>Gateway</strong><span>${network.gateway}</span>
+            </div>
+            <div class="fact">
+              <strong>DNS</strong
+              ><span
+                >${network.dns1Current}${network.dns2Current !== "0.0.0.0" ? `, ${network.dns2Current}` : ""}</span
+              >
+            </div>
+            <div class="fact">
+              <strong>Channel</strong><span>${network.channel}</span>
+            </div>
+            <div class="fact">
+              <strong>BSSID</strong
+              ><span>${network.bssid || "Unavailable"}</span>
+            </div>
+            <div class="fact">
+              <strong>Device MAC</strong><span>${network.mac}</span>
+            </div>
+            <div class="fact">
+              <strong>Reconnects</strong
+              ><span
+                >${network.reconnectCount} ·
+                ${network.lastDisconnectReason}</span
+              >
+            </div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Wi-Fi settings</h2>
+          <form
+            class="stack"
+            @submit=${(event: SubmitEvent) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget as HTMLFormElement);
+              void this.submit(
+                "/api/v1/network",
+                this.networkPayload(data),
+                "Network settings saved. The display is restarting.",
+              );
+            }}
           >
-          <p class="muted">
-            Firmware update protection is not changed by network recovery.
-          </p>
-          <button type="submit" ?disabled=${this.saving}>
-            Save and restart
-          </button>
-        </form>
-      </section>`,
+            <label class="field"
+              >Network name<input
+                name="ssid"
+                type="text"
+                maxlength="32"
+                required
+                .value=${network.ssid}
+            /></label>
+            <label class="field"
+              >Wi-Fi password
+              <small>Leave empty to keep the current password</small
+              ><input
+                name="password"
+                type="password"
+                maxlength="64"
+                autocomplete="new-password"
+            /></label>
+            <label class="field"
+              >Device hostname
+              <small>Available as ${network.hostname}.local</small
+              ><input
+                name="hostname"
+                type="text"
+                minlength="1"
+                maxlength="32"
+                pattern="[A-Za-z0-9](?:[A-Za-z0-9-]{0,30}[A-Za-z0-9])?"
+                required
+                .value=${network.hostname}
+            /></label>
+            <fieldset class="choice">
+              <legend>IP address assignment</legend>
+              <label class="check"
+                ><input
+                  type="radio"
+                  name="ipMode"
+                  value="dhcp"
+                  .checked=${!this.staticIp}
+                  @change=${() => (this.staticIp = false)}
+                />DHCP</label
+              >
+              <label class="check"
+                ><input
+                  type="radio"
+                  name="ipMode"
+                  value="static"
+                  .checked=${this.staticIp}
+                  @change=${() => (this.staticIp = true)}
+                />Static</label
+              >
+            </fieldset>
+            <div class="dependent ${this.staticIp ? "" : "disabled"}">
+              ${this.ipv4Fields({
+                staticIp: network.staticIp,
+                gateway: network.staticGateway,
+                subnet: network.staticSubnet,
+                dns1: network.staticDns1,
+                dns2: network.staticDns2,
+              })}
+            </div>
+            <label class="field"
+              >Attempts before recovery Wi-Fi
+              <small
+                >Each attempt lasts up to 20 seconds. Recovery network:
+                ${network.recoverySsid}</small
+              ><input
+                name="retryLimit"
+                type="number"
+                min="1"
+                max="10"
+                required
+                .value=${String(network.retryLimit)}
+            /></label>
+            <label class="check"
+              ><input
+                type="checkbox"
+                .checked=${this.recoveryProtected}
+                @change=${(event: Event) =>
+                  (this.recoveryProtected = (
+                    event.target as HTMLInputElement
+                  ).checked)}
+              />Protect recovery Wi-Fi with password</label
+            >
+            <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+              <label class="field"
+                >Recovery Wi-Fi password
+                <small
+                  >Shown on the display only in recovery mode. Leave empty to
+                  keep the current password.</small
+                ><input
+                  name="recoveryPassword"
+                  type="password"
+                  minlength="8"
+                  maxlength="63"
+                  ?required=${this.recoveryProtected && !network.recoveryPasswordSet}
+                  ?disabled=${!this.recoveryProtected}
+                  autocomplete="new-password"
+              /></label>
+            </div>
+            <label class="check"
+              ><input
+                type="checkbox"
+                name="resetApiAuthOnRecovery"
+                .checked=${network.resetApiAuthOnRecovery}
+              />Disable panel/API password when recovery Wi-Fi starts</label
+            >
+            <p class="muted">
+              Firmware update protection is not changed by network recovery.
+            </p>
+            <div class="actions">
+              <button type="submit" ?disabled=${this.saving}>
+                Save and restart
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                ?disabled=${this.saving}
+                @click=${(event: Event) => {
+                  const form = (event.currentTarget as HTMLButtonElement).form!;
+                  if (!form.reportValidity()) return;
+                  void this.submit(
+                    "/api/v1/network/test",
+                    this.networkPayload(new FormData(form)),
+                    "Settings are valid. Connection will be verified after save.",
+                    "POST",
+                  );
+                }}
+              >
+                Test settings
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>`,
     );
   }
 
@@ -835,6 +1039,14 @@ class MiniDisplayDevice extends LitElement {
                 ssid: data.get("ssid"),
                 wifiPassword: data.get("wifiPassword"),
                 hostname: data.get("hostname"),
+                recoveryPasswordEnabled: this.recoveryProtected,
+                recoveryPassword: data.get("recoveryPassword"),
+                staticIpEnabled: this.staticIp,
+                staticIp: data.get("staticIp"),
+                gateway: data.get("gateway"),
+                subnet: data.get("subnet"),
+                dns1: data.get("dns1"),
+                dns2: data.get("dns2"),
                 username: data.get("username"),
                 retryLimit: Number(data.get("retryLimit")),
                 resetApiAuthOnRecovery: data.has("resetApiAuthOnRecovery"),
@@ -868,8 +1080,39 @@ class MiniDisplayDevice extends LitElement {
               maxlength="32"
               pattern="[A-Za-z0-9](?:[A-Za-z0-9-]{0,30}[A-Za-z0-9])?"
               required
-              .value=${setup?.hostname ?? "mini-display"} /></label
-          ><label class="field"
+              .value=${setup?.hostname ?? "mini-display"}
+          /></label>
+          <fieldset class="choice">
+            <legend>IP address assignment</legend>
+            <label class="check"
+              ><input
+                type="radio"
+                name="ipMode"
+                value="dhcp"
+                .checked=${!this.staticIp}
+                @change=${() => (this.staticIp = false)}
+              />DHCP</label
+            >
+            <label class="check"
+              ><input
+                type="radio"
+                name="ipMode"
+                value="static"
+                .checked=${this.staticIp}
+                @change=${() => (this.staticIp = true)}
+              />Static</label
+            >
+          </fieldset>
+          <div class="dependent ${this.staticIp ? "" : "disabled"}">
+            ${this.ipv4Fields({
+              staticIp: setup?.staticIp ?? "",
+              gateway: setup?.gateway ?? "",
+              subnet: setup?.subnet ?? "",
+              dns1: setup?.dns1 ?? "",
+              dns2: setup?.dns2 ?? "",
+            })}
+          </div>
+          <label class="field"
             >Attempts before setup Wi-Fi
             <small>Each attempt lasts up to 20 seconds</small
             ><input
@@ -880,6 +1123,32 @@ class MiniDisplayDevice extends LitElement {
               required
               .value=${String(setup?.retryLimit ?? 3)} /></label
           ><label class="check"
+            ><input
+              type="checkbox"
+              .checked=${this.recoveryProtected}
+              @change=${(event: Event) =>
+                (this.recoveryProtected = (
+                  event.target as HTMLInputElement
+                ).checked)}
+            />Protect recovery Wi-Fi with password</label
+          >
+          <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+            <label class="field"
+              >Recovery Wi-Fi password
+              <small
+                >Shown on the display only in recovery mode. Leave empty to keep
+                the current password.</small
+              ><input
+                name="recoveryPassword"
+                type="password"
+                minlength="8"
+                maxlength="63"
+                ?required=${this.recoveryProtected && !setup?.recoveryPasswordSet}
+                ?disabled=${!this.recoveryProtected}
+                autocomplete="new-password"
+            /></label>
+          </div>
+          <label class="check"
             ><input
               type="checkbox"
               name="resetApiAuthOnRecovery"

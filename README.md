@@ -58,6 +58,12 @@ mode. Its temporary access point exposes only setup and firmware recovery;
 dashboard API endpoints stay unavailable. Recovery keeps existing OTA
 protection. The device screen shows the setup network and connected client count.
 
+Network settings support DHCP or static IPv4, recovery Wi-Fi protection, and
+validation before restart. Recovery credentials are never returned by the API;
+the password is shown on the physical display only while recovery mode is
+active. The Network page also reports signal quality, gateway, DNS, channel,
+BSSID, MAC address, reconnect count, and last disconnect reason.
+
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted
 - `geekmagic_smalltv_cs15` — CS GPIO15, RGB, not inverted

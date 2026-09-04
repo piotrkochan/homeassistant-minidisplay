@@ -29,9 +29,24 @@ export type NetworkStatus = {
   hostname: string;
   ip: string;
   rssiDbm: number;
+  gateway: string;
+  dns1Current: string;
+  dns2Current: string;
+  channel: number;
+  bssid: string;
+  mac: string;
+  reconnectCount: number;
+  lastDisconnectReason: string;
   retryLimit: number;
   resetApiAuthOnRecovery: boolean;
   recoverySsid: string;
+  recoveryPasswordSet: boolean;
+  staticIpEnabled: boolean;
+  staticIp: string;
+  staticGateway: string;
+  staticSubnet: string;
+  staticDns1: string;
+  staticDns2: string;
 };
 
 export type SecurityStatus = {
@@ -54,6 +69,13 @@ export type SetupStatus = {
   otaPasswordSet: boolean;
   directOtaEnabled: boolean;
   recoverySsid: string;
+  recoveryPasswordSet: boolean;
+  staticIpEnabled: boolean;
+  staticIp: string;
+  gateway: string;
+  subnet: string;
+  dns1: string;
+  dns2: string;
 };
 
 export class DeviceApiError extends Error {
