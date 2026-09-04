@@ -122,6 +122,7 @@ class MiniDisplayClient:
         on: bool | None = None,
         brightness: int | None = None,
         pixel_shift: int | None = None,
+        timezone: str | None = None,
     ) -> None:
         body: dict[str, Any] = {}
         if on is not None:
@@ -130,6 +131,8 @@ class MiniDisplayClient:
             body["brightness"] = max(0, min(100, brightness))
         if pixel_shift is not None:
             body["pixelShift"] = max(0, min(10, pixel_shift))
+        if timezone is not None:
+            body["timezone"] = timezone
         await self._request("PUT", "/display", json=body, expect_json=False)
 
     async def async_set_page(self, page_id: str) -> None:

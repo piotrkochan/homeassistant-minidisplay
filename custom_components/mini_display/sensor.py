@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation
 
+from .const import TIMEZONE_OPTIONS
 from .entity import MiniDisplayEntity
 
 SENSORS = (
@@ -14,6 +15,8 @@ SENSORS = (
     ("free_heap", "Free heap", "freeHeapBytes", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES),
     ("firmware_version", "Firmware version", "firmwareVersion", None, None),
     ("last_sync", "Last synchronization", "lastSync", SensorDeviceClass.TIMESTAMP, None),
+    ("ntp_server", "NTP server", "ntpServer", None, None),
+    ("time_zone", "Time zone", "timezone", None, None),
 )
 
 
@@ -37,4 +40,10 @@ class MiniDisplaySensor(MiniDisplayEntity, SensorEntity):
         if self._status_key == "firmwareVersion":
             info = self.coordinator.device_info
             return info.firmware_version if info else None
+        if self._status_key == "timezone":
+            rule = self.coordinator.data.get("timezone")
+            return next(
+                (name for name, value in TIMEZONE_OPTIONS.items() if value == rule),
+                rule,
+            )
         return self.coordinator.data.get(self._status_key)

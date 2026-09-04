@@ -24,3 +24,13 @@ LEGACY_FRONTEND_URL = "/mini_display/frontend/mini-display-dashboard-card.js"
 PANEL_URL_PATH = "mini-display"
 PANEL_WEB_COMPONENT = "mini-display-panel"
 SIGNAL_SCENES_UPDATED = f"{DOMAIN}_scenes_updated"
+
+TIMEZONE_OPTIONS = {
+    "Europe/Warsaw": "CET-1CEST,M3.5.0,M10.5.0/3",
+    "UTC": "UTC0",
+    "Europe/London": "GMT0BST,M3.5.0/1,M10.5.0",
+    "America/New York": "EST5EDT,M3.2.0/2,M11.1.0/2",
+    "America/Los Angeles": "PST8PDT,M3.2.0/2,M11.1.0/2",
+    "Asia/Tokyo": "JST-9",
+    "Australia/Sydney": "AEST-10AEDT,M10.1.0,M4.1.0/3",
+}
