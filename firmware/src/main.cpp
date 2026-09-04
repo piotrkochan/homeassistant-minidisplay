@@ -2,9 +2,16 @@
 #include <ArduinoJson.h>
 #include <ctype.h>
 #include <EEPROM.h>
+#include <memory>
+#include <new>
+#include "FeatureFlags.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
+#if MINI_DISPLAY_FEATURE_TLS
+#include "DualWebServer.h"
+#else
 #include <ESP8266WebServer.h>
+#endif
 #include <ESP8266WiFi.h>
 #include <sntp.h>
 #include <Updater.h>
@@ -20,6 +27,9 @@
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+#include "TlsCertificateManager.h"
+#endif
 #include "UserFonts.h"
 #include "WebAssets.generated.h"
 #include "fonts/InterTightBold18.h"
@@ -147,9 +157,16 @@ struct NetworkSettings {
 DeviceConfig config{};
 NetworkSettings networkSettings{};
 #if defined(ESP8266)
+#if MINI_DISPLAY_FEATURE_TLS
+DualWebServer server(80, 443);
+#else
 ESP8266WebServer server(80);
+#endif
 #else
 WebServer server(80);
+#endif
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+TlsCertificateManager tlsCertificates;
 #endif
 MiniDisplay display;
 uint32_t connectStartedAt = 0;
@@ -193,14 +210,14 @@ DashboardPage dashboardPages[kMaxPages]{};
 uint8_t dashboardPageCount = 0;
 
 struct DashboardValue {
-  char source[65];
+  uint32_t sourceHash;
+  uint32_t sourceCheck;
   char state[49];
   bool available;
 };
 
 DashboardValue dashboardValues[kMaxValues]{};
 uint8_t dashboardValueCount = 0;
-CachedPage transitionPages[2]{};
 uint32_t pendingChangedValues = 0;
 bool fullRenderPending = false;
 uint32_t lastValueUpdateAt = 0;
@@ -772,17 +789,32 @@ void showCurrentPage() {
   display.drawString(pageRotationAuto ? "AUTO" : "MANUAL", 120, 145, 2);
 }
 
+void fingerprintSource(const char *source, uint32_t &hash, uint32_t &check) {
+  hash = 2166136261UL;
+  check = 5381UL;
+  for (const uint8_t *cursor = reinterpret_cast<const uint8_t *>(source);
+       *cursor; ++cursor) {
+    hash = (hash ^ *cursor) * 16777619UL;
+    check = ((check << 5) + check) ^ *cursor;
+  }
+}
+
 DashboardValue *findValue(const char *source, bool create) {
   if (source == nullptr || source[0] == '\0') return nullptr;
+  uint32_t sourceHash = 0;
+  uint32_t sourceCheck = 0;
+  fingerprintSource(source, sourceHash, sourceCheck);
   for (uint8_t index = 0; index < dashboardValueCount; ++index) {
-    if (strcmp(dashboardValues[index].source, source) == 0) {
+    if (dashboardValues[index].sourceHash == sourceHash &&
+        dashboardValues[index].sourceCheck == sourceCheck) {
       return &dashboardValues[index];
     }
   }
   if (!create || dashboardValueCount >= kMaxValues) return nullptr;
   DashboardValue *slot = &dashboardValues[dashboardValueCount++];
   memset(slot, 0, sizeof(*slot));
-  strlcpy(slot->source, source, sizeof(slot->source));
+  slot->sourceHash = sourceHash;
+  slot->sourceCheck = sourceCheck;
   return slot;
 }
 
@@ -1136,6 +1168,8 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
                uint8_t datum, int16_t x, int16_t y, uint16_t foreground,
                uint16_t background) {
   if (page.textCount >= kMaxPageTexts) return false;
+  const uint16_t valueBytes = min<size_t>(value.length(), 48) + 1;
+  if (page.textBytes + valueBytes > kMaxPageTextBytes) return false;
   CachedText &text = page.texts[page.textCount++];
   text.x = x;
   text.y = y;
@@ -1160,7 +1194,9 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
   text.userFontSlot = font.userSlot;
   text.userFontSize = font.size;
   text.datum = datum;
-  strlcpy(text.value, value.c_str(), sizeof(text.value));
+  text.valueOffset = page.textBytes;
+  strlcpy(page.textPool + page.textBytes, value.c_str(), valueBytes);
+  page.textBytes += valueBytes;
   return true;
 }
 
@@ -1374,15 +1410,20 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
     page.hasTitleArea = true;
     page.titleArea.color = titleBackground;
     if (strcmp(layout.titlePosition, "bottom") == 0) {
-      page.titleArea = {0, static_cast<int16_t>(240 - layout.titleThickness),
-                        240, layout.titleThickness, titleBackground};
+      page.titleArea = {
+          0, static_cast<uint8_t>(240 - layout.titleThickness), 240,
+          static_cast<uint8_t>(layout.titleThickness), titleBackground};
     } else if (strcmp(layout.titlePosition, "left") == 0) {
-      page.titleArea = {0, 0, layout.titleThickness, 240, titleBackground};
+      page.titleArea = {0, 0, static_cast<uint8_t>(layout.titleThickness),
+                        240, titleBackground};
     } else if (strcmp(layout.titlePosition, "right") == 0) {
-      page.titleArea = {static_cast<int16_t>(240 - layout.titleThickness), 0,
-                        layout.titleThickness, 240, titleBackground};
+      page.titleArea = {
+          static_cast<uint8_t>(240 - layout.titleThickness), 0,
+          static_cast<uint8_t>(layout.titleThickness), 240, titleBackground};
     } else {
-      page.titleArea = {0, 0, 240, layout.titleThickness, titleBackground};
+      page.titleArea = {0, 0, 240,
+                        static_cast<uint8_t>(layout.titleThickness),
+                        titleBackground};
     }
   }
   if (layout.hasTitle && strcmp(layout.titlePosition, "top") == 0) {
@@ -1587,6 +1628,14 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   if (nextPageIndex >= dashboardPageCount || nextPageIndex == activePageIndex) {
     return;
   }
+  const PageTransitionConfig &transition =
+      dashboardPages[activePageIndex].transition;
+  if (transition.type == PageTransitionType::None) {
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    pageShownAt = millis();
+    return;
+  }
   if (!filesystemReady || !LittleFS.exists(kDashboardPath)) {
     activePageIndex = nextPageIndex;
     showCurrentPage();
@@ -1598,21 +1647,40 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     showCurrentPage();
     return;
   }
+  const bool needsCurrentPage =
+      transition.type == PageTransitionType::Random ||
+      transition.type == PageTransitionType::Slide ||
+      transition.type == PageTransitionType::Bounce ||
+      transition.type == PageTransitionType::Doors;
+  const uint8_t cacheCount = needsCurrentPage ? 2 : 1;
+  std::unique_ptr<CachedPage[]> transitionPages(
+      new (std::nothrow) CachedPage[cacheCount]);
+  if (!transitionPages) {
+    file.close();
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    pageShownAt = millis();
+    return;
+  }
+  CachedPage &currentPage = transitionPages[0];
+  CachedPage &nextPage = transitionPages[needsCurrentPage ? 1 : 0];
   bool cached = false;
   {
-    // Release the JSON allocation before the RGB565 compositor band is
-    // created. Both cannot safely coexist in the ESP8266 heap.
+    // Snapshot storage exists only during a transition. The JSON allocation
+    // is released before motion effects create their RGB565 compositor band.
     DynamicJsonDocument document(12288);
+    recordFreeHeap();
     const auto error = deserializeJson(document, file);
     file.close();
     JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
     if (!error && activePageIndex < pages.size() &&
         nextPageIndex < pages.size()) {
-      cached = cacheDashboardPage(
-                   pages[activePageIndex].as<JsonObjectConst>(),
-                   transitionPages[0]) &&
-               cacheDashboardPage(pages[nextPageIndex].as<JsonObjectConst>(),
-                                  transitionPages[1]);
+      cached =
+          (!needsCurrentPage ||
+           cacheDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
+                              currentPage)) &&
+          cacheDashboardPage(pages[nextPageIndex].as<JsonObjectConst>(),
+                             nextPage);
     }
   }
   if (!cached) {
@@ -1620,12 +1688,9 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     showCurrentPage();
     return;
   }
-  const PageTransitionConfig &transition =
-      dashboardPages[activePageIndex].transition;
   PageTransitionRenderer renderer(display, displayOn, displayBrightness,
                                   applyBacklight);
-  renderer.render(transitionPages[0], transitionPages[1], transition,
-                  pixelShiftX, pixelShiftY);
+  renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
   activePageIndex = nextPageIndex;
   renderDashboardPage(nullptr, false);
   pageShownAt = millis();
@@ -1751,6 +1816,9 @@ void sendApiInfo() {
   capabilities.add("pixel-shift");
   capabilities.add("page-control");
   capabilities.add("user-fonts");
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  capabilities.add("https");
+#endif
   String body;
   body.reserve(384);
   serializeJson(document, body);
@@ -1807,6 +1875,19 @@ void sendApiStatus() {
   document["directOtaEnabled"] = config.directOtaEnabled != 0;
   document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
   document["otaPasswordSet"] = config.otaPassword[0] != '\0';
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  document["httpsEnabled"] = tlsCertificates.enabled();
+  document["httpsAvailable"] = tlsCertificates.ready();
+  document["httpsPort"] = 443;
+  document["tlsCertificateSource"] =
+      tlsCertificates.ready() ? tlsCertificates.source() : "none";
+  document["tlsCertificateAlgorithm"] =
+      tlsCertificates.ready() ? "ECDSA P-256" : "none";
+  document["tlsCertificateFingerprint"] = tlsCertificates.fingerprint();
+#else
+  document["httpsEnabled"] = false;
+  document["httpsAvailable"] = false;
+#endif
   document["filesystemReady"] = filesystemReady;
   uint32_t storageTotalBytes = 0;
   uint32_t storageUsedBytes = 0;
@@ -2260,6 +2341,15 @@ void startAccessPoint() {
 }
 
 void sendWebApp() {
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  if (tlsCertificates.enabled() && !server.secureRequest() &&
+      !accessPointRunning) {
+    server.sendHeader("Location",
+                      "https://" + WiFi.localIP().toString() + server.uri());
+    server.send(308, "text/plain", "Use HTTPS");
+    return;
+  }
+#endif
   if (!accessPointRunning && configValid() && !webAuthenticated()) return;
   server.sendHeader("Cache-Control", "no-store");
   server.sendHeader("Content-Encoding", "gzip");
@@ -2269,6 +2359,15 @@ void sendWebApp() {
 }
 
 void sendDashboardSchema() {
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  if (tlsCertificates.enabled() && !server.secureRequest() &&
+      !accessPointRunning) {
+    server.sendHeader("Location",
+                      "https://" + WiFi.localIP().toString() + server.uri());
+    server.send(308, "text/plain", "Use HTTPS");
+    return;
+  }
+#endif
   server.sendHeader("Cache-Control", "public, max-age=3600");
   server.sendHeader("Content-Encoding", "gzip");
   server.send_P(200, PSTR("application/schema+json"),
@@ -2488,13 +2587,28 @@ void receiveApiNetworkTest() {
 
 void sendApiSecurity() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<160> document;
+  StaticJsonDocument<512> document;
   document["apiAuthEnabled"] = config.apiAuthEnabled != 0;
   document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
   document["directOtaEnabled"] = config.directOtaEnabled != 0;
   document["username"] = configuredUsername();
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  document["httpsSupported"] = true;
+  document["httpsEnabled"] = tlsCertificates.enabled();
+  document["httpsAvailable"] = tlsCertificates.ready();
+  document["httpsPort"] = 443;
+  document["tlsCertificateSource"] =
+      tlsCertificates.ready() ? tlsCertificates.source() : "none";
+  document["tlsCertificateAlgorithm"] =
+      tlsCertificates.ready() ? "ECDSA P-256" : "none";
+  document["tlsCertificateFingerprint"] = tlsCertificates.fingerprint();
+#else
+  document["httpsSupported"] = false;
+  document["httpsEnabled"] = false;
+  document["httpsAvailable"] = false;
+#endif
   String body;
-  body.reserve(128);
+  body.reserve(448);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
@@ -2512,6 +2626,15 @@ void receiveApiSecurity() {
       document["otaAuthEnabled"] | (config.otaAuthEnabled != 0);
   const bool directOtaEnabled =
       document["directOtaEnabled"] | (config.directOtaEnabled != 0);
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  const bool httpsEnabled =
+      document["httpsEnabled"] | tlsCertificates.enabled();
+  if (httpsEnabled && !tlsCertificates.ready()) {
+    sendJsonError(422, F("certificate_required"),
+                  F("Generate or upload a certificate first"));
+    return;
+  }
+#endif
   const char *username = document["username"] | configuredUsername();
   const char *apiPassword = document["apiPassword"] | "";
   const char *otaPassword = document["otaPassword"] | "";
@@ -2538,8 +2661,71 @@ void receiveApiSecurity() {
   config.otaAuthEnabled = otaAuthEnabled;
   config.directOtaEnabled = directOtaEnabled;
   saveConfig();
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  if (!tlsCertificates.setEnabled(httpsEnabled)) {
+    sendJsonError(500, F("storage_error"),
+                  F("Could not save HTTPS settings"));
+    return;
+  }
+#endif
   server.send(204);
 }
+
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+bool tlsUploadSucceeded = false;
+
+void receiveApiTlsUpload(bool certificate) {
+  if (!apiAuthenticated()) return;
+  HTTPUpload &upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    tlsUploadSucceeded = tlsCertificates.beginUpload(certificate);
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    tlsUploadSucceeded =
+        tlsUploadSucceeded && tlsCertificates.writeUpload(
+                                  certificate, upload.buf, upload.currentSize);
+  } else if (upload.status == UPLOAD_FILE_END) {
+    tlsUploadSucceeded =
+        tlsUploadSucceeded && tlsCertificates.finishUpload(certificate);
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    tlsCertificates.abortUpload(certificate);
+    tlsUploadSucceeded = false;
+  }
+  yield();
+}
+
+void finishApiTlsUpload() {
+  if (!apiAuthenticated()) return;
+  if (!tlsUploadSucceeded) {
+    sendJsonError(422, F("invalid_upload"), F("Certificate upload failed"));
+    return;
+  }
+  server.send(204);
+}
+
+void installApiTlsUploads() {
+  if (!apiAuthenticated()) return;
+  if (!tlsCertificates.installUploads()) {
+    sendJsonError(422, F("invalid_certificate"),
+                  F("Certificate and private key do not match"));
+    return;
+  }
+  server.send(204);
+  delay(300);
+  ESP.restart();
+}
+
+void generateApiTlsCertificate() {
+  if (!apiAuthenticated()) return;
+  if (!tlsCertificates.generate(configuredHostname(), WiFi.localIP())) {
+    sendJsonError(500, F("certificate_generation_failed"),
+                  F("Could not generate certificate"));
+    return;
+  }
+  server.send(204);
+  delay(300);
+  ESP.restart();
+}
+#endif
 
 void finishFirmwareUpdate() {
   const bool success = !Update.hasError();
@@ -2611,6 +2797,14 @@ void configureRoutes() {
   server.on("/api/v1/network/test", HTTP_POST, receiveApiNetworkTest);
   server.on("/api/v1/security", HTTP_GET, sendApiSecurity);
   server.on("/api/v1/security", HTTP_PUT, receiveApiSecurity);
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  server.on("/api/v1/tls/certificate", HTTP_POST, finishApiTlsUpload,
+            [] { receiveApiTlsUpload(true); });
+  server.on("/api/v1/tls/private-key", HTTP_POST, finishApiTlsUpload,
+            [] { receiveApiTlsUpload(false); });
+  server.on("/api/v1/tls/install", HTTP_POST, installApiTlsUploads);
+  server.on("/api/v1/tls/generate", HTTP_POST, generateApiTlsCertificate);
+#endif
   server.on("/api/v1/dashboard", HTTP_GET, sendApiDashboard);
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
@@ -2862,6 +3056,10 @@ void startMdns() {
   MDNS.addServiceTxt("mini-display", "tcp", "api", "1");
   MDNS.addServiceTxt("mini-display", "tcp", "id", "mini-display-" + deviceSuffix());
   MDNS.addServiceTxt("mini-display", "tcp", "model", kHardwareProfile);
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  MDNS.addServiceTxt("mini-display", "tcp", "https",
+                     tlsCertificates.enabled() ? "1" : "0");
+#endif
   mdnsReady = true;
 }
 
@@ -2877,6 +3075,13 @@ void setup() {
 #endif
   loadConfig();
   filesystemReady = LittleFS.begin();
+#if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
+  tlsCertificates.begin(filesystemReady);
+  if (tlsCertificates.ready()) {
+    server.configureTls(tlsCertificates.certificate(),
+                        tlsCertificates.privateKey());
+  }
+#endif
   userFonts.begin(filesystemReady);
   loadDisplaySettings();
   loadNetworkSettings();

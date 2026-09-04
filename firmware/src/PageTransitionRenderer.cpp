@@ -12,8 +12,53 @@ constexpr int16_t kDisplaySize = 240;
 constexpr int16_t kFrameBandHeight = 24;
 #endif
 
-bool equals(const char *left, const char *right) {
-  return strcmp(left, right) == 0;
+bool parseType(const char *value, PageTransitionType &result) {
+  if (strcmp(value, "none") == 0) result = PageTransitionType::None;
+  else if (strcmp(value, "random") == 0) result = PageTransitionType::Random;
+  else if (strcmp(value, "slide") == 0) result = PageTransitionType::Slide;
+  else if (strcmp(value, "bounce") == 0) result = PageTransitionType::Bounce;
+  else if (strcmp(value, "fade") == 0) result = PageTransitionType::Fade;
+  else if (strcmp(value, "wipe") == 0) result = PageTransitionType::Wipe;
+  else if (strcmp(value, "dissolve") == 0) result = PageTransitionType::Dissolve;
+  else if (strcmp(value, "curtain") == 0) result = PageTransitionType::Curtain;
+  else if (strcmp(value, "blinds") == 0) result = PageTransitionType::Blinds;
+  else if (strcmp(value, "mosaic") == 0) result = PageTransitionType::Mosaic;
+  else if (strcmp(value, "doors") == 0) result = PageTransitionType::Doors;
+  else if (strcmp(value, "spiral") == 0) result = PageTransitionType::Spiral;
+  else return false;
+  return true;
+}
+
+bool parseDirection(const char *value, PageTransitionDirection &result) {
+  if (strcmp(value, "left") == 0) result = PageTransitionDirection::Left;
+  else if (strcmp(value, "right") == 0) result = PageTransitionDirection::Right;
+  else if (strcmp(value, "up") == 0) result = PageTransitionDirection::Up;
+  else if (strcmp(value, "down") == 0) result = PageTransitionDirection::Down;
+  else return false;
+  return true;
+}
+
+bool parseSpeed(const char *value, PageTransitionSpeed &result) {
+  if (strcmp(value, "slow") == 0) result = PageTransitionSpeed::Slow;
+  else if (strcmp(value, "normal") == 0) result = PageTransitionSpeed::Normal;
+  else if (strcmp(value, "fast") == 0) result = PageTransitionSpeed::Fast;
+  else return false;
+  return true;
+}
+
+bool parseIntensity(const char *value, PageTransitionIntensity &result) {
+  if (strcmp(value, "subtle") == 0) result = PageTransitionIntensity::Subtle;
+  else if (strcmp(value, "strong") == 0) result = PageTransitionIntensity::Strong;
+  else return false;
+  return true;
+}
+
+bool parseTileSize(const char *value, PageTransitionTileSize &result) {
+  if (strcmp(value, "small") == 0) result = PageTransitionTileSize::Small;
+  else if (strcmp(value, "medium") == 0) result = PageTransitionTileSize::Medium;
+  else if (strcmp(value, "large") == 0) result = PageTransitionTileSize::Large;
+  else return false;
+  return true;
 }
 
 float boundedBounce(float progress) {
@@ -93,9 +138,11 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
         RenderFont{text.font, text.userFontSlot, text.userFontSize},
         fontState);
 #if defined(ESP8266)
-    canvas.drawString(text.value, text.x + offsetX, text.y + offsetY);
+    canvas.drawString(page.textPool + text.valueOffset, text.x + offsetX,
+                      text.y + offsetY);
 #else
-    canvas.drawString(String(text.value), text.x + offsetX, text.y + offsetY);
+    canvas.drawString(String(page.textPool + text.valueOffset),
+                      text.x + offsetX, text.y + offsetY);
 #endif
   }
   for (uint8_t index = 0; index < page.progressCount; ++index) {
@@ -133,12 +180,7 @@ PageTransitionRenderer::PageTransitionRenderer(
 
 bool PageTransitionRenderer::parse(JsonVariantConst value,
                                    PageTransitionConfig &result) {
-  memset(&result, 0, sizeof(result));
-  strlcpy(result.type, "none", sizeof(result.type));
-  strlcpy(result.direction, "left", sizeof(result.direction));
-  strlcpy(result.speed, "normal", sizeof(result.speed));
-  strlcpy(result.intensity, "subtle", sizeof(result.intensity));
-  strlcpy(result.tileSize, "medium", sizeof(result.tileSize));
+  result = PageTransitionConfig{};
   if (value.isNull()) return true;
   if (!value.is<JsonObjectConst>()) return false;
 
@@ -148,48 +190,27 @@ bool PageTransitionRenderer::parse(JsonVariantConst value,
   const char *speed = transition["speed"] | "normal";
   const char *intensity = transition["intensity"] | "subtle";
   const char *tileSize = transition["tileSize"] | "medium";
-  const bool validType = equals(type, "none") || equals(type, "random") ||
-                         equals(type, "slide") || equals(type, "bounce") ||
-                         equals(type, "fade") || equals(type, "wipe") ||
-                         equals(type, "dissolve") ||
-                         equals(type, "curtain") || equals(type, "blinds") ||
-                         equals(type, "mosaic") || equals(type, "doors") ||
-                         equals(type, "spiral");
-  const bool validDirection = equals(direction, "left") ||
-                              equals(direction, "right") ||
-                              equals(direction, "up") ||
-                              equals(direction, "down");
-  const bool validSpeed = equals(speed, "slow") || equals(speed, "normal") ||
-                          equals(speed, "fast");
-  const bool validIntensity =
-      equals(intensity, "subtle") || equals(intensity, "strong");
-  const bool validTileSize = equals(tileSize, "small") ||
-                             equals(tileSize, "medium") ||
-                             equals(tileSize, "large");
-  if (!validType || !validDirection || !validSpeed || !validIntensity ||
-      !validTileSize) {
+  if (!parseType(type, result.type) ||
+      !parseDirection(direction, result.direction) ||
+      !parseSpeed(speed, result.speed) ||
+      !parseIntensity(intensity, result.intensity) ||
+      !parseTileSize(tileSize, result.tileSize)) {
     return false;
   }
-
-  strlcpy(result.type, type, sizeof(result.type));
-  strlcpy(result.direction, direction, sizeof(result.direction));
-  strlcpy(result.speed, speed, sizeof(result.speed));
-  strlcpy(result.intensity, intensity, sizeof(result.intensity));
-  strlcpy(result.tileSize, tileSize, sizeof(result.tileSize));
   return true;
 }
 
 uint8_t PageTransitionRenderer::frames(
     const PageTransitionConfig &transition) const {
-  if (equals(transition.speed, "fast")) return 8;
-  if (equals(transition.speed, "slow")) return 18;
+  if (transition.speed == PageTransitionSpeed::Fast) return 8;
+  if (transition.speed == PageTransitionSpeed::Slow) return 18;
   return 12;
 }
 
 uint16_t PageTransitionRenderer::duration(
     const PageTransitionConfig &transition) const {
-  if (equals(transition.speed, "fast")) return 280;
-  if (equals(transition.speed, "slow")) return 900;
+  if (transition.speed == PageTransitionSpeed::Fast) return 280;
+  if (transition.speed == PageTransitionSpeed::Slow) return 900;
   return 550;
 }
 
@@ -225,7 +246,7 @@ void PageTransitionRenderer::fade(const CachedPage &nextPage,
     return;
   }
   const uint8_t originalBrightness = displayBrightness_;
-  const uint8_t minimumBrightness = equals(transition.intensity, "strong")
+  const uint8_t minimumBrightness = transition.intensity == PageTransitionIntensity::Strong
                                         ? 0
                                         : max<uint8_t>(1, originalBrightness / 4);
   const uint16_t frameDurationMs =
@@ -271,7 +292,7 @@ void PageTransitionRenderer::motion(
     const float progress = static_cast<float>(step) / frameCount;
     const float bounceProgress = boundedBounce(progress);
     const float eased =
-        bounce ? equals(transition.intensity, "strong")
+        bounce ? transition.intensity == PageTransitionIntensity::Strong
                      ? bounceProgress
                      : progress * 0.65F + bounceProgress * 0.35F
                : smooth ? progress * progress * (3.0F - 2.0F * progress)
@@ -283,7 +304,7 @@ void PageTransitionRenderer::motion(
     for (int16_t bandY = 0; bandY < kDisplaySize;
          bandY += kFrameBandHeight) {
       frame.fillSprite(TFT_BLACK);
-      if (equals(transition.direction, "left")) {
+      if (transition.direction == PageTransitionDirection::Left) {
         paintPage(frame, currentPage, contentOffsetX - movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
                   kFrameBandHeight);
@@ -291,7 +312,7 @@ void PageTransitionRenderer::motion(
                   contentOffsetX + kDisplaySize - movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
                   kFrameBandHeight);
-      } else if (equals(transition.direction, "right")) {
+      } else if (transition.direction == PageTransitionDirection::Right) {
         paintPage(frame, currentPage, contentOffsetX + movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
                   kFrameBandHeight);
@@ -299,7 +320,7 @@ void PageTransitionRenderer::motion(
                   contentOffsetX - kDisplaySize + movement,
                   contentOffsetY - bandY, 0, 0, kDisplaySize,
                   kFrameBandHeight);
-      } else if (equals(transition.direction, "up")) {
+      } else if (transition.direction == PageTransitionDirection::Up) {
         paintPage(frame, currentPage, contentOffsetX,
                   contentOffsetY - movement - bandY, 0, 0, kDisplaySize,
                   kFrameBandHeight);
@@ -317,15 +338,15 @@ void PageTransitionRenderer::motion(
       frame.pushSprite(0, bandY);
     }
 #else
-    if (equals(transition.direction, "left")) {
+    if (transition.direction == PageTransitionDirection::Left) {
       drawPage(currentPage, contentOffsetX - movement, contentOffsetY);
       drawPage(nextPage, contentOffsetX + kDisplaySize - movement,
                contentOffsetY);
-    } else if (equals(transition.direction, "right")) {
+    } else if (transition.direction == PageTransitionDirection::Right) {
       drawPage(currentPage, contentOffsetX + movement, contentOffsetY);
       drawPage(nextPage, contentOffsetX - kDisplaySize + movement,
                contentOffsetY);
-    } else if (equals(transition.direction, "up")) {
+    } else if (transition.direction == PageTransitionDirection::Up) {
       drawPage(currentPage, contentOffsetX, contentOffsetY - movement);
       drawPage(nextPage, contentOffsetX,
                contentOffsetY + kDisplaySize - movement);
@@ -354,13 +375,13 @@ void PageTransitionRenderer::wipe(const CachedPage &nextPage,
     const uint32_t startedAt = millis();
     const int16_t revealed = kDisplaySize * step / frameCount;
     const int16_t extent = revealed - previous;
-    if (equals(transition.direction, "left")) {
+    if (transition.direction == PageTransitionDirection::Left) {
       drawRegion(nextPage, kDisplaySize - revealed, 0, extent, kDisplaySize,
                  contentOffsetX, contentOffsetY);
-    } else if (equals(transition.direction, "right")) {
+    } else if (transition.direction == PageTransitionDirection::Right) {
       drawRegion(nextPage, previous, 0, extent, kDisplaySize, contentOffsetX,
                  contentOffsetY);
-    } else if (equals(transition.direction, "up")) {
+    } else if (transition.direction == PageTransitionDirection::Up) {
       drawRegion(nextPage, 0, kDisplaySize - revealed, kDisplaySize, extent,
                  contentOffsetX, contentOffsetY);
     } else {
@@ -375,9 +396,9 @@ void PageTransitionRenderer::wipe(const CachedPage &nextPage,
 void PageTransitionRenderer::dissolve(
     const CachedPage &nextPage, const PageTransitionConfig &transition,
     uint16_t durationMs, int8_t contentOffsetX, int8_t contentOffsetY) {
-  const uint8_t tile = equals(transition.tileSize, "small")
+  const uint8_t tile = transition.tileSize == PageTransitionTileSize::Small
                            ? 8
-                           : equals(transition.tileSize, "large") ? 24 : 16;
+                           : transition.tileSize == PageTransitionTileSize::Large ? 24 : 16;
   const uint8_t bands = (kDisplaySize + tile - 1) / tile;
   const uint16_t frameDurationMs = max<uint16_t>(1, durationMs / bands);
   for (uint8_t step = 0; step < bands; ++step) {
@@ -398,8 +419,8 @@ void PageTransitionRenderer::curtain(
   int16_t previous = 0;
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
-  const bool horizontal = equals(transition.direction, "left") ||
-                          equals(transition.direction, "right");
+  const bool horizontal = transition.direction == PageTransitionDirection::Left ||
+                          transition.direction == PageTransitionDirection::Right;
   for (uint8_t step = 1; step <= frameCount; ++step) {
     const uint32_t startedAt = millis();
     const int16_t revealed = (kDisplaySize / 2) * step / frameCount;
@@ -429,10 +450,10 @@ void PageTransitionRenderer::blinds(
   int16_t previous = 0;
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
-  const bool horizontal = equals(transition.direction, "left") ||
-                          equals(transition.direction, "right");
-  const bool reverse = equals(transition.direction, "right") ||
-                       equals(transition.direction, "down");
+  const bool horizontal = transition.direction == PageTransitionDirection::Left ||
+                          transition.direction == PageTransitionDirection::Right;
+  const bool reverse = transition.direction == PageTransitionDirection::Right ||
+                       transition.direction == PageTransitionDirection::Down;
   for (uint8_t step = 1; step <= frameCount; ++step) {
     const uint32_t startedAt = millis();
     const int16_t revealed = kDisplaySize * step / frameCount;
@@ -458,9 +479,9 @@ void PageTransitionRenderer::mosaic(
     const CachedPage &nextPage, const PageTransitionConfig &transition,
     uint8_t frameCount, uint16_t durationMs, int8_t contentOffsetX,
     int8_t contentOffsetY) {
-  const uint8_t columns = equals(transition.tileSize, "small")
+  const uint8_t columns = transition.tileSize == PageTransitionTileSize::Small
                               ? 8
-                              : equals(transition.tileSize, "large") ? 4 : 6;
+                              : transition.tileSize == PageTransitionTileSize::Large ? 4 : 6;
   const uint8_t total = columns * columns;
   const uint8_t multiplier = columns == 8 ? 17 : columns == 6 ? 13 : 5;
   const uint8_t offset = nextRandomValue() % total;
@@ -536,9 +557,9 @@ void PageTransitionRenderer::spiral(
     const CachedPage &nextPage, const PageTransitionConfig &transition,
     uint8_t frameCount, uint16_t durationMs, int8_t contentOffsetX,
     int8_t contentOffsetY) {
-  const uint8_t columns = equals(transition.tileSize, "small")
+  const uint8_t columns = transition.tileSize == PageTransitionTileSize::Small
                               ? 8
-                              : equals(transition.tileSize, "large") ? 4 : 6;
+                              : transition.tileSize == PageTransitionTileSize::Large ? 4 : 6;
   const uint8_t total = columns * columns;
   uint8_t order[64]{};
   uint8_t orderSize = 0;
@@ -595,57 +616,56 @@ void PageTransitionRenderer::render(
     const PageTransitionConfig &transition, int8_t contentOffsetX,
     int8_t contentOffsetY) {
   PageTransitionConfig selected = transition;
-  if (equals(selected.type, "random")) {
+  if (selected.type == PageTransitionType::Random) {
     static uint8_t previousType = 0xFF;
-    static constexpr const char *kTypes[] = {
-        "slide", "bounce", "wipe",   "dissolve", "curtain",
-        "blinds", "mosaic", "doors", "spiral"};
-    static constexpr const char *kDirections[] = {
-        "left", "right", "up", "down"};
-    static constexpr const char *kIntensities[] = {"subtle", "strong"};
-    static constexpr const char *kTileSizes[] = {"small", "medium", "large"};
+    static constexpr PageTransitionType kTypes[] = {
+        PageTransitionType::Slide, PageTransitionType::Bounce,
+        PageTransitionType::Wipe, PageTransitionType::Dissolve,
+        PageTransitionType::Curtain, PageTransitionType::Blinds,
+        PageTransitionType::Mosaic, PageTransitionType::Doors,
+        PageTransitionType::Spiral};
+    static constexpr PageTransitionTileSize kTileSizes[] = {
+        PageTransitionTileSize::Small, PageTransitionTileSize::Medium,
+        PageTransitionTileSize::Large};
     const uint32_t entropy = nextRandomValue();
     uint8_t type = entropy % 9;
     if (type == previousType) type = (type + 1 + ((entropy >> 8) % 8)) % 9;
     previousType = type;
-    strlcpy(selected.type, kTypes[type], sizeof(selected.type));
-    strlcpy(selected.direction, kDirections[(entropy / 5) % 4],
-            sizeof(selected.direction));
-    strlcpy(selected.intensity, kIntensities[(entropy / 20) % 2],
-            sizeof(selected.intensity));
-    strlcpy(selected.tileSize, kTileSizes[(entropy / 40) % 3],
-            sizeof(selected.tileSize));
+    selected.type = kTypes[type];
+    selected.direction = static_cast<PageTransitionDirection>((entropy / 5) % 4);
+    selected.intensity = static_cast<PageTransitionIntensity>((entropy / 20) % 2);
+    selected.tileSize = kTileSizes[(entropy / 40) % 3];
   }
 
   const uint8_t frameCount = frames(selected);
   const uint16_t durationMs = duration(selected);
-  if (equals(selected.type, "fade")) {
+  if (selected.type == PageTransitionType::Fade) {
     fade(nextPage, selected, frameCount, durationMs, contentOffsetX,
          contentOffsetY);
-  } else if (equals(selected.type, "slide")) {
+  } else if (selected.type == PageTransitionType::Slide) {
     motion(currentPage, nextPage, selected, frameCount, durationMs, false, true,
            contentOffsetX, contentOffsetY);
-  } else if (equals(selected.type, "bounce")) {
+  } else if (selected.type == PageTransitionType::Bounce) {
     motion(currentPage, nextPage, selected, frameCount, durationMs, true, true,
            contentOffsetX, contentOffsetY);
-  } else if (equals(selected.type, "wipe")) {
+  } else if (selected.type == PageTransitionType::Wipe) {
     wipe(nextPage, selected, frameCount, durationMs, contentOffsetX,
          contentOffsetY);
-  } else if (equals(selected.type, "dissolve")) {
+  } else if (selected.type == PageTransitionType::Dissolve) {
     dissolve(nextPage, selected, durationMs, contentOffsetX, contentOffsetY);
-  } else if (equals(selected.type, "curtain")) {
+  } else if (selected.type == PageTransitionType::Curtain) {
     curtain(nextPage, selected, frameCount, durationMs, contentOffsetX,
             contentOffsetY);
-  } else if (equals(selected.type, "blinds")) {
+  } else if (selected.type == PageTransitionType::Blinds) {
     blinds(nextPage, selected, frameCount, durationMs, contentOffsetX,
            contentOffsetY);
-  } else if (equals(selected.type, "mosaic")) {
+  } else if (selected.type == PageTransitionType::Mosaic) {
     mosaic(nextPage, selected, frameCount, durationMs, contentOffsetX,
            contentOffsetY);
-  } else if (equals(selected.type, "doors")) {
+  } else if (selected.type == PageTransitionType::Doors) {
     doors(currentPage, nextPage, selected, frameCount, durationMs,
           contentOffsetX, contentOffsetY);
-  } else if (equals(selected.type, "spiral")) {
+  } else if (selected.type == PageTransitionType::Spiral) {
     spiral(nextPage, selected, frameCount, durationMs, contentOffsetX,
            contentOffsetY);
   } else {

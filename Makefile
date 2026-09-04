@@ -1,7 +1,7 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 
-.PHONY: build build-all package clean check size card-build card-check web-build web-check
+.PHONY: build build-all package clean check size elf-report card-build card-check web-build web-check
 
 build: web-build
 	cd firmware && $(PIO) run
@@ -37,6 +37,12 @@ web-check:
 
 size: build
 	$(PIO) run --project-dir firmware --target size
+
+elf-report:
+	@test -f firmware/.pio/build/sdpro/firmware.elf || { echo "build firmware first"; exit 1; }
+	python3 firmware/scripts/elf_memory_report.py \
+		firmware/.pio/build/sdpro/firmware.elf \
+		--toolchain $(PLATFORMIO_CORE_DIR)/packages/toolchain-xtensa/bin
 
 card-build:
 	npm --prefix integration/card run build

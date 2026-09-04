@@ -7,55 +7,82 @@
 
 constexpr uint8_t kMaxPageCards = 18;
 constexpr uint8_t kMaxPageTexts = 43;
+constexpr uint16_t kMaxPageTextBytes = 1024;
 
-struct PageTransitionConfig {
-  char type[10];
-  char direction[6];
-  char speed[7];
-  char intensity[7];
-  char tileSize[7];
+enum class PageTransitionType : uint8_t {
+  None,
+  Random,
+  Slide,
+  Bounce,
+  Fade,
+  Wipe,
+  Dissolve,
+  Curtain,
+  Blinds,
+  Mosaic,
+  Doors,
+  Spiral,
 };
 
+enum class PageTransitionDirection : uint8_t { Left, Right, Up, Down };
+enum class PageTransitionSpeed : uint8_t { Normal, Slow, Fast };
+enum class PageTransitionIntensity : uint8_t { Subtle, Strong };
+enum class PageTransitionTileSize : uint8_t { Medium, Small, Large };
+
+struct PageTransitionConfig {
+  PageTransitionType type;
+  PageTransitionDirection direction;
+  PageTransitionSpeed speed;
+  PageTransitionIntensity intensity;
+  PageTransitionTileSize tileSize;
+};
+
+static_assert(sizeof(PageTransitionConfig) == 5,
+              "Transition config must stay compact");
+static_assert(static_cast<uint8_t>(PageTransitionSpeed::Normal) == 0 &&
+                  static_cast<uint8_t>(PageTransitionTileSize::Medium) == 0,
+              "Zero-initialized transition config must use defaults");
+
 struct CachedCard {
-  int16_t x;
-  int16_t y;
-  int16_t width;
-  int16_t height;
   uint16_t background;
+  uint8_t x;
+  uint8_t y;
+  uint8_t width;
+  uint8_t height;
 };
 
 struct CachedText {
-  int16_t x;
-  int16_t y;
+  const GFXfont *font;
   int16_t boundsX;
   int16_t boundsY;
   int16_t boundsWidth;
   int16_t boundsHeight;
   uint16_t foreground;
   uint16_t background;
-  const GFXfont *font;
+  uint16_t valueOffset;
+  uint8_t x;
+  uint8_t y;
   int8_t userFontSlot;
   uint8_t userFontSize;
   uint8_t datum;
-  char value[49];
 };
 
 struct CachedProgress {
-  int16_t x;
-  int16_t y;
-  int16_t width;
-  int16_t fillWidth;
-  bool ring;
+  uint16_t fillWidth;
   uint16_t background;
   uint16_t foreground;
   uint16_t center;
+  uint8_t x;
+  uint8_t y;
+  uint8_t width;
+  bool ring;
 };
 
 struct CachedArea {
-  int16_t x;
-  int16_t y;
-  int16_t width;
-  int16_t height;
+  uint8_t x;
+  uint8_t y;
+  uint8_t width;
+  uint8_t height;
   uint16_t color;
 };
 
@@ -66,9 +93,11 @@ struct CachedPage {
   uint8_t cardCount;
   uint8_t textCount;
   uint8_t progressCount;
+  uint16_t textBytes;
   CachedCard cards[kMaxPageCards];
   CachedText texts[kMaxPageTexts];
   CachedProgress progress[kMaxPageCards];
+  char textPool[kMaxPageTextBytes];
 };
 
 static_assert(sizeof(CachedPage) <= 4096,
