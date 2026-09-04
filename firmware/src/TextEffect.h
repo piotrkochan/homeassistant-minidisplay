@@ -26,28 +26,43 @@ void drawTextWithEffect(Canvas &canvas, const Text &text, int16_t x, int16_t y,
                         uint16_t foreground, uint16_t background,
                         const TextEffect &effect) {
   (void)background;
+  canvas.startWrite();
   if (effect.type == TextEffectType::Shadow) {
     canvas.setTextColor(effect.color);
     const int8_t spread = effect.thickness - 1;
-    for (int8_t dx = -spread; dx <= spread; ++dx) {
-      for (int8_t dy = -spread; dy <= spread; ++dy) {
-        canvas.drawString(text, x + effect.offsetX + dx,
-                          y + effect.offsetY + dy);
-      }
+    canvas.drawString(text, x + effect.offsetX, y + effect.offsetY);
+    if (spread > 0) {
+      canvas.drawString(text, x + effect.offsetX - spread,
+                        y + effect.offsetY);
+      canvas.drawString(text, x + effect.offsetX + spread,
+                        y + effect.offsetY);
+      canvas.drawString(text, x + effect.offsetX,
+                        y + effect.offsetY - spread);
+      canvas.drawString(text, x + effect.offsetX,
+                        y + effect.offsetY + spread);
+      canvas.drawString(text, x + effect.offsetX - spread,
+                        y + effect.offsetY - spread);
+      canvas.drawString(text, x + effect.offsetX + spread,
+                        y + effect.offsetY - spread);
+      canvas.drawString(text, x + effect.offsetX - spread,
+                        y + effect.offsetY + spread);
+      canvas.drawString(text, x + effect.offsetX + spread,
+                        y + effect.offsetY + spread);
     }
   } else if (effect.type == TextEffectType::Outline) {
     canvas.setTextColor(effect.color);
-    for (int8_t radius = 1; radius <= effect.thickness; ++radius) {
-      canvas.drawString(text, x - radius, y);
-      canvas.drawString(text, x + radius, y);
-      canvas.drawString(text, x, y - radius);
-      canvas.drawString(text, x, y + radius);
-      canvas.drawString(text, x - radius, y - radius);
-      canvas.drawString(text, x + radius, y - radius);
-      canvas.drawString(text, x - radius, y + radius);
-      canvas.drawString(text, x + radius, y + radius);
-    }
+    const int8_t radius = effect.thickness;
+    const int8_t diagonal = max<int8_t>(1, radius * 181 / 256);
+    canvas.drawString(text, x - radius, y);
+    canvas.drawString(text, x + radius, y);
+    canvas.drawString(text, x, y - radius);
+    canvas.drawString(text, x, y + radius);
+    canvas.drawString(text, x - diagonal, y - diagonal);
+    canvas.drawString(text, x + diagonal, y - diagonal);
+    canvas.drawString(text, x - diagonal, y + diagonal);
+    canvas.drawString(text, x + diagonal, y + diagonal);
   }
   canvas.setTextColor(foreground);
   canvas.drawString(text, x, y);
+  canvas.endWrite();
 }

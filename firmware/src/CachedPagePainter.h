@@ -42,7 +42,8 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     canvas.setTextDatum(text.datum);
     applyRenderFont(
         canvas,
-        RenderFont{text.font, text.userFontSlot, text.userFontSize},
+        RenderFont{text.font, text.userFontSlot, text.userFontSize,
+                   text.smoothFont},
         fontState);
 #if defined(ESP8266)
     drawTextWithEffect(canvas, page.textPool + text.valueOffset,

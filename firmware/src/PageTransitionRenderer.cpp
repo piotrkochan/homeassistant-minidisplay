@@ -214,6 +214,7 @@ void PageTransitionRenderer::motion(
     return;
   }
   FontRenderState frameFontState;
+  frameFontState.smoothAllowed = false;
 #endif
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
@@ -449,6 +450,7 @@ void PageTransitionRenderer::doors(
     return;
   }
   FontRenderState frameFontState;
+  frameFontState.smoothAllowed = false;
   const uint16_t frameDurationMs =
       max<uint16_t>(1, durationMs / frameCount);
   for (uint8_t step = 1; step <= frameCount; ++step) {
@@ -548,6 +550,7 @@ void PageTransitionRenderer::render(
     const CachedPage &currentPage, const CachedPage &nextPage,
     const PageTransitionConfig &transition, int8_t contentOffsetX,
     int8_t contentOffsetY) {
+  displayFontState_.smoothAllowed = false;
   PageTransitionConfig selected = transition;
   if (selected.type == PageTransitionType::Random) {
     static uint8_t previousType = 0xFF;
@@ -604,4 +607,5 @@ void PageTransitionRenderer::render(
   } else {
     drawPage(nextPage, contentOffsetX, contentOffsetY);
   }
+  displayFontState_.smoothAllowed = true;
 }

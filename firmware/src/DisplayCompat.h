@@ -72,6 +72,8 @@ class MiniDisplay {
   void fillCircle(int16_t x, int16_t y, int16_t radius, uint16_t color) {
     gfx_->fillCircle(x, y, radius, color);
   }
+  void startWrite() {}
+  void endWrite() {}
   uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) {
     return gfx_->color565(red, green, blue);
   }

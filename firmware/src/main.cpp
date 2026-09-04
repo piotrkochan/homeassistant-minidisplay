@@ -39,6 +39,7 @@
 #include "fonts/InterTightBold24.h"
 #include "fonts/InterTightBold36.h"
 #include "fonts/InterTightBold48.h"
+#include "fonts/InterTightSmooth.h"
 
 namespace {
 
@@ -927,7 +928,7 @@ const GFXfont *builtInFontFor(const char *family, uint8_t size) {
 }
 
 RenderFont renderFontFor(const char *family, uint8_t size) {
-  RenderFont font{builtInFontFor(family, size), -1, size};
+  RenderFont font{builtInFontFor(family, size), -1, size, nullptr};
 #if defined(ESP8266)
   const bool font1 = family && strcmp(family, "font1") == 0;
   const bool font2 = family && strcmp(family, "font2") == 0;
@@ -941,6 +942,9 @@ RenderFont renderFontFor(const char *family, uint8_t size) {
              userFonts.activeSlot() >= 0 &&
              userFonts.available(userFonts.activeSlot(), size)) {
     font.userSlot = userFonts.activeSlot();
+  } else if (defaultFont && size < 2) {
+    const uint8_t *fonts[] = {InterTightSmooth18, InterTightSmooth24};
+    font.smooth = fonts[size];
   }
 #endif
   return font;
@@ -1070,7 +1074,13 @@ RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
                              strcmp(family, "sans") == 0 ||
                              strcmp(family, "sans-bold") == 0;
   if (compactSize && builtInFamily) {
-    const RenderFont font{&InterTightCompact13, -1, 0};
+    const RenderFont font{&InterTightCompact13, -1, 0,
+#if defined(ESP8266)
+                          InterTightSmooth13
+#else
+                          nullptr
+#endif
+    };
     applyDisplayFont(font);
     return font;
   }
@@ -1438,6 +1448,7 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
   text.background = background;
   text.effect = effect;
   text.font = font.builtin;
+  text.smoothFont = font.smooth;
   text.userFontSlot = font.userSlot;
   text.userFontSize = font.size;
   text.datum = datum;

@@ -22,11 +22,14 @@ struct RenderFont {
   const GFXfont *builtin = nullptr;
   int8_t userSlot = -1;
   uint8_t size = 0;
+  const uint8_t *smooth = nullptr;
 };
 
 struct FontRenderState {
   int8_t userSlot = -1;
   int8_t size = -1;
+  const uint8_t *smooth = nullptr;
+  bool smoothAllowed = true;
 };
 
 class UserFontStore {
@@ -72,15 +75,31 @@ template <typename Canvas>
 void applyRenderFont(Canvas &canvas, const RenderFont &font,
                      FontRenderState &state) {
 #if defined(ESP8266)
-  if (font.userSlot >= 0 &&
+  if (state.smoothAllowed && font.userSlot >= 0 &&
       userFonts.available(font.userSlot, font.size)) {
-    if (state.userSlot != font.userSlot || state.size != font.size) {
-      if (state.userSlot >= 0) canvas.unloadFont();
+    if (state.userSlot != font.userSlot || state.size != font.size ||
+        state.smooth != nullptr) {
+      if (canvas.fontLoaded) canvas.unloadFont();
       canvas.loadFont(userFonts.fontBaseName(font.userSlot, font.size),
                       LittleFS);
       if (canvas.fontLoaded) {
         state.userSlot = font.userSlot;
         state.size = font.size;
+        state.smooth = nullptr;
+        return;
+      }
+    } else if (canvas.fontLoaded) {
+      return;
+    }
+  }
+  if (state.smoothAllowed && font.smooth != nullptr) {
+    if (state.smooth != font.smooth || state.userSlot >= 0) {
+      if (canvas.fontLoaded) canvas.unloadFont();
+      canvas.loadFont(font.smooth);
+      if (canvas.fontLoaded) {
+        state.userSlot = -1;
+        state.size = font.size;
+        state.smooth = font.smooth;
         return;
       }
     } else if (canvas.fontLoaded) {
@@ -91,5 +110,6 @@ void applyRenderFont(Canvas &canvas, const RenderFont &font,
 #endif
   state.userSlot = -1;
   state.size = -1;
+  state.smooth = nullptr;
   canvas.setFreeFont(font.builtin);
 }
