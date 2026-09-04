@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "ProgressRenderer.h"
+
 namespace {
 
 constexpr int16_t kDisplaySize = 240;
@@ -95,14 +97,21 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     const CachedProgress &progress = page.progress[index];
     const int16_t x = progress.x + offsetX;
     const int16_t y = progress.y + offsetY;
+    const int16_t height = progress.ring ? progress.width : 4;
     if (x >= clipRight || x + progress.width <= clipX || y >= clipBottom ||
-        y + 4 <= clipY) {
+        y + height <= clipY) {
       continue;
     }
-    canvas.fillRoundRect(x, y, progress.width, 4, 2, progress.background);
-    if (progress.fillWidth > 0) {
+    if (progress.ring) {
+      drawProgressRing(canvas, x, y, progress.width,
+                       progress.fillWidth / 1000.0F, progress.background,
+                       progress.foreground, progress.center);
+    } else {
+      canvas.fillRoundRect(x, y, progress.width, 4, 2, progress.background);
+      if (progress.fillWidth > 0) {
       canvas.fillRoundRect(x, y, progress.fillWidth, 4, 2,
                            progress.foreground);
+      }
     }
   }
 }

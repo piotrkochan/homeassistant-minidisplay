@@ -43,8 +43,10 @@ struct CachedProgress {
   int16_t y;
   int16_t width;
   int16_t fillWidth;
+  bool ring;
   uint16_t background;
   uint16_t foreground;
+  uint16_t center;
 };
 
 struct CachedArea {

@@ -16,6 +16,7 @@
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
+#include "ProgressRenderer.h"
 
 namespace {
 
@@ -417,6 +418,54 @@ void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
   display.drawString(clipped, textX, textY);
 }
 
+struct RingLayout {
+  int16_t x;
+  int16_t y;
+  int16_t diameter;
+  int16_t valueY;
+  int16_t valueHeight;
+};
+
+RingLayout ringLayout(int16_t x, int16_t y, int16_t width, int16_t height) {
+  const int16_t valueHeight =
+      min(static_cast<int16_t>(22),
+          max(static_cast<int16_t>(12), static_cast<int16_t>(height / 4)));
+  const int16_t available =
+      max(static_cast<int16_t>(8),
+          static_cast<int16_t>(height - valueHeight - 8));
+  const int16_t diameter =
+      min(static_cast<int16_t>(52),
+          min(static_cast<int16_t>(width - 10), available));
+  const int16_t groupHeight = diameter + 2 + valueHeight;
+  const int16_t top =
+      y + max(static_cast<int16_t>(3),
+              static_cast<int16_t>((height - groupHeight) / 2));
+  return {static_cast<int16_t>(x + (width - diameter) / 2), top, diameter,
+          static_cast<int16_t>(top + diameter + 2), valueHeight};
+}
+
+float progressRatio(JsonObjectConst card, DashboardValue *value) {
+  const float minimum = card["minimum"] | 0.0F;
+  const float maximum = card["maximum"] | 100.0F;
+  const float current = value ? atof(value->state) : minimum;
+  return maximum > minimum
+             ? constrain((current - minimum) / (maximum - minimum), 0.0F,
+                         1.0F)
+             : 0.0F;
+}
+
+void drawCenteredFit(String text, JsonVariantConst style, int16_t x,
+                     int16_t y, int16_t width, int16_t height,
+                     uint16_t foreground, uint16_t background) {
+  display.setTextDatum(MC_DATUM);
+  display.setTextColor(foreground, background);
+  selectBestFont(text, style, width, height);
+  while (text.length() > 1 && display.textWidth(text) > width - 8) {
+    text.remove(text.length() - 1);
+  }
+  display.drawString(text, x + width / 2, y + height / 2);
+}
+
 bool mappingMatches(const char *type, JsonObjectConst rule, const String &raw) {
   if (strcmp(type, "number") == 0) {
     char *end = nullptr;
@@ -551,12 +600,22 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const char *title = card["title"];
   int16_t contentHeight = height;
   const char *progressType = card["progress"] | "none";
-  const bool progress = strcmp(progressType, "none") != 0;
-  if (progress && contentHeight >= 20) contentHeight -= 9;
+  const bool bar = strcmp(progressType, "bar") == 0;
+  const bool ring = strcmp(progressType, "ring") == 0;
+  if (bar && contentHeight >= 20) contentHeight -= 9;
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
-  drawPositionedFit(cardValue(card), valueStyle, x, y, width,
-                    contentHeight, foreground, background);
+  if (ring) {
+    const RingLayout layout = ringLayout(x, y, width, height);
+    drawProgressRing(display, layout.x, layout.y, layout.diameter,
+                     progressRatio(card, sourceValue), TFT_DARKGREY, accent,
+                     background);
+    drawCenteredFit(cardValue(card), valueStyle, x, layout.valueY, width,
+                    layout.valueHeight, foreground, background);
+  } else {
+    drawPositionedFit(cardValue(card), valueStyle, x, y, width,
+                      contentHeight, foreground, background);
+  }
   if (title && title[0] && height >= 28) {
     JsonVariantConst titleStyle = card["titleStyle"];
     if (titleStyle.isNull()) titleStyle = card["style"];
@@ -566,15 +625,8 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
                       titleForeground, background, "left", "top", 18);
   }
 
-  if (progress) {
-    const char *source = card["source"];
-    DashboardValue *value = findValue(source, false);
-    const float minimum = card["minimum"] | 0.0F;
-    const float maximum = card["maximum"] | 100.0F;
-    const float current = value ? atof(value->state) : minimum;
-    const float ratio = maximum > minimum
-                            ? constrain((current - minimum) / (maximum - minimum), 0.0F, 1.0F)
-                            : 0.0F;
+  if (bar) {
+    const float ratio = progressRatio(card, sourceValue);
     const int16_t barX = x + 5;
     const int16_t barY = y + height - 8;
     const int16_t barWidth = width - 10;
@@ -645,6 +697,17 @@ bool cachePositionedText(CachedPage &page, String value,
                    background);
 }
 
+bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
+                      int16_t x, int16_t y, int16_t width, int16_t height,
+                      uint16_t foreground, uint16_t background) {
+  const GFXfont *font = selectBestFont(value, style, width, height);
+  while (value.length() > 1 && display.textWidth(value) > width - 8) {
+    value.remove(value.length() - 1);
+  }
+  return cacheText(page, value, font, MC_DATUM, x + width / 2,
+                   y + height / 2, foreground, background);
+}
+
 bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
                int16_t width, int16_t height) {
   if (page.cardCount >= kMaxPageCards) return false;
@@ -673,13 +736,24 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   const char *title = card["title"];
   int16_t contentHeight = height;
   const char *progressType = card["progress"] | "none";
-  const bool hasProgress = strcmp(progressType, "none") != 0;
-  if (hasProgress && contentHeight >= 20) contentHeight -= 9;
+  const bool bar = strcmp(progressType, "bar") == 0;
+  const bool ring = strcmp(progressType, "ring") == 0;
+  if (bar && contentHeight >= 20) contentHeight -= 9;
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
-  if (!cachePositionedText(page, cardValue(card), valueStyle, x, y,
-                           width, contentHeight, foreground, background)) {
-    return false;
+  RingLayout ringGeometry{};
+  if (ring) {
+    ringGeometry = ringLayout(x, y, width, height);
+    if (!cacheCenteredFit(page, cardValue(card), valueStyle, x,
+                          ringGeometry.valueY, width,
+                          ringGeometry.valueHeight, foreground, background)) {
+      return false;
+    }
+  } else {
+    if (!cachePositionedText(page, cardValue(card), valueStyle, x, y,
+                             width, contentHeight, foreground, background)) {
+      return false;
+    }
   }
   if (title && title[0] && height >= 28) {
     JsonVariantConst titleStyle = card["titleStyle"];
@@ -693,22 +767,17 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
     }
   }
 
-  if (hasProgress) {
-    const float minimum = card["minimum"] | 0.0F;
-    const float maximum = card["maximum"] | 100.0F;
-    const float current = sourceValue ? atof(sourceValue->state) : minimum;
-    const float ratio = maximum > minimum
-                            ? constrain((current - minimum) /
-                                            (maximum - minimum),
-                                        0.0F, 1.0F)
-                            : 0.0F;
+  if (bar || ring) {
+    const float ratio = progressRatio(card, sourceValue);
     CachedProgress &progress = page.progress[page.progressCount++];
-    progress.x = x + 5;
-    progress.y = y + height - 8;
-    progress.width = width - 10;
-    progress.fillWidth = static_cast<int16_t>(progress.width * ratio);
+    progress.ring = ring;
+    progress.x = ring ? ringGeometry.x : x + 5;
+    progress.y = ring ? ringGeometry.y : y + height - 8;
+    progress.width = ring ? ringGeometry.diameter : width - 10;
+    progress.fillWidth = static_cast<int16_t>((ring ? 1000 : progress.width) * ratio);
     progress.background = TFT_DARKGREY;
     progress.foreground = parseColor(card["style"]["accent"], TFT_CYAN);
+    progress.center = background;
   }
   return true;
 }
