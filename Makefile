@@ -1,14 +1,14 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 
-.PHONY: build build-all package clean check size card-build card-check
+.PHONY: build build-all package clean check size card-build card-check web-build web-check
 
-build:
+build: web-build
 	cd firmware && $(PIO) run
 
 build-all: package
 
-package:
+package: web-build
 	mkdir -p dist
 	cd firmware && $(PIO) run -e sdpro -e geekmagic_smalltv_nocs -e geekmagic_smalltv_cs15
 	cp firmware/.pio/build/sdpro/firmware.bin dist/home-assistant-mini-display-sdpro.bin
@@ -26,6 +26,14 @@ clean:
 
 check:
 	cd firmware && $(PIO) check
+
+web-build: web-check
+	npm --prefix firmware/web run build
+	python3 firmware/scripts/embed_web.py
+
+web-check:
+	npm --prefix firmware/web run format:check
+	npm --prefix firmware/web run check
 
 size: build
 	$(PIO) run --project-dir firmware --target size

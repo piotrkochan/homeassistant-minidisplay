@@ -7,6 +7,7 @@ firmware/.vscode/
 firmware/.dummy/
 firmware/managed_components/
 firmware/sdkconfig.defaults
+firmware/src/WebAssets.generated.h
 dist/
 node_modules/
 integration/card/.vite/

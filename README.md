@@ -38,8 +38,24 @@ flash layout first.
 ## Builds
 
 ```bash
+npm ci --prefix firmware/web
 make build-all
 ```
+
+`make build` and `make build-all` type-check and bundle the device web UI,
+minify it, then embed one gzip-compressed asset in flash. Source lives in
+`firmware/web/`; generated files stay untracked.
+
+The local device UI provides separate Overview, Display, Network, Security and
+Firmware pages. Panel/API and firmware-update passwords are independent and
+either can be disabled for trusted networks. Changing the panel/API password
+starts Home Assistant's reauthentication flow without requiring the integration
+to be removed.
+
+Missing Wi-Fi configuration and repeated connection failures use the same setup
+mode. Its temporary access point exposes only setup and firmware recovery;
+dashboard API endpoints stay unavailable. Recovery keeps existing OTA
+protection. The device screen shows the setup network and connected client count.
 
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted
