@@ -34,6 +34,8 @@ struct CachedText {
   uint16_t foreground;
   uint16_t background;
   const GFXfont *font;
+  int8_t userFontSlot;
+  uint8_t userFontSize;
   uint8_t datum;
   char value[49];
 };

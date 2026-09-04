@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "ProgressRenderer.h"
+#include "UserFonts.h"
 
 namespace {
 
@@ -53,6 +54,7 @@ template <typename Canvas>
 void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
                int16_t offsetY, int16_t clipX, int16_t clipY,
                int16_t clipWidth, int16_t clipHeight) {
+  FontRenderState fontState;
   const int16_t clipRight = clipX + clipWidth;
   const int16_t clipBottom = clipY + clipHeight;
   canvas.fillRect(offsetX, offsetY, kDisplaySize, kDisplaySize,
@@ -86,7 +88,10 @@ void paintPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     }
     canvas.setTextDatum(text.datum);
     canvas.setTextColor(text.foreground, text.background);
-    canvas.setFreeFont(text.font);
+    applyRenderFont(
+        canvas,
+        RenderFont{text.font, text.userFontSlot, text.userFontSize},
+        fontState);
 #if defined(ESP8266)
     canvas.drawString(text.value, text.x + offsetX, text.y + offsetY);
 #else

@@ -62,6 +62,14 @@ export class OverviewPage extends LitElement {
         <div class="muted">${formatMemory(status.freeHeapBytes)} free</div>
       </section>
       <section class="card">
+        <h2>Storage</h2>
+        <div class="metric">${formatMemory(status.storageUsedBytes)} used</div>
+        <div class="muted">
+          ${formatMemory(status.storageFreeBytes)} free ·
+          ${formatMemory(status.storageTotalBytes)} total
+        </div>
+      </section>
+      <section class="card">
         <h2>Firmware</h2>
         <div class="metric">${this.info?.firmwareVersion}</div>
         <div class="muted">Uptime ${formatUptime(status.uptimeSeconds)}</div>

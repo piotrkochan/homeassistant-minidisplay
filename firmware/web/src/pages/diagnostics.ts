@@ -287,6 +287,13 @@ export class DiagnosticsPage extends LitElement {
         }
         <div class="actions">
           <button
+            class="secondary"
+            ?disabled=${this.acting_}
+            @click=${() => this.showDialog_("restart-confirm")}
+          >
+            Restart display
+          </button>
+          <button
             class="warning"
             ?disabled=${this.acting_}
             @click=${() => this.showDialog_("setup-confirm")}
@@ -302,6 +309,30 @@ export class DiagnosticsPage extends LitElement {
           </button>
         </div>
       </section>
+
+      <dialog id="restart-confirm">
+        <div class="dialog-body">
+          <h2>Restart display?</h2>
+          <p>
+            The display will be unavailable briefly. No settings are removed.
+          </p>
+        </div>
+        <div class="dialog-actions">
+          <form method="dialog"><button class="secondary">Cancel</button></form>
+          <button
+            @click=${() => {
+              (
+                this.renderRoot.querySelector(
+                  "#restart-confirm",
+                ) as HTMLDialogElement
+              ).close();
+              void this.runAction_("/api/v1/restart");
+            }}
+          >
+            Restart display
+          </button>
+        </div>
+      </dialog>
 
       <dialog id="setup-confirm">
         <div class="dialog-body">

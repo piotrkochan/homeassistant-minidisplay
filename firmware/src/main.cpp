@@ -20,7 +20,12 @@
 #include "DisplayCompat.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
+#include "UserFonts.h"
 #include "WebAssets.generated.h"
+#include "fonts/InterTightBold18.h"
+#include "fonts/InterTightBold24.h"
+#include "fonts/InterTightBold36.h"
+#include "fonts/InterTightBold48.h"
 
 namespace {
 
@@ -167,6 +172,7 @@ bool displayOn = true;
 uint8_t displayBrightness = 100;
 uint8_t displayPixelShift = 0;
 char displayTimezone[64] = "CET-1CEST,M3.5.0,M10.5.0/3";
+FontRenderState displayFontState;
 int8_t pixelShiftX = 0;
 int8_t pixelShiftY = 0;
 uint32_t pixelShiftAt = 0;
@@ -799,11 +805,12 @@ uint16_t parseColor(JsonVariantConst value, uint16_t fallback) {
   return fallback;
 }
 
-const GFXfont *fontFor(const char *family, uint8_t size) {
+const GFXfont *builtInFontFor(const char *family, uint8_t size) {
   if (family == nullptr) family = "sans";
-  if (strcmp(family, "sans-bold") == 0) {
-    const GFXfont *fonts[] = {&FreeSansBold9pt7b, &FreeSansBold12pt7b,
-                              &FreeSansBold18pt7b, &FreeSansBold24pt7b};
+  if (strcmp(family, "sans") == 0 || strcmp(family, "sans-bold") == 0) {
+    const GFXfont *fonts[] = {
+        &InterTightBold18, &InterTightBold24, &InterTightBold36,
+        &InterTightBold48};
     return fonts[min<uint8_t>(size, 3)];
   }
   if (strcmp(family, "mono") == 0) {
@@ -816,9 +823,34 @@ const GFXfont *fontFor(const char *family, uint8_t size) {
                               &FreeSerif18pt7b, &FreeSerif24pt7b};
     return fonts[min<uint8_t>(size, 3)];
   }
-  const GFXfont *fonts[] = {&FreeSans9pt7b, &FreeSans12pt7b,
-                            &FreeSans18pt7b, &FreeSans24pt7b};
+  const GFXfont *fonts[] = {
+      &InterTightBold18, &InterTightBold24, &InterTightBold36,
+      &InterTightBold48};
   return fonts[min<uint8_t>(size, 3)];
+}
+
+RenderFont renderFontFor(const char *family, uint8_t size) {
+  RenderFont font{builtInFontFor(family, size), -1, size};
+#if defined(ESP8266)
+  const bool font1 = family && strcmp(family, "font1") == 0;
+  const bool font2 = family && strcmp(family, "font2") == 0;
+  const bool defaultFont =
+      family == nullptr || strcmp(family, "default") == 0 ||
+      strcmp(family, "sans") == 0 || strcmp(family, "sans-bold") == 0;
+  const int8_t requestedSlot = font1 ? 0 : font2 ? 1 : -1;
+  if (requestedSlot >= 0 && userFonts.available(requestedSlot, size)) {
+    font.userSlot = requestedSlot;
+  } else if ((defaultFont || requestedSlot >= 0) &&
+             userFonts.activeSlot() >= 0 &&
+             userFonts.available(userFonts.activeSlot(), size)) {
+    font.userSlot = userFonts.activeSlot();
+  }
+#endif
+  return font;
+}
+
+void applyDisplayFont(const RenderFont &font) {
+  applyRenderFont(display, font, displayFontState);
 }
 
 uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
@@ -833,20 +865,20 @@ uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
   return 0;
 }
 
-const GFXfont *selectBestFont(const String &text, JsonVariantConst style,
-                              int16_t width, int16_t height) {
+RenderFont selectBestFont(const String &text, JsonVariantConst style,
+                          int16_t width, int16_t height) {
   const char *family = style["fontFamily"] | "sans";
   int8_t size = requestedFontSize(style, height);
   while (size > 0) {
-    const GFXfont *font = fontFor(family, size);
-    display.setFreeFont(font);
+    const RenderFont font = renderFontFor(family, size);
+    applyDisplayFont(font);
     if (display.textWidth(text) <= width - 6 && display.fontHeight() <= height) {
       return font;
     }
     --size;
   }
-  const GFXfont *font = fontFor(family, 0);
-  display.setFreeFont(font);
+  const RenderFont font = renderFontFor(family, 0);
+  applyDisplayFont(font);
   return font;
 }
 
@@ -1100,14 +1132,14 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   }
 }
 
-bool cacheText(CachedPage &page, const String &value, const GFXfont *font,
+bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
                uint8_t datum, int16_t x, int16_t y, uint16_t foreground,
                uint16_t background) {
   if (page.textCount >= kMaxPageTexts) return false;
   CachedText &text = page.texts[page.textCount++];
   text.x = x;
   text.y = y;
-  display.setFreeFont(font);
+  applyDisplayFont(font);
   text.boundsWidth = display.textWidth(value);
   text.boundsHeight = display.fontHeight();
   const bool centeredX = datum == TC_DATUM || datum == MC_DATUM ||
@@ -1124,7 +1156,9 @@ bool cacheText(CachedPage &page, const String &value, const GFXfont *font,
                            : bottomY ? y - text.boundsHeight : y;
   text.foreground = foreground;
   text.background = background;
-  text.font = font;
+  text.font = font.builtin;
+  text.userFontSlot = font.userSlot;
+  text.userFontSize = font.size;
   text.datum = datum;
   strlcpy(text.value, value.c_str(), sizeof(text.value));
   return true;
@@ -1150,7 +1184,7 @@ bool cachePositionedText(CachedPage &page, String value,
                                           : right ? BR_DATUM : BC_DATUM)
                                   : (left ? ML_DATUM
                                           : right ? MR_DATUM : MC_DATUM);
-  const GFXfont *font = selectBestFont(
+  const RenderFont font = selectBestFont(
       value, style, width, fontHeight > 0 ? min(height, fontHeight) : height);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
@@ -1164,7 +1198,7 @@ bool cachePositionedText(CachedPage &page, String value,
 bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
                       int16_t x, int16_t y, int16_t width, int16_t height,
                       uint16_t foreground, uint16_t background) {
-  const GFXfont *font = selectBestFont(value, style, width, height);
+  const RenderFont font = selectBestFont(value, style, width, height);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
@@ -1270,8 +1304,9 @@ int16_t pageTitleThickness(JsonVariantConst style) {
   return thickness[size];
 }
 
-const GFXfont *pageTitleFont(JsonVariantConst style) {
-  return fontFor("sans-bold", pageTitleFontSize(style));
+RenderFont pageTitleFont(JsonVariantConst style) {
+  return renderFontFor(style["fontFamily"] | "default",
+                       pageTitleFontSize(style));
 }
 
 PageContentLayout pageContentLayout(JsonObjectConst page) {
@@ -1298,8 +1333,8 @@ void drawVerticalPageTitle(const char *title, bool right, int16_t offsetX,
                            JsonVariantConst style, uint16_t foreground,
                            uint16_t background) {
   if (!title || !title[0]) return;
-  const GFXfont *font = pageTitleFont(style);
-  display.setFreeFont(font);
+  const RenderFont font = pageTitleFont(style);
+  applyDisplayFont(font);
   String clipped(title);
   while (clipped.length() > 1 && display.textWidth(clipped) > 218) {
     clipped.remove(clipped.length() - 1);
@@ -1312,7 +1347,8 @@ void drawVerticalPageTitle(const char *title, bool right, int16_t offsetX,
   titleSprite.setBitmapColor(foreground, background);
   titleSprite.fillSprite(TFT_BLACK);
   titleSprite.setTextColor(TFT_WHITE, TFT_BLACK);
-  titleSprite.setFreeFont(font);
+  FontRenderState spriteFontState;
+  applyRenderFont(titleSprite, font, spriteFontState);
   titleSprite.setTextDatum(MC_DATUM);
   titleSprite.drawString(clipped, width / 2, height / 2);
   display.setPivot((right ? 240 - thickness / 2 : thickness / 2) + offsetX,
@@ -1385,8 +1421,14 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
     const char *rowTitle = row["title"];
     const bool showTitle = row["showTitle"] | true;
     if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
-      if (!cacheText(page, String(rowTitle), &FreeSans9pt7b, TL_DATUM,
-                     layout.x + 2, rowY, TFT_LIGHTGREY, page.background)) {
+      JsonVariantConst rowTitleStyle = row["titleStyle"];
+      if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
+      const RenderFont rowFont = renderFontFor(
+          rowTitleStyle["fontFamily"] | "default", 0);
+      const uint16_t rowForeground =
+          parseColor(rowTitleStyle["foreground"], TFT_LIGHTGREY);
+      if (!cacheText(page, String(rowTitle), rowFont, TL_DATUM, layout.x + 2,
+                     rowY, rowForeground, page.background)) {
         return false;
       }
       rowY += 17;
@@ -1440,7 +1482,7 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
                        layout.titleThickness, titleBackground);
       display.setTextDatum(MC_DATUM);
       display.setTextColor(titleForeground, titleBackground);
-      display.setFreeFont(pageTitleFont(titleStyle));
+      applyDisplayFont(pageTitleFont(titleStyle));
       String clipped(pageTitle);
       while (clipped.length() > 1 && display.textWidth(clipped) > 232) {
         clipped.remove(clipped.length() - 1);
@@ -1472,9 +1514,14 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
         showTitle && rowTitle && rowTitle[0] && rowHeight >= 24;
     if (rowTitleShown) {
       if (!partial) {
+        JsonVariantConst rowTitleStyle = row["titleStyle"];
+        if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
         display.setTextDatum(TL_DATUM);
-        display.setTextColor(TFT_LIGHTGREY, pageBackground);
-        display.setFreeFont(&FreeSans9pt7b);
+        display.setTextColor(
+            parseColor(rowTitleStyle["foreground"], TFT_LIGHTGREY),
+            pageBackground);
+        applyDisplayFont(renderFontFor(
+            rowTitleStyle["fontFamily"] | "default", 0));
         display.drawString(rowTitle, layout.x + 2 + offsetX,
                            rowY + offsetY);
       }
@@ -1703,6 +1750,7 @@ void sendApiInfo() {
   capabilities.add("brightness");
   capabilities.add("pixel-shift");
   capabilities.add("page-control");
+  capabilities.add("user-fonts");
   String body;
   body.reserve(384);
   serializeJson(document, body);
@@ -1711,7 +1759,7 @@ void sendApiInfo() {
 
 void sendApiStatus() {
   if (!apiAuthenticated()) return;
-  DynamicJsonDocument document(2560);
+  DynamicJsonDocument document(3072);
   document["connected"] = WiFi.status() == WL_CONNECTED;
   document["ip"] = WiFi.status() == WL_CONNECTED
                        ? WiFi.localIP().toString()
@@ -1760,6 +1808,37 @@ void sendApiStatus() {
   document["otaAuthEnabled"] = config.otaAuthEnabled != 0;
   document["otaPasswordSet"] = config.otaPassword[0] != '\0';
   document["filesystemReady"] = filesystemReady;
+  uint32_t storageTotalBytes = 0;
+  uint32_t storageUsedBytes = 0;
+#if defined(ESP8266)
+  FSInfo filesystemInfo;
+  if (filesystemReady && LittleFS.info(filesystemInfo)) {
+    storageTotalBytes = filesystemInfo.totalBytes;
+    storageUsedBytes = filesystemInfo.usedBytes;
+  }
+#else
+  if (filesystemReady) {
+    storageTotalBytes = LittleFS.totalBytes();
+    storageUsedBytes = LittleFS.usedBytes();
+  }
+#endif
+  document["storageTotalBytes"] = storageTotalBytes;
+  document["storageUsedBytes"] = storageUsedBytes;
+  document["storageFreeBytes"] =
+      storageTotalBytes > storageUsedBytes ? storageTotalBytes - storageUsedBytes
+                                          : 0;
+  document["defaultFont"] =
+      userFonts.activeSlot() < 0
+          ? "builtin"
+          : userFonts.activeSlot() == 0 ? "font1" : "font2";
+  JsonArray fonts = document.createNestedArray("fonts");
+  for (uint8_t index = 0; index < kUserFontSlots; ++index) {
+    const UserFontSlotInfo &info = userFonts.slot(index);
+    JsonObject slot = fonts.createNestedObject();
+    slot["id"] = index == 0 ? "font1" : "font2";
+    slot["installed"] = info.installed;
+    slot["name"] = info.name;
+  }
   document["mdnsReady"] = mdnsReady;
   document["setupMode"] = accessPointRunning;
   document["dashboardPageCount"] = dashboardPageCount;
@@ -1792,7 +1871,7 @@ void sendApiStatus() {
     pages.add(dashboardPages[index].id);
   }
   String body;
-  body.reserve(2048);
+  body.reserve(2304);
   serializeJson(document, body);
   server.send(200, "application/json", body);
 }
@@ -1963,6 +2042,106 @@ void receiveApiDisplay() {
   }
   if (settingsChanged) saveDisplaySettings();
   applyBacklight();
+  server.send(204);
+}
+
+void sendApiFonts() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<640> document;
+  document["active"] = userFonts.activeSlot();
+  document["maxSlots"] = kUserFontSlots;
+  document["maxGlyphs"] = kMaxUserFontGlyphs;
+  document["maxPackBytes"] = kMaxUserFontPackBytes;
+  JsonArray sizes = document.createNestedArray("sizes");
+  sizes.add(18);
+  sizes.add(24);
+  sizes.add(36);
+  sizes.add(48);
+  JsonArray slots = document.createNestedArray("slots");
+  for (uint8_t index = 0; index < kUserFontSlots; ++index) {
+    const UserFontSlotInfo &info = userFonts.slot(index);
+    JsonObject value = slots.createNestedObject();
+    value["slot"] = index;
+    value["installed"] = info.installed;
+    value["name"] = info.name;
+    value["glyphs"] = info.glyphCount;
+    value["bytes"] = info.bytes;
+  }
+  String body;
+  body.reserve(512);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
+}
+
+void receiveApiFontSelection() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<64> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const int active = document["active"] | -2;
+  if (!userFonts.setActiveSlot(active)) {
+    sendJsonError(422, F("invalid_font"),
+                  F("Select an installed font slot or built-in font"));
+    return;
+  }
+  displayFontState = FontRenderState{};
+  showCurrentPage();
+  server.send(204);
+}
+
+void receiveApiFontUpload(uint8_t slot, uint8_t size) {
+  if (!apiAuthenticated()) return;
+  HTTPUpload &upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    userFonts.beginUpload(slot, size);
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    userFonts.writeUpload(upload.buf, upload.currentSize);
+  } else if (upload.status == UPLOAD_FILE_END) {
+    userFonts.finishUpload();
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    userFonts.abortUpload();
+  }
+  yield();
+}
+
+void finishApiFontUpload() {
+  if (!apiAuthenticated()) return;
+  if (!userFonts.uploadSucceeded()) {
+    sendJsonError(422, F("invalid_font_file"),
+                  F("Font file is invalid or too large"));
+    return;
+  }
+  server.send(204);
+}
+
+void receiveApiFontCommit(uint8_t slot) {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<160> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  const char *name = document["name"] | "";
+  const int glyphs = document["glyphs"] | 0;
+  const uint32_t bytes = document["bytes"] | 0;
+  if (!userFonts.finalize(slot, name, glyphs, bytes)) {
+    sendJsonError(422, F("invalid_font_pack"),
+                  F("Font pack is incomplete, invalid, or too large"));
+    return;
+  }
+  server.send(204);
+}
+
+void receiveApiFontDelete(uint8_t slot) {
+  if (!apiAuthenticated()) return;
+  if (!userFonts.remove(slot)) {
+    sendJsonError(500, F("storage_error"), F("Could not remove font"));
+    return;
+  }
+  displayFontState = FontRenderState{};
+  showCurrentPage();
   server.send(204);
 }
 
@@ -2251,7 +2430,7 @@ void sendApiNetwork() {
 
 void receiveApiNetwork() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<768> document;
+  StaticJsonDocument<1280> document;
   if (deserializeJson(document, server.arg("plain"))) {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
@@ -2288,7 +2467,7 @@ void receiveApiNetwork() {
 
 void receiveApiNetworkTest() {
   if (!apiAuthenticated()) return;
-  StaticJsonDocument<768> document;
+  StaticJsonDocument<1280> document;
   if (deserializeJson(document, server.arg("plain"))) {
     sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
     return;
@@ -2437,6 +2616,32 @@ void configureRoutes() {
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
+  server.on("/api/v1/fonts", HTTP_GET, sendApiFonts);
+  server.on("/api/v1/fonts", HTTP_PUT, receiveApiFontSelection);
+  server.on("/api/v1/fonts/0", HTTP_PUT,
+            [] { receiveApiFontCommit(0); });
+  server.on("/api/v1/fonts/0", HTTP_DELETE,
+            [] { receiveApiFontDelete(0); });
+  server.on("/api/v1/fonts/1", HTTP_PUT,
+            [] { receiveApiFontCommit(1); });
+  server.on("/api/v1/fonts/1", HTTP_DELETE,
+            [] { receiveApiFontDelete(1); });
+  server.on("/api/v1/fonts/0/0", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(0, 0); });
+  server.on("/api/v1/fonts/0/1", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(0, 1); });
+  server.on("/api/v1/fonts/0/2", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(0, 2); });
+  server.on("/api/v1/fonts/0/3", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(0, 3); });
+  server.on("/api/v1/fonts/1/0", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(1, 0); });
+  server.on("/api/v1/fonts/1/1", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(1, 1); });
+  server.on("/api/v1/fonts/1/2", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(1, 2); });
+  server.on("/api/v1/fonts/1/3", HTTP_POST, finishApiFontUpload,
+            [] { receiveApiFontUpload(1, 3); });
   server.on("/api/v1/page", HTTP_POST, receiveApiPage);
   server.on("/api/v1/restart", HTTP_POST, receiveApiRestart);
   server.on("/api/v1/setup-mode", HTTP_POST, receiveApiSetupMode);
@@ -2467,9 +2672,11 @@ void connectToWiFi() {
 
 void drawCenteredBold(const String &text, int16_t y, uint8_t font,
                       uint16_t color) {
+  const uint8_t size = font >= 4 ? 1 : 0;
+  applyDisplayFont(
+      RenderFont{builtInFontFor("sans-bold", size), -1, size});
   display.setTextColor(color);
-  display.drawString(text, 120, y, font);
-  display.drawString(text, 121, y, font);
+  display.drawString(text, 120, y);
 }
 
 void showStartupScreen() {
@@ -2670,6 +2877,7 @@ void setup() {
 #endif
   loadConfig();
   filesystemReady = LittleFS.begin();
+  userFonts.begin(filesystemReady);
   loadDisplaySettings();
   loadNetworkSettings();
   configureTimeService();

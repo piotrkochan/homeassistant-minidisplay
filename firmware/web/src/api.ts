@@ -22,10 +22,15 @@ export type DeviceStatus = {
   uptimeSeconds: number;
   freeHeapBytes: number;
   totalHeapBytes: number;
+  storageTotalBytes: number;
+  storageUsedBytes: number;
+  storageFreeBytes: number;
   minimumFreeHeapBytes?: number;
   wifiRssiDbm: number;
   lastValueUpdateAgeSeconds: number;
   recoverySsid: string;
+  defaultFont: "builtin" | "font1" | "font2";
+  fonts: { id: "font1" | "font2"; installed: boolean; name: string }[];
   pages: string[];
 };
 
@@ -61,6 +66,23 @@ export type SecurityStatus = {
   apiAuthEnabled: boolean;
   otaAuthEnabled: boolean;
   directOtaEnabled: boolean;
+};
+
+export type UserFontSlot = {
+  slot: number;
+  installed: boolean;
+  name: string;
+  glyphs: number;
+  bytes: number;
+};
+
+export type UserFontsStatus = {
+  active: number;
+  maxSlots: number;
+  maxGlyphs: number;
+  maxPackBytes: number;
+  sizes: number[];
+  slots: UserFontSlot[];
 };
 
 export type SetupStatus = {
@@ -140,4 +162,25 @@ export async function uploadFirmware(
     );
   }
   return message;
+}
+
+export async function uploadUserFont(
+  slot: number,
+  size: number,
+  file: Blob,
+): Promise<void> {
+  const body = new FormData();
+  body.append("font", file, `font-${size}.vlw`);
+  const response = await fetch(`/api/v1/fonts/${slot}/${size}`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    body,
+  });
+  if (!response.ok) {
+    throw new DeviceApiError(
+      response.status,
+      (await response.text()) || `Font upload failed (${response.status})`,
+    );
+  }
 }
