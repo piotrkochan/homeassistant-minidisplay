@@ -256,6 +256,10 @@ async def websocket_list_displays(hass, connection, msg) -> None:
                 "height": coordinator.device_info.height
                 if coordinator and coordinator.device_info
                 else 240,
+                "default_font": coordinator.data.get("defaultFont", "builtin")
+                if coordinator
+                else "builtin",
+                "fonts": coordinator.data.get("fonts", []) if coordinator else [],
             }
         )
     connection.send_result(msg["id"], displays)

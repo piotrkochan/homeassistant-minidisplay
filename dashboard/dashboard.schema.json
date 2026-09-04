@@ -177,8 +177,9 @@
         "radius": { "enum": ["none", "small", "medium", "large"] },
         "emphasis": { "enum": ["normal", "strong"] },
         "fontFamily": {
-          "enum": ["sans", "sans-bold", "mono", "serif"],
-          "default": "sans"
+          "description": "Default uses the device-wide font. Missing custom slots fall back to Default.",
+          "enum": ["default", "font1", "font2"],
+          "default": "default"
         },
         "fontSize": {
           "enum": ["auto", "small", "medium", "large", "xlarge"],
@@ -244,6 +245,7 @@
         "gap": { "enum": ["none", "small", "medium"], "default": "small" },
         "visibility": { "$ref": "#/$defs/visibility" },
         "style": { "$ref": "#/$defs/style" },
+        "titleStyle": { "$ref": "#/$defs/style" },
         "cards": {
           "type": "array",
           "minItems": 1,
