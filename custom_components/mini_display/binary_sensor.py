@@ -25,13 +25,17 @@ BINARY_SENSORS = (
     ("time_synchronized", "Time synchronized", "timeSynchronized"),
     ("filesystem_ready", "Filesystem ready", "filesystemReady"),
     ("mdns_ready", "mDNS ready", "mdnsReady"),
-    ("setup_mode", "Setup mode", "setupMode"),
+    ("setup_mode", "Setup Mode active", "setupMode"),
     ("panel_api_protection", "Panel and API protection", "apiAuthEnabled"),
     ("panel_api_password", "Panel and API password configured", "apiPasswordSet"),
     ("direct_ota", "Direct OTA enabled", "directOtaEnabled"),
     ("ota_protection", "OTA protection", "otaAuthEnabled"),
     ("ota_password", "OTA password configured", "otaPasswordSet"),
-    ("recovery_wifi_password", "Recovery Wi-Fi password configured", "recoveryPasswordSet"),
+    (
+        "recovery_wifi_password",
+        "Setup Mode Wi-Fi password configured",
+        "recoveryPasswordSet",
+    ),
 )
 
 

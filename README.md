@@ -54,13 +54,13 @@ Assistant's reauthentication flow without requiring the integration to be
 removed.
 
 Missing Wi-Fi configuration and repeated connection failures use the same setup
-mode. Its temporary access point exposes only setup and firmware recovery;
-dashboard API endpoints stay unavailable. Recovery keeps existing OTA
+mode. Its temporary access point exposes only setup and firmware updates;
+dashboard API endpoints stay unavailable. Setup mode keeps existing OTA
 protection. The device screen shows the setup network and connected client count.
 
-Network settings support DHCP or static IPv4, recovery Wi-Fi protection, and
-validation before restart. Recovery credentials are never returned by the API;
-the password is shown on the physical display only while recovery mode is
+Network settings support DHCP or static IPv4, setup Wi-Fi protection, and
+validation before restart. Setup credentials are never returned by the API;
+the password is shown on the physical display only while setup mode is
 active. The Network page also reports signal quality, gateway, DNS, channel,
 BSSID, MAC address, reconnect count, and last disconnect reason.
 NTP can use a custom server or DHCP option 42 when IP assignment also uses

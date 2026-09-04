@@ -286,6 +286,26 @@ class MiniDisplayDevice extends LitElement {
       margin-bottom: 4px;
       font-weight: 600;
     }
+    .form-section {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .form-section h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 15px;
+    }
+    .form-section h3::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: var(--line);
+    }
     .facts {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -927,55 +947,58 @@ class MiniDisplayDevice extends LitElement {
                 ?disabled=${this.ntpFromDhcp}
                 .value=${network.ntpServer || "pool.ntp.org"}
             /></label>
-            <label class="field"
-              >Attempts before recovery Wi-Fi
-              <small
-                >Each attempt lasts up to 20 seconds. Recovery network:
-                ${network.recoverySsid}</small
-              ><input
-                name="retryLimit"
-                type="number"
-                min="1"
-                max="10"
-                required
-                .value=${String(network.retryLimit)}
-            /></label>
-            <label class="check"
-              ><input
-                type="checkbox"
-                .checked=${this.recoveryProtected}
-                @change=${(event: Event) =>
-                  (this.recoveryProtected = (
-                    event.target as HTMLInputElement
-                  ).checked)}
-              />Protect recovery Wi-Fi with password</label
-            >
-            <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+            <section class="form-section">
+              <h3>Setup mode</h3>
               <label class="field"
-                >Recovery Wi-Fi password
+                >Attempts before activation
                 <small
-                  >Shown on the display only in recovery mode. Leave empty to
-                  keep the current password.</small
+                  >Each attempt lasts up to 20 seconds. The display then opens
+                  ${network.recoverySsid}.</small
                 ><input
-                  name="recoveryPassword"
-                  type="password"
-                  minlength="8"
-                  maxlength="63"
-                  ?required=${this.recoveryProtected && !network.recoveryPasswordSet}
-                  ?disabled=${!this.recoveryProtected}
-                  autocomplete="new-password"
+                  name="retryLimit"
+                  type="number"
+                  min="1"
+                  max="10"
+                  required
+                  .value=${String(network.retryLimit)}
               /></label>
-            </div>
-            <label class="check"
-              ><input
-                type="checkbox"
-                name="resetApiAuthOnRecovery"
-                .checked=${network.resetApiAuthOnRecovery}
-              />Disable panel/API password when recovery Wi-Fi starts</label
-            >
-            <p class="muted">
-              Firmware update protection is not changed by network recovery.
-            </p>
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  .checked=${this.recoveryProtected}
+                  @change=${(event: Event) =>
+                    (this.recoveryProtected = (
+                      event.target as HTMLInputElement
+                    ).checked)}
+                />Protect Wi-Fi with password</label
+              >
+              <div
+                class="dependent ${this.recoveryProtected ? "" : "disabled"}"
+              >
+                <label class="field"
+                  >Wi-Fi password
+                  <small
+                    >Shown on the physical display while active. Leave empty to
+                    keep the current password.</small
+                  ><input
+                    name="recoveryPassword"
+                    type="password"
+                    minlength="8"
+                    maxlength="63"
+                    ?required=${this.recoveryProtected && !network.recoveryPasswordSet}
+                    ?disabled=${!this.recoveryProtected}
+                    autocomplete="new-password"
+                /></label>
+              </div>
+              <label class="check"
+                ><input
+                  type="checkbox"
+                  name="resetApiAuthOnRecovery"
+                  .checked=${network.resetApiAuthOnRecovery}
+                />Disable panel/API password when activated</label
+              >
+              <p class="muted">Firmware update protection remains unchanged.</p>
+            </section>
             <div class="actions">
               <button type="submit" ?disabled=${this.saving}>
                 Save and restart
@@ -1265,49 +1288,54 @@ class MiniDisplayDevice extends LitElement {
               ?disabled=${this.ntpFromDhcp}
               .value=${setup?.ntpServer || "pool.ntp.org"}
           /></label>
-          <label class="field"
-            >Attempts before setup Wi-Fi
-            <small>Each attempt lasts up to 20 seconds</small
-            ><input
-              name="retryLimit"
-              type="number"
-              min="1"
-              max="10"
-              required
-              .value=${String(setup?.retryLimit ?? 3)} /></label
-          ><label class="check"
-            ><input
-              type="checkbox"
-              .checked=${this.recoveryProtected}
-              @change=${(event: Event) =>
-                (this.recoveryProtected = (
-                  event.target as HTMLInputElement
-                ).checked)}
-            />Protect recovery Wi-Fi with password</label
-          >
-          <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+          <section class="form-section">
+            <h3>Setup mode</h3>
             <label class="field"
-              >Recovery Wi-Fi password
-              <small
-                >Shown on the display only in recovery mode. Leave empty to keep
-                the current password.</small
+              >Attempts before activation
+              <small>Each attempt lasts up to 20 seconds</small
               ><input
-                name="recoveryPassword"
-                type="password"
-                minlength="8"
-                maxlength="63"
-                ?required=${this.recoveryProtected && !setup?.recoveryPasswordSet}
-                ?disabled=${!this.recoveryProtected}
-                autocomplete="new-password"
+                name="retryLimit"
+                type="number"
+                min="1"
+                max="10"
+                required
+                .value=${String(setup?.retryLimit ?? 3)}
             /></label>
-          </div>
+            <label class="check"
+              ><input
+                type="checkbox"
+                .checked=${this.recoveryProtected}
+                @change=${(event: Event) =>
+                  (this.recoveryProtected = (
+                    event.target as HTMLInputElement
+                  ).checked)}
+              />Protect Wi-Fi with password</label
+            >
+            <div class="dependent ${this.recoveryProtected ? "" : "disabled"}">
+              <label class="field"
+                >Wi-Fi password
+                <small
+                  >Shown on the physical display while active. Leave empty to
+                  keep the current password.</small
+                ><input
+                  name="recoveryPassword"
+                  type="password"
+                  minlength="8"
+                  maxlength="63"
+                  ?required=${this.recoveryProtected && !setup?.recoveryPasswordSet}
+                  ?disabled=${!this.recoveryProtected}
+                  autocomplete="new-password"
+              /></label>
+            </div>
+            <label class="check"
+              ><input
+                type="checkbox"
+                name="resetApiAuthOnRecovery"
+                .checked=${setup?.resetApiAuthOnRecovery ?? false}
+              />Disable panel/API password when activated</label
+            >
+          </section>
           <label class="check"
-            ><input
-              type="checkbox"
-              name="resetApiAuthOnRecovery"
-              .checked=${setup?.resetApiAuthOnRecovery ?? false}
-            />Disable panel/API password when setup Wi-Fi starts</label
-          ><label class="check"
             ><input
               type="checkbox"
               .checked=${this.setupApiAuth}
@@ -1389,7 +1417,7 @@ class MiniDisplayDevice extends LitElement {
       ${
         !setup?.configured || setup.directOtaEnabled
           ? html`<section class="card">
-              <h2>Firmware recovery</h2>
+              <h2>Firmware update</h2>
               <p class="muted">
                 Upload firmware without leaving setup mode. Existing direct OTA
                 protection remains active after prior configuration.

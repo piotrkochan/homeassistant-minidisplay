@@ -36,8 +36,14 @@ SENSORS = (
     ("time_zone", "Time zone", "timezone", None, None),
     ("reconnect_count", "Wi-Fi reconnect count", "reconnectCount", None, None),
     ("last_disconnect_reason", "Last disconnect reason", "lastDisconnectReason", None, None),
-    ("wifi_retry_limit", "Wi-Fi retry limit", "wifiRetryLimit", None, None),
-    ("recovery_network", "Recovery Wi-Fi network", "recoverySsid", None, None),
+    (
+        "wifi_retry_limit",
+        "Setup Mode activation attempts",
+        "wifiRetryLimit",
+        None,
+        None,
+    ),
+    ("recovery_network", "Setup Mode Wi-Fi network", "recoverySsid", None, None),
     ("dashboard_page_count", "Dashboard pages", "dashboardPageCount", None, None),
     ("tracked_value_count", "Tracked values", "trackedValueCount", None, None),
 )
