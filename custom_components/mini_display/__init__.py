@@ -67,6 +67,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_start_scene_preview)
     websocket_api.async_register_command(hass, websocket_stop_scene_preview)
     websocket_api.async_register_command(hass, websocket_list_assets)
+    websocket_api.async_register_command(hass, websocket_get_data)
     websocket_api.async_register_command(hass, websocket_upload_asset)
     websocket_api.async_register_command(hass, websocket_delete_asset)
     return True
@@ -299,6 +300,23 @@ async def websocket_list_displays(hass, connection, msg) -> None:
             }
         )
     connection.send_result(msg["id"], displays)
+
+
+@websocket_api.websocket_command(
+    {"type": "mini_display/data", vol.Required("config_entry_id"): str}
+)
+@websocket_api.async_response
+async def websocket_get_data(hass, connection, msg) -> None:
+    """Read the display's retained entity states and chart history."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "Display not found")
+        return
+    try:
+        result = await runtime["dashboard"].client.async_get_data()
+        connection.send_result(msg["id"], result)
+    except MiniDisplayApiError as error:
+        connection.send_error(msg["id"], "display_unavailable", str(error))
 
 
 @websocket_api.websocket_command({"type": "mini_display/scenes"})

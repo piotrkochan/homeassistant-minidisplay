@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import Store
 from .api import MiniDisplayApiError, MiniDisplayClient
 from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
+from .graphs import validate_graphs
 
 STORE_VERSION = 1
 STORE_KEY_PREFIX = "mini_display.scenes"
@@ -129,13 +130,14 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 row.get("visibility"), f"{row_path}/visibility", allow_card_value=False
             )
             cards = row.get("cards")
-            if not isinstance(cards, list) or not 1 <= len(cards) <= 3:
+            free = page.get("layout") == "free"
+            if not isinstance(cards, list) or not (0 if free else 1) <= len(cards) <= (18 if free else 3):
                 raise DashboardValidationError("Row requires 1-3 cards", f"{row_path}/cards")
             for card_index, card in enumerate(cards):
                 card_path = f"{row_path}/cards/{card_index}"
                 if not isinstance(card, dict):
                     raise DashboardValidationError("Card must be an object", card_path)
-                if card.get("type") not in {"clock", "number", "status", "text", "image"}:
+                if card.get("type") not in {"clock", "number", "status", "text", "image", "chart"}:
                     raise DashboardValidationError("Unsupported card type", f"{card_path}/type")
                 source = card.get("source")
                 if source is not None and (not isinstance(source, str) or len(source) > 64):
@@ -180,6 +182,7 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 )
     if enabled_pages == 0:
         raise DashboardValidationError("Dashboard requires an enabled page", "/pages")
+    validate_graphs(document, DashboardValidationError)
     return document
 
 
@@ -461,6 +464,9 @@ def extract_sources(document: dict[str, Any]) -> set[str]:
                 sources.update(
                     _visibility_sources(card.get("visibility"), card.get("source"))
                 )
+                graph_source = (card.get("graph") or {}).get("source")
+                if graph_source:
+                    sources.add(graph_source)
     return sources
 
 
@@ -606,7 +612,7 @@ def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str,
             if visible_cards:
                 row["cards"] = visible_cards
                 visible_rows.append(row)
-        page["rows"] = visible_rows or [
+        page["rows"] = visible_rows or ([{"cards": []}] if page.get("layout") == "free" else [
             {
                 "cards": [
                     {
@@ -616,7 +622,7 @@ def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str,
                     }
                 ]
             }
-        ]
+        ])
     return rendered
 
 
@@ -694,6 +700,7 @@ class MiniDisplayDashboardManager:
         self._unsubscribe_states: Callable[[], None] | None = None
         self._cancel_batch: Callable[[], None] | None = None
         self._cancel_preview: Callable[[], None] | None = None
+        self._cancel_heartbeat: Callable[[], None] | None = None
         self._pending_sources: set[str] = set()
         self._flush_in_progress = False
         self._resync_in_progress = False
@@ -977,11 +984,10 @@ class MiniDisplayDashboardManager:
         """Upload one dashboard and its current entity values."""
         rendered = render_dashboard(dashboard, self.hass)
         sources = extract_sources(rendered)
-        if sources:
-            values = {
-                entity_id: serialize_state(self.hass.states.get(entity_id))
-                for entity_id in sources
-            }
+        values = {entity_id: serialize_state(self.hass.states.get(entity_id)) for entity_id in sources}
+        if len(values) > 32:
+            raise DashboardValidationError("Dashboard exceeds 32 display data sources")
+        if values:
             await self.client.async_patch_values(values, render=False)
         await self.assets.async_sync(extract_assets(rendered))
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
@@ -1048,6 +1054,9 @@ class MiniDisplayDashboardManager:
             self._resync_in_progress = False
 
     def _replace_subscriptions(self) -> None:
+        if self._cancel_heartbeat is not None:
+            self._cancel_heartbeat()
+            self._cancel_heartbeat = None
         if self._unsubscribe_states is not None:
             self._unsubscribe_states()
             self._unsubscribe_states = None
@@ -1064,6 +1073,21 @@ class MiniDisplayDashboardManager:
             self._unsubscribe_states = async_track_state_change_event(
                 self.hass, self.sources, self._state_changed
             )
+            if shown_dashboard and any(card.get("graph") is not None
+                for page in shown_dashboard["pages"] for row in page["rows"] for card in row["cards"]):
+                self._cancel_heartbeat = async_call_later(self.hass, 60, self._graph_heartbeat)
+
+    async def _graph_heartbeat(self, _now: datetime) -> None:
+        self._cancel_heartbeat = None
+        if not self.data_forwarding_enabled:
+            return
+        try:
+            await self.async_send_snapshot()
+        except MiniDisplayApiError:
+            _LOGGER.debug("Graph heartbeat delayed; display unavailable")
+        finally:
+            if self.data_forwarding_enabled:
+                self._cancel_heartbeat = async_call_later(self.hass, 60, self._graph_heartbeat)
 
     @callback
     def _state_changed(self, event: Event) -> None:
@@ -1112,6 +1136,9 @@ class MiniDisplayDashboardManager:
                 )
 
     def close(self) -> None:
+        self.data_forwarding_enabled = False
+        if self._cancel_heartbeat is not None:
+            self._cancel_heartbeat()
         if self._unsubscribe_states is not None:
             self._unsubscribe_states()
         if self._cancel_batch is not None:

@@ -257,6 +257,10 @@ class MiniDisplayClient:
         """Return image assets stored by the display."""
         return await self._request("GET", "/assets")
 
+    async def async_get_data(self) -> dict[str, Any]:
+        """Return current values and bounded history retained by the display."""
+        return await self._request("GET", "/data")
+
     async def async_put_asset(self, asset_id: str, content: bytes) -> None:
         """Atomically upload one display-ready image asset."""
         chunk_size = 4096

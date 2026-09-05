@@ -76,6 +76,33 @@ Diagnostic entities report network addressing, DHCP/static mode, DNS, Wi-Fi,
 NTP, memory health, reconnects, reset reason, dashboard size, and whether each
 local protection mechanism is configured. Password values are never exposed.
 
+## Display data API
+
+`GET /api/v1/data` returns all entity values currently retained by the device
+and its chart history. It uses the same panel/API authentication as other
+dashboard endpoints. It does not return configuration, passwords, font files,
+or image files. A request is read-only: it neither requests fresh values from
+Home Assistant nor clears existing data.
+
+- `values`: entity IDs mapped to their stored `state` and `available` flag.
+  This includes values from earlier updates, not only the latest PATCH.
+- `series`: histories with `source`, `intervalSeconds`, `points`,
+  `aggregation` (`mean`, `min`, `max`, `last`), `bucket` and `values`.
+  Values run from oldest to newest; the last value is the current, incomplete
+  bucket. Its UTC start time is `bucket * intervalSeconds` (Unix seconds).
+  Missing samples are `null`, not zero. A zero bucket means no synchronized
+  clock sample has been collected yet.
+
+The response is streamed in bounded chunks rather than buffered in full.
+`PATCH /api/v1/data` continues to accept entity updates.
+`GET /api/v1/data/latest` remains the diagnostic capture of the last update
+payload; it is not the full retained state. Current entity values live in RAM;
+after reboot they need a new update from Home Assistant. Chart history is
+restored from its most recent on-device checkpoint.
+
+Run `make test-native` for data serialization and history aggregation tests
+without flashing a device.
+
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted
 - `geekmagic_smalltv_cs15` — CS GPIO15, RGB, not inverted

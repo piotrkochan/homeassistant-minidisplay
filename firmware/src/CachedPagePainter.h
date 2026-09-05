@@ -14,13 +14,14 @@ template <typename Canvas>
 void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
                           int16_t offsetX, int16_t offsetY, int16_t clipX,
                           int16_t clipY, int16_t clipWidth,
-                          int16_t clipHeight, FontRenderState &fontState) {
+                          int16_t clipHeight, FontRenderState &fontState,
+                          uint8_t firstText = 0, uint8_t endText = 255) {
   const int16_t clipRight = clipX + clipWidth;
   const int16_t clipBottom = clipY + clipHeight;
   uint64_t paintedTexts = 0;
   while (true) {
     int8_t first = -1;
-    for (uint8_t index = 0; index < page.textCount; ++index) {
+    for (uint8_t index = firstText; index < min(page.textCount, endText); ++index) {
       if ((paintedTexts & (1ULL << index)) != 0) continue;
       const CachedText &text = page.texts[index];
       const int16_t boundsX = text.boundsX + offsetX;
@@ -40,7 +41,7 @@ void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
         RenderFont{fontText.font, fontText.userFontSlot, fontText.userFontSize,
                    fontText.smoothFont},
         fontState);
-    for (uint8_t index = first; index < page.textCount; ++index) {
+    for (uint8_t index = first; index < min(page.textCount, endText); ++index) {
       if ((paintedTexts & (1ULL << index)) != 0) continue;
       const CachedText &text = page.texts[index];
       if (!sameCachedFont(fontText, text)) continue;
@@ -102,8 +103,14 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     drawImageAsset(canvas, card.image, x, y, card.width, card.height,
                    card.imageFit, clipX, clipY, clipWidth, clipHeight,
                    imageCache);
+    paintGraph(canvas, card.graph, x + 2, y + 2, card.width - 4, card.height - 4,
+               clipX, clipY, clipWidth, clipHeight);
+    if (paintTexts && page.freeLayout) {
+      paintCachedPageTexts(canvas, page, offsetX, offsetY, clipX, clipY,
+                           clipWidth, clipHeight, fontState, card.textStart, card.textEnd);
+    }
   }
-  if (paintTexts) {
+  if (paintTexts && !page.freeLayout) {
     paintCachedPageTexts(canvas, page, offsetX, offsetY, clipX, clipY,
                          clipWidth, clipHeight, fontState);
   }

@@ -26,6 +26,9 @@
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
 #include "ImageAssets.h"
+#include "GraphHistory.h"
+#include "DisplayDataResponse.h"
+#include "CachedPagePainter.h"
 #include "ImageAssetApi.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
@@ -217,6 +220,7 @@ DashboardPage dashboardPages[kMaxPages]{};
 uint8_t dashboardPageCount = 0;
 
 struct DashboardValue {
+  char *source;
   uint32_t sourceHash;
   uint32_t sourceCheck;
   char state[49];
@@ -858,13 +862,20 @@ DashboardValue *findValue(const char *source, bool create) {
   fingerprintSource(source, sourceHash, sourceCheck);
   for (uint8_t index = 0; index < dashboardValueCount; ++index) {
     if (dashboardValues[index].sourceHash == sourceHash &&
-        dashboardValues[index].sourceCheck == sourceCheck) {
+        dashboardValues[index].sourceCheck == sourceCheck &&
+        strcmp(dashboardValues[index].source, source) == 0) {
       return &dashboardValues[index];
     }
   }
   if (!create || dashboardValueCount >= kMaxValues) return nullptr;
+  const size_t length = strlen(source);
+  if (length > 64) return nullptr;
+  char *name = static_cast<char *>(malloc(length + 1));
+  if (!name) return nullptr;
+  memcpy(name, source, length + 1);
   DashboardValue *slot = &dashboardValues[dashboardValueCount++];
   memset(slot, 0, sizeof(*slot));
+  slot->source = name;
   slot->sourceHash = sourceHash;
   slot->sourceCheck = sourceCheck;
   return slot;
@@ -1602,6 +1613,21 @@ bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
                    parseTextEffect(style));
 }
 
+CachedGraph cachedGraph(JsonObjectConst card) {
+  CachedGraph result;
+  result.series = graphHistory.find(card);
+  JsonObjectConst graph = card["graph"];
+  result.minimum = graph["minimum"] | NAN;
+  result.maximum = graph["maximum"] | NAN;
+  result.color = parseColor(graph["color"], TFT_CYAN);
+  result.opacity = graph["opacity"] | 50;
+  result.line = strcmp(graph["type"] | "bar", "line") == 0;
+  result.labels = graph["showValues"] | false;
+  result.labelEvery = graph["labelEvery"] | 6;
+  result.decimals = graph["decimals"] | 1;
+  return result;
+}
+
 bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
                int16_t width, int16_t height, bool forceTransparent = false) {
   if (page.cardCount >= kMaxPageCards) return false;
@@ -1621,6 +1647,9 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   const uint16_t foreground = parseColor(foregroundValue, TFT_WHITE);
 
   CachedCard &cachedCard = page.cards[page.cardCount++];
+  cachedCard.graph = cachedGraph(card);
+  cachedCard.textStart = page.textCount;
+  cachedCard.textEnd = page.textCount;
   cachedCard.x = x;
   cachedCard.y = y;
   cachedCard.width = width;
@@ -1641,7 +1670,7 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
                                 ? card["backgroundImage"] | ""
                                 : "";
   strlcpy(cachedCard.image, image, sizeof(cachedCard.image));
-  if (strcmp(cardType, "image") == 0) return true;
+  if (strcmp(cardType, "image") == 0 || strcmp(cardType, "chart") == 0) return true;
 
   const char *title = card["title"];
   const char *progressType = card["progress"] | "none";
@@ -1680,6 +1709,7 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
     }
   }
 
+  cachedCard.textEnd = page.textCount;
   if (bar || ring) {
     const float ratio = progressRatio(card, sourceValue);
     CachedProgress &progress = page.progress[page.progressCount++];
@@ -1795,6 +1825,18 @@ bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
           sizeof(page.backgroundImage));
   page.transparentCards = source["transparentCards"] | false;
   JsonArrayConst rows = source["rows"].as<JsonArrayConst>();
+  page.freeLayout = strcmp(source["layout"] | "rows", "free") == 0;
+  if (page.freeLayout) {
+    for (JsonObjectConst row : rows) for (JsonObjectConst card : row["cards"].as<JsonArrayConst>()) {
+      JsonObjectConst frame = card["frame"];
+      const int16_t x = lroundf((frame["x"] | 0.0F) * 2.4F);
+      const int16_t y = lroundf((frame["y"] | 0.0F) * 2.4F);
+      const int16_t width = min<int16_t>(240 - x, lroundf((frame["width"] | 50.0F) * 2.4F));
+      const int16_t height = min<int16_t>(240 - y, lroundf((frame["height"] | 25.0F) * 2.4F));
+      if (!cacheCard(page, card, x, y, width, height, page.transparentCards)) return false;
+    }
+    return true;
+  }
   const PageContentLayout layout = pageContentLayout(source);
   const char *pageTitle = source["title"];
   JsonVariantConst titleStyle = source["titleStyle"];
@@ -2035,6 +2077,8 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   }
   File file = LittleFS.open(kDashboardPath, "r");
   if (!file) return false;
+  std::unique_ptr<CachedPage> cached;
+  {
   DynamicJsonDocument document(12288);
   recordFreeHeap();
   const auto error = deserializeJson(document, file);
@@ -2042,11 +2086,43 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   if (error) return false;
   JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
   if (activePageIndex >= pages.size()) return false;
-  return drawDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
+  JsonObjectConst page = pages[activePageIndex];
+  bool composited = strcmp(page["layout"] | "rows", "free") == 0;
+  for (JsonObjectConst row : page["rows"].as<JsonArrayConst>())
+    for (JsonObjectConst card : row["cards"].as<JsonArrayConst>())
+      composited |= !card["graph"].isNull();
+  if (!composited) return drawDashboardPage(page,
                            changedValues, pixelShiftX, pixelShiftY, clear);
+  cached.reset(new (std::nothrow) CachedPage());
+  if (!cached || !cacheDashboardPage(page, *cached)) return false;
+  }
+  resetMarqueeTitles();
+#if defined(ESP8266)
+  if (display.fontLoaded) display.unloadFont();
+  displayFontState = FontRenderState{};
+  TFT_eSprite band(&display);
+  band.setColorDepth(16);
+  band.setTextWrap(false, false);
+  if (band.createSprite(240, 8)) {
+    FontRenderState font;
+    ImageAssetRenderCache images;
+    for (int16_t y = 0; y < 240; y += 8) {
+      band.fillSprite(cached->background);
+      paintCachedPage(band, *cached, pixelShiftX, pixelShiftY - y, 0, 0, 240, 8, font, &images);
+      band.pushSprite(0, y);
+      yield();
+    }
+    if (band.fontLoaded) band.unloadFont();
+    band.deleteSprite();
+    return true;
+  }
+#endif
+  paintCachedPage(display, *cached, pixelShiftX, pixelShiftY, 0, 0, 240, 240, displayFontState);
+  return true;
 }
 
 void registerDashboardMarquees(JsonObjectConst page) {
+  if (strcmp(page["layout"] | "rows", "free") == 0) return;
   resetMarqueeTitles();
   JsonArrayConst rows = page["rows"].as<JsonArrayConst>();
   if (rows.size() == 0) return;
@@ -2188,18 +2264,21 @@ void showPageWithTransition(uint8_t nextPageIndex) {
 }
 
 bool loadDashboardMetadata(Stream &stream) {
-  StaticJsonDocument<512> filter;
+  StaticJsonDocument<768> filter;
   filter["version"] = true;
   filter["pages"][0]["id"] = true;
   filter["pages"][0]["durationSeconds"] = true;
   filter["pages"][0]["transition"] = true;
   filter["pages"][0]["backgroundImage"] = true;
+  filter["pages"][0]["layout"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["type"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["source"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["showSeconds"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["image"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["backgroundImage"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["imageFit"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["frame"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["graph"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
   filter["transition"] = true;
 
@@ -2216,6 +2295,7 @@ bool loadDashboardMetadata(Stream &stream) {
       document["defaults"]["pageDurationSeconds"] | 10;
   JsonArray pages = document["pages"].as<JsonArray>();
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
+  if (!graphHistory.validate(pages)) return false;
 
   PageTransitionConfig legacyTransition;
   if (!PageTransitionRenderer::parse(document["transition"], legacyTransition)) {
@@ -2234,6 +2314,10 @@ bool loadDashboardMetadata(Stream &stream) {
       return false;
     }
     JsonArray rows = page["rows"].as<JsonArray>();
+    const char *layout = page["layout"] | "rows";
+    if (strcmp(layout, "free") && strcmp(layout, "rows")) return false;
+    const bool freeLayout = strcmp(layout, "free") == 0;
+    uint8_t cardCount = 0;
     const char *pageImage = page["backgroundImage"] | "";
     if (pageImage[0] &&
         (!validImageAssetId(String(pageImage)) ||
@@ -2241,13 +2325,25 @@ bool loadDashboardMetadata(Stream &stream) {
     if (rows.size() == 0 || rows.size() > 6) return false;
     for (JsonObject row : rows) {
       JsonArray cards = row["cards"].as<JsonArray>();
-      if (cards.size() == 0 || cards.size() > 3) return false;
+      if ((!freeLayout && cards.size() == 0) || cards.size() > (freeLayout ? kMaxPageCards : 3)) return false;
+      cardCount += cards.size();
+      if (cardCount > kMaxPageCards) return false;
       for (JsonObject card : cards) {
+        if (freeLayout) {
+          JsonObject frame = card["frame"];
+          if (frame.isNull()) return false;
+          for (const char *key : {"x", "y", "width", "height"})
+            if (!frame[key].is<float>() || !std::isfinite(frame[key].as<float>())) return false;
+          if (frame["x"].as<float>() < 0 || frame["y"].as<float>() < 0 ||
+              frame["width"].as<float>() < 2 || frame["height"].as<float>() < 2 ||
+              frame["x"].as<float>() + frame["width"].as<float>() > 100.01F ||
+              frame["y"].as<float>() + frame["height"].as<float>() > 100.01F) return false;
+        }
         const char *type = card["type"];
         if (type == nullptr ||
             (strcmp(type, "clock") != 0 && strcmp(type, "number") != 0 &&
              strcmp(type, "status") != 0 && strcmp(type, "text") != 0 &&
-             strcmp(type, "image") != 0)) {
+             strcmp(type, "image") != 0 && strcmp(type, "chart") != 0)) {
           return false;
         }
         const bool needsSource = strcmp(type, "number") == 0 ||
@@ -2271,6 +2367,11 @@ bool loadDashboardMetadata(Stream &stream) {
     ++count;
   }
 
+  if (!graphHistory.configure(pages)) return false;
+  for (uint8_t index = 0; index < dashboardValueCount; ++index) {
+    const auto &value = dashboardValues[index];
+    graphHistory.receive(value.source, value.state, value.available);
+  }
   count = 0;
   for (JsonObject page : pages) {
     DashboardPage &parsed = dashboardPages[count++];
@@ -2439,6 +2540,8 @@ void sendApiStatus() {
   document["setupMode"] = accessPointRunning;
   document["dashboardPageCount"] = dashboardPageCount;
   document["trackedValueCount"] = dashboardValueCount;
+  document["graphHistoryBytes"] = graphHistory.bytes();
+  document["graphStorageError"] = graphHistory.storageError();
   document["page"] = dashboardPageCount ? dashboardPages[activePageIndex].id : "";
   document["rotation"] = pageRotationAuto ? "auto" : "manual";
   document["bootId"] = bootId;
@@ -2560,6 +2663,7 @@ void receiveApiData() {
     const char *state = value["state"] | "unknown";
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = value["available"] | false;
+    graphHistory.receive(pair.key().c_str(), state, slot->available);
     changedValueMask |= 1UL << (slot - dashboardValues);
   }
   if (document["render"] | true) {
@@ -2592,6 +2696,19 @@ void sendApiLatestData() {
   }
   server.sendHeader("Cache-Control", "no-store");
   server.send(200, "application/json", diagnosticsLastData);
+}
+
+void sendApiData() {
+  if (!apiAuthenticated()) return;
+  server.sendHeader("Cache-Control", "no-store");
+  server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  server.send(200, "application/json", "");
+  auto sendChunk = [](const char *bytes, size_t length) {
+    server.sendContent(bytes, length);
+    yield();
+  };
+  writeDisplayData(sendChunk, dashboardValues, dashboardValueCount, graphHistory);
+  server.sendContent("");
 }
 
 void sendApiScreenshot() {
@@ -2852,6 +2969,7 @@ void receiveApiPage() {
 
 void receiveApiRestart() {
   if (!apiAuthenticated()) return;
+  graphHistory.checkpoint(true);
   server.send(204);
   delay(100);
   ESP.restart();
@@ -3380,6 +3498,7 @@ void configureRoutes() {
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
   imageAssetApi.begin();
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
+  server.on("/api/v1/data", HTTP_GET, sendApiData);
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/screenshot", HTTP_GET, sendApiScreenshot);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
@@ -3759,6 +3878,7 @@ void loop() {
     applyBacklight();
   }
 
+  if (graphHistory.tick()) pendingChangedValues = UINT32_MAX;
   if (fullRenderPending &&
       static_cast<int32_t>(millis() - fullRenderNotBefore) >= 0) {
     fullRenderPending = false;

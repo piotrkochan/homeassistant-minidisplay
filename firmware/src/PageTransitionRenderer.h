@@ -6,6 +6,7 @@
 #include "DisplayCompat.h"
 #include "TextEffect.h"
 #include "ImageAssets.h"
+#include "GraphPainter.h"
 
 struct FontRenderState;
 
@@ -48,6 +49,9 @@ static_assert(static_cast<uint8_t>(PageTransitionSpeed::Normal) == 0 &&
               "Zero-initialized transition config must use defaults");
 
 struct CachedCard {
+  CachedGraph graph;
+  uint8_t textStart;
+  uint8_t textEnd;
   uint16_t background;
   uint8_t x;
   uint8_t y;
@@ -96,6 +100,7 @@ struct CachedArea {
 };
 
 struct CachedPage {
+  bool freeLayout;
   uint16_t background;
   char backgroundImage[kImageAssetIdLength + 1];
   bool transparentCards;

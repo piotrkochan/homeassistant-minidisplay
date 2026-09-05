@@ -1,6 +1,8 @@
 import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
-import type { Dashboard, Hass, ImageAsset, Style } from "./types";
+import type { Dashboard, DisplayCard, Hass, ImageAsset, Style } from "./types";
+import type { HistorySeries } from "./graph-preview";
+import "./graph-preview";
 import { mapCardColors, mapCardValue } from "./types";
 import { visibilityMatches } from "./visibility";
 import { displayColors } from "./color-field";
@@ -40,8 +42,18 @@ export class MiniDisplayPreview extends LitElement {
     cardElement?: HTMLElement;
   };
   private suppressClickUntil = 0;
+  @state() private historySeries: HistorySeries[] = [];
+  @state() private freeDrag?: {row:number;card:number;pointerId:number;startX:number;startY:number;resize:boolean;moved:boolean;start:NonNullable<DisplayCard["frame"]>;frame:NonNullable<DisplayCard["frame"]>};
+  private historyPending = false;
+  private historyFetched = 0;
 
   static styles = css`
+    .free-layout .group,.free-layout .row{display:contents}
+    .free-layout .card {position:absolute; margin:0; cursor:move; touch-action:none}
+    .free-layout .card:focus {outline:2px solid var(--primary-color,#03a9f4);outline-offset:-2px}
+    .free-layout .card.moving {outline:2px dashed #03a9f4;outline-offset:-2px;opacity:.8}
+    .resize-handle {position:absolute;right:0;bottom:0;width:18px;height:18px;z-index:10;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,#03a9f4 50%);border:0;opacity:0}
+    .card:hover .resize-handle,.card:focus-within .resize-handle,.card.moving .resize-handle{opacity:1}
     :host {
       display: block;
       width: 240px;
@@ -417,6 +429,7 @@ export class MiniDisplayPreview extends LitElement {
     window.addEventListener("pointercancel", this.pointerCancel, true);
     this.clockTimer = window.setInterval(() => {
       this.now = new Date();
+      if (Date.now()-this.historyFetched>30000) void this.fetchData();
       const pages = this.dashboard?.pages ?? [];
       const duration = (pages[this.autoPage]?.durationSeconds ?? 10) * 1000;
       if (
@@ -467,6 +480,18 @@ export class MiniDisplayPreview extends LitElement {
 
   private readonly pointerDown = (event: PointerEvent) => {
     if (!this.interactive) return;
+    const freePage=this.dashboard?.pages[this.page];
+    if(freePage?.layout==='free') {
+      const elements=event.composedPath().filter((item):item is HTMLElement=>item instanceof HTMLElement);
+      const element=elements.find(item=>item.classList.contains('card'));
+      if(!element || (event.pointerType==='mouse' && event.button!==0)) return;
+      const row=Number(element.dataset.row),card=Number(element.dataset.card);
+      const frame=freePage.rows[row]?.cards[card]?.frame;
+      if(!frame) return;
+      event.preventDefault();
+      this.freeDrag={row,card,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,resize:elements.some(item=>item.classList.contains('resize-handle')),moved:false,start:{...frame},frame:{...frame}};
+      return;
+    }
     const path = event
       .composedPath()
       .filter((item): item is HTMLElement => item instanceof HTMLElement);
@@ -552,6 +577,15 @@ export class MiniDisplayPreview extends LitElement {
   }
 
   private readonly pointerMove = (event: PointerEvent) => {
+    if(this.freeDrag?.pointerId===event.pointerId) {
+      const d=this.freeDrag,rect=this.shadowRoot!.querySelector('.screen')!.getBoundingClientRect();
+      const dx=(event.clientX-d.startX)*100/rect.width,dy=(event.clientY-d.startY)*100/rect.height;
+      if(!d.moved && Math.hypot(event.clientX-d.startX,event.clientY-d.startY)<4)return;
+      event.preventDefault();
+      const snap=(value:number)=>Math.round(value*2)/2;
+      const frame=d.resize ? {...d.start,width:Math.min(100-d.start.x,Math.max(2,snap(d.start.width+dx))),height:Math.min(100-d.start.y,Math.max(2,snap(d.start.height+dy)))} : {...d.start,x:Math.min(100-d.start.width,Math.max(0,snap(d.start.x+dx))),y:Math.min(100-d.start.height,Math.max(0,snap(d.start.y+dy)))};
+      this.freeDrag={...d,moved:true,frame};return;
+    }
     const candidate = this.pointerCandidate;
     if (!candidate || candidate.pointerId !== event.pointerId) return;
     const distance = Math.hypot(
@@ -614,6 +648,13 @@ export class MiniDisplayPreview extends LitElement {
   };
 
   private readonly pointerUp = (event: PointerEvent) => {
+    if(this.freeDrag?.pointerId===event.pointerId) {
+      const d=this.freeDrag;
+      this.freeDrag=undefined;
+      this.suppressClickUntil=Date.now()+350;
+      this.emit(d.moved?'preview-frame':'preview-select',d.moved?{row:d.row,card:d.card,frame:d.frame}:{row:d.row,card:d.card,kind:'card'});
+      return;
+    }
     const candidate = this.pointerCandidate;
     if (!candidate || candidate.pointerId !== event.pointerId) return;
     if (this.dragging) {
@@ -655,6 +696,7 @@ export class MiniDisplayPreview extends LitElement {
   };
 
   private readonly pointerCancel = (event: PointerEvent) => {
+    if (this.freeDrag?.pointerId === event.pointerId) this.freeDrag = undefined;
     if (this.pointerCandidate?.pointerId === event.pointerId) this.stopDrag();
   };
 
@@ -712,7 +754,7 @@ export class MiniDisplayPreview extends LitElement {
   private cardValue(
     card: Dashboard["pages"][number]["rows"][number]["cards"][number],
   ) {
-    if (card.type === "image") return "";
+    if (card.type === "image" || card.type === "chart") return "";
     if (card.type === "clock")
       return this.now.toLocaleTimeString([], {
         hour: "2-digit",
@@ -854,6 +896,18 @@ export class MiniDisplayPreview extends LitElement {
     return `text-shadow:${shadows.join(",")}`;
   }
 
+  private async fetchData() {
+    if(!this.hass || !this.displayId || this.historyPending) return;
+    this.historyFetched=Date.now();
+    if(!this.dashboard?.pages.some(page=>page.rows.some(row=>row.cards.some(card=>card.graph))))return;
+    this.historyPending=true;
+    try {
+      const response=await this.hass.callWS<{series:HistorySeries[]}>({type:'mini_display/data',config_entry_id:this.displayId});
+      if(this.isConnected)this.historySeries=response.series;
+    } catch { /* Retain the last successful history while the display reconnects. */ }
+    finally {this.historyPending=false;}
+  }
+
   render() {
     const page =
       this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
@@ -862,6 +916,7 @@ export class MiniDisplayPreview extends LitElement {
       return html`<div class="screen-frame" style=${screenStyle}>
         <div class="screen loading" aria-label="Loading display preview"></div>
       </div>`;
+    const free=page.layout==='free';
     const rows = page.rows
       .map((row, rowIndex) => {
         const rowVisible = visibilityMatches(this.hass, row.visibility);
@@ -877,13 +932,13 @@ export class MiniDisplayPreview extends LitElement {
         return { row, rowIndex, hidden: !rowVisible, cards };
       })
       .filter(({ cards }) => cards.length > 0);
-    if (rows.length === 0)
+    if (rows.length === 0 && !free)
       return html`<div class="screen-frame" style=${screenStyle}>
         <div class="screen">
           <div class="card"><div class="value">No visible content</div></div>
         </div>
       </div>`;
-    const showPageTitle = Boolean(page.title && page.showTitle !== false);
+    const showPageTitle = !free && Boolean(page.title && page.showTitle !== false);
     const titlePosition = page.titlePosition ?? "top";
     const pageBackgroundValue = page.style?.background ?? "";
     const pageBackground =
@@ -959,7 +1014,7 @@ export class MiniDisplayPreview extends LitElement {
               </div>`
             : null
         }${this.pageDropzones()}
-        <div class="page-content" style=${contentStyle}>
+        <div class="page-content ${free?'free-layout':''}" style=${free?'inset:0':contentStyle}>
           ${rows.map(({ row, rowIndex, hidden: rowHidden, cards }) => {
             const rowHeight =
               (availableRowsHeight * (row.weight ?? 1)) / totalWeight;
@@ -995,6 +1050,10 @@ export class MiniDisplayPreview extends LitElement {
                 style="grid-template-columns:repeat(${cards.length},minmax(0,1fr))"
               >
                 ${cards.map(({ card, cardIndex, hidden }) => {
+                  const moving=this.freeDrag?.row===rowIndex && this.freeDrag.card===cardIndex;
+                  const frame=moving?this.freeDrag!.frame:card.frame;
+                  const cardWidth=free?(frame?.width??50)*this.width/100:(contentWidth-4*Math.max(0,cards.length-1))/cards.length;
+                  const cardHeight=free?(frame?.height??25)*this.height/100:rowHeight-(row.title && row.showTitle!==false && rowHeight>=24?17:0);
                   const raw = card.source
                     ? (this.hass?.states[card.source]?.state ?? "—")
                     : (card.text ?? "—");
@@ -1161,8 +1220,17 @@ export class MiniDisplayPreview extends LitElement {
                     ${displayValue}
                   </div>`;
                   return html`<div
-                    class="card ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
-                    style=${`${page.transparentCards || backgroundMode === "transparent" ? "background:transparent" : `background-color:${background}`};${!page.transparentCards && cardImage ? `background-image:url(${cardImage});background-size:${card.imageFit === "contain" ? "contain" : card.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${foreground}`}
+                    class="card ${moving?'moving':''} ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
+                    data-row=${rowIndex} data-card=${cardIndex}
+                    tabindex=${free && this.interactive ? 0 : -1}
+                    aria-label=${card.title || card.text || card.source || 'Item'}
+                    @keydown=${(event: KeyboardEvent)=>{
+                      if(!free || !frame || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+                      event.preventDefault();
+                      const step=event.shiftKey?5:.5;
+                      this.emit('preview-frame',{row:rowIndex,card:cardIndex,frame:{...frame,x:Math.max(0,Math.min(100-frame.width,frame.x+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0))),y:Math.max(0,Math.min(100-frame.height,frame.y+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0)))}});
+                    }}
+                    style=${`${free && frame?`left:${frame.x}%;top:${frame.y}%;width:${frame.width}%;height:${frame.height}%;`:''}${page.transparentCards || backgroundMode === "transparent" ? "background:transparent" : `background-color:${background}`};${!page.transparentCards && cardImage ? `background-image:url(${cardImage});background-size:${card.imageFit === "contain" ? "contain" : card.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${foreground}`}
                     @click=${(event: Event) => {
                       event.stopPropagation();
                       this.emit("preview-select", {
@@ -1172,6 +1240,8 @@ export class MiniDisplayPreview extends LitElement {
                       });
                     }}
                   >
+                    ${card.graph?html`<mini-display-graph-preview .graph=${card.graph} .source=${card.source??''} .series=${this.historySeries} .width=${cardWidth} .height=${cardHeight}></mini-display-graph-preview>`:nothing}
+                    ${free && this.interactive?html`<button class="resize-handle" aria-label="Resize item" @click=${(event:Event)=>event.stopPropagation()}></button>`:nothing}
                     ${
                       card.title && card.showTitle !== false
                         ? html`<small
@@ -1195,7 +1265,7 @@ export class MiniDisplayPreview extends LitElement {
                           >`
                         : null
                     }${
-                      card.type === "image"
+                      card.type === "image" || card.type === "chart"
                         ? nothing
                         : card.progress === "ring"
                           ? html`<div class="ring-stack" style=${valueArea}>

@@ -24,6 +24,7 @@ import "./scene-sidebar";
 import "./visibility-dialog";
 import "./image-field";
 import "./image-manager";
+import "./graph-editor";
 
 @customElement("mini-display-editor")
 export class MiniDisplayEditor extends LitElement {
@@ -2268,6 +2269,7 @@ export class MiniDisplayEditor extends LitElement {
   private entity(card: DisplayCard) {
     const domains: Record<DisplayCard["type"], string[]> = {
       number: ["sensor", "number", "input_number", "counter"],
+      chart: ["sensor", "number", "input_number", "counter"],
       status: [
         "binary_sensor",
         "switch",
@@ -2863,16 +2865,19 @@ export class MiniDisplayEditor extends LitElement {
       status: "Maps a state entity to two readable labels.",
       clock: "Displays local time without using an entity.",
       image: "Displays an optimized image without an entity.",
+      chart: "Displays recorded values as a chart.",
     };
     const rulesCount =
       (card.visibility ? 1 : 0) +
       (card.valueMappings?.length ?? 0) +
       (card.colorMappings?.length ?? 0);
     const selectType = (input: DisplayCard["type"]) => {
+      const frame = card.frame;
       Object.keys(card).forEach(
         (key) => delete (card as unknown as Record<string, unknown>)[key],
       );
       Object.assign(card, newCard(input));
+      if (frame) card.frame = frame;
       this.changed();
     };
     return html`<section class="card-settings">
@@ -2892,9 +2897,9 @@ export class MiniDisplayEditor extends LitElement {
               Duplicate</button
             ><button
               class="danger"
-              ?disabled=${cards.length === 1}
+              ?disabled=${cards.length === 1 && this.dashboard!.pages[this.pageIndex].layout !== "free"}
               @click=${() => {
-                if (cards.length > 1) {
+                if (cards.length > 1 || this.dashboard!.pages[this.pageIndex].layout === "free") {
                   cards.splice(cardIndex, 1);
                   this.selected = undefined;
                   this.changed();
@@ -2947,6 +2952,7 @@ export class MiniDisplayEditor extends LitElement {
                     [
                       { value: "number", label: "Number", icon: "mdi:numeric" },
                       { value: "text", label: "Text", icon: "mdi:format-text" },
+                      { value: "chart", label: "Chart", icon: "mdi:chart-bar" },
                       {
                         value: "status",
                         label: "Status",
@@ -3026,7 +3032,7 @@ export class MiniDisplayEditor extends LitElement {
                     : nothing
                 }
                 ${
-                  ["number", "status", "text"].includes(card.type)
+                  ["number", "status", "text", "chart"].includes(card.type)
                     ? html`<section class="settings-group">
                         <div class="settings-heading">
                           <ha-icon icon="mdi:database-outline"></ha-icon>
@@ -3116,6 +3122,9 @@ export class MiniDisplayEditor extends LitElement {
                       </section>`
                     : nothing
                 }
+                <section class="settings-group"><mini-display-graph-editor .card=${card} .hass=${this.hass}
+                  @graph-changed=${(event: CustomEvent) => {card.graph = event.detail; this.changed();}}
+                ></mini-display-graph-editor></section>
               `
             : this.cardSection === "appearance"
               ? html`<section class="settings-group">
@@ -3281,6 +3290,53 @@ export class MiniDisplayEditor extends LitElement {
         }
       </nav>
       ${this.selected?.row === rowIndex ? this.cardSettings(row.cards[this.selected.card], rowIndex, this.selected.card) : nothing}
+    </section>`;
+  }
+
+  private setLayout(mode: "rows" | "free") {
+    const page = this.dashboard!.pages[this.pageIndex];
+    if (mode === "free") {
+      page.rows.forEach((row, ri) => row.cards.forEach((card, ci) => {
+        card.frame ??= {x:ci*100/row.cards.length,y:ri*100/page.rows.length,width:100/row.cards.length,height:100/page.rows.length};
+      }));
+    } else {
+      const cards = page.rows.flatMap(row => row.cards);
+      page.rows = [];
+      for (let i=0;i<cards.length;i+=3) page.rows.push({weight:1,gap:"small",cards:cards.slice(i,i+3)});
+      if (!page.rows.length) page.rows = [newRow()];
+    }
+    page.layout = mode;
+    this.selected = undefined;
+    this.changed();
+  }
+
+  private freeEditor(page: Dashboard["pages"][number]) {
+    const items = page.rows.flatMap((row, ri) => row.cards.map((card, ci) => ({card,ri,ci})));
+    const selected = this.selected && page.rows[this.selected.row]?.cards[this.selected.card];
+    const add = (type: DisplayCard["type"]) => {
+      if (items.length >= 18) { this.syncState="error"; this.syncMessage="This display supports up to 18 items per page"; return; }
+      const card = newCard(type);
+      card.frame={x:5,y:5,width:50,height:30};
+      card.backgroundMode="transparent";
+      page.rows[0].cards.push(card);
+      this.selected={row:0,card:page.rows[0].cards.length-1};
+      this.changed();
+    };
+    const move = (delta: number) => {
+      if (!selected) return;
+      const cards=items.map(item=>item.card);
+      const from=cards.indexOf(selected), to=from+delta;
+      if (to<0 || to>=cards.length) return;
+      cards.splice(to,0,cards.splice(from,1)[0]);
+      page.rows=[{cards}]; this.selected={row:0,card:to}; this.changed();
+    };
+    return html`<section class="row-panel">
+      <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
+      <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${card.title || card.text || card.source || html`<em>Unnamed card</em>`}</button>`)}</nav>
+      ${selected?.frame ? html`<div class="grid compact-grid">${(["x","y","width","height"] as const).map(key=>this.numberField(key.toUpperCase()+" (%)",selected.frame![key],0,key==="x"||key==="y"?0:2,100,input=>{
+        const frame=selected.frame!; frame[key]=input; frame.x=Math.min(frame.x,100-frame.width); frame.y=Math.min(frame.y,100-frame.height); this.changed();
+      }))}</div><div class="tabs"><button class="tab" @click=${()=>move(-1)}>Send backward</button><button class="tab" @click=${()=>move(1)}>Bring forward</button></div>` : nothing}
+      ${selected && this.selected ? this.cardSettings(selected,this.selected.row,this.selected.card):nothing}
     </section>`;
   }
 
@@ -3549,11 +3605,12 @@ export class MiniDisplayEditor extends LitElement {
                     </div>
                   </details>
                   ${this.transitionEditor(page)}
+                  ${this.segmented("Layout",page.layout ?? "rows",[{value:"rows",label:"Rows",icon:"mdi:view-agenda-outline"},{value:"free",label:"Free layout",icon:"mdi:vector-square"}], value=>this.setLayout(value as "rows"|"free"))}
                   <div class="rows">
-                    ${page.rows.map((row, index) => this.rowEditor(row, index))}
+                    ${page.layout === "free" ? this.freeEditor(page) : page.rows.map((row, index) => this.rowEditor(row, index))}
                   </div>
                   ${
-                    page.rows.length < 6
+                    page.layout !== "free" && page.rows.length < 6
                       ? html`<button
                           class="add-button"
                           @click=${() => {
@@ -3666,6 +3723,16 @@ export class MiniDisplayEditor extends LitElement {
                   .selectedSceneId=${this.selectedSceneId}
                   .selectedSceneName=${this.selectedScene?.name ?? ""}
                   .assets=${this.assets}
+                  @preview-frame=${(event: CustomEvent) => {
+                    const d=event.detail;
+                    const card=this.dashboards[d.displayId]?.pages[d.page]?.rows[d.row]?.cards[d.card];
+                    if (!card) return;
+                    card.frame=d.frame;
+                    this.selectedDisplayId=d.displayId;
+                    this.pageIndex=d.page;
+                    this.selected={row:d.row,card:d.card};
+                    this.changed();
+                  }}
                   @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
                   @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
                   @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}

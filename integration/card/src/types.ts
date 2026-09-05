@@ -108,7 +108,9 @@ export type TextColorMapping = {
 };
 
 export type DisplayCard = {
-  type: "clock" | "number" | "status" | "text" | "image";
+  type: "clock" | "number" | "status" | "text" | "image" | "chart";
+  frame?: { x: number; y: number; width: number; height: number };
+  graph?: Graph;
   title?: string;
   showTitle?: boolean;
   source?: string;
@@ -145,6 +147,7 @@ export type DisplayRow = {
   visibility?: Visibility;
 };
 export type DisplayPage = {
+  layout?: "rows" | "free";
   id: string;
   title?: string;
   showTitle?: boolean;
@@ -187,6 +190,7 @@ export type ImageAsset = {
 };
 
 export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
+  if (type === "chart") return { type, source: "", graph: newGraph() };
   if (type === "clock") return { type, format: "24h", showDate: true };
   if (type === "image")
     return { type, image: "", imageFit: "cover", showTitle: false };
@@ -195,6 +199,22 @@ export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
     return { type, source: "", onText: "On", offText: "Off" };
   return { type, source: "", progress: "none" };
 };
+
+export type Graph = {
+  source?: string;
+  type?: "bar" | "line";
+  points?: number;
+  intervalSeconds?: number;
+  aggregation?: "mean" | "min" | "max" | "last";
+  color?: string;
+  opacity?: number;
+  showValues?: boolean;
+  labelEvery?: number;
+  decimals?: number;
+  minimum?: number;
+  maximum?: number;
+};
+export const newGraph = (): Graph => ({ type: "bar", points: 48, intervalSeconds: 300, aggregation: "mean", color: "accent", opacity: 50, labelEvery: 6, decimals: 1 });
 export const newRow = (): DisplayRow => ({
   weight: 1,
   gap: "small",
