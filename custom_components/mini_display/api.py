@@ -33,6 +33,14 @@ class MiniDisplayInvalidResponseError(MiniDisplayApiError):
     """The display returned an incompatible response."""
 
 
+class MiniDisplayRequestError(MiniDisplayApiError):
+    """The display rejected a valid HTTP request."""
+
+    def __init__(self, status: int, message: str) -> None:
+        super().__init__(message)
+        self.status = status
+
+
 @dataclass(frozen=True, slots=True)
 class DeviceInfo:
     """Stable identity and capabilities returned by a display."""
@@ -105,6 +113,8 @@ class MiniDisplayClient:
         transport: tuple[bool, int],
         *,
         json: dict[str, Any] | None,
+        data: bytes | None,
+        headers: dict[str, str] | None,
         expect_json: bool,
     ) -> dict[str, Any]:
         use_ssl, port = transport
@@ -113,15 +123,24 @@ class MiniDisplayClient:
         async with self._session.request(
             method,
             f"{scheme}://{self._host}:{port}/api/v1{path}",
-            headers=self._headers,
+            headers={**self._headers, **(headers or {})},
             json=json,
+            data=data,
             timeout=self._timeout,
             ssl=ssl,
             allow_redirects=False,
         ) as response:
             if response.status in (401, 403):
                 raise MiniDisplayAuthError("Display rejected API credentials")
-            response.raise_for_status()
+            if response.status >= 400:
+                try:
+                    payload = await response.json(content_type=None)
+                    message = str(payload.get("message") or payload.get("error"))
+                except (ValueError, TypeError):
+                    message = await response.text()
+                raise MiniDisplayRequestError(
+                    response.status, message or f"Display returned HTTP {response.status}"
+                )
             self._active_transport = transport
             if not expect_json or response.status == 204:
                 return {}
@@ -136,6 +155,8 @@ class MiniDisplayClient:
         path: str,
         *,
         json: dict[str, Any] | None = None,
+        data: bytes | None = None,
+        headers: dict[str, str] | None = None,
         expect_json: bool = True,
     ) -> dict[str, Any]:
         async with self._request_lock:
@@ -147,6 +168,8 @@ class MiniDisplayClient:
                         path,
                         transport,
                         json=json,
+                        data=data,
+                        headers=headers,
                         expect_json=expect_json,
                     )
                 except MiniDisplayApiError:
@@ -228,4 +251,26 @@ class MiniDisplayClient:
             "/data",
             json={"values": values, "render": render},
             expect_json=False,
+        )
+
+    async def async_get_assets(self) -> dict[str, Any]:
+        """Return image assets stored by the display."""
+        return await self._request("GET", "/assets")
+
+    async def async_put_asset(self, asset_id: str, content: bytes) -> None:
+        """Atomically upload one display-ready image asset."""
+        chunk_size = 4096
+        for offset in range(0, len(content), chunk_size):
+            await self._request(
+                "PUT",
+                f"/assets?id={asset_id}&offset={offset}&total={len(content)}",
+                data=content[offset : offset + chunk_size],
+                headers={"Content-Type": "application/octet-stream"},
+                expect_json=False,
+            )
+
+    async def async_delete_asset(self, asset_id: str) -> None:
+        """Delete one image asset from the display."""
+        await self._request(
+            "DELETE", f"/assets?id={asset_id}", expect_json=False
         )

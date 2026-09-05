@@ -17,7 +17,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .api import MiniDisplayApiError, MiniDisplayClient
+from .api import MiniDisplayApiError, MiniDisplayClient, MiniDisplayRequestError
+from .assets import AssetValidationError
 from .const import (
     CONF_API_TOKEN,
     CONF_DATA_BATCH_INTERVAL,
@@ -65,6 +66,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_activate_scene)
     websocket_api.async_register_command(hass, websocket_start_scene_preview)
     websocket_api.async_register_command(hass, websocket_stop_scene_preview)
+    websocket_api.async_register_command(hass, websocket_list_assets)
+    websocket_api.async_register_command(hass, websocket_upload_asset)
+    websocket_api.async_register_command(hass, websocket_delete_asset)
     return True
 
 
@@ -348,6 +352,13 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
             msg["id"], "invalid_dashboard", f"{err.path}: {err}"
         )
         return
+    except MiniDisplayRequestError as err:
+        connection.send_error(
+            msg["id"],
+            "storage_full" if err.status == 507 else "display_rejected",
+            str(err),
+        )
+        return
     except MiniDisplayApiError:
         connection.send_error(
             msg["id"], "display_unavailable", "Mini-Display did not respond"
@@ -355,6 +366,78 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
         return
     async_dispatcher_send(hass, SIGNAL_SCENES_UPDATED)
     connection.send_result(msg["id"], {"accepted": True})
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/assets",
+        "config_entry_id": str,
+        vol.Optional("include_data", default=True): bool,
+    }
+)
+@websocket_api.async_response
+async def websocket_list_assets(hass, connection, msg) -> None:
+    """Return optimized image assets for one display."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    connection.send_result(
+        msg["id"],
+        runtime["dashboard"].assets.list(include_data=msg["include_data"]),
+    )
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/asset/upload",
+        "config_entry_id": str,
+        "asset_id": str,
+        "name": str,
+        "width": int,
+        "height": int,
+        "data": str,
+        "preview": str,
+    }
+)
+@websocket_api.async_response
+async def websocket_upload_asset(hass, connection, msg) -> None:
+    """Persist one image already optimized by the browser."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    try:
+        asset = await runtime["dashboard"].assets.async_put(
+            msg["asset_id"], msg["name"], msg["width"], msg["height"],
+            msg["data"], msg["preview"]
+        )
+    except AssetValidationError as err:
+        connection.send_error(msg["id"], "invalid_asset", str(err))
+        return
+    connection.send_result(msg["id"], asset)
+
+
+@websocket_api.websocket_command(
+    {
+        "type": "mini_display/asset/delete",
+        "config_entry_id": str,
+        "asset_id": str,
+    }
+)
+@websocket_api.async_response
+async def websocket_delete_asset(hass, connection, msg) -> None:
+    """Delete an image asset from HA and the display."""
+    runtime = hass.data.get(DOMAIN, {}).get(msg["config_entry_id"])
+    if runtime is None:
+        connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
+        return
+    try:
+        await runtime["dashboard"].assets.async_delete(msg["asset_id"])
+    except MiniDisplayApiError:
+        connection.send_error(msg["id"], "display_unavailable", "Mini-Display did not respond")
+        return
+    connection.send_result(msg["id"], {"deleted": True})
 
 
 @websocket_api.websocket_command(

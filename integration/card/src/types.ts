@@ -108,7 +108,7 @@ export type TextColorMapping = {
 };
 
 export type DisplayCard = {
-  type: "clock" | "number" | "status" | "text";
+  type: "clock" | "number" | "status" | "text" | "image";
   title?: string;
   showTitle?: boolean;
   source?: string;
@@ -128,6 +128,10 @@ export type DisplayCard = {
   visibility?: Visibility;
   valueMappings?: NumberValueMapping[] | TextValueMapping[];
   colorMappings?: NumberColorMapping[] | TextColorMapping[];
+  image?: string;
+  imageFit?: "cover" | "contain" | "stretch";
+  backgroundImage?: string;
+  transparentBackground?: boolean;
 };
 
 export type DisplayRow = {
@@ -146,6 +150,7 @@ export type DisplayPage = {
   titlePosition?: "top" | "right" | "bottom" | "left";
   titleStyle?: Style;
   style?: Style;
+  backgroundImage?: string;
   durationSeconds?: number;
   enabled?: boolean;
   transition?: PageTransition;
@@ -169,9 +174,19 @@ export type Display = {
   fonts: { id: "font1" | "font2"; installed: boolean; name: string }[];
 };
 export type Scene = { id: string; name: string; is_default: boolean };
+export type ImageAsset = {
+  id: string;
+  name: string;
+  width: number;
+  height: number;
+  bytes: number;
+  preview: string;
+};
 
 export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
   if (type === "clock") return { type, format: "24h", showDate: true };
+  if (type === "image")
+    return { type, image: "", imageFit: "cover", showTitle: false };
   if (type === "text") return { type, text: "Text" };
   if (type === "status")
     return { type, source: "", onText: "On", offText: "Off" };

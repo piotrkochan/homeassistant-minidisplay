@@ -25,6 +25,7 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
+#include "ImageAssets.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
 #include "ScreenCapture.h"
@@ -79,6 +80,7 @@ constexpr char kNetworkSettingsPath[] = "/network.json";
 constexpr char kNetworkSettingsTempPath[] = "/network.tmp";
 constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
+constexpr size_t kMaxImageChunkBytes = 4096;
 constexpr uint8_t kMaxPages = 16;
 constexpr uint8_t kMaxValues = 32;
 constexpr uint8_t kMaxPixelShift = 10;
@@ -1410,8 +1412,18 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const uint16_t foreground =
       parseColor(foregroundValue, TFT_WHITE);
   const uint16_t accent = parseColor(card["style"]["accent"], TFT_CYAN);
-  fillCardEdgeBackground(x, y, width, height, edgeBackground, edgeExtensions);
-  display.fillRoundRect(x, y, width, height, 5, background);
+  const bool transparent = card["transparentBackground"] | false;
+  const char *cardType = card["type"] | "";
+  const char *image = strcmp(cardType, "image") == 0
+                          ? card["image"] | ""
+                          : card["backgroundImage"] | "";
+  if (!transparent) {
+    fillCardEdgeBackground(x, y, width, height, edgeBackground, edgeExtensions);
+    display.fillRoundRect(x, y, width, height, 5, background);
+  }
+  drawImageAsset(display, image, x, y, width, height,
+                 parseImageFit(card["imageFit"] | "cover"));
+  if (strcmp(cardType, "image") == 0) return;
 
   const char *title = card["title"];
   const char *progressType = card["progress"] | "none";
@@ -1603,6 +1615,14 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   cachedCard.width = width;
   cachedCard.height = height;
   cachedCard.background = background;
+  cachedCard.flags = (card["transparentBackground"] | false) ? 1U : 0U;
+  cachedCard.imageFit = parseImageFit(card["imageFit"] | "cover");
+  const char *cardType = card["type"] | "";
+  const char *image = strcmp(cardType, "image") == 0
+                          ? card["image"] | ""
+                          : card["backgroundImage"] | "";
+  strlcpy(cachedCard.image, image, sizeof(cachedCard.image));
+  if (strcmp(cardType, "image") == 0) return true;
 
   const char *title = card["title"];
   const char *progressType = card["progress"] | "none";
@@ -1751,6 +1771,8 @@ void drawVerticalPageTitle(const char *title, bool right, int16_t offsetX,
 bool cacheDashboardPage(JsonObjectConst source, CachedPage &page) {
   memset(&page, 0, sizeof(page));
   page.background = parseColor(source["style"]["background"], TFT_BLACK);
+  strlcpy(page.backgroundImage, source["backgroundImage"] | "",
+          sizeof(page.backgroundImage));
   JsonArrayConst rows = source["rows"].as<JsonArrayConst>();
   const PageContentLayout layout = pageContentLayout(source);
   const char *pageTitle = source["title"];
@@ -1851,9 +1873,30 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
 
   const uint16_t pageBackground =
       parseColor(page["style"]["background"], TFT_BLACK);
-  const bool partial = changedValues != nullptr;
+  bool partial = changedValues != nullptr;
+  if (partial) {
+    for (JsonObjectConst row : rows) {
+      for (JsonObjectConst card : row["cards"].as<JsonArrayConst>()) {
+        const char *source = card["source"];
+        DashboardValue *sourceValue = findValue(source, false);
+        const bool sourceChanged = sourceValue != nullptr &&
+            (*changedValues & (1UL << (sourceValue - dashboardValues))) != 0;
+        if (sourceChanged &&
+            ((card["transparentBackground"] | false) ||
+             !card["backgroundImage"].isNull())) {
+          partial = false;
+          break;
+        }
+      }
+      if (!partial) break;
+    }
+  }
   if (!partial) resetMarqueeTitles();
-  if (!partial && clear) display.fillScreen(pageBackground);
+  if (!partial && clear) {
+    display.fillScreen(pageBackground);
+    drawImageAsset(display, page["backgroundImage"] | "", offsetX, offsetY,
+                   240, 240, ImageFit::Cover);
+  }
   const PageContentLayout layout = pageContentLayout(page);
   const char *pageTitle = page["title"];
   if (layout.hasTitle && !partial) {
@@ -2116,9 +2159,13 @@ bool loadDashboardMetadata(Stream &stream) {
   filter["pages"][0]["id"] = true;
   filter["pages"][0]["durationSeconds"] = true;
   filter["pages"][0]["transition"] = true;
+  filter["pages"][0]["backgroundImage"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["type"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["source"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["showSeconds"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["image"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["backgroundImage"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["imageFit"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
   filter["transition"] = true;
 
@@ -2153,6 +2200,10 @@ bool loadDashboardMetadata(Stream &stream) {
       return false;
     }
     JsonArray rows = page["rows"].as<JsonArray>();
+    const char *pageImage = page["backgroundImage"] | "";
+    if (pageImage[0] &&
+        (!validImageAssetId(String(pageImage)) ||
+         !LittleFS.exists(imageAssetPath(String(pageImage))))) return false;
     if (rows.size() == 0 || rows.size() > 6) return false;
     for (JsonObject row : rows) {
       JsonArray cards = row["cards"].as<JsonArray>();
@@ -2161,12 +2212,23 @@ bool loadDashboardMetadata(Stream &stream) {
         const char *type = card["type"];
         if (type == nullptr ||
             (strcmp(type, "clock") != 0 && strcmp(type, "number") != 0 &&
-             strcmp(type, "status") != 0 && strcmp(type, "text") != 0)) {
+             strcmp(type, "status") != 0 && strcmp(type, "text") != 0 &&
+             strcmp(type, "image") != 0)) {
           return false;
         }
         const bool needsSource = strcmp(type, "number") == 0 ||
                                  strcmp(type, "status") == 0;
         if (needsSource && card["source"].isNull()) return false;
+        if (strcmp(type, "image") == 0 && card["image"].isNull()) return false;
+        const char *image = strcmp(type, "image") == 0
+                                ? card["image"] | ""
+                                : card["backgroundImage"] | "";
+        if (image[0] &&
+            (!validImageAssetId(String(image)) ||
+             !LittleFS.exists(imageAssetPath(String(image))))) return false;
+        const char *fit = card["imageFit"] | "cover";
+        if (strcmp(fit, "cover") != 0 && strcmp(fit, "contain") != 0 &&
+            strcmp(fit, "stretch") != 0) return false;
       }
     }
     ++count;
@@ -2230,6 +2292,7 @@ void sendApiInfo() {
   capabilities.add("pixel-shift");
   capabilities.add("page-control");
   capabilities.add("user-fonts");
+  capabilities.add("image-assets");
   if (ScreenCapture::supported()) capabilities.add("screenshot-bmp");
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
   capabilities.add("https");
@@ -2429,6 +2492,156 @@ void receiveApiDashboard() {
     pageRotationAuto = true;
     pageShownAt = millis();
     requestFullRender();
+  }
+  server.send(204);
+}
+
+uint32_t filesystemFreeBytes() {
+  if (!filesystemReady) return 0;
+#if defined(ESP8266)
+  FSInfo info;
+  if (!LittleFS.info(info) || info.usedBytes >= info.totalBytes) return 0;
+  return info.totalBytes - info.usedBytes;
+#else
+  const size_t total = LittleFS.totalBytes();
+  const size_t used = LittleFS.usedBytes();
+  return used < total ? total - used : 0;
+#endif
+}
+
+void sendApiAssets() {
+  if (!apiAuthenticated()) return;
+  DynamicJsonDocument document(3072);
+  JsonArray assets = document.createNestedArray("assets");
+#if defined(ESP8266)
+  Dir directory = LittleFS.openDir("/");
+  while (directory.next()) {
+    const String path = directory.fileName();
+    const bool leadingSlash = path.startsWith("/img_");
+    if ((!leadingSlash && !path.startsWith("img_")) ||
+        !path.endsWith(".mdi")) continue;
+    File file = directory.openFile("r");
+    uint16_t width = 0;
+    uint16_t height = 0;
+    if (!validImageAsset(file, &width, &height)) {
+      file.close();
+      continue;
+    }
+    JsonObject asset = assets.createNestedObject();
+    asset["id"] = path.substring(leadingSlash ? 5 : 4, path.length() - 4);
+    asset["width"] = width;
+    asset["height"] = height;
+    asset["bytes"] = file.size();
+    file.close();
+  }
+#else
+  File root = LittleFS.open("/");
+  File file = root.openNextFile();
+  while (file) {
+    const String path = file.name();
+    if (path.startsWith("/img_") && path.endsWith(".mdi")) {
+      uint16_t width = 0;
+      uint16_t height = 0;
+      if (validImageAsset(file, &width, &height)) {
+        JsonObject asset = assets.createNestedObject();
+        asset["id"] = path.substring(5, path.length() - 4);
+        asset["width"] = width;
+        asset["height"] = height;
+        asset["bytes"] = file.size();
+      }
+    }
+    file.close();
+    file = root.openNextFile();
+  }
+  root.close();
+#endif
+  document["freeBytes"] = filesystemFreeBytes();
+  document["reserveBytes"] = kImageStorageReserveBytes;
+  String body;
+  body.reserve(2048);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
+}
+
+void receiveApiAsset() {
+  if (!apiAuthenticated()) return;
+  if (!filesystemReady) {
+    sendJsonError(503, F("filesystem_unavailable"), F("LittleFS unavailable"));
+    return;
+  }
+  const String id = server.arg("id");
+  const String body = server.arg("plain");
+  const uint32_t offset = strtoul(server.arg("offset").c_str(), nullptr, 10);
+  const uint32_t total = strtoul(server.arg("total").c_str(), nullptr, 10);
+  if (!validImageAssetId(id)) {
+    sendJsonError(422, F("invalid_asset_id"), F("Expected 16 lowercase hex characters"));
+    return;
+  }
+  if (body.isEmpty() || body.length() > kMaxImageChunkBytes ||
+      total < kImageAssetHeaderBytes || total > kMaxImageAssetBytes ||
+      offset + body.length() > total) {
+    sendJsonError(413, F("invalid_asset_chunk"), F("Image chunk exceeds device limit"));
+    return;
+  }
+  const String path = imageAssetPath(id);
+  const String temporaryPath = path + ".tmp";
+  if (offset == 0) {
+    LittleFS.remove(temporaryPath);
+    if (filesystemFreeBytes() < total + kImageStorageReserveBytes) {
+      sendJsonError(507, F("storage_reserve"), F("Not enough space after safety reserve"));
+      return;
+    }
+  }
+  File temporary = LittleFS.open(temporaryPath, offset == 0 ? "w" : "a");
+  if (!temporary || temporary.size() != offset) {
+    if (temporary) temporary.close();
+    LittleFS.remove(temporaryPath);
+    sendJsonError(409, F("chunk_offset"), F("Restart image upload from offset zero"));
+    return;
+  }
+  const size_t written = temporary.write(
+      reinterpret_cast<const uint8_t *>(body.c_str()), body.length());
+  temporary.close();
+  if (written != body.length()) {
+    LittleFS.remove(temporaryPath);
+    sendJsonError(507, F("write_failed"), F("Could not store image chunk"));
+    return;
+  }
+  if (offset + body.length() < total) {
+    server.send(204);
+    return;
+  }
+  File validation = LittleFS.open(temporaryPath, "r");
+  const bool valid = validImageAsset(validation);
+  if (validation) validation.close();
+  if (!valid) {
+    LittleFS.remove(temporaryPath);
+    sendJsonError(422, F("invalid_asset"), F("Invalid Mini Display image"));
+    return;
+  }
+  LittleFS.remove(path);
+  if (!LittleFS.rename(temporaryPath, path)) {
+    LittleFS.remove(temporaryPath);
+    sendJsonError(507, F("commit_failed"), F("Could not activate image"));
+    return;
+  }
+  server.send(204);
+}
+
+void deleteApiAsset() {
+  if (!apiAuthenticated()) return;
+  const String id = server.arg("id");
+  if (!validImageAssetId(id)) {
+    sendJsonError(422, F("invalid_asset_id"), F("Expected 16 lowercase hex characters"));
+    return;
+  }
+  if (!LittleFS.exists(imageAssetPath(id))) {
+    server.send(204);
+    return;
+  }
+  if (!LittleFS.remove(imageAssetPath(id))) {
+    sendJsonError(507, F("delete_failed"), F("Could not delete image"));
+    return;
   }
   server.send(204);
 }
@@ -3278,6 +3491,9 @@ void configureRoutes() {
 #endif
   server.on("/api/v1/dashboard", HTTP_GET, sendApiDashboard);
   server.on("/api/v1/dashboard", HTTP_PUT, receiveApiDashboard);
+  server.on("/api/v1/assets", HTTP_GET, sendApiAssets);
+  server.on("/api/v1/assets", HTTP_PUT, receiveApiAsset);
+  server.on("/api/v1/assets", HTTP_DELETE, deleteApiAsset);
   server.on("/api/v1/data", HTTP_PATCH, receiveApiData);
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/screenshot", HTTP_GET, sendApiScreenshot);

@@ -1,6 +1,6 @@
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
-import type { Dashboard, Hass, Style } from "./types";
+import type { Dashboard, Hass, ImageAsset, Style } from "./types";
 import { mapCardColors, mapCardValue } from "./types";
 import { visibilityMatches } from "./visibility";
 import { displayColors } from "./color-field";
@@ -8,6 +8,7 @@ import { displayColors } from "./color-field";
 export class MiniDisplayPreview extends LitElement {
   @property({ attribute: false }) dashboard?: Dashboard;
   @property({ attribute: false }) hass?: Hass;
+  @property({ attribute: false }) assets: ImageAsset[] = [];
   @property({ type: Number }) page = 0;
   @property({ type: Boolean }) autoRotate = false;
   @property({ type: Number }) width = 240;
@@ -160,6 +161,22 @@ export class MiniDisplayPreview extends LitElement {
       background: #20242d;
       border-radius: 6px;
       overflow: hidden;
+    }
+    .card.image-card {
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    .card-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    .card.image-card small {
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 3px;
+      padding: 0 2px;
     }
     .card small,
     .value-wrap {
@@ -695,6 +712,7 @@ export class MiniDisplayPreview extends LitElement {
   private cardValue(
     card: Dashboard["pages"][number]["rows"][number]["cards"][number],
   ) {
+    if (card.type === "image") return "";
     if (card.type === "clock")
       return this.now.toLocaleTimeString([], {
         hour: "2-digit",
@@ -711,6 +729,10 @@ export class MiniDisplayPreview extends LitElement {
         : (card.offText ?? "Off");
     const mapped = mapCardValue(card, raw);
     return `${mapped.value}${!mapped.mapped && card.unit ? ` ${card.unit}` : ""}`;
+  }
+
+  private imageUrl(id?: string) {
+    return this.assets.find((asset) => asset.id === id)?.preview ?? "";
   }
 
   private valueFontSize(
@@ -911,9 +933,13 @@ export class MiniDisplayPreview extends LitElement {
           : titlePosition === "left"
             ? `top:6px;right:6px;bottom:6px;left:${titleThickness + 6}px`
             : `top:6px;right:${titleThickness + 6}px;bottom:6px;left:6px`;
+    const pageImage = this.imageUrl(page.backgroundImage);
     const titleStyle = `${titlePosition === "top" || titlePosition === "bottom" ? `height:${titleThickness}px` : `width:${titleThickness}px`};background:${titleBackground};color:${titleForeground};font-size:${titleFontSize}px`;
     return html`<div class="screen-frame" style=${screenStyle}>
-      <div class="screen" style=${`background:${pageBackground}`}>
+      <div
+        class="screen"
+        style=${`background-color:${pageBackground};${pageImage ? `background-image:url(${pageImage});background-size:cover;background-position:center` : ""}`}
+      >
         ${
           showPageTitle
             ? html`<div
@@ -993,8 +1019,7 @@ export class MiniDisplayPreview extends LitElement {
                     hasTitle &&
                     (titleVerticalKey === "top" ||
                       titleVerticalKey === "bottom");
-                  const baseContentBottom =
-                    card.progress === "bar" ? 14 : 5;
+                  const baseContentBottom = card.progress === "bar" ? 14 : 5;
                   const contentHeight =
                     cardHeight - (card.progress === "bar" ? 9 : 0);
                   const provisionalValueSize = this.valueFontSize(
@@ -1007,8 +1032,7 @@ export class MiniDisplayPreview extends LitElement {
                     1,
                     Math.min(
                       contentHeight / 2,
-                      contentHeight -
-                        this.fontLineHeight(provisionalValueSize),
+                      contentHeight - this.fontLineHeight(provisionalValueSize),
                     ),
                   );
                   const titleSize = hasTitle
@@ -1047,6 +1071,9 @@ export class MiniDisplayPreview extends LitElement {
                   const background =
                     (displayColors[backgroundValue] ?? backgroundValue) ||
                     "#20242d";
+                  const cardImage = this.imageUrl(
+                    card.type === "image" ? card.image : card.backgroundImage,
+                  );
                   const accent =
                     displayColors[card.style?.accent ?? ""] ??
                     card.style?.accent ??
@@ -1123,8 +1150,8 @@ export class MiniDisplayPreview extends LitElement {
                     ${displayValue}
                   </div>`;
                   return html`<div
-                    class="card ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
-                    style=${`background:${background};color:${foreground}`}
+                    class="card ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
+                    style=${`${card.transparentBackground ? "background:transparent" : `background-color:${background}`};${cardImage ? `background-image:url(${cardImage});background-size:${card.imageFit === "contain" ? "contain" : card.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${foreground}`}
                     @click=${(event: Event) => {
                       event.stopPropagation();
                       this.emit("preview-select", {
@@ -1157,21 +1184,23 @@ export class MiniDisplayPreview extends LitElement {
                           >`
                         : null
                     }${
-                      card.progress === "ring"
-                        ? html`<div class="ring-stack" style=${valueArea}>
-                            <div
-                              class="ring"
-                              style=${`background:conic-gradient(${accent} ${progress}%,#3d424e 0);--ring-bg:${background}`}
-                            ></div>
-                            ${value}
-                          </div>`
-                        : html`<div
-                            class="value-wrap"
-                            style=${`${valueArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}
-                          >
-                            ${value}
-                          </div>`
-                    }${this.positionGrid(rowIndex, cardIndex)}${card.progress === "bar" ? html`<div class="bar"><i style=${`width:${progress}%;background:${accent}`}></i></div>` : null}
+                      card.type === "image"
+                        ? nothing
+                        : card.progress === "ring"
+                          ? html`<div class="ring-stack" style=${valueArea}>
+                              <div
+                                class="ring"
+                                style=${`background:conic-gradient(${accent} ${progress}%,#3d424e 0);--ring-bg:${background}`}
+                              ></div>
+                              ${value}
+                            </div>`
+                          : html`<div
+                              class="value-wrap"
+                              style=${`${valueArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}
+                            >
+                              ${value}
+                            </div>`
+                    }${this.positionGrid(rowIndex, cardIndex)}${card.type !== "image" && card.progress === "bar" ? html`<div class="bar"><i style=${`width:${progress}%;background:${accent}`}></i></div>` : null}
                   </div>`;
                 })}
               </div>

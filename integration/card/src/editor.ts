@@ -6,6 +6,7 @@ import type {
   DisplayCard,
   DisplayRow,
   Hass,
+  ImageAsset,
   NumberColorMapping,
   NumberValueMapping,
   PageTransition,
@@ -21,6 +22,7 @@ import "./color-field";
 import "./preview-list";
 import "./scene-sidebar";
 import "./visibility-dialog";
+import "./image-field";
 
 @customElement("mini-display-editor")
 export class MiniDisplayEditor extends LitElement {
@@ -28,12 +30,12 @@ export class MiniDisplayEditor extends LitElement {
   @state() private displays: Display[] = [];
   @state() private scenes: Scene[] = [];
   @state() private dashboards: Record<string, Dashboard | null> = {};
+  @state() private assets: Record<string, ImageAsset[]> = {};
   @state() private savedDashboards: Record<string, Dashboard | null> = {};
   @state() private selectedDisplayId = "";
   @state() private selectedSceneId = "";
   @state() private pageIndex = 0;
-  @state() private cardSection: "content" | "appearance" | "rules" =
-    "content";
+  @state() private cardSection: "content" | "appearance" | "rules" = "content";
   @state() private editingRowTitle?: number;
   @state() private previewPages: Record<string, number> = {};
   @state() private selected?: { row: number; card: number };
@@ -1401,13 +1403,58 @@ export class MiniDisplayEditor extends LitElement {
       this.selectedSceneId = scenes.some((item) => item.id === wanted)
         ? wanted
         : active;
-      await this.loadSceneDashboards();
+      await Promise.all([this.loadSceneDashboards(), this.loadAssets()]);
       this.syncState = "idle";
       this.syncMessage = "";
     } catch (error) {
       this.syncState = "error";
       this.syncMessage = this.errorMessage(error);
     }
+  }
+
+  private async loadAssets() {
+    if (!this.hass) return;
+    const entries = await Promise.all(
+      this.displays.map(
+        async (display) =>
+          [
+            display.config_entry_id,
+            await this.hass!.callWS<ImageAsset[]>({
+              type: "mini_display/assets",
+              config_entry_id: display.config_entry_id,
+              include_data: false,
+            }),
+          ] as const,
+      ),
+    );
+    this.assets = Object.fromEntries(entries);
+  }
+
+  private imageField(
+    label: string,
+    value: string | undefined,
+    changed: (id: string) => void,
+  ) {
+    return html`<mini-display-image-field
+      .hass=${this.hass}
+      .assets=${this.assets[this.selectedDisplayId] ?? []}
+      .displayId=${this.selectedDisplayId}
+      .label=${label}
+      .value=${value ?? ""}
+      .maximumWidth=${this.selectedDisplay?.width ?? 240}
+      .maximumHeight=${this.selectedDisplay?.height ?? 240}
+      @image-changed=${(event: CustomEvent<string>) => changed(event.detail)}
+      @asset-uploaded=${(event: CustomEvent<ImageAsset>) => {
+        const current = this.assets[this.selectedDisplayId] ?? [];
+        this.assets = {
+          ...this.assets,
+          [this.selectedDisplayId]: [
+            ...current.filter((asset) => asset.id !== event.detail.id),
+            event.detail,
+          ],
+        };
+      }}
+    ></mini-display-image-field>`;
   }
 
   private async loadSceneDashboards() {
@@ -1971,8 +2018,7 @@ export class MiniDisplayEditor extends LitElement {
           input.value = String(next);
           update(next);
         }}
-      /></label
-    >`;
+    /></label>`;
   }
 
   private fontSelect(
@@ -2112,7 +2158,11 @@ export class MiniDisplayEditor extends LitElement {
   private textEffectEditor(label: string, style: Style) {
     const effect = style.textEffect ?? "none";
     const effectName =
-      effect === "shadow" ? "Shadow" : effect === "outline" ? "Outline" : "None";
+      effect === "shadow"
+        ? "Shadow"
+        : effect === "outline"
+          ? "Outline"
+          : "None";
     return html`<details class="position-field effect-field">
       <summary>${label} · ${effectName}</summary>
       <div class="grid effect-grid">
@@ -2125,16 +2175,17 @@ export class MiniDisplayEditor extends LitElement {
             this.changed();
           },
         )}
-        ${effect !== "none"
-          ? html`<mini-display-color-field
-                label="Effect color"
-                .value=${style.effectColor ?? "background"}
-                @color-changed=${(event: CustomEvent<string>) => {
+        ${
+          effect !== "none"
+            ? html`<mini-display-color-field
+                  label="Effect color"
+                  .value=${style.effectColor ?? "background"}
+                  @color-changed=${(event: CustomEvent<string>) => {
                   style.effectColor = event.detail || "background";
                   this.changed();
                 }}
-              ></mini-display-color-field>
-              ${this.numberField(
+                ></mini-display-color-field>
+                ${this.numberField(
                 "Thickness",
                 style.effectThickness,
                 1,
@@ -2145,8 +2196,9 @@ export class MiniDisplayEditor extends LitElement {
                   this.changed();
                 },
               )}
-              ${effect === "shadow"
-                ? html`${this.numberField(
+                ${
+                effect === "shadow"
+                  ? html`${this.numberField(
                       "Horizontal offset",
                       style.effectOffsetX,
                       2,
@@ -2167,8 +2219,10 @@ export class MiniDisplayEditor extends LitElement {
                         this.changed();
                       },
                     )}`
-                : nothing}`
-          : nothing}
+                  : nothing
+              }`
+            : nothing
+        }
       </div>
     </details>`;
   }
@@ -2187,6 +2241,7 @@ export class MiniDisplayEditor extends LitElement {
       ],
       text: ["sensor", "text", "input_text", "select", "input_select"],
       clock: [],
+      image: [],
     };
     return html`<ha-form
       .hass=${this.hass}
@@ -2219,32 +2274,67 @@ export class MiniDisplayEditor extends LitElement {
     const style = (card.style ??= {});
     const value = (card.valueStyle ??= {});
     const title = (card.titleStyle ??= {});
+    const backgroundMode = card.transparentBackground
+      ? "transparent"
+      : card.backgroundImage
+        ? "image"
+        : "color";
     return html`<div class="grid appearance-grid">
-        <mini-display-color-field
-          label="Background"
-          .value=${style.background ?? ""}
-          @color-changed=${(event: CustomEvent<string>) => {
-            style.background = event.detail || undefined;
+      ${this.segmented(
+          "Background",
+          backgroundMode,
+          [
+            { value: "color", label: "Color", icon: "mdi:palette" },
+            { value: "transparent", label: "Page", icon: "mdi:checkerboard" },
+            { value: "image", label: "Image", icon: "mdi:image-outline" },
+          ],
+          (input) => {
+            card.transparentBackground = input === "transparent";
+            if (input !== "image") card.backgroundImage = undefined;
             this.changed();
-          }}
-        ></mini-display-color-field
-        ><mini-display-color-field
-          label="Text color"
-          .value=${style.foreground ?? ""}
-          @color-changed=${(event: CustomEvent<string>) => {
+          },
+        )}
+      ${
+          backgroundMode === "image"
+            ? this.imageField(
+                "Card background image",
+                card.backgroundImage,
+                (id) => {
+                  card.backgroundImage = id || undefined;
+                  this.changed();
+                },
+              )
+            : nothing
+        }
+      ${
+          backgroundMode === "color"
+            ? html`<mini-display-color-field
+                label="Background"
+                .value=${style.background ?? ""}
+                @color-changed=${(event: CustomEvent<string>) => {
+                style.background = event.detail || undefined;
+                this.changed();
+              }}
+              ></mini-display-color-field>`
+            : nothing
+        }
+      <mini-display-color-field
+        label="Text color"
+        .value=${style.foreground ?? ""}
+        @color-changed=${(event: CustomEvent<string>) => {
             style.foreground = event.detail || undefined;
             this.changed();
           }}
-        ></mini-display-color-field
-        ><mini-display-color-field
-          label="Accent"
-          .value=${style.accent ?? ""}
-          @color-changed=${(event: CustomEvent<string>) => {
+      ></mini-display-color-field
+      ><mini-display-color-field
+        label="Accent"
+        .value=${style.accent ?? ""}
+        @color-changed=${(event: CustomEvent<string>) => {
             style.accent = event.detail || undefined;
             this.changed();
           }}
-        ></mini-display-color-field
-        >${this.fontSelect("Value font", value.fontFamily, (input) => {
+      ></mini-display-color-field
+      >${this.fontSelect("Value font", value.fontFamily, (input) => {
           value.fontFamily = input;
           this.changed();
         })}${
@@ -2275,7 +2365,7 @@ export class MiniDisplayEditor extends LitElement {
               )}${this.textEffectEditor("Title effect", title)}`
             : nothing
         }
-      </div>`;
+    </div>`;
   }
 
   private transitionEditor(page: Dashboard["pages"][number]) {
@@ -2490,9 +2580,9 @@ export class MiniDisplayEditor extends LitElement {
                   ${this.field("From", (mapping as NumberValueMapping).minimum, (value) => updateNumber(index, "minimum", value), "number")}
                   ${this.field("To", (mapping as NumberValueMapping).maximum, (value) => updateNumber(index, "maximum", value), "number")}
                   ${this.field("Display as", mapping.value, (value) => {
-              mapping.value = value;
-              this.changed();
-            })}
+                    mapping.value = value;
+                    this.changed();
+                  })}
                   <button
                     class="icon-button danger"
                     title="Delete mapping"
@@ -2511,27 +2601,27 @@ export class MiniDisplayEditor extends LitElement {
                 >
                   ${this.dragHandle("value", index)}
                   ${this.select(
-              "Match",
-              (mapping as TextValueMapping).operator,
-              ["equals", "starts_with", "ends_with", "contains"],
-              (value) => {
-                (mapping as TextValueMapping).operator =
-                  value as TextValueMapping["operator"];
-                this.changed();
-              },
-            )}
+                    "Match",
+                    (mapping as TextValueMapping).operator,
+                    ["equals", "starts_with", "ends_with", "contains"],
+                    (value) => {
+                      (mapping as TextValueMapping).operator =
+                        value as TextValueMapping["operator"];
+                      this.changed();
+                    },
+                  )}
                   ${this.field(
-              "Text",
-              (mapping as TextValueMapping).match,
-              (value) => {
-                (mapping as TextValueMapping).match = value;
-                this.changed();
-              },
-            )}
+                    "Text",
+                    (mapping as TextValueMapping).match,
+                    (value) => {
+                      (mapping as TextValueMapping).match = value;
+                      this.changed();
+                    },
+                  )}
                   ${this.field("Display as", mapping.value, (value) => {
-              mapping.value = value;
-              this.changed();
-            })}
+                    mapping.value = value;
+                    this.changed();
+                  })}
                   <button
                     class="icon-button danger"
                     title="Delete mapping"
@@ -2639,23 +2729,23 @@ export class MiniDisplayEditor extends LitElement {
                 >
                   ${this.dragHandle("color", index)}
                   ${this.select(
-              "Match",
-              (mapping as TextColorMapping).operator,
-              ["equals", "starts_with", "ends_with", "contains"],
-              (value) => {
-                (mapping as TextColorMapping).operator =
-                  value as TextColorMapping["operator"];
-                this.changed();
-              },
-            )}
+                    "Match",
+                    (mapping as TextColorMapping).operator,
+                    ["equals", "starts_with", "ends_with", "contains"],
+                    (value) => {
+                      (mapping as TextColorMapping).operator =
+                        value as TextColorMapping["operator"];
+                      this.changed();
+                    },
+                  )}
                   ${this.field(
-              "Text",
-              (mapping as TextColorMapping).match,
-              (value) => {
-                (mapping as TextColorMapping).match = value;
-                this.changed();
-              },
-            )}
+                    "Text",
+                    (mapping as TextColorMapping).match,
+                    (value) => {
+                      (mapping as TextColorMapping).match = value;
+                      this.changed();
+                    },
+                  )}
                   <mini-display-color-field
                     label="Background"
                     .value=${mapping.background ?? ""}
@@ -2707,6 +2797,7 @@ export class MiniDisplayEditor extends LitElement {
       text: "Displays text from an entity or the static text below.",
       status: "Maps a state entity to two readable labels.",
       clock: "Displays local time without using an entity.",
+      image: "Displays an optimized image without an entity.",
     };
     const rulesCount =
       (card.visibility ? 1 : 0) +
@@ -2746,7 +2837,7 @@ export class MiniDisplayEditor extends LitElement {
               }}
             >
               Delete
-          </button>`,
+            </button>`,
         )}
       </div>
       <nav class="card-section-tabs" aria-label="Card settings sections">
@@ -2757,19 +2848,21 @@ export class MiniDisplayEditor extends LitElement {
             ["rules", "Rules", "mdi:source-branch"],
           ] as const
         ).map(
-          ([section, label, icon]) => html`<button
-            class="card-section-tab ${this.cardSection === section
-              ? "active"
-              : ""}"
-            role="tab"
-            aria-selected=${this.cardSection === section}
-            @click=${() => (this.cardSection = section)}
-          >
-            <ha-icon icon=${icon}></ha-icon><span>${label}</span
-            >${section === "rules" && rulesCount
-              ? html`<span class="section-count">${rulesCount}</span>`
-              : nothing}
-          </button>`,
+          ([section, label, icon]) =>
+            html`<button
+              class="card-section-tab ${
+              this.cardSection === section ? "active" : ""
+            }"
+              role="tab"
+              aria-selected=${this.cardSection === section}
+              @click=${() => (this.cardSection = section)}
+            >
+              <ha-icon icon=${icon}></ha-icon><span>${label}</span>${
+              section === "rules" && rulesCount
+                ? html`<span class="section-count">${rulesCount}</span>`
+                : nothing
+            }
+            </button>`,
         )}
       </nav>
       <div class="card-pane" role="tabpanel">
@@ -2779,7 +2872,9 @@ export class MiniDisplayEditor extends LitElement {
                 <section class="settings-group">
                   <div class="settings-heading">
                     <ha-icon icon="mdi:card-text-outline"></ha-icon>
-                    <div><strong>Card</strong><small>${hints[card.type]}</small></div>
+                    <div>
+                      <strong>Card</strong><small>${hints[card.type]}</small>
+                    </div>
                   </div>
                   ${this.segmented(
                     "Card type",
@@ -2787,8 +2882,21 @@ export class MiniDisplayEditor extends LitElement {
                     [
                       { value: "number", label: "Number", icon: "mdi:numeric" },
                       { value: "text", label: "Text", icon: "mdi:format-text" },
-                      { value: "status", label: "Status", icon: "mdi:toggle-switch-outline" },
-                      { value: "clock", label: "Clock", icon: "mdi:clock-outline" },
+                      {
+                        value: "status",
+                        label: "Status",
+                        icon: "mdi:toggle-switch-outline",
+                      },
+                      {
+                        value: "clock",
+                        label: "Clock",
+                        icon: "mdi:clock-outline",
+                      },
+                      {
+                        value: "image",
+                        label: "Image",
+                        icon: "mdi:image-outline",
+                      },
                     ],
                     selectType,
                   )}
@@ -2810,16 +2918,63 @@ export class MiniDisplayEditor extends LitElement {
                     </div>
                   </div>
                 </section>
-                ${["number", "status", "text"].includes(card.type)
-                  ? html`<section class="settings-group">
-                      <div class="settings-heading">
-                        <ha-icon icon="mdi:database-outline"></ha-icon>
-                        <div><strong>Data</strong><small>Value shown by this card</small></div>
-                      </div>
-                      <div class="grid">
-                        ${this.entity(card)}
-                        ${card.type === "number"
-                          ? html`${this.field("Unit", card.unit, (input) => {
+                ${
+                  card.type === "image"
+                    ? html`<section class="settings-group">
+                        <div class="settings-heading">
+                          <ha-icon icon="mdi:image-outline"></ha-icon>
+                          <div>
+                            <strong>Image</strong
+                            ><small>Displayed without an entity value</small>
+                          </div>
+                        </div>
+                        ${this.imageField("Image", card.image, (id) => {
+                        card.image = id;
+                        this.changed();
+                      })}
+                        ${this.segmented(
+                        "Fit",
+                        card.imageFit ?? "cover",
+                        [
+                          {
+                            value: "cover",
+                            label: "Cover",
+                            icon: "mdi:image-size-select-actual",
+                          },
+                          {
+                            value: "contain",
+                            label: "Contain",
+                            icon: "mdi:image-size-select-large",
+                          },
+                          {
+                            value: "stretch",
+                            label: "Stretch",
+                            icon: "mdi:fit-to-screen-outline",
+                          },
+                        ],
+                        (input) => {
+                          card.imageFit = input as DisplayCard["imageFit"];
+                          this.changed();
+                        },
+                      )}
+                      </section>`
+                    : nothing
+                }
+                ${
+                  ["number", "status", "text"].includes(card.type)
+                    ? html`<section class="settings-group">
+                        <div class="settings-heading">
+                          <ha-icon icon="mdi:database-outline"></ha-icon>
+                          <div>
+                            <strong>Data</strong
+                            ><small>Value shown by this card</small>
+                          </div>
+                        </div>
+                        <div class="grid">
+                          ${this.entity(card)}
+                          ${
+                          card.type === "number"
+                            ? html`${this.field("Unit", card.unit, (input) => {
                                 card.unit = input;
                                 this.changed();
                               })}${this.select(
@@ -2827,11 +2982,13 @@ export class MiniDisplayEditor extends LitElement {
                                 card.progress ?? "none",
                                 ["none", "bar", "ring"],
                                 (input) => {
-                                  card.progress = input as DisplayCard["progress"];
+                                  card.progress =
+                                    input as DisplayCard["progress"];
                                   this.changed();
                                 },
-                              )}${card.progress && card.progress !== "none"
-                                ? html`${this.field(
+                              )}${
+                                card.progress && card.progress !== "none"
+                                  ? html`${this.field(
                                       "Minimum",
                                       card.minimum,
                                       (input) => {
@@ -2848,32 +3005,50 @@ export class MiniDisplayEditor extends LitElement {
                                       },
                                       "number",
                                     )}`
-                                : nothing}`
-                          : nothing}
-                        ${card.type === "text"
-                          ? this.field("Static text", card.text, (input) => {
-                              card.text = input;
-                              this.changed();
-                            })
-                          : nothing}
-                        ${card.type === "status"
-                          ? html`${this.field("On text", card.onText, (input) => {
-                                card.onText = input;
+                                  : nothing
+                              }`
+                            : nothing
+                        }
+                          ${
+                          card.type === "text"
+                            ? this.field("Static text", card.text, (input) => {
+                                card.text = input;
                                 this.changed();
-                              })}${this.field("Off text", card.offText, (input) => {
-                                card.offText = input;
-                                this.changed();
-                              })}`
-                          : nothing}
-                      </div>
-                    </section>`
-                  : nothing}
+                              })
+                            : nothing
+                        }
+                          ${
+                          card.type === "status"
+                            ? html`${this.field(
+                                "On text",
+                                card.onText,
+                                (input) => {
+                                  card.onText = input;
+                                  this.changed();
+                                },
+                              )}${this.field(
+                                "Off text",
+                                card.offText,
+                                (input) => {
+                                  card.offText = input;
+                                  this.changed();
+                                },
+                              )}`
+                            : nothing
+                        }
+                        </div>
+                      </section>`
+                    : nothing
+                }
               `
             : this.cardSection === "appearance"
               ? html`<section class="settings-group">
                   <div class="settings-heading">
                     <ha-icon icon="mdi:palette-outline"></ha-icon>
-                    <div><strong>Appearance</strong><small>Colors, typography and placement</small></div>
+                    <div>
+                      <strong>Appearance</strong
+                      ><small>Colors, typography and placement</small>
+                    </div>
                   </div>
                   ${this.appearanceEditor(card)}
                 </section>`
@@ -2883,9 +3058,13 @@ export class MiniDisplayEditor extends LitElement {
                       <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
                       <div>
                         <strong>Visibility</strong>
-                        <small>${card.visibility
-                          ? "Shown when configured conditions match"
-                          : "Always visible"}</small>
+                        <small
+                          >${
+                          card.visibility
+                            ? "Shown when configured conditions match"
+                            : "Always visible"
+                        }</small
+                        >
                       </div>
                       <ha-button
                         @click=${() =>
@@ -2897,7 +3076,12 @@ export class MiniDisplayEditor extends LitElement {
                   <section class="settings-group rule-groups">
                     <div class="settings-heading">
                       <ha-icon icon="mdi:swap-horizontal"></ha-icon>
-                      <div><strong>Mappings</strong><small>Transform values and colors in rule order</small></div>
+                      <div>
+                        <strong>Mappings</strong
+                        ><small
+                          >Transform values and colors in rule order</small
+                        >
+                      </div>
                     </div>
                     ${this.valueMappingsEditor(card)}${this.colorMappingsEditor(card)}
                   </section>
@@ -2912,33 +3096,36 @@ export class MiniDisplayEditor extends LitElement {
     return html`<section class="row-panel">
       <div class="row-head">
         <div class="row-title">
-          ${this.editingRowTitle === rowIndex
-            ? html`<input
-                class="row-title-input"
-                aria-label="Row title"
-                autofocus
-                .value=${row.title ?? ""}
-                placeholder=${`Row ${rowIndex + 1}`}
-                @input=${(event: Event) => {
+          ${
+            this.editingRowTitle === rowIndex
+              ? html`<input
+                  class="row-title-input"
+                  aria-label="Row title"
+                  autofocus
+                  .value=${row.title ?? ""}
+                  placeholder=${`Row ${rowIndex + 1}`}
+                  @input=${(event: Event) => {
                   row.title = (event.target as HTMLInputElement).value;
                   this.changed();
                 }}
-                @blur=${() => (this.editingRowTitle = undefined)}
-                @keydown=${(event: KeyboardEvent) => {
+                  @blur=${() => (this.editingRowTitle = undefined)}
+                  @keydown=${(event: KeyboardEvent) => {
                   if (event.key === "Enter" || event.key === "Escape") {
                     (event.currentTarget as HTMLInputElement).blur();
                   }
                 }}
-              />`
-            : html`<strong>${row.title?.trim() || `Row ${rowIndex + 1}`}</strong
-                ><button
-                  class="inline-icon-button"
-                  aria-label="Edit row title"
-                  title="Edit row title"
-                  @click=${() => (this.editingRowTitle = rowIndex)}
-                >
-                  <ha-icon icon="mdi:pencil-outline"></ha-icon>
-                </button>`}<small
+                />`
+              : html`<strong
+                    >${row.title?.trim() || `Row ${rowIndex + 1}`}</strong
+                  ><button
+                    class="inline-icon-button"
+                    aria-label="Edit row title"
+                    title="Edit row title"
+                    @click=${() => (this.editingRowTitle = rowIndex)}
+                  >
+                    <ha-icon icon="mdi:pencil-outline"></ha-icon>
+                  </button>`
+          }<small
             >${row.cards.length}
             ${row.cards.length === 1 ? "card" : "cards"}</small
           >${row.visibility ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : nothing}
@@ -3061,30 +3248,32 @@ export class MiniDisplayEditor extends LitElement {
                 <div class="editor-content">
                   <nav class="tabs" aria-label="Dashboard pages">
                     ${dashboard.pages.map(
-                (item, index) => html`
-                  <button
-                    class="tab ${index === this.pageIndex ? "active" : ""} ${item.enabled === false ? "inactive" : ""}"
-                    aria-pressed=${index === this.pageIndex}
-                    @click=${() => void this.showPage(index)}
-                  >
-                    ${item.enabled === false ? html`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : nothing}${item.title || item.id}
-                  </button>
-                `,
-              )}
+                      (item, index) => html`
+                        <button
+                          class="tab ${index === this.pageIndex ? "active" : ""} ${item.enabled === false ? "inactive" : ""}"
+                          aria-pressed=${index === this.pageIndex}
+                          @click=${() => void this.showPage(index)}
+                        >
+                          ${item.enabled === false ? html`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : nothing}${item.title || item.id}
+                        </button>
+                      `,
+                    )}
                     <button
                       class="icon-button"
                       aria-label="Add page"
                       title="Add page"
                       @click=${() => {
-                dashboard.pages.push(newPage(dashboard.pages.length + 1));
-                this.pageIndex = dashboard.pages.length - 1;
-                this.previewPages = {
-                  ...this.previewPages,
-                  [this.selectedDisplayId]: this.pageIndex,
-                };
-                this.selected = { row: 0, card: 0 };
-                this.changed();
-              }}
+                        dashboard.pages.push(
+                          newPage(dashboard.pages.length + 1),
+                        );
+                        this.pageIndex = dashboard.pages.length - 1;
+                        this.previewPages = {
+                          ...this.previewPages,
+                          [this.selectedDisplayId]: this.pageIndex,
+                        };
+                        this.selected = { row: 0, card: 0 };
+                        this.changed();
+                      }}
                     >
                       <ha-icon icon="mdi:plus"></ha-icon>
                     </button>
@@ -3103,52 +3292,52 @@ export class MiniDisplayEditor extends LitElement {
                         title="Delete page"
                         ?disabled=${dashboard.pages.length <= 1}
                         @click=${(event: Event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                this.deletePage();
-              }}
+                          event.preventDefault();
+                          event.stopPropagation();
+                          this.deletePage();
+                        }}
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </button>
                     </summary>
                     <div class="page-settings-grid">
                       ${this.field("Page title", page.title, (input) => {
-                  page.title = input;
-                  this.changed();
-                })}
+                        page.title = input;
+                        this.changed();
+                      })}
                       ${this.field(
-                  "Duration (seconds)",
-                  page.durationSeconds,
-                  (input) => {
-                    page.durationSeconds = Number(input);
-                    this.changed();
-                  },
-                  "number",
-                )}
+                        "Duration (seconds)",
+                        page.durationSeconds,
+                        (input) => {
+                          page.durationSeconds = Number(input);
+                          this.changed();
+                        },
+                        "number",
+                      )}
                       <div class="page-options">
                         ${this.checkbox(
-                    "Enabled",
-                    page.enabled !== false,
-                    (input) => {
-                      page.enabled = input;
-                      this.changed();
-                    },
-                    page.enabled !== false && enabledPages <= 1,
-                    "At least one page must stay enabled",
-                  )}
+                          "Enabled",
+                          page.enabled !== false,
+                          (input) => {
+                            page.enabled = input;
+                            this.changed();
+                          },
+                          page.enabled !== false && enabledPages <= 1,
+                          "At least one page must stay enabled",
+                        )}
                         ${this.checkbox(
-                    "Show title",
-                    page.showTitle !== false,
-                    (input) => {
-                      page.showTitle = input;
-                      this.changed();
-                    },
-                  )}
+                          "Show title",
+                          page.showTitle !== false,
+                          (input) => {
+                            page.showTitle = input;
+                            this.changed();
+                          },
+                        )}
                       </div>
                       ${
-                  page.showTitle !== false
-                    ? html`<div class="page-title-position">
-                        ${this.segmented(
+                        page.showTitle !== false
+                          ? html`<div class="page-title-position">
+                              ${this.segmented(
                           "Title position",
                           page.titlePosition ?? "top",
                           [
@@ -3178,9 +3367,9 @@ export class MiniDisplayEditor extends LitElement {
                             this.changed();
                           },
                         )}
-                      </div>`
-                    : nothing
-                }
+                            </div>`
+                          : nothing
+                      }
                       <details class="page-appearance">
                         <summary>Page appearance</summary>
                         <div class="page-appearance-grid">
@@ -3188,73 +3377,85 @@ export class MiniDisplayEditor extends LitElement {
                             label="Page background"
                             .value=${pageStyle.background ?? ""}
                             @color-changed=${(event: CustomEvent<string>) => {
-                      page.style = {
-                        ...(page.style ?? {}),
-                        background: event.detail || undefined,
-                      };
-                      this.changed();
-                    }}
+                              page.style = {
+                                ...(page.style ?? {}),
+                                background: event.detail || undefined,
+                              };
+                              this.changed();
+                            }}
                           ></mini-display-color-field>
+                          ${this.imageField(
+                            "Page background image",
+                            page.backgroundImage,
+                            (id) => {
+                              page.backgroundImage = id || undefined;
+                              this.changed();
+                            },
+                          )}
                           ${
-                      page.showTitle !== false
-                        ? html`
-                            <mini-display-color-field
-                              label="Title background"
-                              .value=${pageTitleStyle.background ?? ""}
-                              @color-changed=${(event: CustomEvent<string>) => {
-                        page.titleStyle = {
-                          ...(page.titleStyle ?? {}),
-                          background: event.detail || undefined,
-                        };
-                        this.changed();
-                      }}
-                            ></mini-display-color-field>
-                            <mini-display-color-field
-                              label="Title text"
-                              .value=${pageTitleStyle.foreground ?? ""}
-                              @color-changed=${(event: CustomEvent<string>) => {
-                        page.titleStyle = {
-                          ...(page.titleStyle ?? {}),
-                          foreground: event.detail || undefined,
-                        };
-                        this.changed();
-                      }}
-                            ></mini-display-color-field>
-                            ${this.fontSelect(
-                        "Title font",
-                        pageTitleStyle.fontFamily,
-                        (input) => {
-                          page.titleStyle = {
-                            ...(page.titleStyle ?? {}),
-                            fontFamily: input,
-                          };
-                          this.changed();
-                        },
-                      )}
-                            ${this.select(
-                        "Title font size",
-                        pageTitleStyle.fontSize ?? "small",
-                        ["small", "medium", "large", "xlarge"],
-                        (input) => {
-                          page.titleStyle = {
-                            ...(page.titleStyle ?? {}),
-                            fontSize: input as Style["fontSize"],
-                          };
-                          this.changed();
-                        },
-                      )}
-                          `
-                        : nothing
-                    }
+                            page.showTitle !== false
+                              ? html`
+                                  <mini-display-color-field
+                                    label="Title background"
+                                    .value=${pageTitleStyle.background ?? ""}
+                                    @color-changed=${(
+                                event: CustomEvent<string>,
+                              ) => {
+                                page.titleStyle = {
+                                  ...(page.titleStyle ?? {}),
+                                  background: event.detail || undefined,
+                                };
+                                this.changed();
+                              }}
+                                  ></mini-display-color-field>
+                                  <mini-display-color-field
+                                    label="Title text"
+                                    .value=${pageTitleStyle.foreground ?? ""}
+                                    @color-changed=${(
+                                event: CustomEvent<string>,
+                              ) => {
+                                page.titleStyle = {
+                                  ...(page.titleStyle ?? {}),
+                                  foreground: event.detail || undefined,
+                                };
+                                this.changed();
+                              }}
+                                  ></mini-display-color-field>
+                                  ${this.fontSelect(
+                              "Title font",
+                              pageTitleStyle.fontFamily,
+                              (input) => {
+                                page.titleStyle = {
+                                  ...(page.titleStyle ?? {}),
+                                  fontFamily: input,
+                                };
+                                this.changed();
+                              },
+                            )}
+                                  ${this.select(
+                              "Title font size",
+                              pageTitleStyle.fontSize ?? "small",
+                              ["small", "medium", "large", "xlarge"],
+                              (input) => {
+                                page.titleStyle = {
+                                  ...(page.titleStyle ?? {}),
+                                  fontSize: input as Style["fontSize"],
+                                };
+                                this.changed();
+                              },
+                            )}
+                                `
+                              : nothing
+                          }
                         </div>
                       </details>
                       <details class="advanced-settings">
                         <summary>Advanced</summary>
                         <div class="advanced-settings-content">
                           ${this.field("Page ID", page.id, (input) => {
-                      page.id = input;
-                      this.changed();
-                    })}
+                            page.id = input;
+                            this.changed();
+                          })}
                         </div>
                       </details>
                     </div>
@@ -3264,18 +3465,18 @@ export class MiniDisplayEditor extends LitElement {
                     ${page.rows.map((row, index) => this.rowEditor(row, index))}
                   </div>
                   ${
-              page.rows.length < 6
-                ? html`<button
-                    class="add-button"
-                    @click=${() => {
+                    page.rows.length < 6
+                      ? html`<button
+                          class="add-button"
+                          @click=${() => {
                       page.rows.push(newRow());
                       this.changed();
                     }}
-                  >
-                    Add row
-                  </button>`
-                : nothing
-            }
+                        >
+                          Add row
+                        </button>`
+                      : nothing
+                  }
                 </div>
               `
             : html`<div class="loading">
@@ -3344,6 +3545,7 @@ export class MiniDisplayEditor extends LitElement {
           .selectedDisplayId=${this.selectedDisplayId}
           .selectedSceneId=${this.selectedSceneId}
           .selectedSceneName=${this.selectedScene?.name ?? ""}
+          .assets=${this.assets}
           @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
           @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
           @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}
@@ -3391,10 +3593,10 @@ export class MiniDisplayEditor extends LitElement {
                   <div class="modal-body">
                     <p class="modal-copy">
                       ${
-                this.confirmation.kind === "delete-row"
-                  ? "This row and all cards inside it will be removed."
-                  : "You have unsaved changes. Leaving Mini Displays will discard them."
-              }
+                        this.confirmation.kind === "delete-row"
+                          ? "This row and all cards inside it will be removed."
+                          : "You have unsaved changes. Leaving Mini Displays will discard them."
+                      }
                     </p>
                   </div>
                   <div class="modal-actions">

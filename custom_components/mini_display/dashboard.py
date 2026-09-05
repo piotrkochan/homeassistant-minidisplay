@@ -14,6 +14,7 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 from homeassistant.helpers.storage import Store
 
 from .api import MiniDisplayApiError, MiniDisplayClient
+from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 
 STORE_VERSION = 1
@@ -109,6 +110,7 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
         if "transition" not in page and legacy_transition is not None:
             page["transition"] = deepcopy(legacy_transition)
         _validate_transition(page.get("transition"), f"{page_path}/transition")
+        _validate_asset_id(page.get("backgroundImage"), f"{page_path}/backgroundImage")
         duration = page.get("durationSeconds")
         if duration is not None and (not isinstance(duration, int) or not 1 <= duration <= 86400):
             raise DashboardValidationError("durationSeconds must be 1-86400", f"{page_path}/durationSeconds")
@@ -129,7 +131,7 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 card_path = f"{row_path}/cards/{card_index}"
                 if not isinstance(card, dict):
                     raise DashboardValidationError("Card must be an object", card_path)
-                if card.get("type") not in {"clock", "number", "status", "text"}:
+                if card.get("type") not in {"clock", "number", "status", "text", "image"}:
                     raise DashboardValidationError("Unsupported card type", f"{card_path}/type")
                 source = card.get("source")
                 if source is not None and (not isinstance(source, str) or len(source) > 64):
@@ -138,6 +140,17 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                     raise DashboardValidationError("Card type requires source", f"{card_path}/source")
                 if card.get("type") == "text" and not source and "text" not in card:
                     raise DashboardValidationError("Text card requires source or text", card_path)
+                _validate_asset_id(card.get("backgroundImage"), f"{card_path}/backgroundImage")
+                _validate_asset_id(card.get("image"), f"{card_path}/image")
+                if card.get("type") == "image" and not card.get("image"):
+                    raise DashboardValidationError("Image card requires an image", f"{card_path}/image")
+                if card.get("imageFit", "cover") not in {"cover", "contain", "stretch"}:
+                    raise DashboardValidationError("Unsupported image fit", f"{card_path}/imageFit")
+                if not isinstance(card.get("transparentBackground", False), bool):
+                    raise DashboardValidationError(
+                        "transparentBackground must be a boolean",
+                        f"{card_path}/transparentBackground",
+                    )
                 _validate_visibility(
                     card.get("visibility"),
                     f"{card_path}/visibility",
@@ -158,6 +171,28 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
     if enabled_pages == 0:
         raise DashboardValidationError("Dashboard requires an enabled page", "/pages")
     return document
+
+
+def _validate_asset_id(asset_id: Any, path: str) -> None:
+    """Validate an optional content-addressed image id."""
+    if asset_id is not None and (
+        not isinstance(asset_id, str) or not ASSET_ID_PATTERN.fullmatch(asset_id)
+    ):
+        raise DashboardValidationError("Invalid image asset id", path)
+
+
+def extract_assets(document: dict[str, Any]) -> set[str]:
+    """Return all image ids referenced by a dashboard."""
+    assets: set[str] = set()
+    for page in document["pages"]:
+        if isinstance(page.get("backgroundImage"), str):
+            assets.add(page["backgroundImage"])
+        for row in page["rows"]:
+            for card in row["cards"]:
+                for field in ("backgroundImage", "image"):
+                    if isinstance(card.get(field), str):
+                        assets.add(card[field])
+    return assets
 
 
 def _validate_transition(transition: Any, path: str) -> None:
@@ -624,6 +659,7 @@ class MiniDisplayDashboardManager:
         self.hass = hass
         self.entry_id = entry_id
         self.client = client
+        self.assets = MiniDisplayAssetManager(hass, entry_id, client)
         self.data_batch_interval = data_batch_interval
         self.scenes: dict[str, dict[str, Any]] = {}
         self.active_scene_id = DEFAULT_SCENE_ID
@@ -650,6 +686,7 @@ class MiniDisplayDashboardManager:
         self.data_forwarding_enabled = True
 
     async def async_load(self) -> None:
+        await self.assets.async_load()
         stored = await self._store.async_load()
         if stored is None:
             legacy = await self._legacy_store.async_load()
@@ -922,6 +959,7 @@ class MiniDisplayDashboardManager:
                 for entity_id in sources
             }
             await self.client.async_patch_values(values, render=False)
+        await self.assets.async_sync(extract_assets(rendered))
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
         self._last_rendered_dashboard = rendered
         if active_page_id is not None:

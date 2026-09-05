@@ -22,13 +22,30 @@
       "description": "RGB color in #RRGGBB form or a renderer theme token.",
       "oneOf": [
         { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
-        { "enum": ["background", "surface", "primary", "secondary", "accent", "success", "warning", "error", "muted"] }
+        {
+          "enum": [
+            "background",
+            "surface",
+            "primary",
+            "secondary",
+            "accent",
+            "success",
+            "warning",
+            "error",
+            "muted"
+          ]
+        }
       ]
     },
     "source": {
       "description": "Logical value key supplied by MQTT or another data adapter.",
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+    },
+    "assetId": {
+      "description": "Content-addressed image stored on the display.",
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
     },
     "numberValueMappings": {
       "type": "array",
@@ -43,10 +60,7 @@
           "maximum": { "type": "number" },
           "value": { "type": "string", "minLength": 1, "maxLength": 48 }
         },
-        "anyOf": [
-          { "required": ["minimum"] },
-          { "required": ["maximum"] }
-        ]
+        "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }]
       }
     },
     "textValueMappings": {
@@ -58,7 +72,9 @@
         "additionalProperties": false,
         "required": ["operator", "match", "value"],
         "properties": {
-          "operator": { "enum": ["equals", "starts_with", "ends_with", "contains"] },
+          "operator": {
+            "enum": ["equals", "starts_with", "ends_with", "contains"]
+          },
           "match": { "type": "string", "minLength": 1, "maxLength": 64 },
           "value": { "type": "string", "minLength": 1, "maxLength": 48 }
         }
@@ -78,8 +94,15 @@
           "foreground": { "$ref": "#/$defs/color" }
         },
         "allOf": [
-          { "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }] },
-          { "anyOf": [{ "required": ["background"] }, { "required": ["foreground"] }] }
+          {
+            "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }]
+          },
+          {
+            "anyOf": [
+              { "required": ["background"] },
+              { "required": ["foreground"] }
+            ]
+          }
         ]
       }
     },
@@ -92,12 +115,17 @@
         "additionalProperties": false,
         "required": ["operator", "match"],
         "properties": {
-          "operator": { "enum": ["equals", "starts_with", "ends_with", "contains"] },
+          "operator": {
+            "enum": ["equals", "starts_with", "ends_with", "contains"]
+          },
           "match": { "type": "string", "minLength": 1, "maxLength": 64 },
           "background": { "$ref": "#/$defs/color" },
           "foreground": { "$ref": "#/$defs/color" }
         },
-        "anyOf": [{ "required": ["background"] }, { "required": ["foreground"] }]
+        "anyOf": [
+          { "required": ["background"] },
+          { "required": ["foreground"] }
+        ]
       }
     },
     "visibility": {
@@ -117,17 +145,76 @@
               "id": { "type": "string", "minLength": 1, "maxLength": 32 },
               "source": { "enum": ["card", "entity"] },
               "entity": { "$ref": "#/$defs/source" },
-              "operator": { "enum": ["range", "number_equals", "number_not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "equals", "not_equals", "starts_with", "ends_with", "contains", "available", "unavailable"] },
+              "operator": {
+                "enum": [
+                  "range",
+                  "number_equals",
+                  "number_not_equals",
+                  "greater_than",
+                  "greater_than_or_equal",
+                  "less_than",
+                  "less_than_or_equal",
+                  "equals",
+                  "not_equals",
+                  "starts_with",
+                  "ends_with",
+                  "contains",
+                  "available",
+                  "unavailable"
+                ]
+              },
               "minimum": { "type": "number" },
               "maximum": { "type": "number" },
               "value": { "type": "number" },
               "match": { "type": "string", "maxLength": 64 }
             },
             "allOf": [
-              { "if": { "properties": { "source": { "const": "entity" } } }, "then": { "required": ["entity"] } },
-              { "if": { "properties": { "operator": { "enum": ["equals", "not_equals", "starts_with", "ends_with", "contains"] } } }, "then": { "required": ["match"] } },
-              { "if": { "properties": { "operator": { "enum": ["number_equals", "number_not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal"] } } }, "then": { "required": ["value"] } },
-              { "if": { "properties": { "operator": { "const": "range" } } }, "then": { "anyOf": [{ "required": ["minimum"] }, { "required": ["maximum"] }] } }
+              {
+                "if": { "properties": { "source": { "const": "entity" } } },
+                "then": { "required": ["entity"] }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "operator": {
+                      "enum": [
+                        "equals",
+                        "not_equals",
+                        "starts_with",
+                        "ends_with",
+                        "contains"
+                      ]
+                    }
+                  }
+                },
+                "then": { "required": ["match"] }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "operator": {
+                      "enum": [
+                        "number_equals",
+                        "number_not_equals",
+                        "greater_than",
+                        "greater_than_or_equal",
+                        "less_than",
+                        "less_than_or_equal"
+                      ]
+                    }
+                  }
+                },
+                "then": { "required": ["value"] }
+              },
+              {
+                "if": { "properties": { "operator": { "const": "range" } } },
+                "then": {
+                  "anyOf": [
+                    { "required": ["minimum"] },
+                    { "required": ["maximum"] }
+                  ]
+                }
+              }
             ]
           }
         },
@@ -208,8 +295,14 @@
           "maximum": 6,
           "default": 2
         },
-        "horizontalAlign": { "enum": ["left", "center", "right"], "default": "center" },
-        "verticalAlign": { "enum": ["top", "middle", "bottom"], "default": "middle" }
+        "horizontalAlign": {
+          "enum": ["left", "center", "right"],
+          "default": "center"
+        },
+        "verticalAlign": {
+          "enum": ["top", "middle", "bottom"],
+          "default": "middle"
+        }
       }
     },
     "transition": {
@@ -217,7 +310,22 @@
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["none", "random", "slide", "bounce", "fade", "wipe", "dissolve", "curtain", "blinds", "mosaic", "doors", "spiral"] },
+        "type": {
+          "enum": [
+            "none",
+            "random",
+            "slide",
+            "bounce",
+            "fade",
+            "wipe",
+            "dissolve",
+            "curtain",
+            "blinds",
+            "mosaic",
+            "doors",
+            "spiral"
+          ]
+        },
         "direction": { "enum": ["left", "right", "up", "down"] },
         "speed": { "enum": ["slow", "normal", "fast"] },
         "intensity": { "enum": ["subtle", "strong"] },
@@ -228,9 +336,19 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "pageDurationSeconds": { "type": "integer", "minimum": 1, "maximum": 86400, "default": 10 },
+        "pageDurationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400,
+          "default": 10
+        },
         "showRowTitle": { "type": "boolean", "default": true },
-        "theme": { "type": "string", "minLength": 1, "maxLength": 32, "default": "dark" },
+        "theme": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "default": "dark"
+        },
         "style": { "$ref": "#/$defs/style" }
       }
     },
@@ -242,12 +360,20 @@
         "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
         "title": { "type": "string", "maxLength": 48 },
         "showTitle": { "type": "boolean", "default": true },
-        "titlePosition": { "enum": ["top", "right", "bottom", "left"], "default": "top" },
+        "titlePosition": {
+          "enum": ["top", "right", "bottom", "left"],
+          "default": "top"
+        },
         "titleStyle": { "$ref": "#/$defs/style" },
-        "durationSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+        "durationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
         "enabled": { "type": "boolean", "default": true },
         "transition": { "$ref": "#/$defs/transition" },
         "style": { "$ref": "#/$defs/style" },
+        "backgroundImage": { "$ref": "#/$defs/assetId" },
         "rows": {
           "type": "array",
           "minItems": 1,
@@ -264,7 +390,12 @@
       "properties": {
         "title": { "type": "string", "maxLength": 32 },
         "showTitle": { "type": "boolean" },
-        "weight": { "type": "integer", "minimum": 1, "maximum": 4, "default": 1 },
+        "weight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "default": 1
+        },
         "gap": { "enum": ["none", "small", "medium"], "default": "small" },
         "visibility": { "$ref": "#/$defs/visibility" },
         "style": { "$ref": "#/$defs/style" },
@@ -289,7 +420,9 @@
         "style": { "$ref": "#/$defs/style" },
         "titleStyle": { "$ref": "#/$defs/style" },
         "valueStyle": { "$ref": "#/$defs/style" },
-        "visibility": { "$ref": "#/$defs/visibility" }
+        "visibility": { "$ref": "#/$defs/visibility" },
+        "backgroundImage": { "$ref": "#/$defs/assetId" },
+        "transparentBackground": { "type": "boolean", "default": false }
       }
     },
     "numberCard": {
@@ -301,15 +434,25 @@
           "required": ["type", "source"],
           "properties": {
             "type": { "const": "number" },
-            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
+            },
             "title": { "type": "string", "maxLength": 32 },
             "showTitle": { "type": "boolean", "default": true },
             "subtitle": { "type": "string", "maxLength": 48 },
             "icon": { "type": "string", "maxLength": 48 },
             "style": { "$ref": "#/$defs/style" },
+            "backgroundImage": { "$ref": "#/$defs/assetId" },
+            "transparentBackground": { "type": "boolean", "default": false },
             "source": { "$ref": "#/$defs/source" },
             "unit": { "type": "string", "maxLength": 12 },
-            "decimals": { "type": "integer", "minimum": 0, "maximum": 3, "default": 1 },
+            "decimals": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3,
+              "default": 1
+            },
             "minimum": { "type": "number" },
             "maximum": { "type": "number" },
             "showCurrent": { "type": "boolean", "default": true },
@@ -332,25 +475,35 @@
           "required": ["type"],
           "properties": {
             "type": { "const": "text" },
-            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
+            },
             "title": { "type": "string", "maxLength": 32 },
             "showTitle": { "type": "boolean", "default": true },
             "subtitle": { "type": "string", "maxLength": 48 },
             "icon": { "type": "string", "maxLength": 48 },
             "style": { "$ref": "#/$defs/style" },
+            "backgroundImage": { "$ref": "#/$defs/assetId" },
+            "transparentBackground": { "type": "boolean", "default": false },
             "source": { "$ref": "#/$defs/source" },
             "text": { "type": "string", "maxLength": 128 },
             "align": { "enum": ["start", "center", "end"], "default": "start" },
             "wrap": { "type": "boolean", "default": true },
-            "maxLines": { "type": "integer", "minimum": 1, "maximum": 6, "default": 3 },
-            "overflow": { "enum": ["clip", "ellipsis", "scroll"], "default": "ellipsis" },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6,
+              "default": 3
+            },
+            "overflow": {
+              "enum": ["clip", "ellipsis", "scroll"],
+              "default": "ellipsis"
+            },
             "valueMappings": { "$ref": "#/$defs/textValueMappings" },
             "colorMappings": { "$ref": "#/$defs/textColorMappings" }
           },
-          "anyOf": [
-            { "required": ["source"] },
-            { "required": ["text"] }
-          ]
+          "anyOf": [{ "required": ["source"] }, { "required": ["text"] }]
         }
       ]
     },
@@ -363,17 +516,30 @@
           "required": ["type"],
           "properties": {
             "type": { "const": "clock" },
-            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
+            },
             "title": { "type": "string", "maxLength": 32 },
             "showTitle": { "type": "boolean", "default": true },
             "subtitle": { "type": "string", "maxLength": 48 },
             "icon": { "type": "string", "maxLength": 48 },
             "style": { "$ref": "#/$defs/style" },
+            "backgroundImage": { "$ref": "#/$defs/assetId" },
+            "transparentBackground": { "type": "boolean", "default": false },
             "format": { "enum": ["24h", "12h"], "default": "24h" },
             "showSeconds": { "type": "boolean", "default": false },
             "showDate": { "type": "boolean", "default": true },
-            "dateFormat": { "type": "string", "maxLength": 24, "default": "%d.%m.%Y" },
-            "timezone": { "type": "string", "maxLength": 64, "default": "local" }
+            "dateFormat": {
+              "type": "string",
+              "maxLength": 24,
+              "default": "%d.%m.%Y"
+            },
+            "timezone": {
+              "type": "string",
+              "maxLength": 64,
+              "default": "local"
+            }
           }
         }
       ]
@@ -387,12 +553,17 @@
           "required": ["type", "source"],
           "properties": {
             "type": { "const": "status" },
-            "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
+            },
             "title": { "type": "string", "maxLength": 32 },
             "showTitle": { "type": "boolean", "default": true },
             "subtitle": { "type": "string", "maxLength": 48 },
             "icon": { "type": "string", "maxLength": 48 },
             "style": { "$ref": "#/$defs/style" },
+            "backgroundImage": { "$ref": "#/$defs/assetId" },
+            "transparentBackground": { "type": "boolean", "default": false },
             "source": { "$ref": "#/$defs/source" },
             "onText": { "type": "string", "maxLength": 24, "default": "On" },
             "offText": { "type": "string", "maxLength": 24, "default": "Off" },
@@ -402,12 +573,43 @@
         }
       ]
     },
+    "imageCard": {
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/cardBase" },
+        {
+          "type": "object",
+          "required": ["type", "image"],
+          "properties": {
+            "type": { "const": "image" },
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$"
+            },
+            "title": { "type": "string", "maxLength": 32 },
+            "showTitle": { "type": "boolean", "default": false },
+            "style": { "$ref": "#/$defs/style" },
+            "titleStyle": { "$ref": "#/$defs/style" },
+            "valueStyle": { "$ref": "#/$defs/style" },
+            "visibility": { "$ref": "#/$defs/visibility" },
+            "image": { "$ref": "#/$defs/assetId" },
+            "imageFit": {
+              "enum": ["cover", "contain", "stretch"],
+              "default": "cover"
+            },
+            "backgroundImage": { "$ref": "#/$defs/assetId" },
+            "transparentBackground": { "type": "boolean", "default": false }
+          }
+        }
+      ]
+    },
     "card": {
       "oneOf": [
         { "$ref": "#/$defs/numberCard" },
         { "$ref": "#/$defs/textCard" },
         { "$ref": "#/$defs/clockCard" },
-        { "$ref": "#/$defs/statusCard" }
+        { "$ref": "#/$defs/statusCard" },
+        { "$ref": "#/$defs/imageCard" }
       ]
     }
   }

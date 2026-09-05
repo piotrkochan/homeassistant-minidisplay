@@ -5,6 +5,7 @@
 
 #include "DisplayCompat.h"
 #include "TextEffect.h"
+#include "ImageAssets.h"
 
 struct FontRenderState;
 
@@ -52,6 +53,9 @@ struct CachedCard {
   uint8_t y;
   uint8_t width;
   uint8_t height;
+  uint8_t flags;
+  ImageFit imageFit;
+  char image[kImageAssetIdLength + 1];
 };
 
 struct CachedText {
@@ -93,6 +97,7 @@ struct CachedArea {
 
 struct CachedPage {
   uint16_t background;
+  char backgroundImage[kImageAssetIdLength + 1];
   bool hasTitleArea;
   CachedArea titleArea;
   uint8_t cardCount;

@@ -18,6 +18,8 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
   const int16_t clipRight = clipX + clipWidth;
   const int16_t clipBottom = clipY + clipHeight;
   canvas.fillRect(offsetX, offsetY, 240, 240, page.background);
+  drawImageAsset(canvas, page.backgroundImage, offsetX, offsetY, 240, 240,
+                 ImageFit::Cover, clipX, clipY, clipWidth, clipHeight);
   if (page.hasTitleArea) {
     const CachedArea &area = page.titleArea;
     const int16_t x = area.x + offsetX;
@@ -35,7 +37,11 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
         y + card.height <= clipY) {
       continue;
     }
-    canvas.fillRoundRect(x, y, card.width, card.height, 5, card.background);
+    if ((card.flags & 1U) == 0) {
+      canvas.fillRoundRect(x, y, card.width, card.height, 5, card.background);
+    }
+    drawImageAsset(canvas, card.image, x, y, card.width, card.height,
+                   card.imageFit, clipX, clipY, clipWidth, clipHeight);
   }
   uint64_t paintedTexts = 0;
   while (true) {
