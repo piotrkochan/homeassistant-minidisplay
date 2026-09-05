@@ -121,33 +121,12 @@ uint8_t finishTimedFrame(uint32_t animationStartedAt, uint16_t durationMs,
   return max<uint8_t>(renderedStep + 1, scheduledStep);
 }
 
-uint8_t curtainFramesForPage(const CachedPage &page, bool horizontal,
-                             uint8_t requestedFrames) {
-  constexpr uint16_t kTextPassBudget = 36;
-  constexpr uint8_t kMinimumFrames = 4;
-  uint8_t frames = max<uint8_t>(kMinimumFrames, requestedFrames);
-  while (frames > kMinimumFrames) {
-    const uint16_t stripSize = max<uint16_t>(1, 120 / frames);
-    uint16_t cost = 0;
-    for (uint8_t index = 0; index < page.textCount; ++index) {
-      const CachedText &text = page.texts[index];
-      const uint16_t span =
-          horizontal ? text.boundsWidth : text.boundsHeight;
-      const uint8_t segments = max<uint8_t>(1, (span + stripSize - 1) /
-                                                   stripSize);
-      uint8_t passes = 1;
-      if (text.effect.type == TextEffectType::Outline) {
-        passes = 10;
-      } else if (text.effect.type == TextEffectType::Shadow) {
-        passes = text.effect.thickness > 1 ? 10 : 2;
-      }
-      cost += segments * passes;
-      if (cost > kTextPassBudget) break;
-    }
-    if (cost <= kTextPassBudget) break;
-    --frames;
-  }
-  return frames;
+uint8_t curtainFrames(PageTransitionSpeed speed) {
+  // Each count divides the 120-pixel half exactly, so the compositor can keep
+  // one fixed-size strip for the whole animation without reallocating heap.
+  if (speed == PageTransitionSpeed::Fast) return 15;
+  if (speed == PageTransitionSpeed::Slow) return 24;
+  return 20;
 }
 
 }  // namespace
@@ -394,35 +373,69 @@ void PageTransitionRenderer::curtain(
     const CachedPage &nextPage, const PageTransitionConfig &transition,
     uint8_t frameCount, uint16_t durationMs, int8_t contentOffsetX,
     int8_t contentOffsetY) {
-  const uint8_t maximumFrames = min<uint8_t>(
-      frameCount, transition.speed == PageTransitionSpeed::Slow
-                      ? 12
-                      : transition.speed == PageTransitionSpeed::Fast ? 6 : 8);
   const bool horizontal = transition.direction == PageTransitionDirection::Left ||
                           transition.direction == PageTransitionDirection::Right;
-  const uint8_t curtainFrames =
-      curtainFramesForPage(nextPage, horizontal, maximumFrames);
+  const uint8_t curtainFrameCount = curtainFrames(transition.speed);
+#if defined(ESP8266)
+  const int16_t stripSize = (kDisplaySize / 2) / curtainFrameCount;
+  TFT_eSprite strip(&display_);
+  strip.setColorDepth(16);
+  const int16_t stripWidth = horizontal ? stripSize : kDisplaySize;
+  const int16_t stripHeight = horizontal ? kDisplaySize : stripSize;
+  if (strip.createSprite(stripWidth, stripHeight) == nullptr) {
+    wipe(nextPage, transition, frameCount, durationMs, contentOffsetX,
+         contentOffsetY);
+    return;
+  }
+  FontRenderState stripFontState;
+  stripFontState.smoothAllowed = true;
+  auto drawStrip = [&](int16_t x, int16_t y) {
+    strip.fillSprite(nextPage.background);
+    paintCachedPage(strip, nextPage, contentOffsetX - x, contentOffsetY - y,
+                    0, 0, stripWidth, stripHeight, stripFontState,
+                    &imageCache_);
+    strip.pushSprite(x, y);
+  };
+#endif
   int16_t previous = 0;
   const uint32_t animationStartedAt = millis();
-  for (uint8_t step = 1; step <= curtainFrames;) {
+  for (uint8_t step = 1; step <= curtainFrameCount;) {
     const int16_t revealed =
-        (kDisplaySize / 2) * step / curtainFrames;
+        (kDisplaySize / 2) * step / curtainFrameCount;
+#if !defined(ESP8266)
     const int16_t extent = revealed - previous;
+#endif
     if (horizontal) {
+#if defined(ESP8266)
+      drawStrip(kDisplaySize / 2 - revealed, 0);
+      drawStrip(kDisplaySize / 2 + previous, 0);
+#else
       drawRegion(nextPage, kDisplaySize / 2 - revealed, 0, extent,
                  kDisplaySize, contentOffsetX, contentOffsetY);
       drawRegion(nextPage, kDisplaySize / 2 + previous, 0, extent,
                  kDisplaySize, contentOffsetX, contentOffsetY);
+#endif
     } else {
+#if defined(ESP8266)
+      drawStrip(0, kDisplaySize / 2 - revealed);
+      drawStrip(0, kDisplaySize / 2 + previous);
+#else
       drawRegion(nextPage, 0, kDisplaySize / 2 - revealed, kDisplaySize,
                  extent, contentOffsetX, contentOffsetY);
       drawRegion(nextPage, 0, kDisplaySize / 2 + previous, kDisplaySize,
                  extent, contentOffsetX, contentOffsetY);
+#endif
     }
     previous = revealed;
-    step = finishTimedFrame(animationStartedAt, durationMs, curtainFrames,
-                            step);
+    // Curtain paints only the newly revealed strip. Skipping an overdue frame
+    // would leave a permanent gap, so keep every strip and only skip its wait.
+    finishTimedFrame(animationStartedAt, durationMs, curtainFrameCount, step);
+    ++step;
   }
+#if defined(ESP8266)
+  if (strip.fontLoaded) strip.unloadFont();
+  strip.deleteSprite();
+#endif
 }
 
 void PageTransitionRenderer::blinds(
