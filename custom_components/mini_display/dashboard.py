@@ -1003,13 +1003,27 @@ class MiniDisplayDashboardManager:
         active_page_id: str | None = None,
         scene_id: str | None = None,
     ) -> None:
+        async with self._preview_lock:
+            await self._async_apply(document, active_page_id, scene_id)
+
+    async def _async_apply(
+        self,
+        document: dict[str, Any],
+        active_page_id: str | None,
+        scene_id: str | None,
+    ) -> None:
         validated = validate_dashboard(document)
         target_scene_id = scene_id or self.active_scene_id
         scene = self.scenes.get(target_scene_id)
         if scene is None:
             raise DashboardValidationError("Scene not configured for this display")
         shown_scene_id = self.preview_scene_id or self.active_scene_id
-        if target_scene_id == shown_scene_id:
+        if target_scene_id == self.preview_scene_id:
+            page_id = self.preview_page_id
+            if page_id is not None and not any(page["id"] == page_id for page in validated["pages"]):
+                page_id = validated["pages"][0]["id"]
+            await self._async_start_preview(target_scene_id, page_id, validated, self.preview_owner)
+        elif target_scene_id == shown_scene_id:
             await self._async_send_dashboard(validated, active_page_id)
         scene["dashboard"] = validated
         await self._async_save()

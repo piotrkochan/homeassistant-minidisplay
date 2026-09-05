@@ -23,6 +23,7 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         self.saved = {"version": 1, "pages": [{"id": "page", "rows": [{"cards": [{"type": "text", "text": "Saved"}]}]}]}
         manager.scenes = {"default": {"dashboard": deepcopy(self.saved)}}
         manager._async_send_dashboard = AsyncMock()
+        manager._async_save = AsyncMock()
         manager._replace_subscriptions = Mock()
         self.timer = patch.object(module, "async_call_later", return_value=Mock())
         self.timer.start()
@@ -56,6 +57,26 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(sent), 1)
         self.assertEqual([page["id"] for page in sent[0]["pages"]], ["page"])
         self.assertEqual(len(draft["pages"]), 2)
+
+    async def test_save_preserves_preview_but_stores_all_pages(self):
+        draft = deepcopy(self.saved)
+        draft["pages"].append({"id": "second", "rows": [{"cards": [{"type": "text", "text": "Second"}]}]})
+        await self.manager.async_start_preview("default", "second", draft, self.owner)
+        await self.manager.async_apply(draft, scene_id="default")
+        self.assertIs(self.manager.preview_owner, self.owner)
+        self.assertEqual(self.manager.preview_page_id, "second")
+        self.assertEqual([page["id"] for page in self.manager._async_send_dashboard.await_args.args[0]["pages"]], ["second"])
+        self.assertEqual(len(self.manager.scenes["default"]["dashboard"]["pages"]), 2)
+        await self.manager.async_stop_preview(self.owner)
+        self.assertEqual(len(self.manager._async_send_dashboard.await_args.args[0]["pages"]), 2)
+
+    async def test_save_after_preview_page_removed_selects_existing_page(self):
+        draft = deepcopy(self.saved)
+        draft["pages"].append({"id": "second", "rows": [{"cards": [{"type": "text", "text": "Second"}]}]})
+        await self.manager.async_start_preview("default", "second", draft, self.owner)
+        await self.manager.async_apply(self.saved, scene_id="default")
+        self.assertEqual(self.manager.preview_page_id, "page")
+        self.assertIs(self.manager.preview_owner, self.owner)
 
     async def test_stop_waits_for_inflight_update(self):
         await self.manager.async_start_preview("default", owner=self.owner)
