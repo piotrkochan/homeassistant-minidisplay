@@ -10,7 +10,14 @@ namespace {
 
 constexpr int16_t kDisplaySize = 240;
 #if defined(ESP8266)
-constexpr int16_t kFrameBandHeight = 24;
+constexpr int16_t kFrameBandHeights[] = {24, 20, 16, 12, 8};
+
+int16_t createCompositorBand(TFT_eSprite &frame) {
+  for (const int16_t height : kFrameBandHeights) {
+    if (frame.createSprite(kDisplaySize, height) != nullptr) return height;
+  }
+  return 0;
+}
 #endif
 
 bool parseType(const char *value, PageTransitionType &result) {
@@ -96,6 +103,24 @@ void finishFrame(uint32_t startedAt, uint16_t frameDurationMs) {
   }
 }
 
+uint8_t finishTimedFrame(uint32_t animationStartedAt, uint16_t durationMs,
+                         uint8_t frameCount, uint8_t renderedStep) {
+  const uint32_t targetElapsed =
+      static_cast<uint32_t>(durationMs) * renderedStep / frameCount;
+  const uint32_t elapsed = millis() - animationStartedAt;
+  if (elapsed < targetElapsed) {
+    delay(targetElapsed - elapsed);
+  } else {
+    yield();
+  }
+  if (renderedStep >= frameCount) return frameCount + 1;
+  const uint32_t elapsedAfterWait = millis() - animationStartedAt;
+  const uint8_t scheduledStep = min<uint8_t>(
+      frameCount,
+      static_cast<uint32_t>(elapsedAfterWait) * frameCount / durationMs + 1);
+  return max<uint8_t>(renderedStep + 1, scheduledStep);
+}
+
 uint8_t curtainFramesForPage(const CachedPage &page, bool horizontal,
                              uint8_t requestedFrames) {
   constexpr uint16_t kTextPassBudget = 36;
@@ -175,7 +200,7 @@ uint16_t PageTransitionRenderer::duration(
 void PageTransitionRenderer::drawPage(const CachedPage &page, int16_t offsetX,
                                       int16_t offsetY) {
   paintCachedPage(display_, page, offsetX, offsetY, 0, 0, kDisplaySize,
-                  kDisplaySize, displayFontState_);
+                  kDisplaySize, displayFontState_, &imageCache_);
 }
 
 void PageTransitionRenderer::drawRegion(
@@ -185,7 +210,7 @@ void PageTransitionRenderer::drawRegion(
 #if defined(ESP8266)
   display_.setViewport(x, y, width, height, false);
   paintCachedPage(display_, page, contentOffsetX, contentOffsetY, x, y, width,
-                  height, displayFontState_);
+                  height, displayFontState_, &imageCache_);
   display_.resetViewport();
 #else
   if (x == 0 && y == 0 && width == kDisplaySize && height == kDisplaySize) {
@@ -238,17 +263,17 @@ void PageTransitionRenderer::motion(
 #if defined(ESP8266)
   TFT_eSprite frame(&display_);
   frame.setColorDepth(16);
-  if (frame.createSprite(kDisplaySize, kFrameBandHeight) == nullptr) {
-    drawPage(nextPage, contentOffsetX, contentOffsetY);
+  const int16_t bandHeight = createCompositorBand(frame);
+  if (bandHeight == 0) {
+    wipe(nextPage, transition, frameCount, durationMs, contentOffsetX,
+         contentOffsetY);
     return;
   }
   FontRenderState frameFontState;
   frameFontState.smoothAllowed = true;
 #endif
-  const uint16_t frameDurationMs =
-      max<uint16_t>(1, durationMs / frameCount);
-  for (uint8_t step = 1; step <= frameCount; ++step) {
-    const uint32_t startedAt = millis();
+  const uint32_t animationStartedAt = millis();
+  for (uint8_t step = 1; step <= frameCount;) {
     const float progress = static_cast<float>(step) / frameCount;
     const float bounceProgress = boundedBounce(progress);
     const float eased =
@@ -259,43 +284,35 @@ void PageTransitionRenderer::motion(
                         : progress;
     const int16_t movement = constrain(
         static_cast<int16_t>(kDisplaySize * eased), 0, kDisplaySize);
+    int16_t currentX = contentOffsetX;
+    int16_t currentY = contentOffsetY;
+    int16_t nextX = contentOffsetX;
+    int16_t nextY = contentOffsetY;
+    if (transition.direction == PageTransitionDirection::Left) {
+      currentX -= movement;
+      nextX += kDisplaySize - movement;
+    } else if (transition.direction == PageTransitionDirection::Right) {
+      currentX += movement;
+      nextX -= kDisplaySize - movement;
+    } else if (transition.direction == PageTransitionDirection::Up) {
+      currentY -= movement;
+      nextY += kDisplaySize - movement;
+    } else {
+      currentY += movement;
+      nextY -= kDisplaySize - movement;
+    }
 
 #if defined(ESP8266)
+    frameFontState.smoothAllowed = step == frameCount;
     for (int16_t bandY = 0; bandY < kDisplaySize;
-         bandY += kFrameBandHeight) {
+         bandY += bandHeight) {
       frame.fillSprite(TFT_BLACK);
-      if (transition.direction == PageTransitionDirection::Left) {
-        paintCachedPage(frame, currentPage, contentOffsetX - movement,
-                  contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-        paintCachedPage(frame, nextPage,
-                  contentOffsetX + kDisplaySize - movement,
-                  contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-      } else if (transition.direction == PageTransitionDirection::Right) {
-        paintCachedPage(frame, currentPage, contentOffsetX + movement,
-                  contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-        paintCachedPage(frame, nextPage,
-                  contentOffsetX - kDisplaySize + movement,
-                  contentOffsetY - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-      } else if (transition.direction == PageTransitionDirection::Up) {
-        paintCachedPage(frame, currentPage, contentOffsetX,
-                  contentOffsetY - movement - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-        paintCachedPage(frame, nextPage, contentOffsetX,
-                  contentOffsetY + kDisplaySize - movement - bandY,
-                  0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
-      } else {
-        paintCachedPage(frame, currentPage, contentOffsetX,
-                  contentOffsetY + movement - bandY, 0, 0, kDisplaySize,
-                  kFrameBandHeight, frameFontState);
-        paintCachedPage(frame, nextPage, contentOffsetX,
-                  contentOffsetY - kDisplaySize + movement - bandY,
-                  0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
-      }
+      paintCachedPage(frame, currentPage, currentX, currentY - bandY, 0, 0,
+                      kDisplaySize, bandHeight, frameFontState, &imageCache_);
+      paintCachedPage(frame, nextPage, nextX, nextY - bandY, 0, 0,
+                      kDisplaySize, bandHeight, frameFontState, &imageCache_);
       frame.pushSprite(0, bandY);
+      optimistic_yield(20000);
     }
 #else
     if (transition.direction == PageTransitionDirection::Left) {
@@ -316,7 +333,7 @@ void PageTransitionRenderer::motion(
                contentOffsetY - kDisplaySize + movement);
     }
 #endif
-    finishFrame(startedAt, frameDurationMs);
+    step = finishTimedFrame(animationStartedAt, durationMs, frameCount, step);
   }
 #if defined(ESP8266)
   if (frame.fontLoaded) frame.unloadFont();
@@ -386,10 +403,8 @@ void PageTransitionRenderer::curtain(
   const uint8_t curtainFrames =
       curtainFramesForPage(nextPage, horizontal, maximumFrames);
   int16_t previous = 0;
-  const uint16_t frameDurationMs =
-      max<uint16_t>(1, durationMs / curtainFrames);
-  for (uint8_t step = 1; step <= curtainFrames; ++step) {
-    const uint32_t startedAt = millis();
+  const uint32_t animationStartedAt = millis();
+  for (uint8_t step = 1; step <= curtainFrames;) {
     const int16_t revealed =
         (kDisplaySize / 2) * step / curtainFrames;
     const int16_t extent = revealed - previous;
@@ -405,7 +420,8 @@ void PageTransitionRenderer::curtain(
                  extent, contentOffsetX, contentOffsetY);
     }
     previous = revealed;
-    finishFrame(startedAt, frameDurationMs);
+    step = finishTimedFrame(animationStartedAt, durationMs, curtainFrames,
+                            step);
   }
 }
 
@@ -481,40 +497,43 @@ void PageTransitionRenderer::doors(
 #if defined(ESP8266)
   TFT_eSprite frame(&display_);
   frame.setColorDepth(16);
-  if (frame.createSprite(kDisplaySize, kFrameBandHeight) == nullptr) {
-    drawPage(nextPage, contentOffsetX, contentOffsetY);
+  const int16_t bandHeight = createCompositorBand(frame);
+  if (bandHeight == 0) {
+    wipe(nextPage, transition, frameCount, durationMs, contentOffsetX,
+         contentOffsetY);
     return;
   }
   FontRenderState frameFontState;
   frameFontState.smoothAllowed = true;
-  const uint16_t frameDurationMs =
-      max<uint16_t>(1, durationMs / frameCount);
-  for (uint8_t step = 1; step <= frameCount; ++step) {
-    const uint32_t startedAt = millis();
+  const uint32_t animationStartedAt = millis();
+  for (uint8_t step = 1; step <= frameCount;) {
+    frameFontState.smoothAllowed = step == frameCount;
     const float progress = static_cast<float>(step) / frameCount;
     const float eased = progress * progress * (3.0F - 2.0F * progress);
     const int16_t movement = (kDisplaySize / 2) * eased;
     const int16_t visibleHalf = kDisplaySize / 2 - movement;
     for (int16_t bandY = 0; bandY < kDisplaySize;
-         bandY += kFrameBandHeight) {
+         bandY += bandHeight) {
       frame.fillSprite(nextPage.background);
       paintCachedPage(frame, nextPage, contentOffsetX, contentOffsetY - bandY,
-                0, 0, kDisplaySize, kFrameBandHeight, frameFontState);
+                      0, 0, kDisplaySize, bandHeight, frameFontState,
+                      &imageCache_);
       if (visibleHalf > 0) {
-        frame.setViewport(0, 0, visibleHalf, kFrameBandHeight, false);
+        frame.setViewport(0, 0, visibleHalf, bandHeight, false);
         paintCachedPage(frame, currentPage, contentOffsetX - movement,
-                  contentOffsetY - bandY, 0, 0, visibleHalf,
-                  kFrameBandHeight, frameFontState);
+                        contentOffsetY - bandY, 0, 0, visibleHalf,
+                        bandHeight, frameFontState, &imageCache_);
         frame.setViewport(kDisplaySize / 2 + movement, 0, visibleHalf,
-                          kFrameBandHeight, false);
+                          bandHeight, false);
         paintCachedPage(frame, currentPage, contentOffsetX + movement,
-                  contentOffsetY - bandY, kDisplaySize / 2 + movement, 0,
-                  visibleHalf, kFrameBandHeight, frameFontState);
+                        contentOffsetY - bandY, kDisplaySize / 2 + movement, 0,
+                        visibleHalf, bandHeight, frameFontState, &imageCache_);
         frame.resetViewport();
       }
       frame.pushSprite(0, bandY);
+      optimistic_yield(20000);
     }
-    finishFrame(startedAt, frameDurationMs);
+    step = finishTimedFrame(animationStartedAt, durationMs, frameCount, step);
   }
   if (frame.fontLoaded) frame.unloadFont();
   frame.deleteSprite();
@@ -586,6 +605,13 @@ void PageTransitionRenderer::render(
     const CachedPage &currentPage, const CachedPage &nextPage,
     const PageTransitionConfig &transition, int8_t contentOffsetX,
     int8_t contentOffsetY) {
+#if defined(ESP8266)
+  // Page caching measures text using the physical display and may leave a
+  // smooth font allocated. Release it before requesting the contiguous RGB565
+  // compositor band; text is loaded again only after the band exists.
+  if (display_.fontLoaded) display_.unloadFont();
+  displayFontState_ = FontRenderState{};
+#endif
   displayFontState_.smoothAllowed = true;
   PageTransitionConfig selected = transition;
   if (selected.type == PageTransitionType::Random) {

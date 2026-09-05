@@ -94,7 +94,7 @@ bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
        bandY -= kBandHeight) {
     frame_.fillSprite(page.background);
     paintCachedPage(frame_, page, offsetX, offsetY - bandY, 0, 0, kWidth,
-                    kBandHeight, fontState_);
+                    kBandHeight, fontState_, &imageCache_);
     for (int8_t localY = kBandHeight - 1; localY >= 0; --localY) {
       size_t outputOffset = 0;
       for (uint16_t x = 0; x < kWidth; ++x) {

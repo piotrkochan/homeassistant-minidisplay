@@ -11,38 +11,12 @@ inline bool sameCachedFont(const CachedText &left, const CachedText &right) {
 }
 
 template <typename Canvas>
-void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
-                     int16_t offsetY, int16_t clipX, int16_t clipY,
-                     int16_t clipWidth, int16_t clipHeight,
-                     FontRenderState &fontState) {
+void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
+                          int16_t offsetX, int16_t offsetY, int16_t clipX,
+                          int16_t clipY, int16_t clipWidth,
+                          int16_t clipHeight, FontRenderState &fontState) {
   const int16_t clipRight = clipX + clipWidth;
   const int16_t clipBottom = clipY + clipHeight;
-  canvas.fillRect(offsetX, offsetY, 240, 240, page.background);
-  drawImageAsset(canvas, page.backgroundImage, offsetX, offsetY, 240, 240,
-                 ImageFit::Cover, clipX, clipY, clipWidth, clipHeight);
-  if (page.hasTitleArea) {
-    const CachedArea &area = page.titleArea;
-    const int16_t x = area.x + offsetX;
-    const int16_t y = area.y + offsetY;
-    if (x < clipRight && x + area.width > clipX && y < clipBottom &&
-        y + area.height > clipY) {
-      canvas.fillRect(x, y, area.width, area.height, area.color);
-    }
-  }
-  for (uint8_t index = 0; index < page.cardCount; ++index) {
-    const CachedCard &card = page.cards[index];
-    const int16_t x = card.x + offsetX;
-    const int16_t y = card.y + offsetY;
-    if (x >= clipRight || x + card.width <= clipX || y >= clipBottom ||
-        y + card.height <= clipY) {
-      continue;
-    }
-    if ((card.flags & 1U) == 0) {
-      canvas.fillRoundRect(x, y, card.width, card.height, 5, card.background);
-    }
-    drawImageAsset(canvas, card.image, x, y, card.width, card.height,
-                   card.imageFit, clipX, clipY, clipWidth, clipHeight);
-  }
   uint64_t paintedTexts = 0;
   while (true) {
     int8_t first = -1;
@@ -89,6 +63,49 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
                          text.background, text.effect);
 #endif
     }
+  }
+}
+
+template <typename Canvas>
+void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
+                     int16_t offsetY, int16_t clipX, int16_t clipY,
+                     int16_t clipWidth, int16_t clipHeight,
+                     FontRenderState &fontState,
+                     ImageAssetRenderCache *imageCache = nullptr,
+                     bool paintTexts = true) {
+  const int16_t clipRight = clipX + clipWidth;
+  const int16_t clipBottom = clipY + clipHeight;
+  canvas.fillRect(offsetX, offsetY, 240, 240, page.background);
+  drawImageAsset(canvas, page.backgroundImage, offsetX, offsetY, 240, 240,
+                 ImageFit::Cover, clipX, clipY, clipWidth, clipHeight,
+                 imageCache);
+  if (page.hasTitleArea) {
+    const CachedArea &area = page.titleArea;
+    const int16_t x = area.x + offsetX;
+    const int16_t y = area.y + offsetY;
+    if (x < clipRight && x + area.width > clipX && y < clipBottom &&
+        y + area.height > clipY) {
+      canvas.fillRect(x, y, area.width, area.height, area.color);
+    }
+  }
+  for (uint8_t index = 0; index < page.cardCount; ++index) {
+    const CachedCard &card = page.cards[index];
+    const int16_t x = card.x + offsetX;
+    const int16_t y = card.y + offsetY;
+    if (x >= clipRight || x + card.width <= clipX || y >= clipBottom ||
+        y + card.height <= clipY) {
+      continue;
+    }
+    if ((card.flags & 1U) == 0) {
+      canvas.fillRoundRect(x, y, card.width, card.height, 5, card.background);
+    }
+    drawImageAsset(canvas, card.image, x, y, card.width, card.height,
+                   card.imageFit, clipX, clipY, clipWidth, clipHeight,
+                   imageCache);
+  }
+  if (paintTexts) {
+    paintCachedPageTexts(canvas, page, offsetX, offsetY, clipX, clipY,
+                         clipWidth, clipHeight, fontState);
   }
   for (uint8_t index = 0; index < page.progressCount; ++index) {
     const CachedProgress &progress = page.progress[index];

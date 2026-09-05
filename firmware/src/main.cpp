@@ -2123,19 +2123,20 @@ void showPageWithTransition(uint8_t nextPageIndex) {
       transition.type == PageTransitionType::Slide ||
       transition.type == PageTransitionType::Bounce ||
       transition.type == PageTransitionType::Doors;
-  const uint8_t cacheCount = needsCurrentPage ? 2 : 1;
-  std::unique_ptr<CachedPage[]> transitionPages(
-      new (std::nothrow) CachedPage[cacheCount]);
-  if (!transitionPages) {
+  std::unique_ptr<CachedPage> nextPage(new (std::nothrow) CachedPage());
+  if (!nextPage) {
     file.close();
     activePageIndex = nextPageIndex;
     showCurrentPage();
     pageShownAt = millis();
     return;
   }
-  CachedPage &currentPage = transitionPages[0];
-  CachedPage &nextPage = transitionPages[needsCurrentPage ? 1 : 0];
-  bool cached = false;
+  std::unique_ptr<CachedPage> currentPage;
+  if (needsCurrentPage) {
+    currentPage.reset(new (std::nothrow) CachedPage());
+  }
+  bool cachedNext = false;
+  bool cachedCurrent = !needsCurrentPage;
   {
     // Snapshot storage exists only during a transition. The JSON allocation
     // is released before motion effects create their RGB565 compositor band.
@@ -2146,29 +2147,36 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     JsonArrayConst pages = document["pages"].as<JsonArrayConst>();
     if (!error && activePageIndex < pages.size() &&
         nextPageIndex < pages.size()) {
-      cached =
-          (!needsCurrentPage ||
+      cachedNext = cacheDashboardPage(
+          pages[nextPageIndex].as<JsonObjectConst>(), *nextPage);
+      cachedCurrent =
+          !needsCurrentPage ||
+          (currentPage &&
            cacheDashboardPage(pages[activePageIndex].as<JsonObjectConst>(),
-                              currentPage)) &&
-          cacheDashboardPage(pages[nextPageIndex].as<JsonObjectConst>(),
-                             nextPage);
-      if (cached) {
+                              *currentPage));
+      if (cachedNext) {
         registerDashboardMarquees(
             pages[nextPageIndex].as<JsonObjectConst>());
       }
     }
   }
-  if (!cached) {
+  if (!cachedNext) {
     activePageIndex = nextPageIndex;
     showCurrentPage();
     return;
   }
+  PageTransitionConfig effectiveTransition = transition;
+  if (needsCurrentPage && !cachedCurrent) {
+    effectiveTransition.type = PageTransitionType::Wipe;
+  }
   PageTransitionRenderer renderer(display, displayOn, displayBrightness,
                                   applyBacklight, displayFontState);
   pageTransitionActive = true;
-  renderer.render(currentPage, nextPage, transition, pixelShiftX, pixelShiftY);
+  renderer.render(currentPage ? *currentPage : *nextPage, *nextPage,
+                  effectiveTransition, pixelShiftX, pixelShiftY);
   pageTransitionActive = false;
-  transitionPages.reset();
+  currentPage.reset();
+  nextPage.reset();
   activePageIndex = nextPageIndex;
   marqueeStartedAt = millis();
   marqueeFrameAt = 0;

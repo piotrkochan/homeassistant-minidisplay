@@ -26,6 +26,7 @@ class ScreenCapture {
   static constexpr uint8_t kBandHeight = 8;
   TFT_eSprite frame_;
   FontRenderState fontState_;
+  ImageAssetRenderCache imageCache_;
 #endif
   bool ready_ = false;
 };

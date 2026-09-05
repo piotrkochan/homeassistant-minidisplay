@@ -176,4 +176,5 @@ class PageTransitionRenderer {
   uint8_t &displayBrightness_;
   ApplyBacklight applyBacklight_;
   FontRenderState &displayFontState_;
+  ImageAssetRenderCache imageCache_;
 };

@@ -29,3 +29,40 @@ bool validImageAsset(File &file, uint16_t *width, uint16_t *height) {
   if (height) *height = imageHeight;
   return true;
 }
+
+ImageAssetRenderCache::~ImageAssetRenderCache() {
+  for (Entry &entry : entries_) {
+    if (entry.file) entry.file.close();
+  }
+}
+
+File *ImageAssetRenderCache::open(const char *assetId, uint16_t *width,
+                                  uint16_t *height) {
+  if (!assetId || !assetId[0]) return nullptr;
+  Entry *available = nullptr;
+  Entry *oldest = &entries_[0];
+  for (Entry &entry : entries_) {
+    if (entry.file && strcmp(entry.id, assetId) == 0) {
+      entry.usedAt = ++useCounter_;
+      if (width) *width = entry.width;
+      if (height) *height = entry.height;
+      return &entry.file;
+    }
+    if (!entry.file && available == nullptr) available = &entry;
+    if (entry.usedAt < oldest->usedAt) oldest = &entry;
+  }
+  Entry &entry = available != nullptr ? *available : *oldest;
+  if (entry.file) entry.file.close();
+  entry.file = LittleFS.open(imageAssetPath(String(assetId)), "r");
+  if (!entry.file ||
+      !validImageAsset(entry.file, &entry.width, &entry.height)) {
+    if (entry.file) entry.file.close();
+    entry.id[0] = '\0';
+    return nullptr;
+  }
+  strlcpy(entry.id, assetId, sizeof(entry.id));
+  entry.usedAt = ++useCounter_;
+  if (width) *width = entry.width;
+  if (height) *height = entry.height;
+  return &entry.file;
+}
