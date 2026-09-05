@@ -2313,6 +2313,7 @@ export class MiniDisplayEditor extends LitElement {
   }
 
   private appearanceEditor(card: DisplayCard) {
+    const freeLayout = this.dashboard?.pages[this.pageIndex]?.layout === "free";
     const style = (card.style ??= {});
     const value = (card.valueStyle ??= {});
     const title = (card.titleStyle ??= {});
@@ -2399,7 +2400,8 @@ export class MiniDisplayEditor extends LitElement {
                   this.changed();
                 },
               )}
-              ${this.textPosition("Position", value)}
+              ${freeLayout ? nothing : this.textPosition("Position", value)}
+              ${this.select("Text flow", value.textFlow ?? "default", ["default", "overflow", "wrap"], input => { value.textFlow = input as Style["textFlow"]; this.changed(); })}
               ${this.textEffectEditor("Effect", value)}
             </section>`
           : nothing
@@ -2429,7 +2431,8 @@ export class MiniDisplayEditor extends LitElement {
                   this.changed();
                 },
               )}
-              ${this.textPosition("Position", title, "left", "top")}
+              ${freeLayout ? nothing : this.textPosition("Position", title, "left", "top")}
+              ${this.select("Text flow", title.textFlow ?? "default", ["default", "overflow", "wrap"], input => { title.textFlow = input as Style["textFlow"]; this.changed(); })}
               ${this.textEffectEditor("Effect", title)}
             </section>`
           : nothing

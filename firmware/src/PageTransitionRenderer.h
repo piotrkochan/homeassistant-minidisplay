@@ -78,6 +78,7 @@ struct CachedText {
   int8_t userFontSlot;
   uint8_t userFontSize;
   uint8_t datum;
+  uint8_t lineCount;
 };
 
 struct CachedProgress {

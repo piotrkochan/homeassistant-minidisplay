@@ -32,6 +32,7 @@
 #include "WeatherCardRenderer.h"
 #include "fonts/WeatherGlyphs.h"
 #include "CachedPagePainter.h"
+#include "TextFlow.h"
 #include "ImageAssetApi.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
@@ -1070,6 +1071,13 @@ RenderFont selectBestFont(const String &text, JsonVariantConst style,
                           int16_t width, int16_t height) {
   const char *family = style["fontFamily"] | "sans";
   int8_t size = requestedFontSize(style, height);
+  if (strcmp(style["textFlow"] | "default", "default") != 0) {
+    // Explicit flow preserves the chosen size; wrapping controls line breaks.
+    if (strcmp(style["fontSize"] | "auto", "auto") == 0) size = min<int8_t>(size, 1);
+    const RenderFont font = renderFontFor(family, size);
+    applyDisplayFont(font);
+    return font;
+  }
   while (size > 0) {
     const RenderFont font = renderFontFor(family, size);
     applyDisplayFont(font);
@@ -1104,6 +1112,10 @@ RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
   const char *size = style["fontSize"] | "auto";
   const char *family = style["fontFamily"] | "sans";
   const bool automatic = strcmp(size, "auto") == 0;
+  if (strcmp(style["textFlow"] | "default", "default") != 0) {
+    if (automatic && isBuiltInCardTitleFamily(family)) return compactCardTitleFont();
+    return selectBestFont(text, style, width, height);
+  }
   if (automatic) {
     for (int8_t candidate = maximumAutoSize; candidate >= 0; --candidate) {
       const RenderFont font = renderFontFor(family, candidate);
@@ -1331,12 +1343,14 @@ CardTextLayout cardTextLayout(JsonObjectConst card, int16_t width, int16_t y,
   applyDisplayFont(layout.titleFont);
   const int16_t titleBand =
       min<int16_t>(maximumTitleHeight, display.fontHeight());
-  layout.titleHeight = titleBand;
-  layout.valueHeight = max<int16_t>(1, contentHeight - titleBand);
+  const bool wrapped = strcmp(titleStyle["textFlow"] | "default", "wrap") == 0;
+  const int16_t reserved = wrapped ? maximumTitleHeight : titleBand;
+  layout.titleHeight = reserved;
+  layout.valueHeight = max<int16_t>(1, contentHeight - reserved);
   if (strcmp(vertical, "top") == 0) {
-    layout.valueY += titleBand;
+    layout.valueY += reserved;
   } else {
-    layout.titleY += contentHeight - titleBand;
+    layout.titleY += contentHeight - reserved;
   }
   return layout;
 }
@@ -1348,6 +1362,7 @@ void registerCardMarquee(JsonObjectConst card, int16_t x, int16_t y,
 
   JsonVariantConst titleStyle = card["titleStyle"];
   if (titleStyle.isNull()) titleStyle = card["style"];
+  if (strcmp(titleStyle["textFlow"] | "default", "default") != 0) return;
   const char *vertical = titleStyle["verticalAlign"] | "top";
   if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
     return;
@@ -1523,9 +1538,10 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
 
 bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
                uint8_t datum, int16_t x, int16_t y, uint16_t foreground,
-               uint16_t background, const TextEffect &effect = TextEffect{}) {
+               uint16_t background, const TextEffect &effect = TextEffect{},
+               uint8_t lineCount = 1, int16_t blockWidth = 0, uint16_t maxBytes = 48) {
   if (page.textCount >= kMaxPageTexts) return false;
-  const uint16_t valueBytes = min<size_t>(value.length(), 48) + 1;
+  const uint16_t valueBytes = min<size_t>(value.length(), maxBytes) + 1;
   if (page.textBytes + valueBytes > kMaxPageTextBytes) return false;
   CachedText &text = page.texts[page.textCount++];
   text.x = x;
@@ -1533,6 +1549,11 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
   applyDisplayFont(font);
   text.boundsWidth = display.textWidth(value);
   text.boundsHeight = display.fontHeight();
+  text.lineCount = max<uint8_t>(1, lineCount);
+  if (lineCount > 1) {
+    text.boundsWidth = blockWidth;
+    text.boundsHeight *= lineCount;
+  }
   const bool centeredX = datum == TC_DATUM || datum == MC_DATUM ||
                          datum == BC_DATUM;
   const bool rightX = datum == TR_DATUM || datum == MR_DATUM ||
@@ -1593,7 +1614,17 @@ bool cachePositionedText(CachedPage &page, String value,
                               : selectBestFont(value, style, width,
                                                availableHeight);
   applyDisplayFont(font);
-  while (value.length() > 1 && display.textWidth(value) > width - 8) {
+  const char *flow = style["textFlow"] | "default";
+  const bool wrap = strcmp(flow, "wrap") == 0;
+  const bool overflow = strcmp(flow, "overflow") == 0;
+  WrappedText wrapped;
+  if (wrap) {
+    wrapped = wrapDisplayText(value.c_str(), max<int16_t>(1, width - 8),
+        max<int16_t>(1, min<int16_t>(6, height / max<int16_t>(1, display.fontHeight()))),
+        [&](const char *line) { return display.textWidth(line); });
+    value = wrapped.text;
+  }
+  while (!wrap && !overflow && value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
   const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
@@ -1601,7 +1632,8 @@ bool cachePositionedText(CachedPage &page, String value,
                         : bottom ? y + height - (tightVerticalEdges ? 1 : 3)
                                  : y + height / 2;
   return cacheText(page, value, font, datum, textX, textY, foreground,
-                   background, parseTextEffect(style));
+                   background, parseTextEffect(style), wrapped.lines, wrapped.width,
+                   wrap || overflow ? 144 : 48);
 }
 
 bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
@@ -2108,6 +2140,10 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   for (JsonObjectConst row : page["rows"].as<JsonArrayConst>())
     for (JsonObjectConst card : row["cards"].as<JsonArrayConst>())
       composited |= !card["graph"].isNull() || strcmp(card["type"] | "", "weather") == 0;
+  for (JsonObjectConst row : page["rows"].as<JsonArrayConst>())
+    for (JsonObjectConst card : row["cards"].as<JsonArrayConst>())
+      for (const char *style : {"style", "titleStyle", "valueStyle"})
+        composited |= strcmp(card[style]["textFlow"] | "default", "default") != 0;
   if (!composited) return drawDashboardPage(page,
                            changedValues, pixelShiftX, pixelShiftY, clear);
   cached.reset(new (std::nothrow) CachedPage());
@@ -2339,6 +2375,7 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
   }
   uint8_t count = 0;
   for (JsonObject page : pages) {
+    if (failure) failure->message = F("Invalid page id, duration, layout, transition or background image");
     const char *id = page["id"];
     if (id == nullptr || id[0] == '\0' || strlen(id) > 32) return false;
     const uint32_t seconds = page["durationSeconds"] | defaultSeconds;
@@ -2367,6 +2404,7 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
       cardCount += cards.size();
       if (cardCount > kMaxPageCards) return false;
       for (JsonObject card : cards) {
+        if (failure) failure->message = F("Invalid card settings, placement, count or image");
         if (freeLayout) {
           JsonObject frame = card["frame"];
           if (frame.isNull()) return false;
@@ -2375,7 +2413,6 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
           if (frame["x"].as<float>() < 0 || frame["y"].as<float>() < 0 ||
               frame["width"].as<float>() < 2 || frame["height"].as<float>() < 2 ||
               frame["x"].as<float>() + frame["width"].as<float>() > 100.01F ||
-    if (failure) failure->message = F("Invalid page id, duration, layout, transition or background image");
               frame["y"].as<float>() + frame["height"].as<float>() > 100.01F) return false;
         }
         const char *type = card["type"];
@@ -2404,7 +2441,6 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
                 strcmp(name, "temperature") && strcmp(name, "low") &&
                 strcmp(name, "label") && strcmp(name, "humidity") &&
                 strcmp(name, "precipitation") && strcmp(name, "wind")) return false;
-        if (failure) failure->message = F("Invalid card settings, placement, count or image");
           }
           textBudget += 1 + weatherSources.size() * (fields.isNull() ? 3 : fields.size());
         } else {
@@ -2655,7 +2691,7 @@ void receiveApiDashboard() {
     sendJsonError(503, F("filesystem_unavailable"), F("LittleFS unavailable"));
     return;
   }
-  const String body = server.arg("plain");
+  const String &body = server.arg("plain");
   if (body.isEmpty() || body.length() > kMaxDashboardBytes) {
     sendJsonError(413, F("dashboard_too_large"), F("Dashboard exceeds limit"));
     return;
@@ -2668,6 +2704,13 @@ void receiveApiDashboard() {
     return;
   }
   temporary.close();
+#if defined(ESP8266)
+  server.releaseRequestBody();
+  // Glyph tables are a disposable rendering cache, not framebuffer pixels.
+  // Reload lazily on the next render, after request validation has finished.
+  if (display.fontLoaded) display.unloadFont();
+  displayFontState = FontRenderState{};
+#endif
   File validation = LittleFS.open(kDashboardTempPath, "r");
   DashboardLoadFailure failure;
   const bool valid = validation && loadDashboardMetadata(validation, &failure);
@@ -2703,17 +2746,10 @@ void receiveApiDashboard() {
 
 void receiveApiData() {
   if (!apiAuthenticated()) return;
-  const String &body = server.arg("plain");
+  const String body = server.arg("plain");
   if (body.isEmpty() || body.length() > kMaxDataBytes) {
     sendJsonError(413, F("data_too_large"), F("Data update exceeds limit"));
     return;
-#if defined(ESP8266)
-  server.releaseRequestBody();
-  // Glyph tables are a disposable rendering cache, not framebuffer pixels.
-  // Reload lazily on the next render, after request validation has finished.
-  if (display.fontLoaded) display.unloadFont();
-  displayFontState = FontRenderState{};
-#endif
   }
   StaticJsonDocument<128> filter;
   filter["values"] = true;
@@ -3538,6 +3574,14 @@ void receivePanelUpdate() {
 }
 
 void configureRoutes() {
+#if defined(ESP8266)
+  server.prepareDashboardRequests([] {
+    // HTTP parsing itself needs room for the incoming body before the handler
+    // can stage it on flash. No pixels or saved configuration are discarded.
+    if (display.fontLoaded) display.unloadFont();
+    displayFontState = FontRenderState{};
+  });
+#endif
   if (routesReady) return;
   server.on("/", HTTP_GET, sendWebApp);
   server.on("/display", HTTP_GET, sendWebApp);
@@ -3574,14 +3618,6 @@ void configureRoutes() {
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/screenshot", HTTP_GET, sendApiScreenshot);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
-#if defined(ESP8266)
-  server.prepareDashboardRequests([] {
-    // HTTP parsing itself needs room for the incoming body before the handler
-    // can stage it on flash. No pixels or saved configuration are discarded.
-    if (display.fontLoaded) display.unloadFont();
-    displayFontState = FontRenderState{};
-  });
-#endif
   server.on("/api/v1/fonts", HTTP_GET, sendApiFonts);
   server.on("/api/v1/fonts", HTTP_PUT, receiveApiFontSelection);
   server.on("/api/v1/fonts/0", HTTP_PUT,

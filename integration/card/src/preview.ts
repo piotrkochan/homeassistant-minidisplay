@@ -179,6 +179,7 @@ export class MiniDisplayPreview extends LitElement {
       background-position: center;
       background-repeat: no-repeat;
     }
+    .card.flow-overflow { overflow: visible; }
     .card-image {
       position: absolute;
       inset: 0;
@@ -806,6 +807,8 @@ export class MiniDisplayPreview extends LitElement {
                     ? 1
                     : 0;
     const family = "sans-serif";
+    if ((card.valueStyle?.textFlow ?? "default") !== "default")
+      return sizes[requested === "auto" ? Math.min(index, 1) : index];
     this.measureContext ??= document.createElement("canvas").getContext("2d");
     while (index > 0) {
       if (lineHeights[index] <= height) {
@@ -834,6 +837,8 @@ export class MiniDisplayPreview extends LitElement {
     const requested = card.titleStyle?.fontSize ?? "auto";
     const family = card.titleStyle?.fontFamily ?? "sans";
     const builtIn = ["default", "sans", "sans-bold"].includes(family);
+    if ((card.titleStyle?.textFlow ?? "default") !== "default")
+      return requested === "auto" ? 13 : ({small:13,medium:24,large:36,xlarge:48}[requested]);
     const requestedSize =
       requested === "small"
         ? 13
@@ -895,6 +900,12 @@ export class MiniDisplayPreview extends LitElement {
           shadows.push(`${offsetX + x}px ${offsetY + y}px 0 ${color}`);
     }
     return `text-shadow:${shadows.join(",")}`;
+  }
+
+  private textFlowCss(style: Style | undefined, size: number) {
+    if (style?.textFlow === "overflow") return "white-space:pre;overflow:visible;max-width:none;flex-shrink:0;text-overflow:clip";
+    if (style?.textFlow === "wrap") return `white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden;max-width:100%;max-height:min(100%,${6*this.fontLineHeight(size)}px);line-height:${this.fontLineHeight(size)}px;text-overflow:clip`;
+    return "";
   }
 
   private async fetchData() {
@@ -1104,7 +1115,7 @@ export class MiniDisplayPreview extends LitElement {
                         provisionalValueSize,
                       )
                     : 13;
-                  const titleBand = reservesTitle
+                  const titleBand = reservesTitle && card.titleStyle?.textFlow === "wrap" ? maximumTitleHeight : reservesTitle
                     ? Math.min(
                         maximumTitleHeight,
                         this.fontLineHeight(titleSize),
@@ -1200,13 +1211,14 @@ export class MiniDisplayPreview extends LitElement {
                       )
                     : 0;
                   const titleMarquee =
+                    (card.titleStyle?.textFlow ?? "default") === "default" &&
                     titleOverflow > 0 &&
                     (titleVerticalKey === "top" ||
                       titleVerticalKey === "bottom");
                   const value = html`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${family};font-size:${size}px;font-weight:700;${this.textEffectCss(card.valueStyle)}`}
+                    style=${`font-family:${family};font-size:${size}px;font-weight:700;${this.textEffectCss(card.valueStyle)};${this.textFlowCss(card.valueStyle,size)}`}
                     @click=${(event: Event) => {
                       event.stopPropagation();
                       this.emit("preview-select", {
@@ -1221,7 +1233,7 @@ export class MiniDisplayPreview extends LitElement {
                     ${displayValue}
                   </div>`;
                   return html`<div
-                    class="card ${moving?'moving':''} ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
+                    class="card ${card.valueStyle?.textFlow === 'overflow' || card.titleStyle?.textFlow === 'overflow' ? 'flow-overflow' : ''} ${moving?'moving':''} ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
                     data-row=${rowIndex} data-card=${cardIndex}
                     tabindex=${free && this.interactive ? 0 : -1}
                     aria-label=${card.title || card.text || card.source || 'Item'}
@@ -1246,10 +1258,10 @@ export class MiniDisplayPreview extends LitElement {
                     ${
                       card.title && card.showTitle !== false
                         ? html`<small
-                            style=${`${titleArea};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")};font-size:${titleSize}px;line-height:${this.fontLineHeight(titleSize)}px`}
+                            style=${`${titleArea};overflow:${card.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")};font-size:${titleSize}px;line-height:${this.fontLineHeight(titleSize)}px`}
                             ><span
                               class="card-label ${titleMarquee ? "marquee" : ""}"
-                              style=${`${titleMarquee ? `--marquee-distance:-${titleOverflow}px;--marquee-duration:${Math.max(3, 1.7 + titleOverflow * 0.035)}s;` : ""}${this.textEffectCss(card.titleStyle)}`}
+                              style=${`${titleMarquee ? `--marquee-distance:-${titleOverflow}px;--marquee-duration:${Math.max(3, 1.7 + titleOverflow * 0.035)}s;` : ""}${this.textEffectCss(card.titleStyle)};${this.textFlowCss(card.titleStyle,titleSize)}`}
                               .draggable=${this.interactive}
                               @click=${(event: Event) => {
                                 event.stopPropagation();

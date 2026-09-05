@@ -141,6 +141,10 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 if card.get("type") not in {"clock", "number", "status", "text", "image", "chart", "weather"}:
                     raise DashboardValidationError("Unsupported card type", f"{card_path}/type")
                 source = card.get("source")
+                for style_key in ("style", "valueStyle", "titleStyle"):
+                    style = card.get(style_key) or {}
+                    if not isinstance(style, dict) or style.get("textFlow", "default") not in ("default", "overflow", "wrap"):
+                        raise DashboardValidationError("Invalid text flow", f"{card_path}/{style_key}/textFlow")
                 if card.get("type") == "weather":
                     validate_weather(card, card_path, DashboardValidationError)
                 if source is not None and (not isinstance(source, str) or len(source) > 64):

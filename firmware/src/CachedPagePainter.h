@@ -54,6 +54,31 @@ void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
       }
       paintedTexts |= 1ULL << index;
       canvas.setTextDatum(text.datum);
+      if (text.lineCount > 1) {
+        const int16_t lineHeight = canvas.fontHeight();
+        const int16_t shift = (text.lineCount - 1) * lineHeight;
+        const bool middle = text.datum == ML_DATUM || text.datum == MC_DATUM || text.datum == MR_DATUM;
+        const bool bottom = text.datum == BL_DATUM || text.datum == BC_DATUM || text.datum == BR_DATUM;
+        int16_t y = text.y + offsetY - (middle ? shift / 2 : bottom ? shift : 0);
+        const char *cursor = page.textPool + text.valueOffset;
+        char line[145];
+        for (uint8_t index = 0; index < text.lineCount; ++index) {
+          const char *end = strchr(cursor, '\n');
+          const size_t length = min<size_t>(end ? size_t(end - cursor) : strlen(cursor), sizeof(line) - 1);
+          memcpy(line, cursor, length);
+          line[length] = '\0';
+#if defined(ESP8266)
+          drawTextWithEffect(canvas, line, text.x + offsetX, y,
+#else
+          drawTextWithEffect(canvas, String(line), text.x + offsetX, y,
+#endif
+                             text.foreground, text.background, text.effect);
+          if (!end) break;
+          cursor = end + 1;
+          y += lineHeight;
+        }
+        continue;
+      }
 #if defined(ESP8266)
       drawTextWithEffect(canvas, page.textPool + text.valueOffset,
                          text.x + offsetX, text.y + offsetY, text.foreground,
@@ -95,6 +120,9 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
     const int16_t y = card.y + offsetY;
     if (x >= clipRight || x + card.width <= clipX || y >= clipBottom ||
         y + card.height <= clipY) {
+      if (paintTexts && page.freeLayout)
+        paintCachedPageTexts(canvas, page, offsetX, offsetY, clipX, clipY,
+                             clipWidth, clipHeight, fontState, card.textStart, card.textEnd);
       continue;
     }
     if ((card.flags & 1U) == 0) {

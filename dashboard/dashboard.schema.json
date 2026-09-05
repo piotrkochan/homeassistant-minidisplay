@@ -276,6 +276,11 @@
           "enum": ["none", "shadow", "outline"],
           "default": "none"
         },
+        "textFlow": {
+          "enum": ["default", "overflow", "wrap"],
+          "default": "default",
+          "description": "Default fits one line; overflow keeps size outside the text box; wrap breaks text into lines within its area."
+        },
         "effectColor": { "$ref": "#/$defs/color" },
         "effectThickness": {
           "type": "integer",

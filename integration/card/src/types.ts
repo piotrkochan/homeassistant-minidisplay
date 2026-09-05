@@ -13,6 +13,7 @@ export type Style = {
   radius?: "none" | "small" | "medium" | "large";
   fontFamily?: "default" | "font1" | "font2";
   fontSize?: "auto" | "small" | "medium" | "large" | "xlarge";
+  textFlow?: "default" | "overflow" | "wrap";
   horizontalAlign?: "left" | "center" | "right";
   verticalAlign?: "top" | "middle" | "bottom";
   textEffect?: "none" | "shadow" | "outline";

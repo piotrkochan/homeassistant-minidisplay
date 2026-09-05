@@ -65,5 +65,8 @@ test-native:
 		-I firmware/src firmware/tests/weather_value_test.cpp -o .cache/tests/weather-values
 	.cache/tests/weather-values
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/text_flow_test.cpp -o .cache/tests/text-flow
+	.cache/tests/text-flow
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/request_body_test.cpp -o .cache/tests/request-body
 	.cache/tests/request-body
