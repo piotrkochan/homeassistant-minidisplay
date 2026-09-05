@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import type { DisplayCard, Graph, Hass } from "./types";
 import { newGraph } from "./types";
 import "./color-field";
+import "./duration-field";
 
 @customElement("mini-display-graph-editor")
 export class GraphEditor extends LitElement {
@@ -42,7 +43,8 @@ export class GraphEditor extends LitElement {
           ${this.select("Chart", "type", graph.type ?? "bar", [["bar","Columns"],["line","Line"]])}
           ${this.select("Aggregation", "aggregation", graph.aggregation ?? "mean", [["mean","Average"],["min","Minimum"],["max","Maximum"],["last","Last value"]])}
           ${this.numeric("Points","points",graph.points ?? 48,2,120)}
-          ${this.numeric("Bucket (seconds)","intervalSeconds",graph.intervalSeconds ?? 300,30,86400)}
+          <mini-display-duration-field .seconds=${graph.intervalSeconds ?? 300}
+            @duration-changed=${(event: CustomEvent<number>) => this.patchGraph({ intervalSeconds: event.detail })}></mini-display-duration-field>
           <mini-display-color-field label="Color" .value=${graph.color ?? "accent"} @color-changed=${(event: CustomEvent<string>)=>this.patchGraph({color:event.detail || "accent"})}></mini-display-color-field>
           ${this.numeric("Opacity (%)","opacity",graph.opacity ?? 50,0,100)}
         </div>
