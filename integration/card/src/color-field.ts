@@ -16,6 +16,7 @@ export const displayColors: Record<string, string> = {
 export class MiniDisplayColorField extends LitElement {
   @property() label = "Color";
   @property() value = "";
+  @property({type: Boolean, reflect: true}) disabled = false;
 
   static styles = css`
     :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
@@ -23,6 +24,8 @@ export class MiniDisplayColorField extends LitElement {
     select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
     select { padding: 8px; font: inherit; font-size: 14px; }
     input { height: 40px; padding: 3px; cursor: pointer; }
+    :host([disabled]) { opacity: .5; }
+    :disabled { cursor: not-allowed; }
   `;
 
   render() {
@@ -31,7 +34,7 @@ export class MiniDisplayColorField extends LitElement {
     return html`
       <span>${this.label}</span>
       <div class="control">
-        <select .value=${option} @change=${this.selectColor}>
+        <select .value=${option} ?disabled=${this.disabled} @change=${this.selectColor}>
           <option value="default">Default</option>
           <option value="background">Black</option>
           <option value="surface">Charcoal</option>
@@ -44,7 +47,7 @@ export class MiniDisplayColorField extends LitElement {
           <option value="error">Red</option>
           <option value="custom">Custom</option>
         </select>
-        <input type="color" aria-label="Custom color" .value=${custom ? this.value : displayColors[option] ?? "#ffffff"} ?disabled=${!custom} @input=${this.customColor}>
+        <input type="color" aria-label="Custom color" .value=${custom ? this.value : displayColors[option] ?? "#ffffff"} ?disabled=${this.disabled || !custom} @input=${this.customColor}>
       </div>
     `;
   }
@@ -59,6 +62,7 @@ export class MiniDisplayColorField extends LitElement {
   }
 
   private emit(value: string) {
+    if (this.disabled) return;
     this.dispatchEvent(new CustomEvent("color-changed", { detail: value, bubbles: true, composed: true }));
   }
 }

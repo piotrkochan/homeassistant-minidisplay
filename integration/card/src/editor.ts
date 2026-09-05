@@ -75,6 +75,7 @@ export class MiniDisplayEditor extends LitElement {
     select {
       font: inherit;
     }
+    .segment:disabled { opacity: .5; cursor: not-allowed; }
     button {
       cursor: pointer;
     }
@@ -2133,11 +2134,12 @@ export class MiniDisplayEditor extends LitElement {
     value: T,
     options: { value: T; label: string; icon?: string }[],
     update: (value: T) => void,
+    disabled = false,
   ) {
     return html`<div class="segmented-field">
       <span>${label}</span>
       <div class="segmented" role="radiogroup" aria-label=${label}>
-        ${options.map((option) => html`<button class="segment ${option.value === value ? "active" : ""}" role="radio" aria-checked=${option.value === value} title=${option.label} @click=${() => update(option.value)}>${option.icon ? html`<ha-icon icon=${option.icon}></ha-icon>` : nothing}<span>${option.label}</span></button>`)}
+        ${options.map((option) => html`<button class="segment ${option.value === value ? "active" : ""}" role="radio" aria-checked=${option.value === value} title=${option.label} ?disabled=${disabled} @click=${() => { if (!disabled) update(option.value); }}>${option.icon ? html`<ha-icon icon=${option.icon}></ha-icon>` : nothing}<span>${option.label}</span></button>`)}
       </div>
     </div>`;
   }
@@ -2312,13 +2314,18 @@ export class MiniDisplayEditor extends LitElement {
     </details>`;
   }
 
+  private cardName(card: DisplayCard) {
+    return card.title?.trim() || `${card.type[0].toUpperCase()}${card.type.slice(1)} card`;
+  }
+
   private appearanceEditor(card: DisplayCard) {
     const freeLayout = this.dashboard?.pages[this.pageIndex]?.layout === "free";
+    const transparentCards = this.dashboard?.pages[this.pageIndex]?.transparentCards === true;
     const style = (card.style ??= {});
     const value = (card.valueStyle ??= {});
     const title = (card.titleStyle ??= {});
     const backgroundMode =
-      card.backgroundMode ??
+      transparentCards ? "transparent" : card.backgroundMode ??
       (card.transparentBackground
         ? "transparent"
         : card.backgroundImage
@@ -2341,6 +2348,7 @@ export class MiniDisplayEditor extends LitElement {
             card.transparentBackground = input === "transparent";
             this.changed();
           },
+          transparentCards,
         )}
         ${
           backgroundMode === "image"
@@ -2729,6 +2737,7 @@ export class MiniDisplayEditor extends LitElement {
 
   private colorMappingsEditor(card: DisplayCard) {
     if (card.type !== "number" && card.type !== "text") return nothing;
+    const transparentCards = this.dashboard?.pages[this.pageIndex]?.transparentCards === true;
     const mappings = card.colorMappings ?? [];
     const updateNumber = (
       index: number,
@@ -2775,6 +2784,7 @@ export class MiniDisplayEditor extends LitElement {
                   ${this.field("To", (mapping as NumberColorMapping).maximum, (value) => updateNumber(index, "maximum", value), "number")}
                   <mini-display-color-field
                     label="Background"
+                    .disabled=${transparentCards}
                     .value=${mapping.background ?? ""}
                     @color-changed=${(event: CustomEvent<string>) => updateColor(mapping, "background", event.detail)}
                   ></mini-display-color-field>
@@ -2820,6 +2830,7 @@ export class MiniDisplayEditor extends LitElement {
                   )}
                   <mini-display-color-field
                     label="Background"
+                    .disabled=${transparentCards}
                     .value=${mapping.background ?? ""}
                     @color-changed=${(event: CustomEvent<string>) => updateColor(mapping, "background", event.detail)}
                   ></mini-display-color-field>
@@ -2889,7 +2900,7 @@ export class MiniDisplayEditor extends LitElement {
     return html`<section class="card-settings">
       <div class="card-head">
         <div class="card-title">
-          <strong>${card.title?.trim() || html`<em>Unnamed card</em>`}</strong
+          <strong>${this.cardName(card)}</strong
           >${card.title?.trim() && card.showTitle === false ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Title hidden</span>` : nothing}${card.visibility ? html`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : nothing}
         </div>
         ${this.menu(
@@ -3268,7 +3279,7 @@ export class MiniDisplayEditor extends LitElement {
           return html`<button
             draggable="true"
             class="tab ${active ? "active" : ""} ${this.draggedCard?.row === rowIndex && this.draggedCard.index === cardIndex ? "dragging" : ""}"
-            aria-label=${card.title?.trim() || `Unnamed card ${cardIndex + 1}`}
+            aria-label=${this.cardName(card)}
             aria-expanded=${active}
             @dragstart=${(event: DragEvent) => this.dragCard(rowIndex, cardIndex, event)}
             @dragover=${(event: DragEvent) => event.preventDefault()}
@@ -3279,7 +3290,7 @@ export class MiniDisplayEditor extends LitElement {
             }}
             @click=${() => (this.selected = active ? undefined : { row: rowIndex, card: cardIndex })}
           >
-            ${card.title?.trim() || html`<em>Unnamed card</em>`}
+            ${this.cardName(card)}
           </button>`;
         })}${
           row.cards.length < 3
@@ -3341,7 +3352,7 @@ export class MiniDisplayEditor extends LitElement {
     };
     return html`<section class="row-panel">
       <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","weather","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
-      <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${card.title || card.text || card.source || html`<em>Unnamed card</em>`}</button>`)}</nav>
+      <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${this.cardName(card)}</button>`)}</nav>
       ${selected?.frame ? html`<div class="grid compact-grid">${(["x","y","width","height"] as const).map(key=>this.numberField(key.toUpperCase()+" (%)",selected.frame![key],0,key==="x"||key==="y"?0:2,100,input=>{
         const frame=selected.frame!; frame[key]=input; frame.x=Math.min(frame.x,100-frame.width); frame.y=Math.min(frame.y,100-frame.height); this.changed();
       }))}</div><div class="tabs"><button class="tab" @click=${()=>move(-1)}>Send backward</button><button class="tab" @click=${()=>move(1)}>Bring forward</button></div>` : nothing}
