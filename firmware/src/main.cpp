@@ -2852,8 +2852,10 @@ void sendApiScreenshot() {
                   F("Current dashboard frame could not be prepared"));
     return;
   }
-  ScreenCapture capture(display);
-  if (!capture.begin()) {
+  // Capture's sprite/cache and RGB row must not share the small ESP8266 stack
+  // with image rendering, LittleFS and TCP. Allocate only for this request.
+  std::unique_ptr<ScreenCapture> capture(new (std::nothrow) ScreenCapture(display));
+  if (!capture || !capture->begin()) {
     sendJsonError(503, F("capture_unavailable"),
                   F("Not enough memory to capture the display"));
     return;
@@ -2867,7 +2869,7 @@ void sendApiScreenshot() {
                     "inline; filename=\"mini-display.bmp\"");
   server.setContentLength(ScreenCapture::kBmpSize);
   server.send(200, "image/bmp", "");
-  capture.streamBmp(*page, pixelShiftX, pixelShiftY, server.client());
+  capture->streamBmp(*page, pixelShiftX, pixelShiftY, server.client());
 }
 
 void receiveApiDisplay() {

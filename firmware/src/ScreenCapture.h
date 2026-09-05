@@ -27,6 +27,7 @@ class ScreenCapture {
   TFT_eSprite frame_;
   FontRenderState fontState_;
   ImageAssetRenderCache imageCache_;
+  uint8_t row_[kWidth * 3U];
 #endif
   bool ready_ = false;
 };

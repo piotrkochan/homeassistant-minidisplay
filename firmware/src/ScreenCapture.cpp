@@ -90,7 +90,6 @@ bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
   writeLe32(header + 42, 2835);
   if (!writeAll(output, header, sizeof(header))) return false;
 
-  uint8_t row[kRowBytes];
   for (int16_t bandY = kHeight - kBandHeight; bandY >= 0;
        bandY -= kBandHeight) {
     frame_.fillSprite(page.background);
@@ -103,11 +102,11 @@ bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
         const uint8_t red5 = color >> 11U;
         const uint8_t green6 = (color >> 5U) & 0x3FU;
         const uint8_t blue5 = color & 0x1FU;
-        row[outputOffset++] = (blue5 << 3U) | (blue5 >> 2U);
-        row[outputOffset++] = (green6 << 2U) | (green6 >> 4U);
-        row[outputOffset++] = (red5 << 3U) | (red5 >> 2U);
+        row_[outputOffset++] = (blue5 << 3U) | (blue5 >> 2U);
+        row_[outputOffset++] = (green6 << 2U) | (green6 >> 4U);
+        row_[outputOffset++] = (red5 << 3U) | (red5 >> 2U);
       }
-      if (!writeAll(output, row, sizeof(row))) return false;
+      if (!writeAll(output, row_, sizeof(row_))) return false;
     }
     yield();
   }
