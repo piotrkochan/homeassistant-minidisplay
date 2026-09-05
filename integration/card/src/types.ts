@@ -132,6 +132,7 @@ export type DisplayCard = {
   imageFit?: "cover" | "contain" | "stretch";
   backgroundImage?: string;
   transparentBackground?: boolean;
+  backgroundMode?: "color" | "transparent" | "image";
 };
 
 export type DisplayRow = {

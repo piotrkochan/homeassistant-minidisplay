@@ -95,7 +95,12 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
         const int16_t mappedX = sourceX +
             static_cast<int32_t>(destinationColumn) * sampledWidth /
                 destinationWidth;
-        line[output] = line[mappedX];
+        const uint16_t color = line[mappedX];
+#if defined(ESP8266)
+        line[output] = (color << 8) | (color >> 8);
+#else
+        line[output] = color;
+#endif
       }
     } else {
       for (int16_t output = 0; output < outputWidth; ++output) {
@@ -103,7 +108,12 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
         const int16_t mappedX = sourceX +
             static_cast<int32_t>(destinationColumn) * sampledWidth /
                 destinationWidth;
-        line[output] = line[mappedX];
+        const uint16_t color = line[mappedX];
+#if defined(ESP8266)
+        line[output] = (color << 8) | (color >> 8);
+#else
+        line[output] = color;
+#endif
       }
     }
     canvas.pushImage(visibleLeft, destinationRow, outputWidth, 1, line);

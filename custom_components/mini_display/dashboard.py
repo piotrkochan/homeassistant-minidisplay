@@ -151,6 +151,12 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                         "transparentBackground must be a boolean",
                         f"{card_path}/transparentBackground",
                     )
+                if card.get("backgroundMode", "color") not in {
+                    "color", "transparent", "image"
+                }:
+                    raise DashboardValidationError(
+                        "Unsupported background mode", f"{card_path}/backgroundMode"
+                    )
                 _validate_visibility(
                     card.get("visibility"),
                     f"{card_path}/visibility",
@@ -189,9 +195,14 @@ def extract_assets(document: dict[str, Any]) -> set[str]:
             assets.add(page["backgroundImage"])
         for row in page["rows"]:
             for card in row["cards"]:
-                for field in ("backgroundImage", "image"):
-                    if isinstance(card.get(field), str):
-                        assets.add(card[field])
+                if card.get("type") == "image" and isinstance(card.get("image"), str):
+                    assets.add(card["image"])
+                background_mode = card.get("backgroundMode")
+                if (
+                    isinstance(card.get("backgroundImage"), str)
+                    and (background_mode == "image" or background_mode is None)
+                ):
+                    assets.add(card["backgroundImage"])
     return assets
 
 

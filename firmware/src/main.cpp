@@ -1259,7 +1259,10 @@ String cardValue(JsonObjectConst card) {
     if (!mapped && unit && unit[0]) result += " " + String(unit);
     return result;
   }
-  return String(card["text"] | "");
+  String result(card["text"] | "");
+  const char *unit = card["unit"];
+  if (unit && unit[0]) result += " " + String(unit);
+  return result;
 }
 
 struct CardTextLayout {
@@ -1412,11 +1415,16 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
   const uint16_t foreground =
       parseColor(foregroundValue, TFT_WHITE);
   const uint16_t accent = parseColor(card["style"]["accent"], TFT_CYAN);
-  const bool transparent = card["transparentBackground"] | false;
+  const char *backgroundMode = card["backgroundMode"] | "";
+  const bool transparent = strcmp(backgroundMode, "transparent") == 0 ||
+                           (card["transparentBackground"] | false);
   const char *cardType = card["type"] | "";
   const char *image = strcmp(cardType, "image") == 0
                           ? card["image"] | ""
-                          : card["backgroundImage"] | "";
+                          : strcmp(backgroundMode, "image") == 0 ||
+                                    backgroundMode[0] == '\0'
+                                ? card["backgroundImage"] | ""
+                                : "";
   if (!transparent) {
     fillCardEdgeBackground(x, y, width, height, edgeBackground, edgeExtensions);
     display.fillRoundRect(x, y, width, height, 5, background);
@@ -1615,12 +1623,20 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   cachedCard.width = width;
   cachedCard.height = height;
   cachedCard.background = background;
-  cachedCard.flags = (card["transparentBackground"] | false) ? 1U : 0U;
+  const char *backgroundMode = card["backgroundMode"] | "";
+  cachedCard.flags =
+      (strcmp(backgroundMode, "transparent") == 0 ||
+       (card["transparentBackground"] | false))
+          ? 1U
+          : 0U;
   cachedCard.imageFit = parseImageFit(card["imageFit"] | "cover");
   const char *cardType = card["type"] | "";
   const char *image = strcmp(cardType, "image") == 0
                           ? card["image"] | ""
-                          : card["backgroundImage"] | "";
+                          : strcmp(backgroundMode, "image") == 0 ||
+                                    backgroundMode[0] == '\0'
+                                ? card["backgroundImage"] | ""
+                                : "";
   strlcpy(cachedCard.image, image, sizeof(cachedCard.image));
   if (strcmp(cardType, "image") == 0) return true;
 
@@ -1882,7 +1898,8 @@ bool drawDashboardPage(JsonObjectConst page, const uint32_t *changedValues,
         const bool sourceChanged = sourceValue != nullptr &&
             (*changedValues & (1UL << (sourceValue - dashboardValues))) != 0;
         if (sourceChanged &&
-            ((card["transparentBackground"] | false) ||
+            ((strcmp(card["backgroundMode"] | "", "transparent") == 0 ||
+              (card["transparentBackground"] | false)) ||
              !card["backgroundImage"].isNull())) {
           partial = false;
           break;
@@ -2222,7 +2239,10 @@ bool loadDashboardMetadata(Stream &stream) {
         if (strcmp(type, "image") == 0 && card["image"].isNull()) return false;
         const char *image = strcmp(type, "image") == 0
                                 ? card["image"] | ""
-                                : card["backgroundImage"] | "";
+                                : strcmp(card["backgroundMode"] | "", "image") == 0 ||
+                                          card["backgroundMode"].isNull()
+                                      ? card["backgroundImage"] | ""
+                                      : "";
         if (image[0] &&
             (!validImageAssetId(String(image)) ||
              !LittleFS.exists(imageAssetPath(String(image))))) return false;

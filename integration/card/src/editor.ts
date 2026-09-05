@@ -648,6 +648,34 @@ export class MiniDisplayEditor extends LitElement {
     .appearance-grid {
       gap: 12px;
     }
+    .appearance-section {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: 9px;
+    }
+    .appearance-section > header {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .appearance-section > header ha-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--secondary-text-color);
+    }
+    .appearance-section > mini-display-image-field,
+    .appearance-section > .segmented-field,
+    .appearance-section > details {
+      grid-column: 1 / -1;
+    }
     .rule-groups .mappings {
       padding: 0;
     }
@@ -2181,46 +2209,46 @@ export class MiniDisplayEditor extends LitElement {
                   label="Effect color"
                   .value=${style.effectColor ?? "background"}
                   @color-changed=${(event: CustomEvent<string>) => {
-                  style.effectColor = event.detail || "background";
-                  this.changed();
-                }}
+                    style.effectColor = event.detail || "background";
+                    this.changed();
+                  }}
                 ></mini-display-color-field>
                 ${this.numberField(
-                "Thickness",
-                style.effectThickness,
-                1,
-                1,
-                3,
-                (input) => {
-                  style.effectThickness = input;
-                  this.changed();
-                },
-              )}
+                  "Thickness",
+                  style.effectThickness,
+                  1,
+                  1,
+                  3,
+                  (input) => {
+                    style.effectThickness = input;
+                    this.changed();
+                  },
+                )}
                 ${
-                effect === "shadow"
-                  ? html`${this.numberField(
-                      "Horizontal offset",
-                      style.effectOffsetX,
-                      2,
-                      -6,
-                      6,
-                      (input) => {
-                        style.effectOffsetX = input;
-                        this.changed();
-                      },
-                    )}${this.numberField(
-                      "Vertical offset",
-                      style.effectOffsetY,
-                      2,
-                      -6,
-                      6,
-                      (input) => {
-                        style.effectOffsetY = input;
-                        this.changed();
-                      },
-                    )}`
-                  : nothing
-              }`
+                  effect === "shadow"
+                    ? html`${this.numberField(
+                        "Horizontal offset",
+                        style.effectOffsetX,
+                        2,
+                        -6,
+                        6,
+                        (input) => {
+                          style.effectOffsetX = input;
+                          this.changed();
+                        },
+                      )}${this.numberField(
+                        "Vertical offset",
+                        style.effectOffsetY,
+                        2,
+                        -6,
+                        6,
+                        (input) => {
+                          style.effectOffsetY = input;
+                          this.changed();
+                        },
+                      )}`
+                    : nothing
+                }`
             : nothing
         }
       </div>
@@ -2274,13 +2302,18 @@ export class MiniDisplayEditor extends LitElement {
     const style = (card.style ??= {});
     const value = (card.valueStyle ??= {});
     const title = (card.titleStyle ??= {});
-    const backgroundMode = card.transparentBackground
-      ? "transparent"
-      : card.backgroundImage
-        ? "image"
-        : "color";
+    const backgroundMode =
+      card.backgroundMode ??
+      (card.transparentBackground
+        ? "transparent"
+        : card.backgroundImage
+          ? "image"
+          : "color");
+    const hasTitle = Boolean(card.title?.trim() && card.showTitle !== false);
     return html`<div class="grid appearance-grid">
-      ${this.segmented(
+      <section class="appearance-section">
+        <header><ha-icon icon="mdi:card-outline"></ha-icon>Card</header>
+        ${this.segmented(
           "Background",
           backgroundMode,
           [
@@ -2289,12 +2322,12 @@ export class MiniDisplayEditor extends LitElement {
             { value: "image", label: "Image", icon: "mdi:image-outline" },
           ],
           (input) => {
+            card.backgroundMode = input as DisplayCard["backgroundMode"];
             card.transparentBackground = input === "transparent";
-            if (input !== "image") card.backgroundImage = undefined;
             this.changed();
           },
         )}
-      ${
+        ${
           backgroundMode === "image"
             ? this.imageField(
                 "Card background image",
@@ -2306,65 +2339,87 @@ export class MiniDisplayEditor extends LitElement {
               )
             : nothing
         }
-      ${
+        ${
           backgroundMode === "color"
             ? html`<mini-display-color-field
-                label="Background"
+                label="Background color"
                 .value=${style.background ?? ""}
                 @color-changed=${(event: CustomEvent<string>) => {
-                style.background = event.detail || undefined;
-                this.changed();
-              }}
+                  style.background = event.detail || undefined;
+                  this.changed();
+                }}
               ></mini-display-color-field>`
             : nothing
         }
-      <mini-display-color-field
-        label="Text color"
-        .value=${style.foreground ?? ""}
-        @color-changed=${(event: CustomEvent<string>) => {
-            style.foreground = event.detail || undefined;
-            this.changed();
-          }}
-      ></mini-display-color-field
-      ><mini-display-color-field
-        label="Accent"
-        .value=${style.accent ?? ""}
-        @color-changed=${(event: CustomEvent<string>) => {
+        <mini-display-color-field
+          label="Accent"
+          .value=${style.accent ?? ""}
+          @color-changed=${(event: CustomEvent<string>) => {
             style.accent = event.detail || undefined;
             this.changed();
           }}
-      ></mini-display-color-field
-      >${this.fontSelect("Value font", value.fontFamily, (input) => {
-          value.fontFamily = input;
-          this.changed();
-        })}${
-          card.title?.trim() && card.showTitle !== false
-            ? this.fontSelect("Title font", title.fontFamily, (input) => {
+        ></mini-display-color-field>
+      </section>
+      ${
+        card.type !== "image"
+          ? html`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-text"></ha-icon>Value</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${style.foreground ?? ""}
+                @color-changed=${(event: CustomEvent<string>) => {
+                  style.foreground = event.detail || undefined;
+                  this.changed();
+                }}
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", value.fontFamily, (input) => {
+                value.fontFamily = input;
+                this.changed();
+              })}
+              ${this.select(
+                "Font size",
+                value.fontSize ?? "auto",
+                ["auto", "small", "medium", "large", "xlarge"],
+                (input) => {
+                  value.fontSize = input as Style["fontSize"];
+                  this.changed();
+                },
+              )}
+              ${this.textPosition("Position", value)}
+              ${this.textEffectEditor("Effect", value)}
+            </section>`
+          : nothing
+      }
+      ${
+        hasTitle
+          ? html`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-title"></ha-icon>Title</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${title.foreground ?? ""}
+                @color-changed=${(event: CustomEvent<string>) => {
+                  title.foreground = event.detail || undefined;
+                  this.changed();
+                }}
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", title.fontFamily, (input) => {
                 title.fontFamily = input;
                 this.changed();
-              })
-            : nothing
-        }${this.select(
-          "Font size",
-          value.fontSize ?? "auto",
-          ["auto", "small", "medium", "large", "xlarge"],
-          (input) => {
-            value.fontSize = input as Style["fontSize"];
-            this.changed();
-          },
-        )}${this.textPosition("Text position", value)}${this.textEffectEditor(
-          "Value effect",
-          value,
-        )}${
-          card.title?.trim() && card.showTitle !== false
-            ? html`${this.textPosition(
-                "Title position",
-                title,
-                "left",
-                "top",
-              )}${this.textEffectEditor("Title effect", title)}`
-            : nothing
-        }
+              })}
+              ${this.select(
+                "Font size",
+                title.fontSize ?? "auto",
+                ["auto", "small", "medium", "large", "xlarge"],
+                (input) => {
+                  title.fontSize = input as Style["fontSize"];
+                  this.changed();
+                },
+              )}
+              ${this.textPosition("Position", title, "left", "top")}
+              ${this.textEffectEditor("Effect", title)}
+            </section>`
+          : nothing
+      }
     </div>`;
   }
 
@@ -2851,17 +2906,17 @@ export class MiniDisplayEditor extends LitElement {
           ([section, label, icon]) =>
             html`<button
               class="card-section-tab ${
-              this.cardSection === section ? "active" : ""
-            }"
+                this.cardSection === section ? "active" : ""
+              }"
               role="tab"
               aria-selected=${this.cardSection === section}
               @click=${() => (this.cardSection = section)}
             >
               <ha-icon icon=${icon}></ha-icon><span>${label}</span>${
-              section === "rules" && rulesCount
-                ? html`<span class="section-count">${rulesCount}</span>`
-                : nothing
-            }
+                section === "rules" && rulesCount
+                  ? html`<span class="section-count">${rulesCount}</span>`
+                  : nothing
+              }
             </button>`,
         )}
       </nav>
@@ -2929,34 +2984,34 @@ export class MiniDisplayEditor extends LitElement {
                           </div>
                         </div>
                         ${this.imageField("Image", card.image, (id) => {
-                        card.image = id;
-                        this.changed();
-                      })}
-                        ${this.segmented(
-                        "Fit",
-                        card.imageFit ?? "cover",
-                        [
-                          {
-                            value: "cover",
-                            label: "Cover",
-                            icon: "mdi:image-size-select-actual",
-                          },
-                          {
-                            value: "contain",
-                            label: "Contain",
-                            icon: "mdi:image-size-select-large",
-                          },
-                          {
-                            value: "stretch",
-                            label: "Stretch",
-                            icon: "mdi:fit-to-screen-outline",
-                          },
-                        ],
-                        (input) => {
-                          card.imageFit = input as DisplayCard["imageFit"];
+                          card.image = id;
                           this.changed();
-                        },
-                      )}
+                        })}
+                        ${this.segmented(
+                          "Fit",
+                          card.imageFit ?? "cover",
+                          [
+                            {
+                              value: "cover",
+                              label: "Cover",
+                              icon: "mdi:image-size-select-actual",
+                            },
+                            {
+                              value: "contain",
+                              label: "Contain",
+                              icon: "mdi:image-size-select-large",
+                            },
+                            {
+                              value: "stretch",
+                              label: "Stretch",
+                              icon: "mdi:fit-to-screen-outline",
+                            },
+                          ],
+                          (input) => {
+                            card.imageFit = input as DisplayCard["imageFit"];
+                            this.changed();
+                          },
+                        )}
                       </section>`
                     : nothing
                 }
@@ -2973,69 +3028,80 @@ export class MiniDisplayEditor extends LitElement {
                         <div class="grid">
                           ${this.entity(card)}
                           ${
-                          card.type === "number"
-                            ? html`${this.field("Unit", card.unit, (input) => {
-                                card.unit = input;
-                                this.changed();
-                              })}${this.select(
-                                "Progress",
-                                card.progress ?? "none",
-                                ["none", "bar", "ring"],
-                                (input) => {
-                                  card.progress =
-                                    input as DisplayCard["progress"];
-                                  this.changed();
-                                },
-                              )}${
-                                card.progress && card.progress !== "none"
-                                  ? html`${this.field(
-                                      "Minimum",
-                                      card.minimum,
-                                      (input) => {
-                                        card.minimum = Number(input);
-                                        this.changed();
-                                      },
-                                      "number",
-                                    )}${this.field(
-                                      "Maximum",
-                                      card.maximum,
-                                      (input) => {
-                                        card.maximum = Number(input);
-                                        this.changed();
-                                      },
-                                      "number",
-                                    )}`
-                                  : nothing
-                              }`
-                            : nothing
-                        }
+                            card.type === "number"
+                              ? html`${this.field(
+                                  "Unit",
+                                  card.unit,
+                                  (input) => {
+                                    card.unit = input;
+                                    this.changed();
+                                  },
+                                )}${this.select(
+                                  "Progress",
+                                  card.progress ?? "none",
+                                  ["none", "bar", "ring"],
+                                  (input) => {
+                                    card.progress =
+                                      input as DisplayCard["progress"];
+                                    this.changed();
+                                  },
+                                )}${
+                                  card.progress && card.progress !== "none"
+                                    ? html`${this.field(
+                                        "Minimum",
+                                        card.minimum,
+                                        (input) => {
+                                          card.minimum = Number(input);
+                                          this.changed();
+                                        },
+                                        "number",
+                                      )}${this.field(
+                                        "Maximum",
+                                        card.maximum,
+                                        (input) => {
+                                          card.maximum = Number(input);
+                                          this.changed();
+                                        },
+                                        "number",
+                                      )}`
+                                    : nothing
+                                }`
+                              : nothing
+                          }
                           ${
-                          card.type === "text"
-                            ? this.field("Static text", card.text, (input) => {
-                                card.text = input;
-                                this.changed();
-                              })
-                            : nothing
-                        }
+                            card.type === "text"
+                              ? html`${this.field(
+                                  "Static text",
+                                  card.text,
+                                  (input) => {
+                                    card.text = input;
+                                    this.changed();
+                                  },
+                                )}${this.field("Unit", card.unit, (input) => {
+                                  card.unit = input;
+                                  this.changed();
+                                })}`
+                              : nothing
+                          }
                           ${
-                          card.type === "status"
-                            ? html`${this.field(
-                                "On text",
-                                card.onText,
-                                (input) => {
-                                  card.onText = input;
-                                  this.changed();
-                                },
-                              )}${this.field(
-                                "Off text",
-                                card.offText,
-                                (input) => {
-                                  card.offText = input;
-                                  this.changed();
-                                },
-                              )}`
-                            : nothing
-                        }
+                            card.type === "status"
+                              ? html`${this.field(
+                                  "On text",
+                                  card.onText,
+                                  (input) => {
+                                    card.onText = input;
+                                    this.changed();
+                                  },
+                                )}${this.field(
+                                  "Off text",
+                                  card.offText,
+                                  (input) => {
+                                    card.offText = input;
+                                    this.changed();
+                                  },
+                                )}`
+                              : nothing
+                          }
                         </div>
                       </section>`
                     : nothing
@@ -3060,10 +3126,10 @@ export class MiniDisplayEditor extends LitElement {
                         <strong>Visibility</strong>
                         <small
                           >${
-                          card.visibility
-                            ? "Shown when configured conditions match"
-                            : "Always visible"
-                        }</small
+                            card.visibility
+                              ? "Shown when configured conditions match"
+                              : "Always visible"
+                          }</small
                         >
                       </div>
                       <ha-button
@@ -3105,15 +3171,15 @@ export class MiniDisplayEditor extends LitElement {
                   .value=${row.title ?? ""}
                   placeholder=${`Row ${rowIndex + 1}`}
                   @input=${(event: Event) => {
-                  row.title = (event.target as HTMLInputElement).value;
-                  this.changed();
-                }}
+                    row.title = (event.target as HTMLInputElement).value;
+                    this.changed();
+                  }}
                   @blur=${() => (this.editingRowTitle = undefined)}
                   @keydown=${(event: KeyboardEvent) => {
-                  if (event.key === "Enter" || event.key === "Escape") {
-                    (event.currentTarget as HTMLInputElement).blur();
-                  }
-                }}
+                    if (event.key === "Enter" || event.key === "Escape") {
+                      (event.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
                 />`
               : html`<strong
                     >${row.title?.trim() || `Row ${rowIndex + 1}`}</strong
@@ -3338,35 +3404,35 @@ export class MiniDisplayEditor extends LitElement {
                         page.showTitle !== false
                           ? html`<div class="page-title-position">
                               ${this.segmented(
-                          "Title position",
-                          page.titlePosition ?? "top",
-                          [
-                            {
-                              value: "top" as const,
-                              label: "Top",
-                              icon: "mdi:format-vertical-align-top",
-                            },
-                            {
-                              value: "right" as const,
-                              label: "Right",
-                              icon: "mdi:format-horizontal-align-right",
-                            },
-                            {
-                              value: "bottom" as const,
-                              label: "Bottom",
-                              icon: "mdi:format-vertical-align-bottom",
-                            },
-                            {
-                              value: "left" as const,
-                              label: "Left",
-                              icon: "mdi:format-horizontal-align-left",
-                            },
-                          ],
-                          (input) => {
-                            page.titlePosition = input;
-                            this.changed();
-                          },
-                        )}
+                                "Title position",
+                                page.titlePosition ?? "top",
+                                [
+                                  {
+                                    value: "top" as const,
+                                    label: "Top",
+                                    icon: "mdi:format-vertical-align-top",
+                                  },
+                                  {
+                                    value: "right" as const,
+                                    label: "Right",
+                                    icon: "mdi:format-horizontal-align-right",
+                                  },
+                                  {
+                                    value: "bottom" as const,
+                                    label: "Bottom",
+                                    icon: "mdi:format-vertical-align-bottom",
+                                  },
+                                  {
+                                    value: "left" as const,
+                                    label: "Left",
+                                    icon: "mdi:format-horizontal-align-left",
+                                  },
+                                ],
+                                (input) => {
+                                  page.titlePosition = input;
+                                  this.changed();
+                                },
+                              )}
                             </div>`
                           : nothing
                       }
@@ -3399,51 +3465,51 @@ export class MiniDisplayEditor extends LitElement {
                                     label="Title background"
                                     .value=${pageTitleStyle.background ?? ""}
                                     @color-changed=${(
-                                event: CustomEvent<string>,
-                              ) => {
-                                page.titleStyle = {
-                                  ...(page.titleStyle ?? {}),
-                                  background: event.detail || undefined,
-                                };
-                                this.changed();
-                              }}
+                                      event: CustomEvent<string>,
+                                    ) => {
+                                      page.titleStyle = {
+                                        ...(page.titleStyle ?? {}),
+                                        background: event.detail || undefined,
+                                      };
+                                      this.changed();
+                                    }}
                                   ></mini-display-color-field>
                                   <mini-display-color-field
                                     label="Title text"
                                     .value=${pageTitleStyle.foreground ?? ""}
                                     @color-changed=${(
-                                event: CustomEvent<string>,
-                              ) => {
-                                page.titleStyle = {
-                                  ...(page.titleStyle ?? {}),
-                                  foreground: event.detail || undefined,
-                                };
-                                this.changed();
-                              }}
+                                      event: CustomEvent<string>,
+                                    ) => {
+                                      page.titleStyle = {
+                                        ...(page.titleStyle ?? {}),
+                                        foreground: event.detail || undefined,
+                                      };
+                                      this.changed();
+                                    }}
                                   ></mini-display-color-field>
                                   ${this.fontSelect(
-                              "Title font",
-                              pageTitleStyle.fontFamily,
-                              (input) => {
-                                page.titleStyle = {
-                                  ...(page.titleStyle ?? {}),
-                                  fontFamily: input,
-                                };
-                                this.changed();
-                              },
-                            )}
+                                    "Title font",
+                                    pageTitleStyle.fontFamily,
+                                    (input) => {
+                                      page.titleStyle = {
+                                        ...(page.titleStyle ?? {}),
+                                        fontFamily: input,
+                                      };
+                                      this.changed();
+                                    },
+                                  )}
                                   ${this.select(
-                              "Title font size",
-                              pageTitleStyle.fontSize ?? "small",
-                              ["small", "medium", "large", "xlarge"],
-                              (input) => {
-                                page.titleStyle = {
-                                  ...(page.titleStyle ?? {}),
-                                  fontSize: input as Style["fontSize"],
-                                };
-                                this.changed();
-                              },
-                            )}
+                                    "Title font size",
+                                    pageTitleStyle.fontSize ?? "small",
+                                    ["small", "medium", "large", "xlarge"],
+                                    (input) => {
+                                      page.titleStyle = {
+                                        ...(page.titleStyle ?? {}),
+                                        fontSize: input as Style["fontSize"],
+                                      };
+                                      this.changed();
+                                    },
+                                  )}
                                 `
                               : nothing
                           }
@@ -3469,9 +3535,9 @@ export class MiniDisplayEditor extends LitElement {
                       ? html`<button
                           class="add-button"
                           @click=${() => {
-                      page.rows.push(newRow());
-                      this.changed();
-                    }}
+                            page.rows.push(newRow());
+                            this.changed();
+                          }}
                         >
                           Add row
                         </button>`

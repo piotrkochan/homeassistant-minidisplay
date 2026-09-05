@@ -422,7 +422,11 @@
         "valueStyle": { "$ref": "#/$defs/style" },
         "visibility": { "$ref": "#/$defs/visibility" },
         "backgroundImage": { "$ref": "#/$defs/assetId" },
-        "transparentBackground": { "type": "boolean", "default": false }
+        "transparentBackground": { "type": "boolean", "default": false },
+        "backgroundMode": {
+          "enum": ["color", "transparent", "image"],
+          "default": "color"
+        }
       }
     },
     "numberCard": {
@@ -445,6 +449,10 @@
             "style": { "$ref": "#/$defs/style" },
             "backgroundImage": { "$ref": "#/$defs/assetId" },
             "transparentBackground": { "type": "boolean", "default": false },
+            "backgroundMode": {
+              "enum": ["color", "transparent", "image"],
+              "default": "color"
+            },
             "source": { "$ref": "#/$defs/source" },
             "unit": { "type": "string", "maxLength": 12 },
             "decimals": {
@@ -486,8 +494,13 @@
             "style": { "$ref": "#/$defs/style" },
             "backgroundImage": { "$ref": "#/$defs/assetId" },
             "transparentBackground": { "type": "boolean", "default": false },
+            "backgroundMode": {
+              "enum": ["color", "transparent", "image"],
+              "default": "color"
+            },
             "source": { "$ref": "#/$defs/source" },
             "text": { "type": "string", "maxLength": 128 },
+            "unit": { "type": "string", "maxLength": 12 },
             "align": { "enum": ["start", "center", "end"], "default": "start" },
             "wrap": { "type": "boolean", "default": true },
             "maxLines": {
@@ -527,6 +540,10 @@
             "style": { "$ref": "#/$defs/style" },
             "backgroundImage": { "$ref": "#/$defs/assetId" },
             "transparentBackground": { "type": "boolean", "default": false },
+            "backgroundMode": {
+              "enum": ["color", "transparent", "image"],
+              "default": "color"
+            },
             "format": { "enum": ["24h", "12h"], "default": "24h" },
             "showSeconds": { "type": "boolean", "default": false },
             "showDate": { "type": "boolean", "default": true },
@@ -564,6 +581,10 @@
             "style": { "$ref": "#/$defs/style" },
             "backgroundImage": { "$ref": "#/$defs/assetId" },
             "transparentBackground": { "type": "boolean", "default": false },
+            "backgroundMode": {
+              "enum": ["color", "transparent", "image"],
+              "default": "color"
+            },
             "source": { "$ref": "#/$defs/source" },
             "onText": { "type": "string", "maxLength": 24, "default": "On" },
             "offText": { "type": "string", "maxLength": 24, "default": "Off" },
@@ -598,7 +619,11 @@
               "default": "cover"
             },
             "backgroundImage": { "$ref": "#/$defs/assetId" },
-            "transparentBackground": { "type": "boolean", "default": false }
+            "transparentBackground": { "type": "boolean", "default": false },
+            "backgroundMode": {
+              "enum": ["color", "transparent", "image"],
+              "default": "color"
+            }
           }
         }
       ]

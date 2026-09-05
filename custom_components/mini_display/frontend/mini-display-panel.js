@@ -1,15 +1,15 @@
-const xe = globalThis, je = xe.ShadowRoot && (xe.ShadyCSS === void 0 || xe.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Le = /* @__PURE__ */ Symbol(), pt = /* @__PURE__ */ new WeakMap();
-let At = class {
+const xe = globalThis, Fe = xe.ShadowRoot && (xe.ShadyCSS === void 0 || xe.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, je = /* @__PURE__ */ Symbol(), ht = /* @__PURE__ */ new WeakMap();
+let Ct = class {
   constructor(e, i, s) {
-    if (this._$cssResult$ = !0, s !== Le) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, s !== je) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = e, this.t = i;
   }
   get styleSheet() {
     let e = this.o;
     const i = this.t;
-    if (je && e === void 0) {
+    if (Fe && e === void 0) {
       const s = i !== void 0 && i.length === 1;
-      s && (e = pt.get(i)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && pt.set(i, e));
+      s && (e = ht.get(i)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), s && ht.set(i, e));
     }
     return e;
   }
@@ -17,28 +17,28 @@ let At = class {
     return this.cssText;
   }
 };
-const Gt = (t) => new At(typeof t == "string" ? t : t + "", void 0, Le), L = (t, ...e) => {
+const Kt = (t) => new Ct(typeof t == "string" ? t : t + "", void 0, je), j = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((s, a, r) => s + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + o + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(a) + t[r + 1], t[0]);
-  return new At(i, t, Le);
-}, Kt = (t, e) => {
-  if (je) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
+  return new Ct(i, t, je);
+}, Jt = (t, e) => {
+  if (Fe) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
   else for (const i of e) {
     const s = document.createElement("style"), a = xe.litNonce;
     a !== void 0 && s.setAttribute("nonce", a), s.textContent = i.cssText, t.appendChild(s);
   }
-}, ht = je ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
+}, ut = Fe ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
   let i = "";
   for (const s of e.cssRules) i += s.cssText;
-  return Gt(i);
+  return Kt(i);
 })(t) : t;
-const { is: Jt, defineProperty: Zt, getOwnPropertyDescriptor: Qt, getOwnPropertyNames: ei, getOwnPropertySymbols: ti, getPrototypeOf: ii } = Object, ke = globalThis, ut = ke.trustedTypes, si = ut ? ut.emptyScript : "", ai = ke.reactiveElementPolyfillSupport, le = (t, e) => t, $e = { toAttribute(t, e) {
+const { is: Zt, defineProperty: Qt, getOwnPropertyDescriptor: ei, getOwnPropertyNames: ti, getOwnPropertySymbols: ii, getPrototypeOf: si } = Object, ke = globalThis, gt = ke.trustedTypes, ai = gt ? gt.emptyScript : "", ri = ke.reactiveElementPolyfillSupport, le = (t, e) => t, $e = { toAttribute(t, e) {
   switch (e) {
     case Boolean:
-      t = t ? si : null;
+      t = t ? ai : null;
       break;
     case Object:
     case Array:
@@ -63,7 +63,7 @@ const { is: Jt, defineProperty: Zt, getOwnPropertyDescriptor: Qt, getOwnProperty
       }
   }
   return i;
-} }, Fe = (t, e) => !Jt(t, e), gt = { attribute: !0, type: String, converter: $e, reflect: !1, useDefault: !1, hasChanged: Fe };
+} }, Le = (t, e) => !Zt(t, e), mt = { attribute: !0, type: String, converter: $e, reflect: !1, useDefault: !1, hasChanged: Le };
 Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), ke.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
 let te = class extends HTMLElement {
   static addInitializer(e) {
@@ -72,14 +72,14 @@ let te = class extends HTMLElement {
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(e, i = gt) {
+  static createProperty(e, i = mt) {
     if (i.state && (i.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((i = Object.create(i)).wrapped = !0), this.elementProperties.set(e, i), !i.noAccessor) {
       const s = /* @__PURE__ */ Symbol(), a = this.getPropertyDescriptor(e, s, i);
-      a !== void 0 && Zt(this.prototype, e, a);
+      a !== void 0 && Qt(this.prototype, e, a);
     }
   }
   static getPropertyDescriptor(e, i, s) {
-    const { get: a, set: r } = Qt(this.prototype, e) ?? { get() {
+    const { get: a, set: r } = ei(this.prototype, e) ?? { get() {
       return this[i];
     }, set(o) {
       this[i] = o;
@@ -90,17 +90,17 @@ let te = class extends HTMLElement {
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? gt;
+    return this.elementProperties.get(e) ?? mt;
   }
   static _$Ei() {
     if (this.hasOwnProperty(le("elementProperties"))) return;
-    const e = ii(this);
+    const e = si(this);
     e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
   }
   static finalize() {
     if (this.hasOwnProperty(le("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(le("properties"))) {
-      const i = this.properties, s = [...ei(i), ...ti(i)];
+      const i = this.properties, s = [...ti(i), ...ii(i)];
       for (const a of s) this.createProperty(a, i[a]);
     }
     const e = this[Symbol.metadata];
@@ -119,8 +119,8 @@ let te = class extends HTMLElement {
     const i = [];
     if (Array.isArray(e)) {
       const s = new Set(e.flat(1 / 0).reverse());
-      for (const a of s) i.unshift(ht(a));
-    } else e !== void 0 && i.push(ht(e));
+      for (const a of s) i.unshift(ut(a));
+    } else e !== void 0 && i.push(ut(e));
     return i;
   }
   static _$Eu(e, i) {
@@ -146,7 +146,7 @@ let te = class extends HTMLElement {
   }
   createRenderRoot() {
     const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Kt(e, this.constructor.elementStyles), e;
+    return Jt(e, this.constructor.elementStyles), e;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
@@ -178,7 +178,7 @@ let te = class extends HTMLElement {
   requestUpdate(e, i, s, a = !1, r) {
     if (e !== void 0) {
       const o = this.constructor;
-      if (a === !1 && (r = this[e]), s ??= o.getPropertyOptions(e), !((s.hasChanged ?? Fe)(r, i) || s.useDefault && s.reflect && r === this._$Ej?.get(e) && !this.hasAttribute(o._$Eu(e, s)))) return;
+      if (a === !1 && (r = this[e]), s ??= o.getPropertyOptions(e), !((s.hasChanged ?? Le)(r, i) || s.useDefault && s.reflect && r === this._$Ej?.get(e) && !this.hasAttribute(o._$Eu(e, s)))) return;
       this.C(e, i, s);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
@@ -246,23 +246,23 @@ let te = class extends HTMLElement {
   firstUpdated(e) {
   }
 };
-te.elementStyles = [], te.shadowRootOptions = { mode: "open" }, te[le("elementProperties")] = /* @__PURE__ */ new Map(), te[le("finalized")] = /* @__PURE__ */ new Map(), ai?.({ ReactiveElement: te }), (ke.reactiveElementVersions ??= []).push("2.1.2");
-const He = globalThis, mt = (t) => t, we = He.trustedTypes, ft = we ? we.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ct = "$lit$", j = `lit$${Math.random().toFixed(9).slice(2)}$`, Dt = "?" + j, ri = `<${Dt}>`, V = document, de = () => V.createComment(""), ce = (t) => t === null || typeof t != "object" && typeof t != "function", Be = Array.isArray, oi = (t) => Be(t) || typeof t?.[Symbol.iterator] == "function", Ie = `[ 	
-\f\r]`, re = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, vt = /-->/g, bt = />/g, H = RegExp(`>|${Ie}(?:([^\\s"'>=/]+)(${Ie}*=${Ie}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), yt = /'/g, xt = /"/g, Et = /^(?:script|style|textarea|title)$/i, ni = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), l = ni(1), T = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), $t = /* @__PURE__ */ new WeakMap(), B = V.createTreeWalker(V, 129);
+te.elementStyles = [], te.shadowRootOptions = { mode: "open" }, te[le("elementProperties")] = /* @__PURE__ */ new Map(), te[le("finalized")] = /* @__PURE__ */ new Map(), ri?.({ ReactiveElement: te }), (ke.reactiveElementVersions ??= []).push("2.1.2");
+const He = globalThis, ft = (t) => t, we = He.trustedTypes, vt = we ? we.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Et = "$lit$", F = `lit$${Math.random().toFixed(9).slice(2)}$`, Dt = "?" + F, oi = `<${Dt}>`, V = document, de = () => V.createComment(""), ce = (t) => t === null || typeof t != "object" && typeof t != "function", Be = Array.isArray, ni = (t) => Be(t) || typeof t?.[Symbol.iterator] == "function", Ie = `[ 	
+\f\r]`, re = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, bt = /-->/g, yt = />/g, H = RegExp(`>|${Ie}(?:([^\\s"'>=/]+)(${Ie}*=${Ie}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), xt = /'/g, $t = /"/g, Mt = /^(?:script|style|textarea|title)$/i, li = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), l = li(1), T = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), wt = /* @__PURE__ */ new WeakMap(), B = V.createTreeWalker(V, 129);
 function Pt(t, e) {
   if (!Be(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return ft !== void 0 ? ft.createHTML(e) : e;
+  return vt !== void 0 ? vt.createHTML(e) : e;
 }
-const li = (t, e) => {
+const di = (t, e) => {
   const i = t.length - 1, s = [];
   let a, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = re;
   for (let n = 0; n < i; n++) {
     const d = t[n];
     let p, m, h = -1, v = 0;
-    for (; v < d.length && (o.lastIndex = v, m = o.exec(d), m !== null); ) v = o.lastIndex, o === re ? m[1] === "!--" ? o = vt : m[1] !== void 0 ? o = bt : m[2] !== void 0 ? (Et.test(m[2]) && (a = RegExp("</" + m[2], "g")), o = H) : m[3] !== void 0 && (o = H) : o === H ? m[0] === ">" ? (o = a ?? re, h = -1) : m[1] === void 0 ? h = -2 : (h = o.lastIndex - m[2].length, p = m[1], o = m[3] === void 0 ? H : m[3] === '"' ? xt : yt) : o === xt || o === yt ? o = H : o === vt || o === bt ? o = re : (o = H, a = void 0);
+    for (; v < d.length && (o.lastIndex = v, m = o.exec(d), m !== null); ) v = o.lastIndex, o === re ? m[1] === "!--" ? o = bt : m[1] !== void 0 ? o = yt : m[2] !== void 0 ? (Mt.test(m[2]) && (a = RegExp("</" + m[2], "g")), o = H) : m[3] !== void 0 && (o = H) : o === H ? m[0] === ">" ? (o = a ?? re, h = -1) : m[1] === void 0 ? h = -2 : (h = o.lastIndex - m[2].length, p = m[1], o = m[3] === void 0 ? H : m[3] === '"' ? $t : xt) : o === $t || o === xt ? o = H : o === bt || o === yt ? o = re : (o = H, a = void 0);
     const y = o === H && t[n + 1].startsWith("/>") ? " " : "";
-    r += o === re ? d + ri : h >= 0 ? (s.push(p), d.slice(0, h) + Ct + d.slice(h) + j + y) : d + j + (h === -2 ? n : y);
+    r += o === re ? d + oi : h >= 0 ? (s.push(p), d.slice(0, h) + Et + d.slice(h) + F + y) : d + F + (h === -2 ? n : y);
   }
   return [Pt(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), s];
 };
@@ -271,19 +271,19 @@ class pe {
     let a;
     this.parts = [];
     let r = 0, o = 0;
-    const n = e.length - 1, d = this.parts, [p, m] = li(e, i);
+    const n = e.length - 1, d = this.parts, [p, m] = di(e, i);
     if (this.el = pe.createElement(p, s), B.currentNode = this.el.content, i === 2 || i === 3) {
       const h = this.el.content.firstChild;
       h.replaceWith(...h.childNodes);
     }
     for (; (a = B.nextNode()) !== null && d.length < n; ) {
       if (a.nodeType === 1) {
-        if (a.hasAttributes()) for (const h of a.getAttributeNames()) if (h.endsWith(Ct)) {
-          const v = m[o++], y = a.getAttribute(h).split(j), $ = /([.?@])?(.*)/.exec(v);
-          d.push({ type: 1, index: r, name: $[2], strings: y, ctor: $[1] === "." ? ci : $[1] === "?" ? pi : $[1] === "@" ? hi : Se }), a.removeAttribute(h);
-        } else h.startsWith(j) && (d.push({ type: 6, index: r }), a.removeAttribute(h));
-        if (Et.test(a.tagName)) {
-          const h = a.textContent.split(j), v = h.length - 1;
+        if (a.hasAttributes()) for (const h of a.getAttributeNames()) if (h.endsWith(Et)) {
+          const v = m[o++], y = a.getAttribute(h).split(F), $ = /([.?@])?(.*)/.exec(v);
+          d.push({ type: 1, index: r, name: $[2], strings: y, ctor: $[1] === "." ? pi : $[1] === "?" ? hi : $[1] === "@" ? ui : Se }), a.removeAttribute(h);
+        } else h.startsWith(F) && (d.push({ type: 6, index: r }), a.removeAttribute(h));
+        if (Mt.test(a.tagName)) {
+          const h = a.textContent.split(F), v = h.length - 1;
           if (v > 0) {
             a.textContent = we ? we.emptyScript : "";
             for (let y = 0; y < v; y++) a.append(h[y], de()), B.nextNode(), d.push({ type: 2, index: ++r });
@@ -293,7 +293,7 @@ class pe {
       } else if (a.nodeType === 8) if (a.data === Dt) d.push({ type: 2, index: r });
       else {
         let h = -1;
-        for (; (h = a.data.indexOf(j, h + 1)) !== -1; ) d.push({ type: 7, index: r }), h += j.length - 1;
+        for (; (h = a.data.indexOf(F, h + 1)) !== -1; ) d.push({ type: 7, index: r }), h += F.length - 1;
       }
       r++;
     }
@@ -309,7 +309,7 @@ function ie(t, e, i = t, s) {
   const r = ce(e) ? void 0 : e._$litDirective$;
   return a?.constructor !== r && (a?._$AO?.(!1), r === void 0 ? a = void 0 : (a = new r(t), a._$AT(t, i, s)), s !== void 0 ? (i._$Co ??= [])[s] = a : i._$Cl = a), a !== void 0 && (e = ie(t, a._$AS(t, e.values), a, s)), e;
 }
-class di {
+class ci {
   constructor(e, i) {
     this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = i;
   }
@@ -326,7 +326,7 @@ class di {
     for (; d !== void 0; ) {
       if (o === d.index) {
         let p;
-        d.type === 2 ? p = new ue(r, r.nextSibling, this, e) : d.type === 1 ? p = new d.ctor(r, d.name, d.strings, this, e) : d.type === 6 && (p = new ui(r, this, e)), this._$AV.push(p), d = s[++n];
+        d.type === 2 ? p = new ue(r, r.nextSibling, this, e) : d.type === 1 ? p = new d.ctor(r, d.name, d.strings, this, e) : d.type === 6 && (p = new gi(r, this, e)), this._$AV.push(p), d = s[++n];
       }
       o !== d?.index && (r = B.nextNode(), o++);
     }
@@ -356,7 +356,7 @@ class ue {
     return this._$AB;
   }
   _$AI(e, i = this) {
-    e = ie(this, e, i), ce(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== T && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : oi(e) ? this.k(e) : this._(e);
+    e = ie(this, e, i), ce(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== T && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : ni(e) ? this.k(e) : this._(e);
   }
   O(e) {
     return this._$AA.parentNode.insertBefore(e, this._$AB);
@@ -371,13 +371,13 @@ class ue {
     const { values: i, _$litType$: s } = e, a = typeof s == "number" ? this._$AC(e) : (s.el === void 0 && (s.el = pe.createElement(Pt(s.h, s.h[0]), this.options)), s);
     if (this._$AH?._$AD === a) this._$AH.p(i);
     else {
-      const r = new di(a, this), o = r.u(this.options);
+      const r = new ci(a, this), o = r.u(this.options);
       r.p(i), this.T(o), this._$AH = r;
     }
   }
   _$AC(e) {
-    let i = $t.get(e.strings);
-    return i === void 0 && $t.set(e.strings, i = new pe(e)), i;
+    let i = wt.get(e.strings);
+    return i === void 0 && wt.set(e.strings, i = new pe(e)), i;
   }
   k(e) {
     Be(this._$AH) || (this._$AH = [], this._$AR());
@@ -388,8 +388,8 @@ class ue {
   }
   _$AR(e = this._$AA.nextSibling, i) {
     for (this._$AP?.(!1, !0, i); e !== this._$AB; ) {
-      const s = mt(e).nextSibling;
-      mt(e).remove(), e = s;
+      const s = ft(e).nextSibling;
+      ft(e).remove(), e = s;
     }
   }
   setConnected(e) {
@@ -421,7 +421,7 @@ class Se {
     e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
   }
 }
-class ci extends Se {
+class pi extends Se {
   constructor() {
     super(...arguments), this.type = 3;
   }
@@ -429,7 +429,7 @@ class ci extends Se {
     this.element[this.name] = e === c ? void 0 : e;
   }
 }
-class pi extends Se {
+class hi extends Se {
   constructor() {
     super(...arguments), this.type = 4;
   }
@@ -437,7 +437,7 @@ class pi extends Se {
     this.element.toggleAttribute(this.name, !!e && e !== c);
   }
 }
-class hi extends Se {
+class ui extends Se {
   constructor(e, i, s, a, r) {
     super(e, i, s, a, r), this.type = 5;
   }
@@ -450,7 +450,7 @@ class hi extends Se {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
   }
 }
-class ui {
+class gi {
   constructor(e, i, s) {
     this.element = e, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = s;
   }
@@ -461,9 +461,9 @@ class ui {
     ie(this, e);
   }
 }
-const gi = He.litHtmlPolyfillSupport;
-gi?.(pe, ue), (He.litHtmlVersions ??= []).push("3.3.3");
-const mi = (t, e, i) => {
+const mi = He.litHtmlPolyfillSupport;
+mi?.(pe, ue), (He.litHtmlVersions ??= []).push("3.3.3");
+const fi = (t, e, i) => {
   const s = i?.renderBefore ?? e;
   let a = s._$litPart$;
   if (a === void 0) {
@@ -483,7 +483,7 @@ let A = class extends te {
   }
   update(e) {
     const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = mi(i, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = fi(i, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -496,15 +496,15 @@ let A = class extends te {
   }
 };
 A._$litElement$ = !0, A.finalized = !0, Ve.litElementHydrateSupport?.({ LitElement: A });
-const fi = Ve.litElementPolyfillSupport;
-fi?.({ LitElement: A });
+const vi = Ve.litElementPolyfillSupport;
+vi?.({ LitElement: A });
 (Ve.litElementVersions ??= []).push("4.2.2");
 const se = (t) => (e, i) => {
   i !== void 0 ? i.addInitializer(() => {
     customElements.define(t, e);
   }) : customElements.define(t, e);
 };
-const vi = { attribute: !0, type: String, converter: $e, reflect: !1, hasChanged: Fe }, bi = (t = vi, e, i) => {
+const bi = { attribute: !0, type: String, converter: $e, reflect: !1, hasChanged: Le }, yi = (t = bi, e, i) => {
   const { kind: s, metadata: a } = i;
   let r = globalThis.litPropertyMetadata.get(a);
   if (r === void 0 && globalThis.litPropertyMetadata.set(a, r = /* @__PURE__ */ new Map()), s === "setter" && ((t = Object.create(t)).wrapped = !0), r.set(i.name, t), s === "accessor") {
@@ -526,7 +526,7 @@ const vi = { attribute: !0, type: String, converter: $e, reflect: !1, hasChanged
   throw Error("Unsupported decorator location: " + s);
 };
 function g(t) {
-  return (e, i) => typeof i == "object" ? bi(t, e, i) : ((s, a, r) => {
+  return (e, i) => typeof i == "object" ? yi(t, e, i) : ((s, a, r) => {
     const o = a.hasOwnProperty(r);
     return a.constructor.createProperty(r, s), o ? Object.getOwnPropertyDescriptor(a, r) : void 0;
   })(t, e, i);
@@ -534,22 +534,22 @@ function g(t) {
 function f(t) {
   return g({ ...t, state: !0, attribute: !1 });
 }
-const qe = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "image" ? { type: t, image: "", imageFit: "cover", showTitle: !1 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, Mt = () => ({
+const qe = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "image" ? { type: t, image: "", imageFit: "cover", showTitle: !1 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, Tt = () => ({
   weight: 1,
   gap: "small",
   cards: [qe("clock")]
-}), Tt = (t) => ({
+}), zt = (t) => ({
   id: `page_${t}`,
   title: `Page ${t}`,
   durationSeconds: 10,
   enabled: !0,
   transition: { type: "none" },
-  rows: [Mt()]
-}), yi = () => ({
+  rows: [Tt()]
+}), xi = () => ({
   version: 1,
   defaults: { pageDurationSeconds: 10, theme: "dark" },
-  pages: [Tt(1)]
-}), xi = (t, e) => {
+  pages: [zt(1)]
+}), $i = (t, e) => {
   if (t.type === "number") {
     const i = Number(e);
     if (Number.isFinite(i)) {
@@ -563,7 +563,7 @@ const qe = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
       if (i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)) return { value: i.value, mapped: !0 };
   }
   return { value: e, mapped: !1 };
-}, $i = (t, e) => {
+}, wi = (t, e) => {
   if (t.type === "number") {
     const i = Number(e);
     if (Number.isFinite(i))
@@ -575,7 +575,7 @@ const qe = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
     return (t.colorMappings ?? []).find(
       (i) => i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)
     );
-}, wi = /* @__PURE__ */ new Set(["unknown", "unavailable"]), _i = /* @__PURE__ */ new Set([
+}, _i = /* @__PURE__ */ new Set(["unknown", "unavailable"]), ki = /* @__PURE__ */ new Set([
   "range",
   "number_equals",
   "number_not_equals",
@@ -584,12 +584,12 @@ const qe = (t = "number") => t === "clock" ? { type: t, format: "24h", showDate:
   "less_than",
   "less_than_or_equal"
 ]);
-function ki(t, e, i) {
-  const s = e.source === "card" ? i?.source ? t?.states[i.source]?.state : i?.type === "text" ? i.text : void 0 : e.entity ? t?.states[e.entity]?.state : void 0, a = s !== void 0 && !wi.has(s);
+function Si(t, e, i) {
+  const s = e.source === "card" ? i?.source ? t?.states[i.source]?.state : i?.type === "text" ? i.text : void 0 : e.entity ? t?.states[e.entity]?.state : void 0, a = s !== void 0 && !_i.has(s);
   if (e.operator === "available") return a;
   if (e.operator === "unavailable") return !a;
   if (!a) return !1;
-  if (_i.has(e.operator)) {
+  if (ki.has(e.operator)) {
     const o = Number(s);
     if (!Number.isFinite(o)) return !1;
     if (e.operator === "range") return (e.minimum === void 0 || o >= e.minimum) && (e.maximum === void 0 || o <= e.maximum);
@@ -602,15 +602,15 @@ function ki(t, e, i) {
 function ye(t, e, i) {
   if (!e) return !0;
   const s = new Map(e.rules.map((r) => [r.id, r])), a = (r) => {
-    const o = r.type === "rule" ? ki(t, s.get(r.ruleId), i) : r.operator === "and" ? r.children.every(a) : r.children.some(a);
+    const o = r.type === "rule" ? Si(t, s.get(r.ruleId), i) : r.operator === "and" ? r.children.every(a) : r.children.some(a);
     return r.negate ? !o : o;
   };
   return a(e.expression);
 }
-var Si = Object.defineProperty, zt = (t, e, i, s) => {
+var Ai = Object.defineProperty, It = (t, e, i, s) => {
   for (var a = void 0, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = o(e, i, a) || a);
-  return a && Si(e, i, a), a;
+  return a && Ai(e, i, a), a;
 };
 const q = {
   background: "#000000",
@@ -659,7 +659,7 @@ const q = {
     this.dispatchEvent(new CustomEvent("color-changed", { detail: e, bubbles: !0, composed: !0 }));
   }
 };
-We.styles = L`
+We.styles = j`
     :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
     .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
     select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
@@ -667,17 +667,17 @@ We.styles = L`
     input { height: 40px; padding: 3px; cursor: pointer; }
   `;
 let he = We;
-zt([
+It([
   g()
 ], he.prototype, "label");
-zt([
+It([
   g()
 ], he.prototype, "value");
 customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", he);
-var Ai = Object.defineProperty, k = (t, e, i, s) => {
+var Ci = Object.defineProperty, k = (t, e, i, s) => {
   for (var a = void 0, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = o(e, i, a) || a);
-  return a && Ai(e, i, a), a;
+  return a && Ci(e, i, a), a;
 };
 const Ye = class Ye extends A {
   constructor() {
@@ -705,11 +705,11 @@ const Ye = class Ye extends A {
       ), d = o.indexOf(r), p = n.indexOf(a), m = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
       if (!m || d < 0 || p < 0) return;
       const h = m.rows.map(($, Ae) => {
-        const Ce = ye(this.hass, $.visibility), De = $.cards.map((X, Ee) => ({
-          cardIndex: Ee,
+        const Ce = ye(this.hass, $.visibility), Ee = $.cards.map((X, De) => ({
+          cardIndex: De,
           hidden: !Ce || !ye(this.hass, X.visibility, X)
         })).filter(({ hidden: X }) => this.showHidden || !X);
-        return { rowIndex: Ae, cards: De };
+        return { rowIndex: Ae, cards: Ee };
       }).filter(({ cards: $ }) => $.length > 0), v = h[d]?.rowIndex, y = h[d]?.cards[p]?.cardIndex;
       v === void 0 || y === void 0 || this.startPointer(
         e,
@@ -884,7 +884,7 @@ const Ye = class Ye extends A {
     const i = e.source ? this.hass?.states[e.source]?.state ?? "—" : e.text ?? "—";
     if (e.type === "status")
       return ["on", "true", "1", "open", "home"].includes(i.toLowerCase()) ? e.onText ?? "On" : e.offText ?? "Off";
-    const s = xi(e, i);
+    const s = $i(e, i);
     return `${s.value}${!s.mapped && e.unit ? ` ${e.unit}` : ""}`;
   }
   imageUrl(e) {
@@ -945,13 +945,13 @@ const Ye = class Ye extends A {
       return l`<div class="screen-frame" style=${i}>
         <div class="screen loading" aria-label="Loading display preview"></div>
       </div>`;
-    const s = e.rows.map((w, D) => {
+    const s = e.rows.map((w, E) => {
       const ae = ye(this.hass, w.visibility), G = w.cards.map((U, me) => ({
         card: U,
         cardIndex: me,
         hidden: !ae || !ye(this.hass, U.visibility, U)
       })).filter(({ hidden: U }) => this.showHidden || !U);
-      return { row: w, rowIndex: D, hidden: !ae, cards: G };
+      return { row: w, rowIndex: E, hidden: !ae, cards: G };
     }).filter(({ cards: w }) => w.length > 0);
     if (s.length === 0)
       return l`<div class="screen-frame" style=${i}>
@@ -971,7 +971,7 @@ const Ye = class Ye extends A {
       large: 36,
       xlarge: 48,
       auto: 18
-    }[v], Ae = a && (r === "top" || r === "bottom") ? y : 0, Ce = a && (r === "left" || r === "right") ? y : 0, De = this.width - 12 - Ce, X = this.height - 12 - Ae - 4 * Math.max(0, s.length - 1), Ee = s.reduce((w, D) => w + (D.row.weight ?? 1), 0) || 1, It = a ? r === "top" ? `top:${y + 6}px;right:6px;bottom:6px;left:6px` : r === "bottom" ? `top:6px;right:6px;bottom:${y + 6}px;left:6px` : r === "left" ? `top:6px;right:6px;bottom:6px;left:${y + 6}px` : `top:6px;right:${y + 6}px;bottom:6px;left:6px` : "inset:6px", Xe = this.imageUrl(e.backgroundImage), Ot = `${r === "top" || r === "bottom" ? `height:${y}px` : `width:${y}px`};background:${m};color:${h};font-size:${$}px`;
+    }[v], Ae = a && (r === "top" || r === "bottom") ? y : 0, Ce = a && (r === "left" || r === "right") ? y : 0, Ee = this.width - 12 - Ce, X = this.height - 12 - Ae - 4 * Math.max(0, s.length - 1), De = s.reduce((w, E) => w + (E.row.weight ?? 1), 0) || 1, Ot = a ? r === "top" ? `top:${y + 6}px;right:6px;bottom:6px;left:6px` : r === "bottom" ? `top:6px;right:6px;bottom:${y + 6}px;left:6px` : r === "left" ? `top:6px;right:6px;bottom:6px;left:${y + 6}px` : `top:6px;right:${y + 6}px;bottom:6px;left:6px` : "inset:6px", Xe = this.imageUrl(e.backgroundImage), Rt = `${r === "top" || r === "bottom" ? `height:${y}px` : `width:${y}px`};background:${m};color:${h};font-size:${$}px`;
     return l`<div class="screen-frame" style=${i}>
       <div
         class="screen"
@@ -979,7 +979,7 @@ const Ye = class Ye extends A {
       >
         ${a ? l`<div
                 class="page-title ${r} ${this.interactive ? "interactive" : ""}"
-                style=${Ot}
+                style=${Rt}
                 @click=${(w) => {
       w.stopPropagation(), this.emit("preview-select", { kind: "page-title" });
     }}
@@ -991,9 +991,9 @@ const Ye = class Ye extends A {
                   >${e.title}</span
                 >
               </div>` : null}${this.pageDropzones()}
-        <div class="page-content" style=${It}>
-          ${s.map(({ row: w, rowIndex: D, hidden: ae, cards: G }) => {
-      const U = X * (w.weight ?? 1) / Ee, me = U - (w.title && w.showTitle !== !1 && U >= 24 ? 17 : 0), fe = (De - 4 * Math.max(0, G.length - 1)) / G.length;
+        <div class="page-content" style=${Ot}>
+          ${s.map(({ row: w, rowIndex: E, hidden: ae, cards: G }) => {
+      const U = X * (w.weight ?? 1) / De, me = U - (w.title && w.showTitle !== !1 && U >= 24 ? 17 : 0), fe = (Ee - 4 * Math.max(0, G.length - 1)) / G.length;
       return l`<div
               class="group ${ae ? "hidden-item" : ""}"
               style="flex:${w.weight ?? 1}"
@@ -1003,7 +1003,7 @@ const Ye = class Ye extends A {
                       @click=${(u) => {
         u.stopPropagation(), this.emit("preview-select", {
           kind: "row",
-          row: D
+          row: E
         });
       }}
                     >
@@ -1013,13 +1013,13 @@ const Ye = class Ye extends A {
                 class="row"
                 style="grid-template-columns:repeat(${G.length},minmax(0,1fr))"
               >
-                ${G.map(({ card: u, cardIndex: K, hidden: Rt }) => {
-        const Ge = u.source ? this.hass?.states[u.source]?.state ?? "—" : u.text ?? "—", Ke = Number(Ge), Pe = u.minimum ?? 0, Je = u.maximum ?? 100, Ze = Number.isFinite(Ke) && Je > Pe ? Math.max(
+                ${G.map(({ card: u, cardIndex: K, hidden: Nt }) => {
+        const Ge = u.source ? this.hass?.states[u.source]?.state ?? "—" : u.text ?? "—", Ke = Number(Ge), Me = u.minimum ?? 0, Je = u.maximum ?? 100, Ze = Number.isFinite(Ke) && Je > Me ? Math.max(
           0,
-          Math.min(100, (Ke - Pe) / (Je - Pe) * 100)
-        ) : 0, Nt = "sans-serif", Me = this.cardValue(u), Qe = !!(u.title && u.showTitle !== !1 && me >= 28), O = u.titleStyle?.verticalAlign ?? "top", et = Qe && (O === "top" || O === "bottom"), Te = u.progress === "bar" ? 14 : 5, J = me - (u.progress === "bar" ? 9 : 0), tt = this.valueFontSize(
+          Math.min(100, (Ke - Me) / (Je - Me) * 100)
+        ) : 0, Ut = "sans-serif", Pe = this.cardValue(u), Qe = !!(u.title && u.showTitle !== !1 && me >= 28), O = u.titleStyle?.verticalAlign ?? "top", et = Qe && (O === "top" || O === "bottom"), Te = u.progress === "bar" ? 14 : 5, J = me - (u.progress === "bar" ? 9 : 0), tt = this.valueFontSize(
           u,
-          Me,
+          Pe,
           fe,
           Math.max(1, J - 17)
         ), it = Math.max(
@@ -1037,66 +1037,66 @@ const Ye = class Ye extends A {
         ) : 13, Z = et ? Math.min(
           it,
           this.fontLineHeight(ve)
-        ) : 0, Ut = u.progress === "ring" ? Math.min(
+        ) : 0, qt = u.progress === "ring" ? Math.min(
           22,
           Math.max(12, (J - Z) / 4)
-        ) : J - Z, qt = this.valueFontSize(
+        ) : J - Z, Ft = this.valueFontSize(
           u,
-          Me,
+          Pe,
           fe,
-          Ut
-        ), st = $i(u, Ge), at = st?.background ?? u.style?.background ?? "", rt = st?.foreground ?? u.style?.foreground ?? "", ot = (q[at] ?? at) || "#20242d", nt = this.imageUrl(
-          u.type === "image" ? u.image : u.backgroundImage
-        ), lt = q[u.style?.accent ?? ""] ?? u.style?.accent ?? "#42a5f5", jt = (q[rt] ?? rt) || "white", Lt = {
+          qt
+        ), st = wi(u, Ge), at = st?.background ?? u.style?.background ?? "", rt = st?.foreground ?? u.style?.foreground ?? "", ot = (q[at] ?? at) || "#20242d", nt = u.backgroundMode ?? (u.transparentBackground ? "transparent" : u.backgroundImage ? "image" : "color"), lt = this.imageUrl(
+          u.type === "image" ? u.image : nt === "image" ? u.backgroundImage : void 0
+        ), dt = q[u.style?.accent ?? ""] ?? u.style?.accent ?? "#42a5f5", jt = (q[rt] ?? rt) || "white", Lt = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[u.valueStyle?.horizontalAlign ?? "center"], Ft = {
+        }[u.valueStyle?.horizontalAlign ?? "center"], Ht = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[u.valueStyle?.verticalAlign ?? "middle"], Ht = u.valueStyle?.horizontalAlign ?? "center", Bt = {
+        }[u.valueStyle?.verticalAlign ?? "middle"], Bt = u.valueStyle?.horizontalAlign ?? "center", Vt = {
           left: "flex-start",
           center: "center",
           right: "flex-end"
-        }[u.titleStyle?.horizontalAlign ?? "left"], Vt = {
+        }[u.titleStyle?.horizontalAlign ?? "left"], Wt = {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[O], Wt = 5 + (O === "top" ? Z : 0), Yt = Te + (O === "bottom" ? Z : 0), dt = `top:${Wt}px;right:5px;bottom:${Yt}px;left:5px`, Xt = O === "top" ? `top:5px;right:5px;height:${Z}px;left:5px` : O === "bottom" ? `right:5px;bottom:${Te}px;height:${Z}px;left:5px` : `top:5px;right:5px;bottom:${Te}px;left:5px`;
+        }[O], Yt = 5 + (O === "top" ? Z : 0), Xt = Te + (O === "bottom" ? Z : 0), ct = `top:${Yt}px;right:5px;bottom:${Xt}px;left:5px`, Gt = O === "top" ? `top:5px;right:5px;height:${Z}px;left:5px` : O === "bottom" ? `right:5px;bottom:${Te}px;height:${Z}px;left:5px` : `top:5px;right:5px;bottom:${Te}px;left:5px`;
         this.measureContext ??= document.createElement("canvas").getContext("2d"), this.measureContext && (this.measureContext.font = `700 ${ve}px sans-serif`);
         const ze = u.title ? Math.max(
           0,
           (this.measureContext?.measureText(u.title).width ?? 0) - (fe - 10)
-        ) : 0, be = ze > 0 && (O === "top" || O === "bottom"), ct = l`<div
+        ) : 0, be = ze > 0 && (O === "top" || O === "bottom"), pt = l`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${Nt};font-size:${qt}px;font-weight:700;${this.textEffectCss(u.valueStyle)}`}
+                    style=${`font-family:${Ut};font-size:${Ft}px;font-weight:700;${this.textEffectCss(u.valueStyle)}`}
                     @click=${(R) => {
           R.stopPropagation(), this.emit("preview-select", {
             kind: "value",
-            row: D,
+            row: E,
             card: K
           });
         }}
-                    @dragstart=${(R) => this.startDrag(R, { kind: "value", row: D, card: K })}
+                    @dragstart=${(R) => this.startDrag(R, { kind: "value", row: E, card: K })}
                     @dragend=${() => this.stopDrag()}
                   >
-                    ${Me}
+                    ${Pe}
                   </div>`;
         return l`<div
-                    class="card ${u.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${Rt && !ae ? "hidden-item" : ""}"
-                    style=${`${u.transparentBackground ? "background:transparent" : `background-color:${ot}`};${nt ? `background-image:url(${nt});background-size:${u.imageFit === "contain" ? "contain" : u.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${jt}`}
+                    class="card ${u.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${Nt && !ae ? "hidden-item" : ""}"
+                    style=${`${nt === "transparent" ? "background:transparent" : `background-color:${ot}`};${lt ? `background-image:url(${lt});background-size:${u.imageFit === "contain" ? "contain" : u.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${jt}`}
                     @click=${(R) => {
           R.stopPropagation(), this.emit("preview-select", {
             kind: "card",
-            row: D,
+            row: E,
             card: K
           });
         }}
                   >
                     ${u.title && u.showTitle !== !1 ? l`<small
-                            style=${`${Xt};align-items:${Vt};justify-content:${be ? "flex-start" : Bt};text-align:${be ? "left" : u.titleStyle?.horizontalAlign ?? "left"};font-size:${ve}px;line-height:${this.fontLineHeight(ve)}px`}
+                            style=${`${Gt};align-items:${Wt};justify-content:${be ? "flex-start" : Vt};text-align:${be ? "left" : u.titleStyle?.horizontalAlign ?? "left"};font-size:${ve}px;line-height:${this.fontLineHeight(ve)}px`}
                             ><span
                               class="card-label ${be ? "marquee" : ""}"
                               style=${`${be ? `--marquee-distance:-${ze}px;--marquee-duration:${Math.max(3, 1.7 + ze * 0.035)}s;` : ""}${this.textEffectCss(u.titleStyle)}`}
@@ -1104,26 +1104,26 @@ const Ye = class Ye extends A {
                               @click=${(R) => {
           R.stopPropagation(), this.emit("preview-select", {
             kind: "title",
-            row: D,
+            row: E,
             card: K
           });
         }}
-                              @dragstart=${(R) => this.startDrag(R, { kind: "title", row: D, card: K })}
+                              @dragstart=${(R) => this.startDrag(R, { kind: "title", row: E, card: K })}
                               @dragend=${() => this.stopDrag()}
                               >${u.title}</span
                             ></small
-                          >` : null}${u.type === "image" ? c : u.progress === "ring" ? l`<div class="ring-stack" style=${dt}>
+                          >` : null}${u.type === "image" ? c : u.progress === "ring" ? l`<div class="ring-stack" style=${ct}>
                               <div
                                 class="ring"
-                                style=${`background:conic-gradient(${lt} ${Ze}%,#3d424e 0);--ring-bg:${ot}`}
+                                style=${`background:conic-gradient(${dt} ${Ze}%,#3d424e 0);--ring-bg:${ot}`}
                               ></div>
-                              ${ct}
+                              ${pt}
                             </div>` : l`<div
                               class="value-wrap"
-                              style=${`${dt};align-items:${Ft};justify-content:${Lt};text-align:${Ht}`}
+                              style=${`${ct};align-items:${Ht};justify-content:${Lt};text-align:${Bt}`}
                             >
-                              ${ct}
-                            </div>`}${this.positionGrid(D, K)}${u.type !== "image" && u.progress === "bar" ? l`<div class="bar"><i style=${`width:${Ze}%;background:${lt}`}></i></div>` : null}
+                              ${pt}
+                            </div>`}${this.positionGrid(E, K)}${u.type !== "image" && u.progress === "bar" ? l`<div class="bar"><i style=${`width:${Ze}%;background:${dt}`}></i></div>` : null}
                   </div>`;
       })}
               </div>
@@ -1134,7 +1134,7 @@ const Ye = class Ye extends A {
     </div>`;
   }
 };
-Ye.styles = L`
+Ye.styles = j`
     :host {
       display: block;
       width: 240px;
@@ -1545,10 +1545,10 @@ k([
   f()
 ], _.prototype, "dragPoint");
 customElements.get("mini-display-preview") || customElements.define("mini-display-preview", _);
-var Ci = Object.defineProperty, Di = Object.getOwnPropertyDescriptor, P = (t, e, i, s) => {
+var Ei = Object.defineProperty, Di = Object.getOwnPropertyDescriptor, M = (t, e, i, s) => {
   for (var a = s > 1 ? void 0 : s ? Di(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Ci(e, i, a), a;
+  return s && a && Ei(e, i, a), a;
 };
 const oe = (t, e, i) => {
   t.dispatchEvent(
@@ -1658,7 +1658,7 @@ let S = class extends A {
     `;
   }
 };
-S.styles = L`
+S.styles = j`
     :host {
       display: grid;
       gap: 12px;
@@ -1769,45 +1769,45 @@ S.styles = L`
       }
     }
   `;
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "hass", 2);
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "displays", 2);
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "dashboards", 2);
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "pages", 2);
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "dirtyDisplays", 2);
-P([
+M([
   g({ attribute: !1 })
 ], S.prototype, "assets", 2);
-P([
+M([
   g()
 ], S.prototype, "selectedDisplayId", 2);
-P([
+M([
   g()
 ], S.prototype, "selectedSceneId", 2);
-P([
+M([
   g()
 ], S.prototype, "selectedSceneName", 2);
-P([
+M([
   f()
 ], S.prototype, "showHidden", 2);
-S = P([
+S = M([
   se("mini-display-preview-list")
 ], S);
-var Ei = Object.defineProperty, Pi = Object.getOwnPropertyDescriptor, Y = (t, e, i, s) => {
+var Mi = Object.defineProperty, Pi = Object.getOwnPropertyDescriptor, Y = (t, e, i, s) => {
   for (var a = s > 1 ? void 0 : s ? Pi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Ei(e, i, a), a;
+  return s && a && Mi(e, i, a), a;
 };
-const E = (t, e, i) => {
+const D = (t, e, i) => {
   t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let N = class extends A {
@@ -1852,7 +1852,7 @@ let N = class extends A {
             Display
             <select
               .value=${this.selectedDisplayId}
-              @change=${(e) => E(this, "display-selected", e.target.value)}
+              @change=${(e) => D(this, "display-selected", e.target.value)}
             >
               ${this.displays.map((e) => l`<option value=${e.config_entry_id}>${e.title}</option>`)}
             </select>
@@ -1861,14 +1861,14 @@ let N = class extends A {
         </div>
         <header>
           <h2>Scenes</h2>
-          <button class="icon" title="Add scene" aria-label="Add scene" @click=${() => E(this, "scene-create")}>
+          <button class="icon" title="Add scene" aria-label="Add scene" @click=${() => D(this, "scene-create")}>
             <ha-icon icon="mdi:plus"></ha-icon>
           </button>
         </header>
         <div class="list">
           ${this.scenes.map((e) => l`
             <div class="row ${e.id === this.selectedSceneId ? "active" : ""}">
-              <button class="scene" @click=${() => E(this, "scene-selected", e.id)}>
+              <button class="scene" @click=${() => D(this, "scene-selected", e.id)}>
                 <ha-icon icon="mdi:layers-outline"></ha-icon>
                 <span>${e.name}</span>
                 ${e.is_default ? l`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : c}
@@ -1877,10 +1877,10 @@ let N = class extends A {
                 <details class="action-menu" @toggle=${this.actionMenuToggled} @keydown=${this.actionMenuKeydown}>
                   <summary aria-label="Scene actions" aria-haspopup="menu"><ha-icon icon="mdi:dots-vertical"></ha-icon></summary>
                   <div class="menu" role="menu" @click=${this.closeActionMenu}>
-                    <button @click=${() => E(this, "scene-rename")}>Rename</button>
-                    <button @click=${() => E(this, "scene-duplicate")}>Duplicate</button>
-                    ${e.is_default ? c : l`<button @click=${() => E(this, "scene-default")}>Set as default</button>`}
-                    ${e.is_default ? c : l`<button class="danger" @click=${() => E(this, "scene-delete")}>Delete</button>`}
+                    <button @click=${() => D(this, "scene-rename")}>Rename</button>
+                    <button @click=${() => D(this, "scene-duplicate")}>Duplicate</button>
+                    ${e.is_default ? c : l`<button @click=${() => D(this, "scene-default")}>Set as default</button>`}
+                    ${e.is_default ? c : l`<button class="danger" @click=${() => D(this, "scene-delete")}>Delete</button>`}
                   </div>
                 </details>
               ` : c}
@@ -1893,14 +1893,14 @@ let N = class extends A {
             <ha-textfield
               label="Scene name"
               .value=${this.sceneName}
-              @input=${(e) => E(this, "scene-name", e.target.value)}
+              @input=${(e) => D(this, "scene-name", e.target.value)}
               @keydown=${(e) => {
-      e.key === "Enter" && E(this, "scene-save");
+      e.key === "Enter" && D(this, "scene-save");
     }}
             ></ha-textfield>
             <div class="actions">
-              <ha-button @click=${() => E(this, "scene-cancel")}>Cancel</ha-button>
-              <ha-button .disabled=${!this.sceneName.trim()} @click=${() => E(this, "scene-save")}>Save</ha-button>
+              <ha-button @click=${() => D(this, "scene-cancel")}>Cancel</ha-button>
+              <ha-button .disabled=${!this.sceneName.trim()} @click=${() => D(this, "scene-save")}>Save</ha-button>
             </div>
           </div>
         ` : c}
@@ -1908,7 +1908,7 @@ let N = class extends A {
     `;
   }
 };
-N.styles = L`
+N.styles = j`
     :host { display: block; font-family: var(--ha-font-family-body, Roboto, sans-serif); }
     ha-card { overflow: visible; border: 1px solid var(--divider-color); }
     header { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 10px 12px; border-bottom: 1px solid var(--divider-color); }
@@ -1960,8 +1960,8 @@ Y([
 N = Y([
   se("mini-display-scene-sidebar")
 ], N);
-const Q = { ATTRIBUTE: 1, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4 }, Mi = (t) => (...e) => ({ _$litDirective$: t, values: e });
-class Ti {
+const Q = { ATTRIBUTE: 1, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4 }, Ti = (t) => (...e) => ({ _$litDirective$: t, values: e });
+class zi {
   constructor(e) {
   }
   get _$AU() {
@@ -1977,11 +1977,11 @@ class Ti {
     return this.render(...i);
   }
 }
-const zi = (t) => t.strings === void 0, Ii = {}, Oi = (t, e = Ii) => t._$AH = e;
-const ee = Mi(class extends Ti {
+const Ii = (t) => t.strings === void 0, Oi = {}, Ri = (t, e = Oi) => t._$AH = e;
+const ee = Ti(class extends zi {
   constructor(t) {
     if (super(t), t.type !== Q.PROPERTY && t.type !== Q.ATTRIBUTE && t.type !== Q.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-    if (!zi(t)) throw Error("`live` bindings can only contain a single expression");
+    if (!Ii(t)) throw Error("`live` bindings can only contain a single expression");
   }
   render(t) {
     return t;
@@ -1994,15 +1994,15 @@ const ee = Mi(class extends Ti {
     } else if (t.type === Q.BOOLEAN_ATTRIBUTE) {
       if (!!e === i.hasAttribute(s)) return T;
     } else if (t.type === Q.ATTRIBUTE && i.getAttribute(s) === e + "") return T;
-    return Oi(t), e;
+    return Ri(t), e;
   }
 });
-var Ri = Object.defineProperty, Ni = Object.getOwnPropertyDescriptor, F = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Ni(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Ni = Object.defineProperty, Ui = Object.getOwnPropertyDescriptor, L = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Ui(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Ri(e, i, a), a;
+  return s && a && Ni(e, i, a), a;
 };
-const wt = {
+const _t = {
   range: "is in number range",
   number_equals: "equals",
   number_not_equals: "does not equal",
@@ -2025,21 +2025,21 @@ const wt = {
   "less_than",
   "less_than_or_equal",
   "range"
-], Oe = new Set(_e.filter((t) => t !== "range")), Re = ["equals", "not_equals", "starts_with", "ends_with", "contains"], ne = ["available", "unavailable"], Ne = (t) => _e.includes(t), _t = () => ({
+], Oe = new Set(_e.filter((t) => t !== "range")), Re = ["equals", "not_equals", "starts_with", "ends_with", "contains"], ne = ["available", "unavailable"], Ne = (t) => _e.includes(t), kt = () => ({
   rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
   expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_a" }] }
-}), kt = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"], M = (t) => t.replace("rule_", "").toUpperCase(), St = (t) => kt[Math.max(0, t.charCodeAt(t.length - 1) - 97) % kt.length], Ue = (t, e, i) => {
+}), St = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"], P = (t) => t.replace("rule_", "").toUpperCase(), At = (t) => St[Math.max(0, t.charCodeAt(t.length - 1) - 97) % St.length], Ue = (t, e, i) => {
   t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
 };
 let z = class extends A {
   constructor() {
-    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = _t(), this.advanced = !1, this.draftInitialized = !1;
+    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = kt(), this.advanced = !1, this.draftInitialized = !1;
   }
   connectedCallback() {
     super.connectedCallback(), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
   }
   willUpdate() {
-    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? _t()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
+    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? kt()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
   }
   disconnectedCallback() {
     this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
@@ -2068,12 +2068,12 @@ let z = class extends A {
     const i = t.source === "entity", s = Re.includes(t.operator), a = Oe.has(t.operator);
     return l`<article class="rule">
       <div class="rule-head">
-        <span class="rule-marker" style=${`background:${St(t.id)}`}>${M(t.id)}</span>
+        <span class="rule-marker" style=${`background:${At(t.id)}`}>${P(t.id)}</span>
         <label>Value source<select .value=${ee(t.source)} @change=${(r) => this.changeSource(e, r.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
-        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${M(t.id)}`} @click=${() => this.removeRule(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
+        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${P(t.id)}`} @click=${() => this.removeRule(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
-        <label>Comparison<select .value=${ee(t.operator)} @change=${(r) => this.changeOperator(e, r.target.value)}>${this.operatorOptions(t).map((r) => l`<option value=${r}>${wt[r]}</option>`)}</select></label>
+        <label>Comparison<select .value=${ee(t.operator)} @change=${(r) => this.changeOperator(e, r.target.value)}>${this.operatorOptions(t).map((r) => l`<option value=${r}>${_t[r]}</option>`)}</select></label>
         ${i ? l`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(r) => this.updateRule(e, { entity: r.detail.value.entity })}></ha-form>${this.currentValue(t)}</div>` : l`<div class="entity-source">${this.currentValue(t)}</div>`}
         ${t.operator === "range" ? l`<div class="range">${this.numberField("From", t.minimum, (r) => this.updateRule(e, { minimum: r }))}${this.numberField("To", t.maximum, (r) => this.updateRule(e, { maximum: r }))}</div>` : a ? this.numberField("Value", t.value, (r) => this.updateRule(e, { value: r })) : s ? this.matchField(t, e) : c}
       </div>
@@ -2093,7 +2093,7 @@ let z = class extends A {
     </div>`;
   }
   renderExpression(t, e, i, s) {
-    return t.type === "group" ? l`<div class="logic-child"><span class="logic-index">${i + 1}</span>${this.renderGroup(t, e)}${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove group" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>` : l`<div class="logic-child"><span class="logic-index">${i + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${St(t.ruleId)}`}>${M(t.ruleId)}</span><label>Condition<select .value=${ee(t.ruleId)} @change=${(a) => this.updateExpression(e, { ...t, ruleId: a.target.value })}>${this.draft.rules.map((a) => l`<option value=${a.id}>Condition ${M(a.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(a) => this.updateExpression(e, { ...t, negate: a.target.checked })}>Invert condition</label></div>${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
+    return t.type === "group" ? l`<div class="logic-child"><span class="logic-index">${i + 1}</span>${this.renderGroup(t, e)}${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove group" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>` : l`<div class="logic-child"><span class="logic-index">${i + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${At(t.ruleId)}`}>${P(t.ruleId)}</span><label>Condition<select .value=${ee(t.ruleId)} @change=${(a) => this.updateExpression(e, { ...t, ruleId: a.target.value })}>${this.draft.rules.map((a) => l`<option value=${a.id}>Condition ${P(a.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(a) => this.updateExpression(e, { ...t, negate: a.target.checked })}>Invert condition</label></div>${this.moveButtons(e, i, s)}<button class="icon danger" ?disabled=${s === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
   }
   moveButtons(t, e, i) {
     return l`<div class="move"><button class="icon" ?disabled=${e === 0} aria-label="Move up" @click=${() => this.moveExpression(t, -1)}><ha-icon icon="mdi:chevron-up"></ha-icon></button><button class="icon" ?disabled=${e === i - 1} aria-label="Move down" @click=${() => this.moveExpression(t, 1)}><ha-icon icon="mdi:chevron-down"></ha-icon></button></div>`;
@@ -2114,7 +2114,7 @@ let z = class extends A {
     this.updateRule(t, { source: e });
   }
   operatorOptions(t) {
-    return t.source !== "card" ? Object.keys(wt) : this.card?.type === "number" ? [..._e, ...ne] : [...Re, ...ne];
+    return t.source !== "card" ? Object.keys(_t) : this.card?.type === "number" ? [..._e, ...ne] : [...Re, ...ne];
   }
   entitySelector(t) {
     if (["available", "unavailable"].includes(t.operator)) return {};
@@ -2223,14 +2223,14 @@ let z = class extends A {
   get validationError() {
     for (const t of this.draft.rules) {
       if (t.source === "card" && !this.canUseCardValue) return "This item has no card value to test.";
-      if (t.source === "entity" && !t.entity?.trim()) return `Condition ${M(t.id)} needs an entity.`;
+      if (t.source === "entity" && !t.entity?.trim()) return `Condition ${P(t.id)} needs an entity.`;
       if (t.operator === "range") {
-        if (t.minimum === void 0 && t.maximum === void 0) return `Condition ${M(t.id)} needs a lower or upper limit.`;
-        if (t.minimum !== void 0 && !Number.isFinite(t.minimum) || t.maximum !== void 0 && !Number.isFinite(t.maximum)) return `Condition ${M(t.id)} needs valid number limits.`;
-        if (t.minimum !== void 0 && t.maximum !== void 0 && t.minimum > t.maximum) return `Condition ${M(t.id)} has an invalid range.`;
+        if (t.minimum === void 0 && t.maximum === void 0) return `Condition ${P(t.id)} needs a lower or upper limit.`;
+        if (t.minimum !== void 0 && !Number.isFinite(t.minimum) || t.maximum !== void 0 && !Number.isFinite(t.maximum)) return `Condition ${P(t.id)} needs valid number limits.`;
+        if (t.minimum !== void 0 && t.maximum !== void 0 && t.minimum > t.maximum) return `Condition ${P(t.id)} has an invalid range.`;
       }
-      if (Oe.has(t.operator) && !Number.isFinite(t.value)) return `Condition ${M(t.id)} needs a numeric value.`;
-      if (Re.includes(t.operator) && !t.match?.length) return `Condition ${M(t.id)} needs a value.`;
+      if (Oe.has(t.operator) && !Number.isFinite(t.value)) return `Condition ${P(t.id)} needs a numeric value.`;
+      if (Re.includes(t.operator) && !t.match?.length) return `Condition ${P(t.id)} needs a value.`;
     }
   }
   save() {
@@ -2240,7 +2240,7 @@ let z = class extends A {
     Ue(this, "visibility-save", t);
   }
 };
-z.styles = L`
+z.styles = j`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
     ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
     h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
@@ -2259,34 +2259,34 @@ z.styles = L`
     .actions{display:flex;justify-content:space-between;gap:8px;padding:12px 16px;border-top:1px solid var(--divider-color)}.right{display:flex;gap:8px}
     @media(max-width:700px){.rule-head,.rule-fields{grid-template-columns:1fr}.rule-head .icon{justify-self:end}.logic-child{grid-template-columns:28px minmax(0,1fr) 40px}.move{grid-column:2}.group.nested{margin-left:8px}.actions{align-items:stretch;flex-direction:column}.right{justify-content:flex-end}}
   `;
-F([
+L([
   g({ attribute: !1 })
 ], z.prototype, "hass", 2);
-F([
+L([
   g()
 ], z.prototype, "targetName", 2);
-F([
+L([
   g()
 ], z.prototype, "targetKind", 2);
-F([
+L([
   g({ attribute: !1 })
 ], z.prototype, "card", 2);
-F([
+L([
   g({ attribute: !1 })
 ], z.prototype, "value", 2);
-F([
+L([
   f()
 ], z.prototype, "draft", 2);
-F([
+L([
   f()
 ], z.prototype, "advanced", 2);
-z = F([
+z = L([
   se("mini-display-visibility-dialog")
 ], z);
-var Ui = Object.defineProperty, qi = Object.getOwnPropertyDescriptor, I = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? qi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var qi = Object.defineProperty, Fi = Object.getOwnPropertyDescriptor, I = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Fi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Ui(e, i, a), a;
+  return s && a && qi(e, i, a), a;
 };
 const ji = (t) => {
   let e = "";
@@ -2298,7 +2298,7 @@ const ji = (t) => {
   for (const i of t)
     e ^= BigInt(i), e = BigInt.asUintN(64, e * 0x100000001b3n);
   return e.toString(16).padStart(16, "0");
-}, Fi = async (t, e, i) => {
+}, Hi = async (t, e, i) => {
   const s = await createImageBitmap(t), a = Math.min(
     1,
     e / s.width,
@@ -2332,7 +2332,7 @@ let C = class extends A {
       if (!(!i || !this.hass || !this.displayId)) {
         this.busy = !0, this.error = "";
         try {
-          const s = await Fi(
+          const s = await Hi(
             i,
             Math.max(1, this.maximumWidth),
             Math.max(1, this.maximumHeight)
@@ -2399,7 +2399,7 @@ let C = class extends A {
     );
   }
 };
-C.styles = L`
+C.styles = j`
     :host {
       display: block;
     }
@@ -2498,10 +2498,10 @@ I([
 C = I([
   se("mini-display-image-field")
 ], C);
-var Hi = Object.defineProperty, Bi = Object.getOwnPropertyDescriptor, x = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Bi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Bi = Object.defineProperty, Vi = Object.getOwnPropertyDescriptor, x = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Vi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Hi(e, i, a), a;
+  return s && a && Bi(e, i, a), a;
 };
 let b = class extends A {
   constructor() {
@@ -2886,7 +2886,7 @@ let b = class extends A {
   createLayout() {
     !this.selectedDisplayId || this.dashboard || (this.dashboards = {
       ...this.dashboards,
-      [this.selectedDisplayId]: yi()
+      [this.selectedDisplayId]: xi()
     }, this.pageIndex = 0, this.previewPages = { ...this.previewPages, [this.selectedDisplayId]: 0 }, this.selected = { row: 0, card: 0 }, this.dirtyDisplays = new Set(this.dirtyDisplays).add(
       this.selectedDisplayId
     ), this.syncState = "idle", this.syncMessage = "Unsaved changes");
@@ -3196,9 +3196,11 @@ let b = class extends A {
     </details>`;
   }
   appearanceEditor(t) {
-    const e = t.style ??= {}, i = t.valueStyle ??= {}, s = t.titleStyle ??= {}, a = t.transparentBackground ? "transparent" : t.backgroundImage ? "image" : "color";
+    const e = t.style ??= {}, i = t.valueStyle ??= {}, s = t.titleStyle ??= {}, a = t.backgroundMode ?? (t.transparentBackground ? "transparent" : t.backgroundImage ? "image" : "color"), r = !!(t.title?.trim() && t.showTitle !== !1);
     return l`<div class="grid appearance-grid">
-      ${this.segmented(
+      <section class="appearance-section">
+        <header><ha-icon icon="mdi:card-outline"></ha-icon>Card</header>
+        ${this.segmented(
       "Background",
       a,
       [
@@ -3206,58 +3208,78 @@ let b = class extends A {
         { value: "transparent", label: "Page", icon: "mdi:checkerboard" },
         { value: "image", label: "Image", icon: "mdi:image-outline" }
       ],
-      (r) => {
-        t.transparentBackground = r === "transparent", r !== "image" && (t.backgroundImage = void 0), this.changed();
+      (o) => {
+        t.backgroundMode = o, t.transparentBackground = o === "transparent", this.changed();
       }
     )}
-      ${a === "image" ? this.imageField(
+        ${a === "image" ? this.imageField(
       "Card background image",
       t.backgroundImage,
-      (r) => {
-        t.backgroundImage = r || void 0, this.changed();
+      (o) => {
+        t.backgroundImage = o || void 0, this.changed();
       }
     ) : c}
-      ${a === "color" ? l`<mini-display-color-field
-                label="Background"
+        ${a === "color" ? l`<mini-display-color-field
+                label="Background color"
                 .value=${e.background ?? ""}
-                @color-changed=${(r) => {
-      e.background = r.detail || void 0, this.changed();
+                @color-changed=${(o) => {
+      e.background = o.detail || void 0, this.changed();
     }}
               ></mini-display-color-field>` : c}
-      <mini-display-color-field
-        label="Text color"
-        .value=${e.foreground ?? ""}
-        @color-changed=${(r) => {
-      e.foreground = r.detail || void 0, this.changed();
+        <mini-display-color-field
+          label="Accent"
+          .value=${e.accent ?? ""}
+          @color-changed=${(o) => {
+      e.accent = o.detail || void 0, this.changed();
     }}
-      ></mini-display-color-field
-      ><mini-display-color-field
-        label="Accent"
-        .value=${e.accent ?? ""}
-        @color-changed=${(r) => {
-      e.accent = r.detail || void 0, this.changed();
+        ></mini-display-color-field>
+      </section>
+      ${t.type !== "image" ? l`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-text"></ha-icon>Value</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${e.foreground ?? ""}
+                @color-changed=${(o) => {
+      e.foreground = o.detail || void 0, this.changed();
     }}
-      ></mini-display-color-field
-      >${this.fontSelect("Value font", i.fontFamily, (r) => {
-      i.fontFamily = r, this.changed();
-    })}${t.title?.trim() && t.showTitle !== !1 ? this.fontSelect("Title font", s.fontFamily, (r) => {
-      s.fontFamily = r, this.changed();
-    }) : c}${this.select(
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", i.fontFamily, (o) => {
+      i.fontFamily = o, this.changed();
+    })}
+              ${this.select(
       "Font size",
       i.fontSize ?? "auto",
       ["auto", "small", "medium", "large", "xlarge"],
-      (r) => {
-        i.fontSize = r, this.changed();
+      (o) => {
+        i.fontSize = o, this.changed();
       }
-    )}${this.textPosition("Text position", i)}${this.textEffectEditor(
-      "Value effect",
-      i
-    )}${t.title?.trim() && t.showTitle !== !1 ? l`${this.textPosition(
-      "Title position",
-      s,
-      "left",
-      "top"
-    )}${this.textEffectEditor("Title effect", s)}` : c}
+    )}
+              ${this.textPosition("Position", i)}
+              ${this.textEffectEditor("Effect", i)}
+            </section>` : c}
+      ${r ? l`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-title"></ha-icon>Title</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${s.foreground ?? ""}
+                @color-changed=${(o) => {
+      s.foreground = o.detail || void 0, this.changed();
+    }}
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", s.fontFamily, (o) => {
+      s.fontFamily = o, this.changed();
+    })}
+              ${this.select(
+      "Font size",
+      s.fontSize ?? "auto",
+      ["auto", "small", "medium", "large", "xlarge"],
+      (o) => {
+        s.fontSize = o, this.changed();
+      }
+    )}
+              ${this.textPosition("Position", s, "left", "top")}
+              ${this.textEffectEditor("Effect", s)}
+            </section>` : c}
     </div>`;
   }
   transitionEditor(t) {
@@ -3703,9 +3725,13 @@ let b = class extends A {
                         </div>
                         <div class="grid">
                           ${this.entity(t)}
-                          ${t.type === "number" ? l`${this.field("Unit", t.unit, (n) => {
-      t.unit = n, this.changed();
-    })}${this.select(
+                          ${t.type === "number" ? l`${this.field(
+      "Unit",
+      t.unit,
+      (n) => {
+        t.unit = n, this.changed();
+      }
+    )}${this.select(
       "Progress",
       t.progress ?? "none",
       ["none", "bar", "ring"],
@@ -3727,9 +3753,15 @@ let b = class extends A {
       },
       "number"
     )}` : c}` : c}
-                          ${t.type === "text" ? this.field("Static text", t.text, (n) => {
-      t.text = n, this.changed();
-    }) : c}
+                          ${t.type === "text" ? l`${this.field(
+      "Static text",
+      t.text,
+      (n) => {
+        t.text = n, this.changed();
+      }
+    )}${this.field("Unit", t.unit, (n) => {
+      t.unit = n, this.changed();
+    })}` : c}
                           ${t.type === "status" ? l`${this.field(
       "On text",
       t.onText,
@@ -3932,7 +3964,7 @@ let b = class extends A {
                       title="Add page"
                       @click=${() => {
       t.pages.push(
-        Tt(t.pages.length + 1)
+        zt(t.pages.length + 1)
       ), this.pageIndex = t.pages.length - 1, this.previewPages = {
         ...this.previewPages,
         [this.selectedDisplayId]: this.pageIndex
@@ -4105,7 +4137,7 @@ let b = class extends A {
                   ${e.rows.length < 6 ? l`<button
                           class="add-button"
                           @click=${() => {
-      e.rows.push(Mt()), this.changed();
+      e.rows.push(Tt()), this.changed();
     }}
                         >
                           Add row
@@ -4250,7 +4282,7 @@ let b = class extends A {
     `;
   }
 };
-b.styles = L`
+b.styles = j`
     :host {
       display: block;
       color: var(--primary-text-color);
@@ -4840,6 +4872,34 @@ b.styles = L`
     }
     .appearance-grid {
       gap: 12px;
+    }
+    .appearance-section {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: 9px;
+    }
+    .appearance-section > header {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary-text-color);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .appearance-section > header ha-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--secondary-text-color);
+    }
+    .appearance-section > mini-display-image-field,
+    .appearance-section > .segmented-field,
+    .appearance-section > details {
+      grid-column: 1 / -1;
     }
     .rule-groups .mappings {
       padding: 0;
@@ -5455,10 +5515,10 @@ x([
 b = x([
   se("mini-display-editor")
 ], b);
-var Vi = Object.defineProperty, Wi = Object.getOwnPropertyDescriptor, ge = (t, e, i, s) => {
-  for (var a = s > 1 ? void 0 : s ? Wi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var Wi = Object.defineProperty, Yi = Object.getOwnPropertyDescriptor, ge = (t, e, i, s) => {
+  for (var a = s > 1 ? void 0 : s ? Yi(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (a = (s ? o(e, i, a) : o(a)) || a);
-  return s && a && Vi(e, i, a), a;
+  return s && a && Wi(e, i, a), a;
 };
 let W = class extends A {
   constructor() {
@@ -5479,7 +5539,7 @@ let W = class extends A {
     `;
   }
 };
-W.styles = L`
+W.styles = j`
     :host {
       display: block;
       min-height: 100%;
