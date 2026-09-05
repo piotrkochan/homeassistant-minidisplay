@@ -35,6 +35,7 @@ from .const import (
     SIGNAL_SCENES_UPDATED,
 )
 from .coordinator import MiniDisplayCoordinator
+from .weather import WeatherData, validate_weather
 from .dashboard import (
     DEFAULT_SCENE_ID,
     DEFAULT_SCENE_NAME,
@@ -68,6 +69,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, websocket_stop_scene_preview)
     websocket_api.async_register_command(hass, websocket_list_assets)
     websocket_api.async_register_command(hass, websocket_get_data)
+    websocket_api.async_register_command(hass, websocket_weather)
     websocket_api.async_register_command(hass, websocket_upload_asset)
     websocket_api.async_register_command(hass, websocket_delete_asset)
     return True
@@ -317,6 +319,22 @@ async def websocket_get_data(hass, connection, msg) -> None:
         connection.send_result(msg["id"], result)
     except MiniDisplayApiError as error:
         connection.send_error(msg["id"], "display_unavailable", str(error))
+
+
+@websocket_api.websocket_command({"type": "mini_display/weather", vol.Required("card"): dict})
+@websocket_api.async_response
+async def websocket_weather(hass, connection, msg) -> None:
+    """Preview the same selected weather values used by the physical display."""
+    card = {"type": "weather", "source": msg["card"].get("source"),
+            "weather": msg["card"].get("weather", {})}
+    try:
+        validate_weather(card, "/card", DashboardValidationError)
+    except (DashboardValidationError, TypeError, ValueError) as error:
+        connection.send_error(msg["id"], "invalid_weather", str(error))
+        return
+    weather = hass.data.setdefault("mini_display_weather_cache", WeatherData(hass))
+    values = await weather.values({"pages": [{"rows": [{"cards": [card]}]}]}, compile_cards=True)
+    connection.send_result(msg["id"], {"weather": card["weather"], "values": values})
 
 
 @websocket_api.websocket_command({"type": "mini_display/scenes"})

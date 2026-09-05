@@ -28,6 +28,8 @@
 #include "ImageAssets.h"
 #include "GraphHistory.h"
 #include "DisplayDataResponse.h"
+#include "WeatherCardRenderer.h"
+#include "fonts/WeatherGlyphs.h"
 #include "CachedPagePainter.h"
 #include "ImageAssetApi.h"
 #include "PageTransitionRenderer.h"
@@ -1680,7 +1682,21 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   RingLayout ringGeometry{};
-  if (ring) {
+  if (strcmp(cardType, "weather") == 0) {
+    if (!cacheWeatherContent(card, x, textLayout.valueY, width, textLayout.valueHeight, findValue,
+        [&](const String &line, int16_t lx, int16_t ly, int16_t lw, int16_t lh) {
+          const RenderFont font = selectBestFont(line, valueStyle, max<int16_t>(1, lw - 8), lh);
+          return cachePositionedText(page, line, valueStyle, lx, ly, lw, lh,
+                                     foreground, background, "center", "middle", 0, &font);
+        },
+        [&](uint8_t code, uint8_t size, int16_t cx, int16_t cy, bool colored) {
+          RenderFont font;
+          font.builtin = size == 96 ? &Weather96 : size == 48 ? &Weather48 : &Weather24;
+          const uint16_t color = !colored ? foreground : code == 11 ? TFT_YELLOW :
+              code == 0 ? TFT_LIGHTGREY : code == 4 || code == 5 ? TFT_ORANGE : TFT_CYAN;
+          return cacheText(page, String(char('A'+code)), font, MC_DATUM, cx, cy, color, background);
+        })) return false;
+  } else if (ring) {
     ringGeometry =
         ringLayout(x, textLayout.valueY, width, textLayout.valueHeight);
     if (!cacheCenteredFit(page, cardValue(card), valueStyle, x,
@@ -2090,7 +2106,7 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   bool composited = strcmp(page["layout"] | "rows", "free") == 0;
   for (JsonObjectConst row : page["rows"].as<JsonArrayConst>())
     for (JsonObjectConst card : row["cards"].as<JsonArrayConst>())
-      composited |= !card["graph"].isNull();
+      composited |= !card["graph"].isNull() || strcmp(card["type"] | "", "weather") == 0;
   if (!composited) return drawDashboardPage(page,
                            changedValues, pixelShiftX, pixelShiftY, clear);
   cached.reset(new (std::nothrow) CachedPage());
@@ -2279,6 +2295,7 @@ bool loadDashboardMetadata(Stream &stream) {
   filter["pages"][0]["rows"][0]["cards"][0]["imageFit"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["frame"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["graph"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["weather"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
   filter["transition"] = true;
 
@@ -2318,6 +2335,8 @@ bool loadDashboardMetadata(Stream &stream) {
     if (strcmp(layout, "free") && strcmp(layout, "rows")) return false;
     const bool freeLayout = strcmp(layout, "free") == 0;
     uint8_t cardCount = 0;
+    uint16_t textBudget = 1 + rows.size();
+    bool hasWeather = false;
     const char *pageImage = page["backgroundImage"] | "";
     if (pageImage[0] &&
         (!validImageAssetId(String(pageImage)) ||
@@ -2343,12 +2362,33 @@ bool loadDashboardMetadata(Stream &stream) {
         if (type == nullptr ||
             (strcmp(type, "clock") != 0 && strcmp(type, "number") != 0 &&
              strcmp(type, "status") != 0 && strcmp(type, "text") != 0 &&
-             strcmp(type, "image") != 0 && strcmp(type, "chart") != 0)) {
+             strcmp(type, "image") != 0 && strcmp(type, "chart") != 0 && strcmp(type, "weather") != 0)) {
           return false;
         }
         const bool needsSource = strcmp(type, "number") == 0 ||
                                  strcmp(type, "status") == 0;
         if (needsSource && card["source"].isNull()) return false;
+        if (strcmp(type, "weather") == 0) {
+          hasWeather = true;
+          JsonArray weatherSources = card["weather"]["sources"];
+          if (weatherSources.isNull() || weatherSources.size() < 1 || weatherSources.size() > 5) return false;
+          for (JsonVariant weatherSource : weatherSources)
+            if (!weatherSource.is<const char *>() || strlen(weatherSource.as<const char *>()) > 64) return false;
+          JsonArray fields = card["weather"]["fields"];
+          if (!card["weather"]["fields"].isNull() && fields.isNull()) return false;
+          if (!fields.isNull() && (fields.size() == 0 || fields.size() > 8)) return false;
+          for (JsonVariant field : fields) {
+            if (!field.is<const char *>()) return false;
+            const char *name = field.as<const char *>();
+            if (strcmp(name, "icon") && strcmp(name, "condition") &&
+                strcmp(name, "temperature") && strcmp(name, "low") &&
+                strcmp(name, "label") && strcmp(name, "humidity") &&
+                strcmp(name, "precipitation") && strcmp(name, "wind")) return false;
+          }
+          textBudget += 1 + weatherSources.size() * (fields.isNull() ? 3 : fields.size());
+        } else {
+          textBudget += 2;
+        }
         if (strcmp(type, "image") == 0 && card["image"].isNull()) return false;
         const char *image = strcmp(type, "image") == 0
                                 ? card["image"] | ""
@@ -2364,6 +2404,7 @@ bool loadDashboardMetadata(Stream &stream) {
             strcmp(fit, "stretch") != 0) return false;
       }
     }
+    if (hasWeather && textBudget > kMaxPageTexts) return false;
     ++count;
   }
 

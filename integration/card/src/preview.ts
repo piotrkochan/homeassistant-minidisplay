@@ -3,6 +3,7 @@ import { property, state } from "lit/decorators.js";
 import type { Dashboard, DisplayCard, Hass, ImageAsset, Style } from "./types";
 import type { HistorySeries } from "./graph-preview";
 import "./graph-preview";
+import "./weather-preview";
 import { mapCardColors, mapCardValue } from "./types";
 import { visibilityMatches } from "./visibility";
 import { displayColors } from "./color-field";
@@ -754,7 +755,7 @@ export class MiniDisplayPreview extends LitElement {
   private cardValue(
     card: Dashboard["pages"][number]["rows"][number]["cards"][number],
   ) {
-    if (card.type === "image" || card.type === "chart") return "";
+    if (card.type === "image" || card.type === "chart" || card.type === "weather") return "";
     if (card.type === "clock")
       return this.now.toLocaleTimeString([], {
         hour: "2-digit",
@@ -1265,7 +1266,9 @@ export class MiniDisplayPreview extends LitElement {
                           >`
                         : null
                     }${
-                      card.type === "image" || card.type === "chart"
+                      card.type === "weather"
+                        ? html`<mini-display-weather-preview style=${valueArea} .hass=${this.hass} .card=${card} .signature=${JSON.stringify([card.source,card.weather])}></mini-display-weather-preview>`
+                        : card.type === "image" || card.type === "chart"
                         ? nothing
                         : card.progress === "ring"
                           ? html`<div class="ring-stack" style=${valueArea}>

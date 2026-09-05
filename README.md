@@ -100,8 +100,32 @@ payload; it is not the full retained state. Current entity values live in RAM;
 after reboot they need a new update from Home Assistant. Chart history is
 restored from its most recent on-device checkpoint.
 
-Run `make test-native` for data serialization and history aggregation tests
+Run `make test-native` for data serialization, weather decoding and history aggregation tests
 without flashing a device.
+
+## Weather cards
+
+Choose **Weather** in the Mini-Display card editor and select a Home Assistant
+`weather.*` entity. Current conditions use that entity's attributes; forecasts
+use Home Assistant's `weather.get_forecasts` action. Available forecast types
+and details depend on the weather provider.
+
+- Current weather, daily, hourly or day/night forecasts.
+- Daily offset `0` means today, `1` tomorrow. Hourly offsets and steps use hours;
+  hourly offset `0` starts with the first available current/upcoming hour;
+  day/night offsets count forecast periods. Show up to five forecasts per card.
+- Independently enable the icon, description, temperature, low, time/date,
+  humidity, rain probability and wind speed. Icon-only and text-only presets
+  are included.
+- Place icons above or beside text, or use the compact layout. Choose weather
+  colors or the configured text color, with English or Polish descriptions.
+- Existing card backgrounds, title/value appearance and free positioning also
+  apply to weather cards.
+
+Forecasts are cached in Home Assistant for 15 minutes, shared across displays.
+Failed requests back off for a minute. The display receives compact values,
+not full provider responses, and unavailable measurements stay unavailable
+rather than becoming zero. Page validation enforces the bounded text cache.
 
 - `sdpro` — no CS, BGR, inverted
 - `geekmagic_smalltv_nocs` — no CS, BGR, inverted

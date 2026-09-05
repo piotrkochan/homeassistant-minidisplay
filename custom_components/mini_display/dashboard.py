@@ -17,6 +17,7 @@ from .api import MiniDisplayApiError, MiniDisplayClient
 from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 from .graphs import validate_graphs
+from .weather import WeatherData, validate_weather, validate_weather_budget, weather_cards
 
 STORE_VERSION = 1
 STORE_KEY_PREFIX = "mini_display.scenes"
@@ -137,9 +138,11 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                 card_path = f"{row_path}/cards/{card_index}"
                 if not isinstance(card, dict):
                     raise DashboardValidationError("Card must be an object", card_path)
-                if card.get("type") not in {"clock", "number", "status", "text", "image", "chart"}:
+                if card.get("type") not in {"clock", "number", "status", "text", "image", "chart", "weather"}:
                     raise DashboardValidationError("Unsupported card type", f"{card_path}/type")
                 source = card.get("source")
+                if card.get("type") == "weather":
+                    validate_weather(card, card_path, DashboardValidationError)
                 if source is not None and (not isinstance(source, str) or len(source) > 64):
                     raise DashboardValidationError("Invalid source", f"{card_path}/source")
                 if card.get("type") in {"number", "status"} and not source:
@@ -183,6 +186,7 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
     if enabled_pages == 0:
         raise DashboardValidationError("Dashboard requires an enabled page", "/pages")
     validate_graphs(document, DashboardValidationError)
+    validate_weather_budget(document, DashboardValidationError)
     return document
 
 
@@ -681,6 +685,7 @@ class MiniDisplayDashboardManager:
         self.entry_id = entry_id
         self.client = client
         self.assets = MiniDisplayAssetManager(hass, entry_id, client)
+        self.weather = hass.data.setdefault("mini_display_weather_cache", WeatherData(hass))
         self.data_batch_interval = data_batch_interval
         self.scenes: dict[str, dict[str, Any]] = {}
         self.active_scene_id = DEFAULT_SCENE_ID
@@ -983,15 +988,17 @@ class MiniDisplayDashboardManager:
     ) -> None:
         """Upload one dashboard and its current entity values."""
         rendered = render_dashboard(dashboard, self.hass)
+        canonical_rendered = deepcopy(rendered)
         sources = extract_sources(rendered)
         values = {entity_id: serialize_state(self.hass.states.get(entity_id)) for entity_id in sources}
+        values.update(await self.weather.values(rendered, compile_cards=True))
         if len(values) > 32:
             raise DashboardValidationError("Dashboard exceeds 32 display data sources")
         if values:
             await self.client.async_patch_values(values, render=False)
         await self.assets.async_sync(extract_assets(rendered))
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
-        self._last_rendered_dashboard = rendered
+        self._last_rendered_dashboard = canonical_rendered
         if active_page_id is not None:
             await self.client.async_set_page(active_page_id)
 
@@ -1033,7 +1040,11 @@ class MiniDisplayDashboardManager:
             entity_id: serialize_state(self.hass.states.get(entity_id))
             for entity_id in self.sources
         }
+        values.update(await self.weather.values(self._shown_dashboard()))
         await self.client.async_patch_values(values)
+
+    def _shown_dashboard(self) -> dict | None:
+        return self.preview_dashboard if self.preview_scene_id is not None else self.scenes.get(self.active_scene_id, {}).get("dashboard")
 
     async def async_resynchronize(self) -> None:
         """Restore the complete dashboard state after a display restart."""
@@ -1073,7 +1084,7 @@ class MiniDisplayDashboardManager:
             self._unsubscribe_states = async_track_state_change_event(
                 self.hass, self.sources, self._state_changed
             )
-            if shown_dashboard and any(card.get("graph") is not None
+            if shown_dashboard and any(card.get("graph") is not None or card.get("type") == "weather"
                 for page in shown_dashboard["pages"] for row in page["rows"] for card in row["cards"]):
                 self._cancel_heartbeat = async_call_later(self.hass, 60, self._graph_heartbeat)
 
@@ -1109,6 +1120,8 @@ class MiniDisplayDashboardManager:
             for entity_id in pending
         }
         try:
+            if any(card.get("source") in pending for card in weather_cards(self._shown_dashboard())):
+                values.update(await self.weather.values(self._shown_dashboard()))
             if pending & self.visibility_sources:
                 shown_dashboard = (
                     self.preview_dashboard

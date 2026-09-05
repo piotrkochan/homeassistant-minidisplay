@@ -107,8 +107,20 @@ export type TextColorMapping = {
   foreground?: string;
 };
 
+export type WeatherSettings = {
+  period?: "current" | "daily" | "hourly" | "twice_daily";
+  offset?: number;
+  count?: number;
+  step?: number;
+  layout?: "vertical" | "horizontal" | "compact";
+  iconStyle?: "color" | "mono";
+  language?: "en" | "pl";
+  fields?: string[];
+};
+
 export type DisplayCard = {
-  type: "clock" | "number" | "status" | "text" | "image" | "chart";
+  type: "clock" | "number" | "status" | "text" | "image" | "chart" | "weather";
+  weather?: WeatherSettings;
   frame?: { x: number; y: number; width: number; height: number };
   graph?: Graph;
   title?: string;
@@ -190,6 +202,7 @@ export type ImageAsset = {
 };
 
 export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
+  if (type === "weather") return {type, source: "", weather: {period: "current", fields: ["icon", "condition", "temperature"], layout: "vertical"}};
   if (type === "chart") return { type, source: "", graph: newGraph() };
   if (type === "clock") return { type, format: "24h", showDate: true };
   if (type === "image")

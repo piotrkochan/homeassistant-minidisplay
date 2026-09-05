@@ -25,6 +25,7 @@ import "./visibility-dialog";
 import "./image-field";
 import "./image-manager";
 import "./graph-editor";
+import "./weather-editor";
 
 @customElement("mini-display-editor")
 export class MiniDisplayEditor extends LitElement {
@@ -2268,6 +2269,7 @@ export class MiniDisplayEditor extends LitElement {
 
   private entity(card: DisplayCard) {
     const domains: Record<DisplayCard["type"], string[]> = {
+      weather: ["weather"],
       number: ["sensor", "number", "input_number", "counter"],
       chart: ["sensor", "number", "input_number", "counter"],
       status: [
@@ -2866,6 +2868,7 @@ export class MiniDisplayEditor extends LitElement {
       clock: "Displays local time without using an entity.",
       image: "Displays an optimized image without an entity.",
       chart: "Displays recorded values as a chart.",
+      weather: "Current conditions and forecasts from Home Assistant.",
     };
     const rulesCount =
       (card.visibility ? 1 : 0) +
@@ -2953,6 +2956,7 @@ export class MiniDisplayEditor extends LitElement {
                       { value: "number", label: "Number", icon: "mdi:numeric" },
                       { value: "text", label: "Text", icon: "mdi:format-text" },
                       { value: "chart", label: "Chart", icon: "mdi:chart-bar" },
+                      { value: "weather", label: "Weather", icon: "mdi:weather-partly-cloudy" },
                       {
                         value: "status",
                         label: "Status",
@@ -3032,7 +3036,7 @@ export class MiniDisplayEditor extends LitElement {
                     : nothing
                 }
                 ${
-                  ["number", "status", "text", "chart"].includes(card.type)
+                  ["number", "status", "text", "chart", "weather"].includes(card.type)
                     ? html`<section class="settings-group">
                         <div class="settings-heading">
                           <ha-icon icon="mdi:database-outline"></ha-icon>
@@ -3043,6 +3047,8 @@ export class MiniDisplayEditor extends LitElement {
                         </div>
                         <div class="grid">
                           ${this.entity(card)}
+                          ${card.type === "weather" ? html`<mini-display-weather-editor style="grid-column:1/-1" .settings=${card.weather??{}}
+                            @weather-changed=${(e:CustomEvent)=>{card.weather=e.detail;this.changed();}}></mini-display-weather-editor>`:nothing}
                           ${
                             card.type === "number"
                               ? html`${this.field(
@@ -3331,7 +3337,7 @@ export class MiniDisplayEditor extends LitElement {
       page.rows=[{cards}]; this.selected={row:0,card:to}; this.changed();
     };
     return html`<section class="row-panel">
-      <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
+      <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","weather","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
       <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${card.title || card.text || card.source || html`<em>Unnamed card</em>`}</button>`)}</nav>
       ${selected?.frame ? html`<div class="grid compact-grid">${(["x","y","width","height"] as const).map(key=>this.numberField(key.toUpperCase()+" (%)",selected.frame![key],0,key==="x"||key==="y"?0:2,100,input=>{
         const frame=selected.frame!; frame[key]=input; frame.x=Math.min(frame.x,100-frame.width); frame.y=Math.min(frame.y,100-frame.height); this.changed();
