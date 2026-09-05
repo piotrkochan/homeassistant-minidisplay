@@ -964,6 +964,8 @@ RenderFont renderFontFor(const char *family, uint8_t size) {
   } else if (defaultFont && size < 2) {
     const uint8_t *fonts[] = {InterTightSmooth18, InterTightSmooth24};
     font.smooth = fonts[size];
+  } else if (defaultFont) {
+    font.coverage = builtInCoverageFont(size);
   }
 #endif
   return font;
@@ -989,7 +991,7 @@ void drawMarqueeTitle(MarqueeTitle &item, int16_t offset) {
   applyDisplayFont(item.font);
   drawTextWithEffect(display, marqueeTextPool + item.textOffset,
                      item.textX - offset, item.textY, item.foreground,
-                     item.background, item.effect);
+                     item.background, item.effect, item.font.coverage);
   display.resetViewport();
   item.drawnOffset = offset;
 }
@@ -1164,7 +1166,7 @@ void drawPositionedFit(const String &text, JsonVariantConst style, int16_t x,
   const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
   const int16_t textY = top ? y + 3 : bottom ? y + height - 3 : y + height / 2;
   drawTextWithEffect(display, clipped, textX, textY, foreground, background,
-                     parseTextEffect(style));
+                     parseTextEffect(style), displayFontState.coverage);
 }
 
 struct RingLayout {
@@ -1212,7 +1214,7 @@ void drawCenteredFit(String text, JsonVariantConst style, int16_t x,
     text.remove(text.length() - 1);
   }
   drawTextWithEffect(display, text, x + width / 2, y + height / 2,
-                     foreground, background, parseTextEffect(style));
+                     foreground, background, parseTextEffect(style), displayFontState.coverage);
 }
 
 bool mappingMatches(const char *type, JsonObjectConst rule, const String &raw) {
@@ -1521,7 +1523,7 @@ void drawCard(JsonObjectConst card, int16_t x, int16_t y, int16_t width,
           right ? x + width - 4 : centered ? x + width / 2 : x + 4,
           bottom ? textLayout.titleY + textLayout.titleHeight - 1
                  : textLayout.titleY,
-          titleForeground, background, parseTextEffect(titleStyle));
+          titleForeground, background, parseTextEffect(titleStyle), titleFont.coverage);
     }
   }
 
@@ -1576,6 +1578,7 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
   text.effect = effect;
   text.font = font.builtin;
   text.smoothFont = font.smooth;
+  text.coverageFont = font.coverage;
   text.userFontSlot = font.userSlot;
   text.userFontSize = font.size;
   text.datum = datum;

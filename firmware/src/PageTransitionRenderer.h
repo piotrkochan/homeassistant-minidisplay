@@ -65,6 +65,7 @@ struct CachedCard {
 struct CachedText {
   const GFXfont *font;
   const uint8_t *smoothFont;
+  const CoverageFont *coverageFont;
   int16_t boundsX;
   int16_t boundsY;
   int16_t boundsWidth;

@@ -4,6 +4,7 @@
 #include <LittleFS.h>
 
 #include "DisplayCompat.h"
+#include "CoverageFont.h"
 
 constexpr uint8_t kUserFontSlots = 2;
 constexpr uint8_t kUserFontSizes = 4;
@@ -23,6 +24,7 @@ struct RenderFont {
   int8_t userSlot = -1;
   uint8_t size = 0;
   const uint8_t *smooth = nullptr;
+  const CoverageFont *coverage = nullptr;
 };
 
 struct FontRenderState {
@@ -30,6 +32,7 @@ struct FontRenderState {
   int8_t size = -1;
   const uint8_t *smooth = nullptr;
   bool smoothAllowed = true;
+  const CoverageFont *coverage = nullptr;
 };
 
 class UserFontStore {
@@ -84,6 +87,7 @@ inline bool smoothFontFits(uint32_t glyphs) {
 template <typename Canvas>
 void applyRenderFont(Canvas &canvas, const RenderFont &font,
                      FontRenderState &state) {
+  state.coverage = font.coverage;
 #if defined(ESP8266)
   if (state.smoothAllowed && font.userSlot >= 0 &&
       userFonts.available(font.userSlot, font.size)) {

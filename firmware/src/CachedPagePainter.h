@@ -72,7 +72,7 @@ void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
 #else
           drawTextWithEffect(canvas, String(line), text.x + offsetX, y,
 #endif
-                             text.foreground, text.background, text.effect);
+                             text.foreground, text.background, text.effect, text.coverageFont);
           if (!end) break;
           cursor = end + 1;
           y += lineHeight;
@@ -82,11 +82,11 @@ void paintCachedPageTexts(Canvas &canvas, const CachedPage &page,
 #if defined(ESP8266)
       drawTextWithEffect(canvas, page.textPool + text.valueOffset,
                          text.x + offsetX, text.y + offsetY, text.foreground,
-                         text.background, text.effect);
+                         text.background, text.effect, text.coverageFont);
 #else
       drawTextWithEffect(canvas, String(page.textPool + text.valueOffset),
                          text.x + offsetX, text.y + offsetY, text.foreground,
-                         text.background, text.effect);
+                         text.background, text.effect, text.coverageFont);
 #endif
     }
   }
