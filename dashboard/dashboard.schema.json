@@ -421,6 +421,8 @@
       "type": "object",
       "properties": {
         "frame": {"$ref":"#/$defs/frame"},
+        "titleFrame": {"$ref":"#/$defs/frame"},
+        "valueFrame": {"$ref":"#/$defs/frame"},
         "graph": {"$ref":"#/$defs/graph"},
         "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,31}$" },
         "title": { "type": "string", "maxLength": 32 },

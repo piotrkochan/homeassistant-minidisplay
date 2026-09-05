@@ -17,6 +17,7 @@ import type {
   Visibility,
 } from "./types";
 import { newCard, newDashboard, newPage, newRow } from "./types";
+import { freezeTextFrames } from "./free-text";
 import "./preview";
 import "./color-field";
 import "./preview-list";
@@ -57,6 +58,9 @@ export class MiniDisplayEditor extends LitElement {
   @state() private confirmation?:
     { kind: "delete-row"; row: number } | { kind: "leave"; href: string };
   private previewsStarted = new Set<string>();
+  private previewTimers = new Map<string, number>();
+  private previewUpdates = new Map<string, Promise<void>>();
+  private previewSentAt = new Map<string, number>();
   private draggedMapping?: { kind: "value" | "color"; index: number };
   private draggedCard?: { row: number; index: number };
   private allowNavigation = false;
@@ -1342,16 +1346,18 @@ export class MiniDisplayEditor extends LitElement {
   };
 
   private stopPanelPreviews() {
+    for (const timer of this.previewTimers.values()) window.clearTimeout(timer);
+    this.previewTimers.clear();
     if (!this.hass) return;
     const displayIds = new Set(this.previewsStarted);
     for (const display of this.displays) {
       if (display.preview_scene_id) displayIds.add(display.config_entry_id);
     }
     for (const displayId of displayIds) {
-      void this.hass.callWS({
+      void (this.previewUpdates.get(displayId) ?? Promise.resolve()).then(() => this.hass!.callWS({
         type: "mini_display/scene/preview/stop",
         config_entry_id: displayId,
-      });
+      }));
     }
     this.previewsStarted.clear();
   }
@@ -1553,7 +1559,6 @@ export class MiniDisplayEditor extends LitElement {
   private changedDisplay(displayId: string) {
     const dashboard = this.dashboards[displayId];
     if (!dashboard) return;
-    this.stopPreviewFor(displayId);
     this.dashboards = {
       ...this.dashboards,
       [displayId]: structuredClone(dashboard),
@@ -1561,6 +1566,35 @@ export class MiniDisplayEditor extends LitElement {
     this.dirtyDisplays = new Set(this.dirtyDisplays).add(displayId);
     this.syncState = "idle";
     this.syncMessage = "Unsaved changes";
+    this.schedulePreviewUpdate(displayId);
+  }
+
+  private schedulePreviewUpdate(displayId: string) {
+    window.clearTimeout(this.previewTimers.get(displayId));
+    if (!this.previewsStarted.has(displayId)) return;
+    this.previewTimers.set(displayId, window.setTimeout(() => {
+      this.previewTimers.delete(displayId);
+      if (!this.previewsStarted.has(displayId) || !this.hass) return;
+      if (this.previewUpdates.has(displayId)) {
+        void this.previewUpdates.get(displayId)!.then(() => this.schedulePreviewUpdate(displayId));
+        return;
+      }
+      this.previewSentAt.set(displayId, Date.now());
+      const dashboard = this.dashboards[displayId];
+      const pageIndex = this.previewPages[displayId] ?? 0;
+      const update = this.hass.callWS({
+        type: "mini_display/scene/preview/start",
+        config_entry_id: displayId,
+        scene_id: this.selectedSceneId,
+        page_id: dashboard?.pages[pageIndex]?.id,
+        dashboard,
+        update: true,
+      }).then(() => {}, error => {
+        this.syncState = "error";
+        this.syncMessage = this.errorMessage(error);
+      }).finally(() => this.previewUpdates.delete(displayId));
+      this.previewUpdates.set(displayId, update);
+    }, Math.max(0, 1000 - (Date.now() - (this.previewSentAt.get(displayId) ?? 0)))));
   }
 
   private async save() {
@@ -1606,6 +1640,7 @@ export class MiniDisplayEditor extends LitElement {
   }
 
   private discard() {
+    void this.stopPreviewFor(this.selectedDisplayId);
     const saved = this.savedDashboards[this.selectedDisplayId];
     if (saved === undefined) return;
     this.dashboards = {
@@ -1623,11 +1658,15 @@ export class MiniDisplayEditor extends LitElement {
   }
 
   private async stopPreviewFor(displayId: string) {
+    window.clearTimeout(this.previewTimers.get(displayId));
+    this.previewTimers.delete(displayId);
+    this.previewsStarted.delete(displayId);
     const display = this.displays.find(
       (item) => item.config_entry_id === displayId,
     );
     if (!this.hass || !display?.preview_scene_id) return;
     try {
+      await this.previewUpdates.get(displayId);
       await this.hass.callWS({
         type: "mini_display/scene/preview/stop",
         config_entry_id: displayId,
@@ -1676,11 +1715,7 @@ export class MiniDisplayEditor extends LitElement {
     const isPreviewing = display.preview_scene_id === this.selectedSceneId;
     try {
       if (isPreviewing) {
-        await this.hass.callWS({
-          type: "mini_display/scene/preview/stop",
-          config_entry_id: display.config_entry_id,
-        });
-        this.previewsStarted.delete(display.config_entry_id);
+        await this.stopPreviewFor(display.config_entry_id);
       } else {
         const dashboard = this.dashboards[display.config_entry_id];
         const pageIndex = this.previewPages[display.config_entry_id] ?? 0;
@@ -2399,7 +2434,7 @@ export class MiniDisplayEditor extends LitElement {
                 value.fontFamily = input;
                 this.changed();
               })}
-              ${this.select(
+              ${freeLayout ? nothing : this.select(
                 "Font size",
                 value.fontSize ?? "auto",
                 ["auto", "small", "medium", "large", "xlarge"],
@@ -2430,7 +2465,7 @@ export class MiniDisplayEditor extends LitElement {
                 title.fontFamily = input;
                 this.changed();
               })}
-              ${this.select(
+              ${freeLayout ? nothing : this.select(
                 "Font size",
                 title.fontSize ?? "auto",
                 ["auto", "small", "medium", "large", "xlarge"],
@@ -2889,12 +2924,14 @@ export class MiniDisplayEditor extends LitElement {
       (card.valueMappings?.length ?? 0) +
       (card.colorMappings?.length ?? 0);
     const selectType = (input: DisplayCard["type"]) => {
-      const frame = card.frame;
+      const {frame, titleFrame, valueFrame} = card;
       Object.keys(card).forEach(
         (key) => delete (card as unknown as Record<string, unknown>)[key],
       );
       Object.assign(card, newCard(input));
       if (frame) card.frame = frame;
+      if (titleFrame) card.titleFrame = titleFrame;
+      if (valueFrame) card.valueFrame = valueFrame;
       this.changed();
     };
     return html`<section class="card-settings">
@@ -2999,6 +3036,7 @@ export class MiniDisplayEditor extends LitElement {
                         "Show title on display",
                         card.showTitle !== false,
                         (input) => {
+                          if (this.dashboard?.pages[this.pageIndex]?.layout === "free") freezeTextFrames(card);
                           card.showTitle = input;
                           this.changed();
                         },
@@ -3354,6 +3392,7 @@ export class MiniDisplayEditor extends LitElement {
       <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","weather","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
       <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${this.cardName(card)}</button>`)}</nav>
       ${selected?.frame ? html`<div class="grid compact-grid">${(["x","y","width","height"] as const).map(key=>this.numberField(key.toUpperCase()+" (%)",selected.frame![key],0,key==="x"||key==="y"?0:2,100,input=>{
+        freezeTextFrames(selected);
         const frame=selected.frame!; frame[key]=input; frame.x=Math.min(frame.x,100-frame.width); frame.y=Math.min(frame.y,100-frame.height); this.changed();
       }))}</div><div class="tabs"><button class="tab" @click=${()=>move(-1)}>Send backward</button><button class="tab" @click=${()=>move(1)}>Bring forward</button></div>` : nothing}
       ${selected && this.selected ? this.cardSettings(selected,this.selected.row,this.selected.card):nothing}
@@ -3747,7 +3786,10 @@ export class MiniDisplayEditor extends LitElement {
                     const d=event.detail;
                     const card=this.dashboards[d.displayId]?.pages[d.page]?.rows[d.row]?.cards[d.card];
                     if (!card) return;
-                    card.frame=d.frame;
+                    freezeTextFrames(card);
+                    if (d.part === "title") card.titleFrame = d.frame;
+                    else if (d.part === "value") card.valueFrame = d.frame;
+                    else card.frame=d.frame;
                     this.selectedDisplayId=d.displayId;
                     this.pageIndex=d.page;
                     this.selected={row:d.row,card:d.card};

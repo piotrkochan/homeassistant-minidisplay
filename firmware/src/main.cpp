@@ -33,6 +33,7 @@
 #include "fonts/WeatherGlyphs.h"
 #include "CachedPagePainter.h"
 #include "TextFlow.h"
+#include "FreeTextFrame.h"
 #include "ImageAssetApi.h"
 #include "PageTransitionRenderer.h"
 #include "ProgressRenderer.h"
@@ -1114,6 +1115,11 @@ RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
   const char *size = style["fontSize"] | "auto";
   const char *family = style["fontFamily"] | "sans";
   const bool automatic = strcmp(size, "auto") == 0;
+  if (!automatic) {
+    if (strcmp(size, "small") == 0 && isBuiltInCardTitleFamily(family))
+      return compactCardTitleFont();
+    return renderFontFor(family, requestedFontSize(style, height));
+  }
   if (strcmp(style["textFlow"] | "default", "default") != 0) {
     if (automatic && isBuiltInCardTitleFamily(family)) return compactCardTitleFont();
     return selectBestFont(text, style, width, height);
@@ -1337,8 +1343,10 @@ CardTextLayout cardTextLayout(JsonObjectConst card, int16_t width, int16_t y,
   }
 
   const int16_t maximumTitleHeight =
-      max<int16_t>(1, min<int16_t>(contentHeight / 2,
-                                  contentHeight - valueFontHeight));
+      strcmp(titleStyle["fontSize"] | "auto", "auto") != 0
+          ? contentHeight
+          : max<int16_t>(1, min<int16_t>(contentHeight / 2,
+                                        contentHeight - valueFontHeight));
   layout.titleFont = selectCardTitleFont(
       String(title), titleStyle, width - 10, maximumTitleHeight,
       maximumAutoTitleSize);
@@ -1588,6 +1596,19 @@ bool cacheText(CachedPage &page, const String &value, const RenderFont &font,
   return true;
 }
 
+RenderFont selectFreeTextFont(const String &text, JsonVariantConst style,
+                              int16_t width, int16_t height) {
+  const char *family = style["fontFamily"] | "default";
+  for (int8_t size = 3; size >= 0; --size) {
+    const RenderFont font = renderFontFor(family, size);
+    applyDisplayFont(font);
+    if (display.fontHeight() <= height && display.textWidth(text) <= width - 8)
+      return font;
+  }
+  return isBuiltInCardTitleFamily(family) ? compactCardTitleFont()
+                                         : renderFontFor(family, 0);
+}
+
 bool cachePositionedText(CachedPage &page, String value,
                          JsonVariantConst style, int16_t x, int16_t y,
                          int16_t width, int16_t height, uint16_t foreground,
@@ -1596,7 +1617,8 @@ bool cachePositionedText(CachedPage &page, String value,
                          const char *defaultVertical = "middle",
                          int16_t fontHeight = 0,
                          const RenderFont *selectedFont = nullptr,
-                         bool tightVerticalEdges = false) {
+                         bool tightVerticalEdges = false,
+                         bool freeFit = false) {
   const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
   const char *vertical = style["verticalAlign"] | defaultVertical;
   const bool left = strcmp(horizontal, "left") == 0;
@@ -1614,8 +1636,8 @@ bool cachePositionedText(CachedPage &page, String value,
       fontHeight > 0 ? min(height, fontHeight) : height;
   const RenderFont font = selectedFont != nullptr
                               ? *selectedFont
-                              : selectBestFont(value, style, width,
-                                               availableHeight);
+                              : freeFit ? selectFreeTextFont(value, style, width, availableHeight)
+                                        : selectBestFont(value, style, width, availableHeight);
   applyDisplayFont(font);
   const char *flow = style["textFlow"] | "default";
   const bool wrap = strcmp(flow, "wrap") == 0;
@@ -1641,8 +1663,9 @@ bool cachePositionedText(CachedPage &page, String value,
 
 bool cacheCenteredFit(CachedPage &page, String value, JsonVariantConst style,
                       int16_t x, int16_t y, int16_t width, int16_t height,
-                      uint16_t foreground, uint16_t background) {
-  const RenderFont font = selectBestFont(value, style, width, height);
+                      uint16_t foreground, uint16_t background, bool freeFit = false) {
+  const RenderFont font = freeFit ? selectFreeTextFont(value, style, width, height)
+                                   : selectBestFont(value, style, width, height);
   while (value.length() > 1 && display.textWidth(value) > width - 8) {
     value.remove(value.length() - 1);
   }
@@ -1714,14 +1737,31 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
   const char *progressType = card["progress"] | "none";
   const bool bar = strcmp(progressType, "bar") == 0;
   const bool ring = strcmp(progressType, "ring") == 0;
-  const CardTextLayout textLayout = cardTextLayout(card, width, y, height);
+  CardTextLayout textLayout{y, height, y, height, false, compactCardTitleFont()};
+  int16_t valueX = x, valueWidth = width, titleX = x, titleWidth = width;
+  if (page.freeLayout) {
+    const FreeTextFrame valueBox = freeTextFrame(card, false);
+    const FreeTextFrame titleBox = freeTextFrame(card, true);
+    valueX = valueBox.x;
+    valueWidth = valueBox.width;
+    textLayout.valueY = valueBox.y;
+    textLayout.valueHeight = valueBox.height;
+    titleX = titleBox.x;
+    titleWidth = titleBox.width;
+    textLayout.titleY = titleBox.y;
+    textLayout.titleHeight = titleBox.height;
+    textLayout.hasTitle = title && title[0] && (card["showTitle"] | true);
+    textLayout.titleFont = selectFreeTextFont(String(title ? title : ""),
+        card["titleStyle"], titleWidth, titleBox.height);
+  } else textLayout = cardTextLayout(card, width, y, height);
   JsonVariantConst valueStyle = card["valueStyle"];
   if (valueStyle.isNull()) valueStyle = card["style"];
   RingLayout ringGeometry{};
   if (strcmp(cardType, "weather") == 0) {
-    if (!cacheWeatherContent(card, x, textLayout.valueY, width, textLayout.valueHeight, findValue,
+    if (!cacheWeatherContent(card, valueX, textLayout.valueY, valueWidth, textLayout.valueHeight, findValue,
         [&](const String &line, int16_t lx, int16_t ly, int16_t lw, int16_t lh) {
-          const RenderFont font = selectBestFont(line, valueStyle, max<int16_t>(1, lw - 8), lh);
+          const RenderFont font = page.freeLayout ? selectFreeTextFont(line, valueStyle, lw, lh)
+              : selectBestFont(line, valueStyle, max<int16_t>(1, lw - 8), lh);
           return cachePositionedText(page, line, valueStyle, lx, ly, lw, lh,
                                      foreground, background, "center", "middle", 0, &font);
         },
@@ -1734,16 +1774,16 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
         })) return false;
   } else if (ring) {
     ringGeometry =
-        ringLayout(x, textLayout.valueY, width, textLayout.valueHeight);
-    if (!cacheCenteredFit(page, cardValue(card), valueStyle, x,
-                          ringGeometry.valueY, width,
-                          ringGeometry.valueHeight, foreground, background)) {
+        ringLayout(valueX, textLayout.valueY, valueWidth, textLayout.valueHeight);
+    if (!cacheCenteredFit(page, cardValue(card), valueStyle, valueX,
+                          ringGeometry.valueY, valueWidth,
+                          ringGeometry.valueHeight, foreground, background, page.freeLayout)) {
       return false;
     }
   } else {
-    if (!cachePositionedText(page, cardValue(card), valueStyle, x,
-                             textLayout.valueY, width, textLayout.valueHeight,
-                             foreground, background)) {
+    if (!cachePositionedText(page, cardValue(card), valueStyle, valueX,
+                             textLayout.valueY, valueWidth, textLayout.valueHeight,
+                             foreground, background, "center", "middle", 0, nullptr, false, page.freeLayout)) {
       return false;
     }
   }
@@ -1752,8 +1792,8 @@ bool cacheCard(CachedPage &page, JsonObjectConst card, int16_t x, int16_t y,
     if (titleStyle.isNull()) titleStyle = card["style"];
     const uint16_t titleForeground =
         parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
-    if (!cachePositionedText(page, String(title), titleStyle, x,
-                             textLayout.titleY, width, textLayout.titleHeight,
+    if (!cachePositionedText(page, String(title), titleStyle, titleX,
+                             textLayout.titleY, titleWidth, textLayout.titleHeight,
                              titleForeground, background, "left", "top",
                              textLayout.titleHeight, &textLayout.titleFont,
                              true)) {
@@ -2344,6 +2384,8 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
   filter["pages"][0]["rows"][0]["cards"][0]["backgroundImage"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["imageFit"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["frame"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["titleFrame"] = true;
+  filter["pages"][0]["rows"][0]["cards"][0]["valueFrame"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["graph"] = true;
   filter["pages"][0]["rows"][0]["cards"][0]["weather"] = true;
   filter["defaults"]["pageDurationSeconds"] = true;
@@ -2409,14 +2451,10 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
       for (JsonObject card : cards) {
         if (failure) failure->message = F("Invalid card settings, placement, count or image");
         if (freeLayout) {
-          JsonObject frame = card["frame"];
-          if (frame.isNull()) return false;
-          for (const char *key : {"x", "y", "width", "height"})
-            if (!frame[key].is<float>() || !std::isfinite(frame[key].as<float>())) return false;
-          if (frame["x"].as<float>() < 0 || frame["y"].as<float>() < 0 ||
-              frame["width"].as<float>() < 2 || frame["height"].as<float>() < 2 ||
-              frame["x"].as<float>() + frame["width"].as<float>() > 100.01F ||
-              frame["y"].as<float>() + frame["height"].as<float>() > 100.01F) return false;
+          for (const char *name : {"frame", "titleFrame", "valueFrame"}) {
+            if (strcmp(name, "frame") && !card.containsKey(name)) continue;
+            if (!validFreeTextFrame(card[name])) return false;
+          }
         }
         const char *type = card["type"];
         if (type == nullptr ||

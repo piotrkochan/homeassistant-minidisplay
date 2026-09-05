@@ -123,6 +123,8 @@ export type DisplayCard = {
   type: "clock" | "number" | "status" | "text" | "image" | "chart" | "weather";
   weather?: WeatherSettings;
   frame?: { x: number; y: number; width: number; height: number };
+  titleFrame?: { x: number; y: number; width: number; height: number };
+  valueFrame?: { x: number; y: number; width: number; height: number };
   graph?: Graph;
   title?: string;
   showTitle?: boolean;

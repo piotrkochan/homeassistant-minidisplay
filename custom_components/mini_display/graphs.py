@@ -17,15 +17,18 @@ def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
         for ri, ci, card in cards:
             path = f"/pages/{pi}/rows/{ri}/cards/{ci}"
             if free:
-                frame = card.get("frame")
-                if not isinstance(frame, dict) or any(
-                    not number(frame.get(key)) for key in ("x", "y", "width", "height")
-                ):
-                    raise error("Item requires a position and size", f"{path}/frame")
-                if (frame["x"] < 0 or frame["y"] < 0 or frame["width"] < 2 or
-                    frame["height"] < 2 or frame["x"] + frame["width"] > 100.01 or
-                    frame["y"] + frame["height"] > 100.01):
-                    raise error("Item must fit on the screen", f"{path}/frame")
+                for name in ("frame", "titleFrame", "valueFrame"):
+                    if name != "frame" and name not in card:
+                        continue
+                    frame = card.get(name)
+                    if not isinstance(frame, dict) or any(
+                        not number(frame.get(key)) for key in ("x", "y", "width", "height")
+                    ):
+                        raise error("Item requires a position and size", f"{path}/{name}")
+                    if (frame["x"] < 0 or frame["y"] < 0 or frame["width"] < 2 or
+                        frame["height"] < 2 or frame["x"] + frame["width"] > 100.01 or
+                        frame["y"] + frame["height"] > 100.01):
+                        raise error("Item must fit on the screen", f"{path}/{name}")
             graph = card.get("graph")
             if graph is None:
                 if card.get("type") == "chart":

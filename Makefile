@@ -45,6 +45,7 @@ elf-report:
 		--toolchain $(PLATFORMIO_CORE_DIR)/packages/toolchain-xtensa/bin
 
 card-build:
+	python3 firmware/scripts/export_preview_fonts.py
 	npm --prefix integration/card run build
 
 card-check:
@@ -70,3 +71,11 @@ test-native:
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/request_body_test.cpp -o .cache/tests/request-body
 	.cache/tests/request-body
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/free_text_frame_test.cpp -o .cache/tests/free-text-frame
+	.cache/tests/free-text-frame
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-DCOVERAGE_TEST -DPROGMEM= -I firmware/src firmware/tests/coverage_font_test.cpp \
+		firmware/src/CoverageFonts.generated.cpp -o .cache/tests/coverage-font
+	.cache/tests/coverage-font
