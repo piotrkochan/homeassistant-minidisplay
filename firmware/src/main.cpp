@@ -2100,23 +2100,25 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   if (nextPageIndex >= dashboardPageCount || nextPageIndex == activePageIndex) {
     return;
   }
+  const auto showWithoutTransition = [&]() {
+    activePageIndex = nextPageIndex;
+    showCurrentPage();
+    // A skipped animation still starts a new, full page dwell interval.
+    pageShownAt = millis();
+  };
   const PageTransitionConfig &transition =
       dashboardPages[activePageIndex].transition;
   if (transition.type == PageTransitionType::None) {
-    activePageIndex = nextPageIndex;
-    showCurrentPage();
-    pageShownAt = millis();
+    showWithoutTransition();
     return;
   }
   if (!filesystemReady || !LittleFS.exists(kDashboardPath)) {
-    activePageIndex = nextPageIndex;
-    showCurrentPage();
+    showWithoutTransition();
     return;
   }
   File file = LittleFS.open(kDashboardPath, "r");
   if (!file) {
-    activePageIndex = nextPageIndex;
-    showCurrentPage();
+    showWithoutTransition();
     return;
   }
   const bool needsCurrentPage =
@@ -2127,9 +2129,7 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   std::unique_ptr<CachedPage> nextPage(new (std::nothrow) CachedPage());
   if (!nextPage) {
     file.close();
-    activePageIndex = nextPageIndex;
-    showCurrentPage();
-    pageShownAt = millis();
+    showWithoutTransition();
     return;
   }
   std::unique_ptr<CachedPage> currentPage;
@@ -2162,8 +2162,9 @@ void showPageWithTransition(uint8_t nextPageIndex) {
     }
   }
   if (!cachedNext) {
-    activePageIndex = nextPageIndex;
-    showCurrentPage();
+    currentPage.reset();
+    nextPage.reset();
+    showWithoutTransition();
     return;
   }
   PageTransitionConfig effectiveTransition = transition;

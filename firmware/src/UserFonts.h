@@ -71,6 +71,16 @@ class UserFontStore {
 
 extern UserFontStore userFonts;
 
+#if defined(ESP8266)
+inline bool smoothFontFits(uint32_t glyphs) {
+  // TFT_eSPI allocates seven glyph tables (12 bytes/glyph) without checking
+  // malloc results. Keep room for allocator overhead, glyph reads and TCP.
+  if (glyphs == 0 || glyphs > kMaxUserFontGlyphs) return false;
+  return ESP.getFreeHeap() > glyphs * 12U + 512U + 2048U &&
+         ESP.getMaxFreeBlockSize() > glyphs * 4U + 512U;
+}
+#endif
+
 template <typename Canvas>
 void applyRenderFont(Canvas &canvas, const RenderFont &font,
                      FontRenderState &state) {
@@ -80,8 +90,10 @@ void applyRenderFont(Canvas &canvas, const RenderFont &font,
     if (state.userSlot != font.userSlot || state.size != font.size ||
         state.smooth != nullptr) {
       if (canvas.fontLoaded) canvas.unloadFont();
-      canvas.loadFont(userFonts.fontBaseName(font.userSlot, font.size),
-                      LittleFS);
+      if (smoothFontFits(userFonts.slot(font.userSlot).glyphCount)) {
+        canvas.loadFont(userFonts.fontBaseName(font.userSlot, font.size),
+                        LittleFS);
+      }
       if (canvas.fontLoaded) {
         state.userSlot = font.userSlot;
         state.size = font.size;
@@ -95,7 +107,11 @@ void applyRenderFont(Canvas &canvas, const RenderFont &font,
   if (state.smoothAllowed && font.smooth != nullptr) {
     if (state.smooth != font.smooth || state.userSlot >= 0) {
       if (canvas.fontLoaded) canvas.unloadFont();
-      canvas.loadFont(font.smooth);
+      const uint32_t glyphs = (uint32_t(pgm_read_byte(font.smooth)) << 24) |
+          (uint32_t(pgm_read_byte(font.smooth + 1)) << 16) |
+          (uint32_t(pgm_read_byte(font.smooth + 2)) << 8) |
+          pgm_read_byte(font.smooth + 3);
+      if (smoothFontFits(glyphs)) canvas.loadFont(font.smooth);
       if (canvas.fontLoaded) {
         state.userSlot = -1;
         state.size = font.size;

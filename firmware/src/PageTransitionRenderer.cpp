@@ -15,6 +15,10 @@ constexpr int16_t kFrameBandHeights[] = {24, 20, 16, 12, 8};
 int16_t createCompositorBand(TFT_eSprite &frame) {
   frame.setTextWrap(false, false);
   for (const int16_t height : kFrameBandHeights) {
+    // A successfully allocated sprite must not consume memory needed by the
+    // largest supported glyph tables (384 * 12 B), filesystem and networking.
+    const uint32_t bytes = kDisplaySize * height * 2U + 16U;
+    if (ESP.getFreeHeap() < bytes + 8192U) continue;
     if (frame.createSprite(kDisplaySize, height) != nullptr) return height;
   }
   return 0;
