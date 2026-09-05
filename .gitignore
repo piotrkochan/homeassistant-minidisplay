@@ -17,7 +17,7 @@ coverage/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.cache/tests/
+.cache/
 __pycache__/
 *.py[cod]
 .DS_Store
