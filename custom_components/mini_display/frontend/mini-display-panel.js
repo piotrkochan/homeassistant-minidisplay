@@ -17,7 +17,7 @@ let ci = class {
     return this.cssText;
   }
 };
-const ji = (t) => new ci(typeof t == "string" ? t : t + "", void 0, vt), O = (t, ...e) => {
+const ji = (t) => new ci(typeof t == "string" ? t : t + "", void 0, vt), z = (t, ...e) => {
   const i = t.length === 1 ? t[0] : e.reduce((a, s, r) => a + ((o) => {
     if (o._$cssResult$ === !0) return o.cssText;
     if (typeof o == "number") return o;
@@ -643,7 +643,7 @@ const L = {
     this.disabled || this.dispatchEvent(new CustomEvent("color-changed", { detail: e, bubbles: !0, composed: !0 }));
   }
 };
-Mt.styles = O`
+Mt.styles = z`
     :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
     .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
     select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
@@ -700,7 +700,7 @@ let te = class extends C {
     </svg>`;
   }
 };
-te.styles = O`:host{position:absolute;inset:2px;display:block;pointer-events:none}svg{display:block;width:100%;height:100%;overflow:hidden}`;
+te.styles = z`:host{position:absolute;inset:2px;display:block;pointer-events:none}svg{display:block;width:100%;height:100%;overflow:hidden}`;
 xe([
   g({ attribute: !1 })
 ], te.prototype, "graph", 2);
@@ -825,7 +825,7 @@ let de = class extends C {
     })}`;
   }
 };
-de.styles = O`
+de.styles = z`
     :host {
       position: absolute;
       inset: 5px;
@@ -994,7 +994,7 @@ const kt = class kt extends C {
     r.globalCompositeOperation = "source-in", r.fillStyle = this.color, r.fillRect(0, 0, s.width, s.height), r.globalCompositeOperation = "source-over";
   }
 };
-kt.styles = O`:host {display:block; pointer-events:none} canvas {display:block; max-width:none; image-rendering:pixelated}`;
+kt.styles = z`:host {display:block; pointer-events:none} canvas {display:block; max-width:none; image-rendering:pixelated}`;
 let we = kt;
 Bt([
   g()
@@ -1006,7 +1006,7 @@ Bt([
   g()
 ], we.prototype, "color");
 customElements.define("mini-display-firmware-text", we);
-const ua = O`
+const ua = z`
   .free-layout .group,
   .free-layout .row {
     display: contents;
@@ -1310,6 +1310,8 @@ const ua = O`
     pointer-events: auto;
   }
   .page-dropzone ha-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
     width: 18px;
     height: 18px;
   }
@@ -1774,7 +1776,7 @@ var va = Object.defineProperty, N = (t, e, i, a) => {
     (o = t[r]) && (s = o(e, i, s) || s);
   return s && va(e, i, s), s;
 };
-const Ot = class Ot extends C {
+const zt = class zt extends C {
   constructor() {
     super(...arguments), this.assets = [], this.page = 0, this.autoRotate = !1, this.width = 240, this.height = 240, this.displayId = "", this.interactive = !1, this.showHidden = !1, this.now = /* @__PURE__ */ new Date(), this.autoPage = 0, this.pageShownAt = Date.now(), this.historySeries = [], this.historyPending = !1, this.historyFetched = 0, this.interaction = new fa(this), this.typography = new ma();
   }
@@ -1837,13 +1839,13 @@ const Ot = class Ot extends C {
       return d`<div class="screen-frame" style=${i}>
         <div class="screen loading" aria-label="Loading display preview"></div>
       </div>`;
-    const a = e.layout === "free", s = e.rows.map((B, z) => {
+    const a = e.layout === "free", s = e.rows.map((B, O) => {
       const Ce = Ye(this.hass, B.visibility), _ = B.cards.map((Z, p) => ({
         card: Z,
         cardIndex: p,
         hidden: !Ce || !Ye(this.hass, Z.visibility, Z)
       })).filter(({ hidden: Z }) => this.showHidden || !Z);
-      return { row: B, rowIndex: z, hidden: !Ce, cards: _ };
+      return { row: B, rowIndex: O, hidden: !Ce, cards: _ };
     }).filter(({ cards: B }) => B.length > 0);
     if (s.length === 0 && !a)
       return d`<div class="screen-frame" style=${i}>
@@ -1863,7 +1865,7 @@ const Ot = class Ot extends C {
       large: 36,
       xlarge: 48,
       auto: 18
-    }[f], y = r && (o === "top" || o === "bottom") ? b : 0, j = r && (o === "left" || o === "right") ? b : 0, se = this.width - 12 - j, Ae = this.height - 12 - y - 4 * Math.max(0, s.length - 1), K = s.reduce((B, z) => B + (z.row.weight ?? 1), 0) || 1, pe = r ? o === "top" ? `top:${b + 6}px;right:6px;bottom:6px;left:6px` : o === "bottom" ? `top:6px;right:6px;bottom:${b + 6}px;left:6px` : o === "left" ? `top:6px;right:6px;bottom:6px;left:${b + 6}px` : `top:6px;right:${b + 6}px;bottom:6px;left:6px` : "inset:6px", Be = this.imageUrl(e.backgroundImage), W = `${o === "top" || o === "bottom" ? `height:${b}px` : `width:${b}px`};background:${A};color:${m};font-size:${P}px`;
+    }[f], y = r && (o === "top" || o === "bottom") ? b : 0, j = r && (o === "left" || o === "right") ? b : 0, se = this.width - 12 - j, Ae = this.height - 12 - y - 4 * Math.max(0, s.length - 1), K = s.reduce((B, O) => B + (O.row.weight ?? 1), 0) || 1, pe = r ? o === "top" ? `top:${b + 6}px;right:6px;bottom:6px;left:6px` : o === "bottom" ? `top:6px;right:6px;bottom:${b + 6}px;left:6px` : o === "left" ? `top:6px;right:6px;bottom:6px;left:${b + 6}px` : `top:6px;right:${b + 6}px;bottom:6px;left:6px` : "inset:6px", Be = this.imageUrl(e.backgroundImage), W = `${o === "top" || o === "bottom" ? `height:${b}px` : `width:${b}px`};background:${A};color:${m};font-size:${P}px`;
     return d`<div class="screen-frame" style=${i}>
       <div
         class="screen"
@@ -1884,7 +1886,7 @@ const Ot = class Ot extends C {
                 >
               </div>` : null}${this.interaction.pageDropzones()}
         <div class="page-content ${a ? "free-layout" : ""}" style=${a ? "inset:0" : pe}>
-          ${s.map(({ row: B, rowIndex: z, hidden: Ce, cards: _ }) => {
+          ${s.map(({ row: B, rowIndex: O, hidden: Ce, cards: _ }) => {
       const Z = Ae * (B.weight ?? 1) / K;
       return Z - (B.title && B.showTitle !== !1 && Z >= 24 ? 17 : 0), (se - 4 * Math.max(0, _.length - 1)) / _.length, d`<div
               class="group ${Ce ? "hidden-item" : ""}"
@@ -1895,7 +1897,7 @@ const Ot = class Ot extends C {
                       @click=${(p) => {
         p.stopPropagation(), this.emit("preview-select", {
           kind: "row",
-          row: z
+          row: O
         });
       }}
                     >
@@ -1906,7 +1908,7 @@ const Ot = class Ot extends C {
                 style="grid-template-columns:repeat(${_.length},minmax(0,1fr))"
               >
                 ${_.map(({ card: p, cardIndex: q, hidden: bi }) => {
-        const Ve = this.interaction.freeDrag?.row === z && this.interaction.freeDrag.card === q, k = Ve && this.interaction.freeDrag.part === "card" ? this.interaction.freeDrag.frame : p.frame, $e = (x) => Ve && this.interaction.freeDrag.part === x ? this.interaction.freeDrag.frame : Xe(p, x), zt = $e("title"), jt = $e("value"), It = (x) => {
+        const Ve = this.interaction.freeDrag?.row === O && this.interaction.freeDrag.card === q, k = Ve && this.interaction.freeDrag.part === "card" ? this.interaction.freeDrag.frame : p.frame, $e = (x) => Ve && this.interaction.freeDrag.part === x ? this.interaction.freeDrag.frame : Xe(p, x), Ot = $e("title"), jt = $e("value"), It = (x) => {
           const V = $e(x);
           return `left:${(V.x - (k?.x ?? 0)) * this.width / 100}px;top:${(V.y - (k?.y ?? 0)) * this.height / 100}px;width:${V.width * this.width / 100}px;height:${V.height * this.height / 100}px;`;
         }, Pe = a ? (k?.width ?? 50) * this.width / 100 : (se - 4 * Math.max(0, _.length - 1)) / _.length, _e = a ? (k?.height ?? 25) * this.height / 100 : Z - (B.title && B.showTitle !== !1 && Z >= 24 ? 17 : 0), Et = p.source ? this.hass?.states[p.source]?.state ?? "—" : p.text ?? "—", Nt = Number(Et), et = p.minimum ?? 0, Gt = p.maximum ?? 100, Qt = Number.isFinite(Nt) && Gt > et ? Math.max(
@@ -1923,7 +1925,7 @@ const Ot = class Ot extends C {
             re / 2,
             re - this.typography.fontLineHeight(St)
           )
-        ), he = a ? this.typography.freeFontSize(p.title ?? "", p.titleStyle, zt.width * this.width / 100, zt.height * this.height / 100) : Ht ? this.typography.titleFontSize(
+        ), he = a ? this.typography.freeFontSize(p.title ?? "", p.titleStyle, Ot.width * this.width / 100, Ot.height * this.height / 100) : Ht ? this.typography.titleFontSize(
           p,
           p.title ?? "",
           Pe - 10,
@@ -1958,7 +1960,7 @@ const Ot = class Ot extends C {
           top: "flex-start",
           middle: "center",
           bottom: "flex-end"
-        }[J], ki = 5 + (J === "top" ? ge : 0), Oi = wi + (J === "bottom" ? ge : 0), rt = a ? It("value") : `top:${ki}px;right:5px;bottom:${Oi}px;left:5px`, zi = a ? It("title") : J === "top" ? `top:0;right:4px;height:${ge}px;left:4px` : J === "bottom" ? `right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;height:${ge}px;left:4px` : `top:0;right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;left:4px`, ot = p.title ? Math.max(
+        }[J], ki = 5 + (J === "top" ? ge : 0), zi = wi + (J === "bottom" ? ge : 0), rt = a ? It("value") : `top:${ki}px;right:5px;bottom:${zi}px;left:5px`, Oi = a ? It("title") : J === "top" ? `top:0;right:4px;height:${ge}px;left:4px` : J === "bottom" ? `right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;height:${ge}px;left:4px` : `top:0;right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;left:4px`, ot = p.title ? Math.max(
           0,
           Ie(p.title, he) - (Pe - 10)
         ) : 0, Re = !a && (p.titleStyle?.textFlow ?? "default") === "default" && ot > 0 && (J === "top" || J === "bottom"), Yt = d`<div
@@ -1968,31 +1970,31 @@ const Ot = class Ot extends C {
                     @click=${(x) => {
           x.stopPropagation(), this.emit("preview-select", {
             kind: "value",
-            row: z,
+            row: O,
             card: q
           });
         }}
-                    @dragstart=${(x) => this.interaction.startDrag(x, { kind: "value", row: z, card: q })}
+                    @dragstart=${(x) => this.interaction.startDrag(x, { kind: "value", row: O, card: q })}
                     @dragend=${() => this.interaction.stopDrag()}
                   >
                     ${a && ["default", "sans", "sans-bold"].includes(p.valueStyle?.fontFamily ?? "default") && p.valueStyle?.textFlow !== "wrap" && (!p.valueStyle?.textEffect || p.valueStyle.textEffect === "none") ? d`<mini-display-firmware-text .text=${Me} .size=${at} .color=${Xt}></mini-display-firmware-text>` : Me}
                   </div>`, Kt = a && (e.transparentCards || st === "transparent") && !p.graph && p.type !== "image";
         return d`<div
                     class="card ${Kt ? "text-only-frame" : ""} ${p.valueStyle?.textFlow === "overflow" || p.titleStyle?.textFlow === "overflow" ? "flow-overflow" : ""} ${Ve ? "moving" : ""} ${p.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${bi && !Ce ? "hidden-item" : ""}"
-                    data-row=${z} data-card=${q}
+                    data-row=${O} data-card=${q}
                     tabindex=${a && this.interactive ? 0 : -1}
                     aria-label=${p.title || p.text || p.source || "Item"}
                     @keydown=${(x) => {
           if (!a || !k || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(x.key)) return;
           x.preventDefault();
           const V = x.shiftKey ? 5 : 0.5;
-          this.emit("preview-frame", { row: z, card: q, frame: { ...k, x: Math.max(0, Math.min(100 - k.width, k.x + (x.key === "ArrowLeft" ? -V : x.key === "ArrowRight" ? V : 0))), y: Math.max(0, Math.min(100 - k.height, k.y + (x.key === "ArrowUp" ? -V : x.key === "ArrowDown" ? V : 0))) } });
+          this.emit("preview-frame", { row: O, card: q, frame: { ...k, x: Math.max(0, Math.min(100 - k.width, k.x + (x.key === "ArrowLeft" ? -V : x.key === "ArrowRight" ? V : 0))), y: Math.max(0, Math.min(100 - k.height, k.y + (x.key === "ArrowUp" ? -V : x.key === "ArrowDown" ? V : 0))) } });
         }}
                     style=${`${a && k ? `left:${k.x}%;top:${k.y}%;width:${k.width}%;height:${k.height}%;` : ""}${e.transparentCards || st === "transparent" ? "background:transparent" : `background-color:${Ut}`};${!e.transparentCards && Lt ? `background-image:url(${Lt});background-size:${p.imageFit === "contain" ? "contain" : p.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${Xt}`}
                     @click=${(x) => {
           x.stopPropagation(), this.emit("preview-select", {
             kind: "card",
-            row: z,
+            row: O,
             card: q
           });
         }}
@@ -2001,7 +2003,7 @@ const Ot = class Ot extends C {
                     ${a && this.interactive && !Kt ? d`<button class="resize-handle" aria-label="Resize item" @click=${(x) => x.stopPropagation()}></button>` : c}
                     ${p.title && p.showTitle !== !1 ? d`<small
                             data-part=${a ? "title" : c}
-                            style=${`${zi};overflow:${p.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${Mi};justify-content:${Re ? "flex-start" : Pi};text-align:${Re ? "left" : p.titleStyle?.horizontalAlign ?? "left"};font-size:${he}px;line-height:${this.typography.fontLineHeight(he)}px`}
+                            style=${`${Oi};overflow:${p.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${Mi};justify-content:${Re ? "flex-start" : Pi};text-align:${Re ? "left" : p.titleStyle?.horizontalAlign ?? "left"};font-size:${he}px;line-height:${this.typography.fontLineHeight(he)}px`}
                             ><span
                               class="card-label ${Re ? "marquee" : ""}"
                               aria-label=${p.title ?? ""}
@@ -2010,11 +2012,11 @@ const Ot = class Ot extends C {
                               @click=${(x) => {
           x.stopPropagation(), this.emit("preview-select", {
             kind: "title",
-            row: z,
+            row: O,
             card: q
           });
         }}
-                              @dragstart=${(x) => this.interaction.startDrag(x, { kind: "title", row: z, card: q })}
+                              @dragstart=${(x) => this.interaction.startDrag(x, { kind: "title", row: O, card: q })}
                               @dragend=${() => this.interaction.stopDrag()}
                               >${["default", "sans", "sans-bold"].includes(p.titleStyle?.fontFamily ?? "default") && p.titleStyle?.textFlow !== "wrap" && (!p.titleStyle?.textEffect || p.titleStyle.textEffect === "none") ? d`<mini-display-firmware-text .text=${p.title ?? ""} .size=${he} .color=${L[p.titleStyle?.foreground ?? ""] ?? p.titleStyle?.foreground ?? "#d3d3d3"}></mini-display-firmware-text>` : p.title}</span
                             >${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize title"></button>` : c}</small
@@ -2032,7 +2034,7 @@ const Ot = class Ot extends C {
                             >
                               ${Yt}
                               ${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize value"></button>` : c}
-                            </div>`}${this.interaction.positionGrid(z, q)}${p.type !== "image" && p.progress === "bar" ? d`<div class="bar"><i style=${`width:${Qt}%;background:${Ft}`}></i></div>` : null}
+                            </div>`}${this.interaction.positionGrid(O, q)}${p.type !== "image" && p.progress === "bar" ? d`<div class="bar"><i style=${`width:${Qt}%;background:${Ft}`}></i></div>` : null}
                   </div>`;
       })}
               </div>
@@ -2043,8 +2045,8 @@ const Ot = class Ot extends C {
     </div>`;
   }
 };
-Ot.styles = ua;
-let M = Ot;
+zt.styles = ua;
+let M = zt;
 N([
   g({ attribute: !1 })
 ], M.prototype, "dashboard");
@@ -2090,7 +2092,7 @@ var ba = Object.defineProperty, ya = Object.getOwnPropertyDescriptor, T = (t, e,
     (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
   return a && s && ba(e, i, s), s;
 };
-const Oe = (t, e, i) => {
+const ze = (t, e, i) => {
   t.dispatchEvent(
     new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
   );
@@ -2121,7 +2123,7 @@ let I = class extends C {
     return d`
       <ha-card
         class=${t.config_entry_id === this.selectedDisplayId ? "selected" : ""}
-        @click=${() => Oe(this, "display-selected", t.config_entry_id)}
+        @click=${() => ze(this, "display-selected", t.config_entry_id)}
       >
         <header>
           <div>
@@ -2134,7 +2136,7 @@ let I = class extends C {
             aria-label=${a ? "Stop temporary preview" : "Show temporary preview"}
             ?disabled=${!a && !r}
             @click=${(o) => {
-      o.stopPropagation(), Oe(this, "preview-toggle", t);
+      o.stopPropagation(), ze(this, "preview-toggle", t);
     }}
           >
             <ha-icon
@@ -2161,7 +2163,7 @@ let I = class extends C {
                       class="icon"
                       aria-label="Previous page"
                       @click=${(o) => {
-      o.stopPropagation(), Oe(this, "preview-page", {
+      o.stopPropagation(), ze(this, "preview-page", {
         displayId: t.config_entry_id,
         delta: -1
       });
@@ -2174,7 +2176,7 @@ let I = class extends C {
                       class="icon"
                       aria-label="Next page"
                       @click=${(o) => {
-      o.stopPropagation(), Oe(this, "preview-page", {
+      o.stopPropagation(), ze(this, "preview-page", {
         displayId: t.config_entry_id,
         delta: 1
       });
@@ -2190,7 +2192,7 @@ let I = class extends C {
         ${!s && e ? d`<ha-button
                 .disabled=${this.dirtyDisplays.has(t.config_entry_id)}
                 @click=${(o) => {
-      o.stopPropagation(), Oe(this, "scene-activate", t);
+      o.stopPropagation(), ze(this, "scene-activate", t);
     }}
                 >Activate ${this.selectedSceneName}</ha-button
               >` : c}
@@ -2198,7 +2200,7 @@ let I = class extends C {
     `;
   }
 };
-I.styles = O`
+I.styles = z`
     :host {
       display: grid;
       gap: 12px;
@@ -2510,7 +2512,7 @@ let S = class extends C {
     `;
   }
 };
-S.styles = O`
+S.styles = z`
     :host {
       display: block;
       font-family: var(--ha-font-family-body, Roboto, sans-serif);
@@ -2600,6 +2602,7 @@ S.styles = O`
       background: var(--secondary-background-color);
     }
     .nav-item ha-icon {
+      flex-shrink: 0;
       color: var(--secondary-text-color);
     }
     .nav-item.active ha-icon {
@@ -2637,6 +2640,7 @@ S.styles = O`
       color: var(--primary-color);
     }
     .scene ha-icon {
+      flex-shrink: 0;
       color: var(--secondary-text-color);
     }
     .active .scene ha-icon {
@@ -2773,8 +2777,8 @@ const fe = Da(class extends Ba {
     return Ma(t), e;
   }
 });
-var ka = Object.defineProperty, Oa = Object.getOwnPropertyDescriptor, ae = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Oa(e, i) : e, r = t.length - 1, o; r >= 0; r--)
+var ka = Object.defineProperty, za = Object.getOwnPropertyDescriptor, ae = (t, e, i, a) => {
+  for (var s = a > 1 ? void 0 : a ? za(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
   return a && s && ka(e, i, s), s;
 };
@@ -2801,7 +2805,7 @@ const oi = {
   "less_than",
   "less_than_or_equal",
   "range"
-], ct = new Set(Ke.filter((t) => t !== "range")), At = ["equals", "not_equals", "starts_with", "ends_with", "contains"], ze = ["available", "unavailable"], pt = (t) => Ke.includes(t), ni = () => ({
+], ct = new Set(Ke.filter((t) => t !== "range")), At = ["equals", "not_equals", "starts_with", "ends_with", "contains"], Oe = ["available", "unavailable"], pt = (t) => Ke.includes(t), ni = () => ({
   rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
   expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_a" }] }
 }), li = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"], U = (t) => t.replace("rule_", "").toUpperCase(), di = (t) => li[Math.max(0, t.charCodeAt(t.length - 1) - 97) % li.length], ht = (t, e, i) => {
@@ -2879,7 +2883,7 @@ let X = class extends C {
   }
   changeSource(t, e) {
     const i = this.draft.rules[t];
-    if (e === "card" && this.card?.type === "number" && ![...Ke, ...ze].includes(i.operator)) {
+    if (e === "card" && this.card?.type === "number" && ![...Ke, ...Oe].includes(i.operator)) {
       this.changeOperator(t, "range"), this.updateRule(t, { source: e });
       return;
     }
@@ -2890,7 +2894,7 @@ let X = class extends C {
     this.updateRule(t, { source: e });
   }
   operatorOptions(t) {
-    return t.source !== "card" ? Object.keys(oi) : this.card?.type === "number" ? [...Ke, ...ze] : [...At, ...ze];
+    return t.source !== "card" ? Object.keys(oi) : this.card?.type === "number" ? [...Ke, ...Oe] : [...At, ...Oe];
   }
   entitySelector(t) {
     if (["available", "unavailable"].includes(t.operator)) return {};
@@ -2934,9 +2938,9 @@ let X = class extends C {
   }
   changeOperator(t, e) {
     const i = this.draft.rules[t], a = { id: i.id, source: i.source, entity: i.entity, operator: e };
-    e === "range" ? (a.minimum = i.minimum, a.maximum = i.maximum) : ct.has(e) ? a.value = i.value : ze.includes(e) || (a.match = i.match ?? "");
+    e === "range" ? (a.minimum = i.minimum, a.maximum = i.maximum) : ct.has(e) ? a.value = i.value : Oe.includes(e) || (a.match = i.match ?? "");
     const s = a.entity ? this.hass?.states[a.entity] : void 0;
-    a.source === "entity" && a.entity && s && !ze.includes(e) && this.isNumericState(a.entity, s) !== pt(e) && delete a.entity, this.draft = { ...this.draft, rules: this.draft.rules.map((r, o) => o === t ? a : r) };
+    a.source === "entity" && a.entity && s && !Oe.includes(e) && this.isNumericState(a.entity, s) !== pt(e) && delete a.entity, this.draft = { ...this.draft, rules: this.draft.rules.map((r, o) => o === t ? a : r) };
   }
   addRule() {
     const t = new Set(this.draft.rules.map((s) => s.id));
@@ -3016,7 +3020,7 @@ let X = class extends C {
     ht(this, "visibility-save", t);
   }
 };
-X.styles = O`
+X.styles = z`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
     ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
     h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
@@ -3059,10 +3063,10 @@ ae([
 X = ae([
   H("mini-display-visibility-dialog")
 ], X);
-var za = Object.defineProperty, ja = Object.getOwnPropertyDescriptor, R = (t, e, i, a) => {
+var Oa = Object.defineProperty, ja = Object.getOwnPropertyDescriptor, R = (t, e, i, a) => {
   for (var s = a > 1 ? void 0 : a ? ja(e, i) : e, r = t.length - 1, o; r >= 0; r--)
     (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && za(e, i, s), s;
+  return a && s && Oa(e, i, s), s;
 };
 const Ia = (t) => {
   let e = "";
@@ -3188,7 +3192,7 @@ let E = class extends C {
     );
   }
 };
-E.styles = O`
+E.styles = z`
     :host {
       display: block;
     }
@@ -3440,7 +3444,7 @@ let Q = class extends C {
     }
   }
 };
-Q.styles = O`
+Q.styles = z`
     :host {
       display: block;
       min-width: 0;
@@ -3578,6 +3582,7 @@ Q.styles = O`
       text-align: center;
     }
     .empty ha-icon {
+      --mdc-icon-size: 54px;
       width: 54px;
       height: 54px;
       color: var(--secondary-text-color);
@@ -3690,7 +3695,7 @@ let ie = class extends C {
     </div>`;
   }
 };
-ie.styles = O`
+ie.styles = z`
     :host { display:block; min-width:0; font:inherit; color:var(--primary-text-color); }
     * { box-sizing:border-box; }
     label { display:block; margin-bottom:6px; font-size:14px; }
@@ -3769,7 +3774,7 @@ let Qe = class extends C {
       ` : c}`;
   }
 };
-Qe.styles = O`
+Qe.styles = z`
     :host { display:block; color:var(--primary-text-color); font:inherit; }
     * { box-sizing:border-box; } .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
     label { display:grid; gap:6px; font-size:14px; } label.check { display:flex; align-items:center; }
@@ -3937,7 +3942,7 @@ let We = class extends C {
       </div>`;
   }
 };
-We.styles = O`
+We.styles = z`
     :host {
       display: block;
       font: inherit;
@@ -5919,7 +5924,7 @@ let w = class extends C {
     `;
   }
 };
-w.styles = O`
+w.styles = z`
     :host {
       display: block;
       color: var(--primary-text-color);
@@ -5936,6 +5941,10 @@ w.styles = O`
     .segment:disabled { opacity: .5; cursor: not-allowed; }
     button {
       cursor: pointer;
+    }
+    ha-icon {
+      flex-shrink: 0;
+      vertical-align: middle;
     }
     .layout {
       display: grid;
@@ -6209,6 +6218,7 @@ w.styles = O`
       border-radius: 9px;
     }
     .tab ha-icon {
+      --mdc-icon-size: 16px;
       width: 16px;
       height: 16px;
     }
@@ -6373,6 +6383,7 @@ w.styles = O`
       background: var(--secondary-background-color);
     }
     .inline-icon-button ha-icon {
+      --mdc-icon-size: 17px;
       width: 17px;
       height: 17px;
     }
@@ -6435,6 +6446,7 @@ w.styles = O`
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     }
     .card-section-tab ha-icon {
+      --mdc-icon-size: 19px;
       width: 19px;
       height: 19px;
     }
@@ -6475,6 +6487,7 @@ w.styles = O`
     }
     .settings-heading > ha-icon,
     .setting-action > ha-icon {
+      --mdc-icon-size: 22px;
       flex: none;
       width: 22px;
       height: 22px;
@@ -6533,6 +6546,7 @@ w.styles = O`
       font-weight: 600;
     }
     .appearance-section > header ha-icon {
+      --mdc-icon-size: 18px;
       width: 18px;
       height: 18px;
       color: var(--secondary-text-color);
@@ -6700,6 +6714,7 @@ w.styles = O`
       font-size: 12px;
     }
     .condition-mark ha-icon {
+      --mdc-icon-size: 16px;
       width: 16px;
       height: 16px;
     }
@@ -6841,13 +6856,16 @@ w.styles = O`
     }
     .segment {
       display: flex;
-      flex: 1;
+      flex: 1 0 auto;
       align-items: center;
       justify-content: center;
       gap: 6px;
       min-width: 68px;
       min-height: 36px;
       padding: 6px 9px;
+      font: inherit;
+      line-height: 20px;
+      white-space: nowrap;
       color: var(--primary-text-color);
       background: transparent;
       border: 0;
@@ -6865,8 +6883,17 @@ w.styles = O`
       background: var(--primary-color);
     }
     .segment ha-icon {
+      --mdc-icon-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 18px;
       width: 18px;
       height: 18px;
+      line-height: 0;
+    }
+    .segment > span {
+      line-height: 20px;
     }
     .position-field {
       grid-column: 1/-1;
@@ -6957,6 +6984,7 @@ w.styles = O`
       background: color-mix(in srgb, var(--primary-color), transparent 90%);
     }
     .effect ha-icon {
+      --mdc-icon-size: 22px;
       width: 22px;
       height: 22px;
     }
@@ -6973,6 +7001,7 @@ w.styles = O`
       text-align: center;
     }
     .empty ha-icon {
+      --mdc-icon-size: 56px;
       width: 56px;
       height: 56px;
       color: var(--secondary-text-color);
@@ -7061,6 +7090,7 @@ w.styles = O`
         font-size: 12px;
       }
       .card-section-tab ha-icon {
+        --mdc-icon-size: 16px;
         width: 16px;
         height: 16px;
       }
@@ -7186,7 +7216,7 @@ let ce = class extends C {
     `;
   }
 };
-ce.styles = O`
+ce.styles = z`
     :host {
       display: block;
       min-height: 100%;

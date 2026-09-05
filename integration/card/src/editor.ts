@@ -83,6 +83,10 @@ export class MiniDisplayEditor extends LitElement {
     button {
       cursor: pointer;
     }
+    ha-icon {
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
     .layout {
       display: grid;
       grid-template-columns: 220px minmax(420px, 1fr) 288px;
@@ -355,6 +359,7 @@ export class MiniDisplayEditor extends LitElement {
       border-radius: 9px;
     }
     .tab ha-icon {
+      --mdc-icon-size: 16px;
       width: 16px;
       height: 16px;
     }
@@ -519,6 +524,7 @@ export class MiniDisplayEditor extends LitElement {
       background: var(--secondary-background-color);
     }
     .inline-icon-button ha-icon {
+      --mdc-icon-size: 17px;
       width: 17px;
       height: 17px;
     }
@@ -581,6 +587,7 @@ export class MiniDisplayEditor extends LitElement {
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     }
     .card-section-tab ha-icon {
+      --mdc-icon-size: 19px;
       width: 19px;
       height: 19px;
     }
@@ -621,6 +628,7 @@ export class MiniDisplayEditor extends LitElement {
     }
     .settings-heading > ha-icon,
     .setting-action > ha-icon {
+      --mdc-icon-size: 22px;
       flex: none;
       width: 22px;
       height: 22px;
@@ -679,6 +687,7 @@ export class MiniDisplayEditor extends LitElement {
       font-weight: 600;
     }
     .appearance-section > header ha-icon {
+      --mdc-icon-size: 18px;
       width: 18px;
       height: 18px;
       color: var(--secondary-text-color);
@@ -846,6 +855,7 @@ export class MiniDisplayEditor extends LitElement {
       font-size: 12px;
     }
     .condition-mark ha-icon {
+      --mdc-icon-size: 16px;
       width: 16px;
       height: 16px;
     }
@@ -987,13 +997,16 @@ export class MiniDisplayEditor extends LitElement {
     }
     .segment {
       display: flex;
-      flex: 1;
+      flex: 1 0 auto;
       align-items: center;
       justify-content: center;
       gap: 6px;
       min-width: 68px;
       min-height: 36px;
       padding: 6px 9px;
+      font: inherit;
+      line-height: 20px;
+      white-space: nowrap;
       color: var(--primary-text-color);
       background: transparent;
       border: 0;
@@ -1011,8 +1024,17 @@ export class MiniDisplayEditor extends LitElement {
       background: var(--primary-color);
     }
     .segment ha-icon {
+      --mdc-icon-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 18px;
       width: 18px;
       height: 18px;
+      line-height: 0;
+    }
+    .segment > span {
+      line-height: 20px;
     }
     .position-field {
       grid-column: 1/-1;
@@ -1103,6 +1125,7 @@ export class MiniDisplayEditor extends LitElement {
       background: color-mix(in srgb, var(--primary-color), transparent 90%);
     }
     .effect ha-icon {
+      --mdc-icon-size: 22px;
       width: 22px;
       height: 22px;
     }
@@ -1119,6 +1142,7 @@ export class MiniDisplayEditor extends LitElement {
       text-align: center;
     }
     .empty ha-icon {
+      --mdc-icon-size: 56px;
       width: 56px;
       height: 56px;
       color: var(--secondary-text-color);
@@ -1207,6 +1231,7 @@ export class MiniDisplayEditor extends LitElement {
         font-size: 12px;
       }
       .card-section-tab ha-icon {
+        --mdc-icon-size: 16px;
         width: 16px;
         height: 16px;
       }

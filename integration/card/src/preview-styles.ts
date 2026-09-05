@@ -304,6 +304,8 @@ export const previewStyles = css`
     pointer-events: auto;
   }
   .page-dropzone ha-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
     width: 18px;
     height: 18px;
   }

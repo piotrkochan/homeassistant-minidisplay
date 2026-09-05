@@ -109,6 +109,7 @@ export class MiniDisplaySceneSidebar extends LitElement {
       background: var(--secondary-background-color);
     }
     .nav-item ha-icon {
+      flex-shrink: 0;
       color: var(--secondary-text-color);
     }
     .nav-item.active ha-icon {
@@ -146,6 +147,7 @@ export class MiniDisplaySceneSidebar extends LitElement {
       color: var(--primary-color);
     }
     .scene ha-icon {
+      flex-shrink: 0;
       color: var(--secondary-text-color);
     }
     .active .scene ha-icon {

@@ -152,6 +152,7 @@ export class MiniDisplayImageManager extends LitElement {
       text-align: center;
     }
     .empty ha-icon {
+      --mdc-icon-size: 54px;
       width: 54px;
       height: 54px;
       color: var(--secondary-text-color);
