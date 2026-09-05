@@ -103,6 +103,13 @@ restored from its most recent on-device checkpoint.
 Run `make test-native` for data serialization, weather decoding and history aggregation tests
 without flashing a device.
 
+Dashboard uploads are staged on flash before validation. ESP8266 releases the
+received body and disposable font tables before allocating the validation
+document. The build applies an idempotent ownership-transfer patch to the pinned
+ESP8266 HTTP parser, avoiding a second full request-body allocation. The patch
+fails explicitly if the upstream parser changes and needs review; ESP32 builds
+are unaffected. Invalid dashboards do not replace the saved dashboard.
+
 ## Weather cards
 
 Choose **Weather** in the Mini-Display card editor and select a Home Assistant

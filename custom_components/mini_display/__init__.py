@@ -391,7 +391,7 @@ async def websocket_set_dashboard(hass, connection, msg) -> None:
     except MiniDisplayRequestError as err:
         connection.send_error(
             msg["id"],
-            "storage_full" if err.status == 507 else "display_rejected",
+            "storage_full" if err.status == 507 else "display_unavailable" if err.status == 503 else "display_rejected",
             str(err),
         )
         return

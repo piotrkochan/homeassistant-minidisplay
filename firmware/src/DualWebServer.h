@@ -6,6 +6,7 @@
 
 #include <ESP8266WebServer.h>
 #include <ESP8266WebServerSecure.h>
+#include "RequestBodyWebServer.h"
 
 class DualWebServer {
  public:
@@ -20,7 +21,7 @@ class DualWebServer {
                     const BearSSL::PrivateKey *privateKey) {
     tlsReady_ = certificate && privateKey;
     if (!tlsReady_) return;
-    if (!https_) https_ = new BearSSL::ESP8266WebServerSecure(httpsPort_);
+    if (!https_) https_ = new SecureServer(httpsPort_);
     if (!https_) {
       tlsReady_ = false;
       return;
@@ -78,6 +79,17 @@ class DualWebServer {
 
   const String &arg(const String &name) const {
     return secureRequest_ ? https_->arg(name) : http_.arg(name);
+  }
+
+  void releaseRequestBody() {
+    if (secureRequest_) https_->releaseRequestBody();
+    else http_.releaseRequestBody();
+  }
+
+  template <typename Callback>
+  void prepareDashboardRequests(Callback callback) {
+    http_.prepareDashboardRequests(callback);
+    if (tlsReady_) https_->prepareDashboardRequests(callback);
   }
 
   const String &header(const String &name) const {
@@ -155,8 +167,9 @@ class DualWebServer {
     };
   }
 
-  ESP8266WebServer http_;
-  BearSSL::ESP8266WebServerSecure *https_ = nullptr;
+  using SecureServer = RequestBodyWebServer<BearSSL::ESP8266WebServerSecure>;
+  RequestBodyWebServer<ESP8266WebServer> http_;
+  SecureServer *https_ = nullptr;
   uint16_t httpsPort_;
   bool tlsReady_ = false;
   bool secureRequest_ = false;

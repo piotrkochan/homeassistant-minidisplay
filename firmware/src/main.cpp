@@ -7,6 +7,7 @@
 #include "FeatureFlags.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
+#include "RequestBodyWebServer.h"
 #if MINI_DISPLAY_FEATURE_TLS
 #include "DualWebServer.h"
 #else
@@ -171,7 +172,7 @@ NetworkSettings networkSettings{};
 #if MINI_DISPLAY_FEATURE_TLS
 DualWebServer server(80, 443);
 #else
-ESP8266WebServer server(80);
+RequestBodyWebServer<ESP8266WebServer> server(80);
 #endif
 #else
 WebServer server(80);
@@ -2279,7 +2280,17 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   pageShownAt = millis();
 }
 
-bool loadDashboardMetadata(Stream &stream) {
+struct DashboardLoadFailure {
+  const __FlashStringHelper *message = nullptr;
+  bool retryable = false;
+};
+
+bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullptr) {
+  if (failure) failure->message = F("Invalid dashboard structure");
+  const auto reject = [&](const __FlashStringHelper *message, bool retryable = false) {
+    if (failure) { failure->message = message; failure->retryable = retryable; }
+    return false;
+  };
   StaticJsonDocument<768> filter;
   filter["version"] = true;
   filter["pages"][0]["id"] = true;
@@ -2303,7 +2314,15 @@ bool loadDashboardMetadata(Stream &stream) {
   recordFreeHeap();
   const auto error = deserializeJson(
       document, stream, DeserializationOption::Filter(filter));
-  if (error || document["version"].as<int>() != 1 ||
+  if (error) {
+    if (error == DeserializationError::NoMemory) {
+      return document.capacity() == 0
+          ? reject(F("Not enough free memory to validate dashboard; retry shortly"), true)
+          : reject(F("Dashboard metadata exceeds device memory limit"));
+    }
+    return reject(F("Malformed dashboard JSON"));
+  }
+  if (document["version"].as<int>() != 1 ||
       !document["pages"].is<JsonArray>()) {
     return false;
   }
@@ -2312,7 +2331,7 @@ bool loadDashboardMetadata(Stream &stream) {
       document["defaults"]["pageDurationSeconds"] | 10;
   JsonArray pages = document["pages"].as<JsonArray>();
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
-  if (!graphHistory.validate(pages)) return false;
+  if (!graphHistory.validate(pages)) return reject(F("Invalid graph settings or too many history series"));
 
   PageTransitionConfig legacyTransition;
   if (!PageTransitionRenderer::parse(document["transition"], legacyTransition)) {
@@ -2356,6 +2375,7 @@ bool loadDashboardMetadata(Stream &stream) {
           if (frame["x"].as<float>() < 0 || frame["y"].as<float>() < 0 ||
               frame["width"].as<float>() < 2 || frame["height"].as<float>() < 2 ||
               frame["x"].as<float>() + frame["width"].as<float>() > 100.01F ||
+    if (failure) failure->message = F("Invalid page id, duration, layout, transition or background image");
               frame["y"].as<float>() + frame["height"].as<float>() > 100.01F) return false;
         }
         const char *type = card["type"];
@@ -2384,6 +2404,7 @@ bool loadDashboardMetadata(Stream &stream) {
                 strcmp(name, "temperature") && strcmp(name, "low") &&
                 strcmp(name, "label") && strcmp(name, "humidity") &&
                 strcmp(name, "precipitation") && strcmp(name, "wind")) return false;
+        if (failure) failure->message = F("Invalid card settings, placement, count or image");
           }
           textBudget += 1 + weatherSources.size() * (fields.isNull() ? 3 : fields.size());
         } else {
@@ -2404,11 +2425,11 @@ bool loadDashboardMetadata(Stream &stream) {
             strcmp(fit, "stretch") != 0) return false;
       }
     }
-    if (hasWeather && textBudget > kMaxPageTexts) return false;
+    if (hasWeather && textBudget > kMaxPageTexts) return reject(F("Too many weather details on one page"));
     ++count;
   }
 
-  if (!graphHistory.configure(pages)) return false;
+  if (!graphHistory.configure(pages)) return reject(F("Not enough free memory for graph history"), true);
   for (uint8_t index = 0; index < dashboardValueCount; ++index) {
     const auto &value = dashboardValues[index];
     graphHistory.receive(value.source, value.state, value.available);
@@ -2648,11 +2669,14 @@ void receiveApiDashboard() {
   }
   temporary.close();
   File validation = LittleFS.open(kDashboardTempPath, "r");
-  const bool valid = validation && loadDashboardMetadata(validation);
+  DashboardLoadFailure failure;
+  const bool valid = validation && loadDashboardMetadata(validation, &failure);
   validation.close();
   if (!valid) {
     LittleFS.remove(kDashboardTempPath);
-    sendJsonError(422, F("invalid_dashboard"), F("Invalid version, pages, or durations"));
+    sendJsonError(failure.retryable ? 503 : 422,
+                  failure.retryable ? F("display_busy") : F("invalid_dashboard"),
+                  failure.message ? failure.message : F("Could not read uploaded dashboard"));
     return;
   }
   LittleFS.remove(kDashboardBackupPath);
@@ -2679,10 +2703,17 @@ void receiveApiDashboard() {
 
 void receiveApiData() {
   if (!apiAuthenticated()) return;
-  const String body = server.arg("plain");
+  const String &body = server.arg("plain");
   if (body.isEmpty() || body.length() > kMaxDataBytes) {
     sendJsonError(413, F("data_too_large"), F("Data update exceeds limit"));
     return;
+#if defined(ESP8266)
+  server.releaseRequestBody();
+  // Glyph tables are a disposable rendering cache, not framebuffer pixels.
+  // Reload lazily on the next render, after request validation has finished.
+  if (display.fontLoaded) display.unloadFont();
+  displayFontState = FontRenderState{};
+#endif
   }
   StaticJsonDocument<128> filter;
   filter["values"] = true;
@@ -3543,6 +3574,14 @@ void configureRoutes() {
   server.on("/api/v1/data/latest", HTTP_GET, sendApiLatestData);
   server.on("/api/v1/screenshot", HTTP_GET, sendApiScreenshot);
   server.on("/api/v1/display", HTTP_PUT, receiveApiDisplay);
+#if defined(ESP8266)
+  server.prepareDashboardRequests([] {
+    // HTTP parsing itself needs room for the incoming body before the handler
+    // can stage it on flash. No pixels or saved configuration are discarded.
+    if (display.fontLoaded) display.unloadFont();
+    displayFontState = FontRenderState{};
+  });
+#endif
   server.on("/api/v1/fonts", HTTP_GET, sendApiFonts);
   server.on("/api/v1/fonts", HTTP_PUT, receiveApiFontSelection);
   server.on("/api/v1/fonts/0", HTTP_PUT,
