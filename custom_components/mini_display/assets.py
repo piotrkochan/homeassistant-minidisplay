@@ -107,6 +107,8 @@ class MiniDisplayAssetManager:
 
     async def async_sync(self, asset_ids: set[str]) -> None:
         """Ensure every referenced asset exists on the physical display."""
+        if not asset_ids:
+            return
         missing = asset_ids - self._assets.keys()
         if missing:
             raise AssetValidationError(

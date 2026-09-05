@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime
@@ -698,6 +699,7 @@ class MiniDisplayDashboardManager:
         self.preview_page_id: str | None = None
         self.preview_dashboard: dict[str, Any] | None = None
         self.preview_owner: object | None = None
+        self._preview_lock = asyncio.Lock()
         self.sources: set[str] = set()
         self.visibility_sources: set[str] = set()
         self._store: Store[dict[str, Any]] = Store(
@@ -908,6 +910,19 @@ class MiniDisplayDashboardManager:
         page_id: str | None = None,
         dashboard: dict[str, Any] | None = None,
         owner: object | None = None,
+        update: bool = False,
+    ) -> None:
+        async with self._preview_lock:
+            if update and (self.preview_scene_id != scene_id or self.preview_owner is not owner):
+                raise DashboardValidationError("Preview has ended; enable preview again")
+            await self._async_start_preview(scene_id, page_id, dashboard, owner)
+
+    async def _async_start_preview(
+        self,
+        scene_id: str,
+        page_id: str | None = None,
+        dashboard: dict[str, Any] | None = None,
+        owner: object | None = None,
     ) -> None:
         """Temporarily show a scene without changing the active scene."""
         if scene_id not in self.scenes:
@@ -926,10 +941,14 @@ class MiniDisplayDashboardManager:
             raise DashboardValidationError("Page not found in scene")
         if page_id is not None:
             preview_dashboard = deepcopy(preview_dashboard)
+            preview_dashboard["pages"] = [page for page in preview_dashboard["pages"] if page["id"] == page_id]
             for page in preview_dashboard["pages"]:
                 if page["id"] == page_id:
                     page["enabled"] = True
-        await self._async_send_dashboard(preview_dashboard, page_id)
+        # A page preview needs only that page, not every page, image and source
+        # in its scene. A one-page dashboard renders immediately without a
+        # second HTTP request to select the page.
+        await self._async_send_dashboard(preview_dashboard)
         self._clear_preview()
         self.preview_scene_id = scene_id
         self.preview_page_id = page_id
@@ -941,6 +960,10 @@ class MiniDisplayDashboardManager:
         self._replace_subscriptions()
 
     async def async_stop_preview(self, owner: object | None = None) -> None:
+        async with self._preview_lock:
+            await self._async_stop_preview(owner)
+
+    async def _async_stop_preview(self, owner: object | None = None) -> None:
         """Restore the active scene after a temporary preview."""
         if self.preview_scene_id is None or (
             owner is not None and owner is not self.preview_owner
@@ -960,6 +983,10 @@ class MiniDisplayDashboardManager:
         self.preview_owner = None
 
     async def _async_preview_expired(self, _now: datetime) -> None:
+        async with self._preview_lock:
+            await self._async_expire_preview()
+
+    async def _async_expire_preview(self) -> None:
         self._cancel_preview = None
         try:
             self._clear_preview()

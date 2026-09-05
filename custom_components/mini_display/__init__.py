@@ -626,6 +626,7 @@ async def websocket_activate_scene(hass, connection, msg) -> None:
         "scene_id": str,
         vol.Optional("page_id"): str,
         vol.Optional("dashboard"): dict,
+        vol.Optional("update", default=False): bool,
     }
 )
 @websocket_api.async_response
@@ -642,14 +643,19 @@ async def websocket_start_scene_preview(hass, connection, msg) -> None:
             msg.get("page_id"),
             msg.get("dashboard"),
             owner=connection,
+            update=msg["update"],
         )
+    except MiniDisplayApiError as err:
+        connection.send_error(msg["id"], "display_unavailable", str(err))
+        return
     except DashboardValidationError as err:
         connection.send_error(msg["id"], "invalid_scene", str(err))
         return
     def stop_preview_on_disconnect() -> None:
         hass.async_create_task(manager.async_stop_preview(owner=connection))
 
-    connection.subscriptions[msg["id"]] = stop_preview_on_disconnect
+    if not msg["update"]:
+        connection.subscriptions[msg["id"]] = stop_preview_on_disconnect
     connection.send_result(msg["id"], {"accepted": True, "timeout": 300})
 
 
