@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mini-display.local/schema/dashboard.schema.json",
   "title": "MiniDisplay dashboard",
-  "description": "Dashboard with automatic rows or freely positioned items. Free-layout coordinates are percentages of the display area. Graph history is collected on the display.",
+  "description": "Dashboard with automatic rows or freely positioned items. Free-layout coordinates are percentages of the display area. Graph history is aggregated by Home Assistant and sent to the display.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "pages"],

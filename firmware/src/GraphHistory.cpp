@@ -1,12 +1,10 @@
 #include "GraphHistory.h"
 
 #include <LittleFS.h>
-#include <ctime>
-#include "ImageAssets.h"
+#include "GraphSnapshot.h"
 
 GraphHistory graphHistory;
 namespace {
-constexpr uint32_t kCheckpointMs = 15UL * 60 * 1000;
 constexpr const char *kPath = "/graph-history.bin";
 constexpr const char *kTemporary = "/graph-history.tmp";
 constexpr const char *kBackup = "/graph-history.bak";
@@ -31,12 +29,6 @@ bool same(const Key &a, const Key &b) {
 }
 Key keyFor(const GraphSeries &series) {
   return {series.source, series.interval, series.capacity, series.aggregation};
-}
-uint32_t checksum(const GraphSeries &series) {
-  uint32_t result = 2166136261UL;
-  const auto *data = reinterpret_cast<const uint8_t *>(&series);
-  for (size_t i = 0; i < sizeof(series); ++i) result = (result ^ data[i]) * 16777619UL;
-  return result;
 }
 bool collect(JsonArrayConst pages, Key *keys, uint8_t &count) {
   count = 0;
@@ -73,33 +65,6 @@ bool collect(JsonArrayConst pages, Key *keys, uint8_t &count) {
     }
   return true;
 }
-void restore(GraphSeries &series) {
-  for (const char *path : {kPath, kBackup}) {
-    File file = LittleFS.open(path, "r");
-    if (!file) continue;
-    uint32_t magic = 0;
-    uint8_t count = 0;
-    file.read(reinterpret_cast<uint8_t *>(&magic), sizeof(magic));
-    file.read(&count, 1);
-    if (magic != 0x47524831 || count > kMaxGraphSeries) { file.close(); continue; }
-    GraphSeries candidate;
-    for (uint8_t i = 0; i < count; ++i) {
-      uint32_t crc = 0;
-      if (file.read(reinterpret_cast<uint8_t *>(&candidate), sizeof(candidate)) != sizeof(candidate) ||
-          file.read(reinterpret_cast<uint8_t *>(&crc), sizeof(crc)) != sizeof(crc)) break;
-      if (crc != checksum(candidate) || candidate.source[64] != '\0' ||
-          candidate.capacity < 2 || candidate.capacity > 120 || candidate.head >= candidate.capacity) continue;
-      if (same(keyFor(series), keyFor(candidate))) {
-        series = candidate;
-        series.latest = NAN; // Never resume sampling stale pre-reboot values.
-        series.lastReceived = 0;
-        file.close();
-        return;
-      }
-    }
-    file.close();
-  }
-}
 } // namespace
 
 bool GraphHistory::validate(JsonArrayConst pages) const {
@@ -121,7 +86,6 @@ bool GraphHistory::configure(JsonArrayConst pages) {
     next[i]->capacity = keys[i].points;
     next[i]->interval = keys[i].interval;
     next[i]->aggregation = keys[i].aggregation;
-    restore(*next[i]);
   }
   for (uint8_t i = 0; i < count; ++i)
     if (retained[i] >= 0) next[i] = std::move(series_[retained[i]]);
@@ -134,56 +98,27 @@ const GraphSeries *GraphHistory::find(JsonObjectConst card) const {
   for (const auto &series : series_) if (series && same(key, keyFor(*series))) return series.get();
   return nullptr;
 }
-void GraphHistory::receive(const char *source, const char *state, bool available) {
-  char *end = nullptr;
-  const float value = strtof(state, &end);
-  for (auto &series : series_) if (series && strcmp(series->source, source) == 0) {
-    series->latest = available && end != state && *end == '\0' && std::isfinite(value) ? value : NAN;
-    series->lastReceived = time(nullptr);
+bool GraphHistory::receiveSnapshot(JsonObjectConst snapshot) {
+  if (!snapshot["points"].is<uint8_t>() || !snapshot["intervalSeconds"].is<uint32_t>()) return false;
+  const char *source = snapshot["source"] | "";
+  const char *aggregation = snapshot["aggregation"] | "";
+  const uint32_t interval = snapshot["intervalSeconds"] | 0UL;
+  const uint8_t points = snapshot["points"] | uint8_t(0);
+  for (auto &series : series_) if (series && strcmp(series->source, source) == 0 &&
+      series->interval == interval && series->capacity == points) {
+    const char *name = series->aggregation == GraphAggregation::Minimum ? "min" :
+        series->aggregation == GraphAggregation::Maximum ? "max" :
+        series->aggregation == GraphAggregation::Last ? "last" : "mean";
+    if (strcmp(name, aggregation) == 0) return applyGraphSnapshot(*series, snapshot);
   }
-}
-bool GraphHistory::tick() {
-  if (millis() - sampledAt_ < 15000) return false;
-  sampledAt_ = millis();
-  bool changed = false;
-  for (auto &series : series_) if (series) changed |= series->sample(time(nullptr));
-  dirty_ |= changed;
-  checkpoint();
-  return changed;
+  return false;
 }
 size_t GraphHistory::bytes() const {
   size_t result = 0;
   for (const auto &series : series_) if (series) result += sizeof(GraphSeries);
   return result;
 }
-bool GraphHistory::checkpoint(bool force) {
-  if (!dirty_ || (!force && millis() - savedAt_ < kCheckpointMs)) return true;
-  savedAt_ = millis();
-  FSInfo info;
-  if (!LittleFS.info(info) || info.totalBytes - info.usedBytes < kImageStorageReserveBytes) {
-    storageError_ = true; return false;
-  }
-  File file = LittleFS.open(kTemporary, "w");
-  uint32_t magic = 0x47524831;
-  uint8_t count = bytes() / sizeof(GraphSeries);
-  bool ok = file && file.write(reinterpret_cast<uint8_t *>(&magic), sizeof(magic)) == sizeof(magic) && file.write(&count, 1) == 1;
-  for (const auto &series : series_) if (ok && series) {
-    uint32_t crc = checksum(*series);
-    ok = file.write(reinterpret_cast<const uint8_t *>(series.get()), sizeof(GraphSeries)) == sizeof(GraphSeries) &&
-         file.write(reinterpret_cast<uint8_t *>(&crc), sizeof(crc)) == sizeof(crc);
-  }
-  file.close();
-  if (ok) {
-    LittleFS.remove(kBackup);
-    if (LittleFS.exists(kPath)) ok = LittleFS.rename(kPath, kBackup);
-    if (ok) ok = LittleFS.rename(kTemporary, kPath);
-  }
-  storageError_ = !ok;
-  if (ok) dirty_ = false;
-  return ok;
-}
 void GraphHistory::reset() {
   for (auto &series : series_) series.reset();
   for (const char *path : {kPath, kTemporary, kBackup}) LittleFS.remove(path);
-  dirty_ = false;
 }

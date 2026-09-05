@@ -18,6 +18,7 @@ from .api import MiniDisplayApiError, MiniDisplayClient
 from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 from .graphs import validate_graphs
+from .history_data import HistoryData
 from .weather import WeatherData, validate_weather, validate_weather_budget, weather_cards
 
 STORE_VERSION = 1
@@ -691,6 +692,7 @@ class MiniDisplayDashboardManager:
         self.client = client
         self.assets = MiniDisplayAssetManager(hass, entry_id, client)
         self.weather = hass.data.setdefault("mini_display_weather_cache", WeatherData(hass))
+        self.history = HistoryData(hass)
         self.data_batch_interval = data_batch_interval
         self.scenes: dict[str, dict[str, Any]] = {}
         self.active_scene_id = DEFAULT_SCENE_ID
@@ -1029,6 +1031,7 @@ class MiniDisplayDashboardManager:
             await self.client.async_patch_values(values, render=False)
         await self.assets.async_sync(extract_assets(rendered))
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
+        await self._async_send_history(rendered)
         self._last_rendered_dashboard = canonical_rendered
         if active_page_id is not None:
             await self.client.async_set_page(active_page_id)
@@ -1073,6 +1076,16 @@ class MiniDisplayDashboardManager:
         }
         values.update(await self.weather.values(self._shown_dashboard()))
         await self.client.async_patch_values(values)
+        await self._async_send_history(self._last_rendered_dashboard)
+
+    async def _async_send_history(self, dashboard) -> None:
+        series = await self.history.series(dashboard)
+        for index, item in enumerate(series):
+            try:
+                await self.client.async_patch_history(item, render=index == len(series) - 1)
+            except MiniDisplayApiError:
+                _LOGGER.debug("History update delayed; retrying at next heartbeat")
+                break
 
     def _shown_dashboard(self) -> dict | None:
         return self.preview_dashboard if self.preview_scene_id is not None else self.scenes.get(self.active_scene_id, {}).get("dashboard")

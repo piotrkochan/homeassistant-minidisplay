@@ -2507,10 +2507,6 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
   }
 
   if (!graphHistory.configure(pages)) return reject(F("Not enough free memory for graph history"), true);
-  for (uint8_t index = 0; index < dashboardValueCount; ++index) {
-    const auto &value = dashboardValues[index];
-    graphHistory.receive(value.source, value.state, value.available);
-  }
   count = 0;
   for (JsonObject page : pages) {
     DashboardPage &parsed = dashboardPages[count++];
@@ -2794,6 +2790,7 @@ void receiveApiData() {
   }
   StaticJsonDocument<128> filter;
   filter["values"] = true;
+  filter["series"] = true;
   filter["render"] = true;
   DynamicJsonDocument document(4096);
   recordFreeHeap();
@@ -2805,6 +2802,18 @@ void receiveApiData() {
   }
   JsonObject values = document["values"].as<JsonObject>();
   uint32_t changedValueMask = 0;
+  if (document.containsKey("series")) {
+    if (pageTransitionActive) {
+      sendJsonError(503, F("display_busy"), F("Retry history update after transition"));
+      return;
+    }
+    if (!document["series"].is<JsonObjectConst>() ||
+        !graphHistory.receiveSnapshot(document["series"])) {
+      sendJsonError(422, F("invalid_history"), F("Invalid or unconfigured history series"));
+      return;
+    }
+    changedValueMask = UINT32_MAX;
+  }
   for (JsonPair pair : values) {
     DashboardValue *slot = findValue(pair.key().c_str(), true);
     if (slot == nullptr) continue;
@@ -2812,7 +2821,6 @@ void receiveApiData() {
     const char *state = value["state"] | "unknown";
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = value["available"] | false;
-    graphHistory.receive(pair.key().c_str(), state, slot->available);
     changedValueMask |= 1UL << (slot - dashboardValues);
   }
   if (document["render"] | true) {
@@ -3120,7 +3128,6 @@ void receiveApiPage() {
 
 void receiveApiRestart() {
   if (!apiAuthenticated()) return;
-  graphHistory.checkpoint(true);
   server.send(204);
   delay(100);
   ESP.restart();
@@ -4037,7 +4044,6 @@ void loop() {
     applyBacklight();
   }
 
-  if (graphHistory.tick()) pendingChangedValues = UINT32_MAX;
   if (fullRenderPending &&
       static_cast<int32_t>(millis() - fullRenderNotBefore) >= 0) {
     fullRenderPending = false;

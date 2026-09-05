@@ -98,7 +98,21 @@ The response is streamed in bounded chunks rather than buffered in full.
 `GET /api/v1/data/latest` remains the diagnostic capture of the last update
 payload; it is not the full retained state. Current entity values live in RAM;
 after reboot they need a new update from Home Assistant. Chart history is
-restored from its most recent on-device checkpoint.
+reloaded from Home Assistant Recorder. The display keeps only the latest bounded
+series in RAM; it neither samples entity values nor checkpoints history to flash.
+
+Home Assistant refreshes graph history every minute and after dashboard upload
+or display resynchronization. Each graph uses `points` epoch-aligned buckets of
+`intervalSeconds`, including the current partial bucket. `mean` is time-weighted;
+`min`, `max`, and `last` use the recorded states. Unavailable periods remain gaps.
+History depends on Recorder retention and entity exclusions; deleted history
+cannot be reconstructed. Graph settings and styling are unchanged.
+
+`PATCH /api/v1/data` accepts one optional `series` object alongside `values`:
+`{"values":{},"series":{"source":"sensor.power","points":3,"intervalSeconds":300,"aggregation":"mean","bucket":6000000,"values":[12,null,24]},"render":true}`.
+The series must match a configured graph. Values are oldest first, with `null`
+for gaps. Invalid snapshots return 422 without replacing the previous history.
+Updates during animations return 503 for retry. Requests use normal API authentication.
 
 Run `make test-native` for data serialization, weather decoding and history aggregation tests
 without flashing a device.

@@ -253,6 +253,17 @@ class MiniDisplayClient:
             expect_json=False,
         )
 
+    async def async_patch_history(self, series: dict[str, Any], *, render: bool = True) -> None:
+        """One series per request keeps the ESP JSON allocation bounded."""
+        for attempt in range(3):
+            try:
+                await self._request("PATCH", "/data", json={"values": {}, "series": series, "render": render}, expect_json=False)
+                return
+            except MiniDisplayRequestError as err:
+                if err.status != 503 or attempt == 2:
+                    raise
+                await asyncio.sleep(1)
+
     async def async_get_assets(self) -> dict[str, Any]:
         """Return image assets stored by the display."""
         return await self._request("GET", "/assets")

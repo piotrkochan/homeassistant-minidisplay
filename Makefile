@@ -52,9 +52,15 @@ card-check:
 	npm --prefix integration/card run check
 
 test-native:
-	python3 tests/test_page_timing.py
 	@test -d firmware/.pio/libdeps/sdpro/ArduinoJson/src || { echo "run make build first to install ArduinoJson"; exit 1; }
 	@mkdir -p .cache/tests
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/graph_snapshot_test.cpp -o .cache/tests/graph-snapshot
+	.cache/tests/graph-snapshot
+	python3 tests/test_page_timing.py
+	python3 tests/test_history_aggregation.py
+	python3 tests/test_history_data.py
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
 		firmware/tests/display_data_test.cpp -o .cache/tests/display-data
