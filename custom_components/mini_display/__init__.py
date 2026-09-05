@@ -382,10 +382,11 @@ async def websocket_list_assets(hass, connection, msg) -> None:
     if runtime is None:
         connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
-    connection.send_result(
-        msg["id"],
-        runtime["dashboard"].assets.list(include_data=msg["include_data"]),
-    )
+    manager = runtime["dashboard"]
+    assets = manager.assets.list(include_data=msg["include_data"])
+    for asset in assets:
+        asset["used_by"] = manager.asset_references(asset["id"])
+    connection.send_result(msg["id"], assets)
 
 
 @websocket_api.websocket_command(
@@ -432,8 +433,17 @@ async def websocket_delete_asset(hass, connection, msg) -> None:
     if runtime is None:
         connection.send_error(msg["id"], "not_found", "MiniDisplay display not found")
         return
+    manager = runtime["dashboard"]
+    references = manager.asset_references(msg["asset_id"])
+    if references:
+        connection.send_error(
+            msg["id"],
+            "asset_in_use",
+            f"Image is used in: {', '.join(references)}",
+        )
+        return
     try:
-        await runtime["dashboard"].assets.async_delete(msg["asset_id"])
+        await manager.assets.async_delete(msg["asset_id"])
     except MiniDisplayApiError:
         connection.send_error(msg["id"], "display_unavailable", "Mini-Display did not respond")
         return

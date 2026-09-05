@@ -23,6 +23,7 @@ import "./preview-list";
 import "./scene-sidebar";
 import "./visibility-dialog";
 import "./image-field";
+import "./image-manager";
 
 @customElement("mini-display-editor")
 export class MiniDisplayEditor extends LitElement {
@@ -34,6 +35,7 @@ export class MiniDisplayEditor extends LitElement {
   @state() private savedDashboards: Record<string, Dashboard | null> = {};
   @state() private selectedDisplayId = "";
   @state() private selectedSceneId = "";
+  @state() private section: "scenes" | "images" = "scenes";
   @state() private pageIndex = 0;
   @state() private cardSection: "content" | "appearance" | "rules" = "content";
   @state() private editingRowTitle?: number;
@@ -80,6 +82,9 @@ export class MiniDisplayEditor extends LitElement {
       gap: 16px;
       align-items: start;
       min-width: 0;
+    }
+    .images-view {
+      grid-column: 2 / -1;
     }
     ha-card {
       overflow: hidden;
@@ -1159,6 +1164,9 @@ export class MiniDisplayEditor extends LitElement {
       .layout {
         grid-template-columns: 1fr;
       }
+      .images-view {
+        grid-column: 1;
+      }
       .scene-list {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       }
@@ -1511,6 +1519,7 @@ export class MiniDisplayEditor extends LitElement {
   }
 
   private async selectScene(sceneId: string) {
+    this.section = "scenes";
     if (sceneId === this.selectedSceneId) return;
     if (
       this.dirtyDisplays.size &&
@@ -1714,6 +1723,7 @@ export class MiniDisplayEditor extends LitElement {
     while (existing.has(name.toLocaleLowerCase()))
       name = `New scene (${suffix++})`;
     try {
+      this.section = "scenes";
       const scene = await this.hass.callWS<Scene>({
         type: "mini_display/scene/create",
         name,
@@ -3458,6 +3468,18 @@ export class MiniDisplayEditor extends LitElement {
                               this.changed();
                             },
                           )}
+                          <div class="inline-option">
+                            ${this.checkbox(
+                              "Transparent card backgrounds",
+                              page.transparentCards === true,
+                              (input) => {
+                                page.transparentCards = input;
+                                this.changed();
+                              },
+                              false,
+                              "Keeps each card background setting but does not render it on this page",
+                            )}
+                          </div>
                           ${
                             page.showTitle !== false
                               ? html`
@@ -3586,10 +3608,13 @@ export class MiniDisplayEditor extends LitElement {
           .scenes=${this.scenes}
           .selectedDisplayId=${this.selectedDisplayId}
           .selectedSceneId=${this.selectedSceneId}
+          .section=${this.section}
+          .imageCount=${this.assets[this.selectedDisplayId]?.length ?? 0}
           .form=${this.sceneForm}
           .sceneName=${this.sceneName}
           @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
           @scene-selected=${(event: CustomEvent<string>) => void this.selectScene(event.detail)}
+          @images-selected=${() => (this.section = "images")}
           @scene-create=${() => void this.createScene()}
           @scene-rename=${this.openRenameScene}
           @scene-duplicate=${() => void this.duplicateScene()}
@@ -3600,25 +3625,55 @@ export class MiniDisplayEditor extends LitElement {
           @scene-save=${() => void this.saveSceneForm()}
         ></mini-display-scene-sidebar>
 
-        ${this.renderEditor()}
+        ${
+          this.section === "images"
+            ? html`<mini-display-image-manager
+                class="images-view"
+                .hass=${this.hass}
+                .assets=${this.assets[this.selectedDisplayId] ?? []}
+                .displayId=${this.selectedDisplayId}
+                .displayName=${this.selectedDisplay?.title ?? "Display"}
+                .maximumWidth=${this.selectedDisplay?.width ?? 240}
+                .maximumHeight=${this.selectedDisplay?.height ?? 240}
+                @asset-uploaded=${(event: CustomEvent<ImageAsset>) => {
+                const current = this.assets[this.selectedDisplayId] ?? [];
+                this.assets = {
+                  ...this.assets,
+                  [this.selectedDisplayId]: [
+                    ...current.filter((asset) => asset.id !== event.detail.id),
+                    event.detail,
+                  ],
+                };
+              }}
+                @asset-deleted=${(event: CustomEvent<string>) => {
+                this.assets = {
+                  ...this.assets,
+                  [this.selectedDisplayId]: (
+                    this.assets[this.selectedDisplayId] ?? []
+                  ).filter((asset) => asset.id !== event.detail),
+                };
+              }}
+              ></mini-display-image-manager>`
+            : html`${this.renderEditor()}
 
-        <mini-display-preview-list
-          .hass=${this.hass}
-          .displays=${this.displays}
-          .dashboards=${this.dashboards}
-          .pages=${this.previewPages}
-          .dirtyDisplays=${this.dirtyDisplays}
-          .selectedDisplayId=${this.selectedDisplayId}
-          .selectedSceneId=${this.selectedSceneId}
-          .selectedSceneName=${this.selectedScene?.name ?? ""}
-          .assets=${this.assets}
-          @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
-          @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
-          @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}
-          @preview-select=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "row" | "card" | "title" | "value"; row?: number; card?: number }>) => void this.openFromPreview(event.detail)}
-          @preview-position=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "title" | "value"; row?: number; card?: number; position?: "top" | "right" | "bottom" | "left"; horizontalAlign?: NonNullable<Style["horizontalAlign"]>; verticalAlign?: NonNullable<Style["verticalAlign"]> }>) => void this.updateFromPreview(event.detail)}
-          @scene-activate=${(event: CustomEvent<Display>) => void this.activateScene(event.detail)}
-        ></mini-display-preview-list>
+                <mini-display-preview-list
+                  .hass=${this.hass}
+                  .displays=${this.displays}
+                  .dashboards=${this.dashboards}
+                  .pages=${this.previewPages}
+                  .dirtyDisplays=${this.dirtyDisplays}
+                  .selectedDisplayId=${this.selectedDisplayId}
+                  .selectedSceneId=${this.selectedSceneId}
+                  .selectedSceneName=${this.selectedScene?.name ?? ""}
+                  .assets=${this.assets}
+                  @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
+                  @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
+                  @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}
+                  @preview-select=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "row" | "card" | "title" | "value"; row?: number; card?: number }>) => void this.openFromPreview(event.detail)}
+                  @preview-position=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "title" | "value"; row?: number; card?: number; position?: "top" | "right" | "bottom" | "left"; horizontalAlign?: NonNullable<Style["horizontalAlign"]>; verticalAlign?: NonNullable<Style["verticalAlign"]> }>) => void this.updateFromPreview(event.detail)}
+                  @scene-activate=${(event: CustomEvent<Display>) => void this.activateScene(event.detail)}
+                ></mini-display-preview-list>`
+        }
       </div>
 
       ${

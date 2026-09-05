@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <cstring>
 
 constexpr size_t kImageAssetIdLength = 16;
 constexpr size_t kImageAssetHeaderBytes = 8;
@@ -90,11 +91,25 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
     }
     const bool upscale = destinationWidth > sampledWidth;
     if (upscale) {
+      // Compact exactly the source span used by this clipped output row. The
+      // right-to-left expansion can then safely reuse the same bounded buffer.
+      const int16_t firstDestinationColumn = visibleLeft - destinationX;
+      const int16_t firstMappedX =
+          sourceX + static_cast<int32_t>(firstDestinationColumn) *
+                        sampledWidth / destinationWidth;
+      const int16_t lastMappedX =
+          sourceX +
+          static_cast<int32_t>(firstDestinationColumn + outputWidth - 1) *
+              sampledWidth / destinationWidth;
+      memmove(line, line + firstMappedX,
+              static_cast<size_t>(lastMappedX - firstMappedX + 1) *
+                  sizeof(uint16_t));
       for (int16_t output = outputWidth - 1; output >= 0; --output) {
         const int16_t destinationColumn = visibleLeft - destinationX + output;
-        const int16_t mappedX = sourceX +
-            static_cast<int32_t>(destinationColumn) * sampledWidth /
-                destinationWidth;
+        const int16_t mappedX =
+            sourceX + static_cast<int32_t>(destinationColumn) * sampledWidth /
+                          destinationWidth -
+            firstMappedX;
         const uint16_t color = line[mappedX];
 #if defined(ESP8266)
         line[output] = (color << 8) | (color >> 8);

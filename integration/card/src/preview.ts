@@ -1162,7 +1162,7 @@ export class MiniDisplayPreview extends LitElement {
                   </div>`;
                   return html`<div
                     class="card ${card.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${hidden && !rowHidden ? "hidden-item" : ""}"
-                    style=${`${backgroundMode === "transparent" ? "background:transparent" : `background-color:${background}`};${cardImage ? `background-image:url(${cardImage});background-size:${card.imageFit === "contain" ? "contain" : card.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${foreground}`}
+                    style=${`${page.transparentCards || backgroundMode === "transparent" ? "background:transparent" : `background-color:${background}`};${!page.transparentCards && cardImage ? `background-image:url(${cardImage});background-size:${card.imageFit === "contain" ? "contain" : card.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${foreground}`}
                     @click=${(event: Event) => {
                       event.stopPropagation();
                       this.emit("preview-select", {

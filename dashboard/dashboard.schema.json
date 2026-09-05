@@ -374,6 +374,7 @@
         "transition": { "$ref": "#/$defs/transition" },
         "style": { "$ref": "#/$defs/style" },
         "backgroundImage": { "$ref": "#/$defs/assetId" },
+        "transparentCards": { "type": "boolean", "default": false },
         "rows": {
           "type": "array",
           "minItems": 1,

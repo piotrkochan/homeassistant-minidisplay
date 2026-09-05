@@ -98,6 +98,7 @@ struct CachedArea {
 struct CachedPage {
   uint16_t background;
   char backgroundImage[kImageAssetIdLength + 1];
+  bool transparentCards;
   bool hasTitleArea;
   CachedArea titleArea;
   uint8_t cardCount;

@@ -111,6 +111,10 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
             page["transition"] = deepcopy(legacy_transition)
         _validate_transition(page.get("transition"), f"{page_path}/transition")
         _validate_asset_id(page.get("backgroundImage"), f"{page_path}/backgroundImage")
+        if not isinstance(page.get("transparentCards", False), bool):
+            raise DashboardValidationError(
+                "transparentCards must be a boolean", f"{page_path}/transparentCards"
+            )
         duration = page.get("durationSeconds")
         if duration is not None and (not isinstance(duration, int) or not 1 <= duration <= 86400):
             raise DashboardValidationError("durationSeconds must be 1-86400", f"{page_path}/durationSeconds")
@@ -798,6 +802,15 @@ class MiniDisplayDashboardManager:
         """Return a scene's display name."""
         scene = self.scenes.get(scene_id or self.active_scene_id)
         return scene["name"] if scene else None
+
+    def asset_references(self, asset_id: str) -> list[str]:
+        """Return scene names which reference an image asset."""
+        return [
+            scene["name"]
+            for scene in self.scenes.values()
+            if scene["dashboard"] is not None
+            and asset_id in extract_assets(scene["dashboard"])
+        ]
 
     async def async_create_scene(
         self, scene_id: str, name: str, dashboard: dict[str, Any] | None = None

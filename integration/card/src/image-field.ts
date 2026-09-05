@@ -20,7 +20,7 @@ const hash64 = (bytes: Uint8Array) => {
   return hash.toString(16).padStart(16, "0");
 };
 
-const encodeImage = async (
+export const encodeImage = async (
   file: File,
   maximumWidth: number,
   maximumHeight: number,
@@ -81,6 +81,7 @@ export class MiniDisplayImageField extends LitElement {
   @property() displayId = "";
   @property() label = "Image";
   @property() value = "";
+  @property({ type: Boolean }) uploadOnly = false;
   @property({ type: Number }) maximumWidth = 240;
   @property({ type: Number }) maximumHeight = 240;
   @state() private busy = false;
@@ -141,6 +142,26 @@ export class MiniDisplayImageField extends LitElement {
       background: var(--secondary-background-color);
       cursor: pointer;
     }
+    .actions {
+      display: flex;
+      gap: 4px;
+    }
+    .detach {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      color: var(--secondary-text-color);
+      background: transparent;
+      border: 0;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .detach:hover {
+      color: var(--primary-text-color);
+      background: var(--secondary-background-color);
+    }
     .upload input {
       position: absolute;
       inset: 0;
@@ -163,23 +184,44 @@ export class MiniDisplayImageField extends LitElement {
       <div class="picker">
         ${selected?.preview ? html`<img class="thumb" src=${selected.preview} alt="" />` : html`<div class="thumb empty"><ha-icon icon="mdi:image-outline"></ha-icon></div>`}
         <div>
-          <select
-            .value=${this.value}
-            ?disabled=${this.busy}
-            @change=${(event: Event) => this.select((event.target as HTMLSelectElement).value)}
-          >
-            <option value="">No image</option>
-            ${this.assets.map((asset) => html`<option value=${asset.id}>${asset.name} · ${asset.width}×${asset.height}</option>`)}</select
-          >${selected ? html`<small>${Math.ceil(selected.bytes / 1024)} KB on display</small>` : nothing}
+          ${
+            this.uploadOnly
+              ? html`<strong>Add a new image</strong><br /><small
+                    >Optimized for this display before upload</small
+                  >`
+              : html`<select
+                    .value=${this.value}
+                    ?disabled=${this.busy}
+                    @change=${(event: Event) => this.select((event.target as HTMLSelectElement).value)}
+                  >
+                    <option value="">No image</option>
+                    ${this.assets.map((asset) => html`<option value=${asset.id}>${asset.name} · ${asset.width}×${asset.height}</option>`)}</select
+                  >${selected ? html`<small>${Math.ceil(selected.bytes / 1024)} KB on display</small>` : nothing}`
+          }
         </div>
-        <label class="upload" title="Upload image"
-          ><ha-icon icon=${this.busy ? "mdi:loading" : "mdi:upload"}></ha-icon
-          ><input
-            type="file"
-            accept="image/*"
-            ?disabled=${this.busy}
-            @change=${this.upload}
-        /></label>
+        <div class="actions">
+          ${
+            selected && !this.uploadOnly
+              ? html`<button
+                  class="detach"
+                  title="Detach image"
+                  aria-label="Detach image"
+                  ?disabled=${this.busy}
+                  @click=${() => this.select("")}
+                >
+                  <ha-icon icon="mdi:image-remove-outline"></ha-icon>
+                </button>`
+              : nothing
+          }
+          <label class="upload" title="Upload image"
+            ><ha-icon icon=${this.busy ? "mdi:loading" : "mdi:upload"}></ha-icon
+            ><input
+              type="file"
+              accept="image/*"
+              ?disabled=${this.busy}
+              @change=${this.upload}
+          /></label>
+        </div>
       </div>
       ${this.error ? html`<div class="error" role="alert">${this.error}</div>` : nothing}
     </div>`;
@@ -224,7 +266,7 @@ export class MiniDisplayImageField extends LitElement {
           composed: true,
         }),
       );
-      this.select(asset.id);
+      if (!this.uploadOnly) this.select(asset.id);
     } catch (error) {
       this.error = error instanceof Error ? error.message : String(error);
     } finally {

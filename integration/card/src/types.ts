@@ -152,6 +152,7 @@ export type DisplayPage = {
   titleStyle?: Style;
   style?: Style;
   backgroundImage?: string;
+  transparentCards?: boolean;
   durationSeconds?: number;
   enabled?: boolean;
   transition?: PageTransition;
@@ -182,6 +183,7 @@ export type ImageAsset = {
   height: number;
   bytes: number;
   preview: string;
+  used_by?: string[];
 };
 
 export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
