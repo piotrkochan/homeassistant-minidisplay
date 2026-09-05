@@ -16,6 +16,10 @@ export class GraphEditor extends LitElement {
     input,select { width:100%; min-height:40px; border:1px solid var(--divider-color); border-radius:8px; padding:8px; font:inherit; color:inherit; background:var(--card-background-color); }
     input[type=checkbox] { width:auto; min-height:0; } input:focus,select:focus { outline:2px solid var(--primary-color); }
     ha-form { display:block; margin-top:12px; } details { margin-top:12px; } summary { cursor:pointer; }
+    .segments { display:flex; gap:4px; }
+    .segments button { flex:1; min-height:40px; border:1px solid var(--divider-color); border-radius:8px; background:var(--card-background-color); color:inherit; font:inherit; cursor:pointer; }
+    .segments button[aria-pressed=true] { border-color:var(--primary-color); background:var(--primary-color); color:var(--text-primary-color,#fff); }
+    button:focus-visible { outline:2px solid var(--primary-color); outline-offset:2px; }
     @media(max-width:450px) { .grid { grid-template-columns:1fr; } }
   `;
   private patchGraph(patch: Partial<Graph>) {
@@ -28,7 +32,7 @@ export class GraphEditor extends LitElement {
     }}></label>`;
   }
   private select(label: string, key: keyof Graph, value: string, choices: [string,string][]) {
-    return html`<label>${label}<select @change=${(event: Event) => this.patchGraph({[key]:(event.target as HTMLSelectElement).value})}>${choices.map(([id,name])=>html`<option value=${id} .selected=${value===id}>${name}</option>`)}</select></label>`;
+    return html`<label>${label}<select aria-label=${label} @change=${(event: Event) => this.patchGraph({[key]:(event.target as HTMLSelectElement).value})}>${choices.map(([id,name])=>html`<option value=${id} .selected=${value===id}>${name}</option>`)}</select></label>`;
   }
   render() {
     const graph = this.card.graph;
@@ -40,7 +44,9 @@ export class GraphEditor extends LitElement {
           .schema=${[{name:"entity",selector:{entity:{domain:["sensor","number","input_number","counter"]}}}]}
           .computeLabel=${()=>"Chart entity"} @value-changed=${(event: CustomEvent)=>this.patchGraph({source:event.detail.value.entity})}></ha-form>
         <div class="grid">
-          ${this.select("Chart", "type", graph.type ?? "bar", [["bar","Columns"],["line","Line"]])}
+          <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
+            ${([['bar','Columns'],['line','Line']] as const).map(([type,label]) => html`<button type="button" aria-pressed=${(graph.type??'bar')===type} @click=${()=>this.patchGraph({type})}>${label}</button>`)}
+          </div></div>
           ${this.select("Aggregation", "aggregation", graph.aggregation ?? "mean", [["mean","Average"],["min","Minimum"],["max","Maximum"],["last","Last value"]])}
           ${this.numeric("Points","points",graph.points ?? 48,2,120)}
           <mini-display-duration-field .seconds=${graph.intervalSeconds ?? 300}
@@ -50,7 +56,10 @@ export class GraphEditor extends LitElement {
         </div>
         <label class="check"><input type="checkbox" .checked=${graph.showValues ?? false} @change=${(event: Event)=>this.patchGraph({showValues:(event.target as HTMLInputElement).checked})}>Show values</label>
         ${graph.showValues ? html`<div class="grid">${this.numeric("Label every N points","labelEvery",graph.labelEvery ?? 6,1,120)}${this.numeric("Decimal places","decimals",graph.decimals ?? 1,0,3)}</div>` : nothing}
-        <details><summary>Scale</summary><div class="grid">${this.numeric("Minimum","minimum",graph.minimum,-1e12,1e12)}${this.numeric("Maximum","maximum",graph.maximum,-1e12,1e12)}</div></details>
+        <div class="grid">
+          ${this.select("Scale", "scale", graph.scale ?? (graph.type==='line'?'fit':'zero'), [["zero","Include zero"],["fit","Fit to data"]])}
+        </div>
+        <details><summary>Custom scale limits</summary><div class="grid">${this.numeric("Minimum","minimum",graph.minimum,-1e12,1e12)}${this.numeric("Maximum","maximum",graph.maximum,-1e12,1e12)}</div></details>
       `: nothing}`;
   }
 }

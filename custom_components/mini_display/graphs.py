@@ -48,6 +48,8 @@ def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
                     raise error(f"{key} must be {low}-{high}", f"{path}/graph/{key}")
             if graph.get("type", "bar") not in {"bar", "line"}:
                 raise error("Unsupported chart type", f"{path}/graph/type")
+            if graph.get("scale", "zero") not in {"zero", "fit"}:
+                raise error("Unsupported chart scale", f"{path}/graph/scale")
             if graph.get("aggregation", "mean") not in {"mean", "min", "max", "last"}:
                 raise error("Unsupported aggregation", f"{path}/graph/aggregation")
             for key in ("minimum", "maximum"):

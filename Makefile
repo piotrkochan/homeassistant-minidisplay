@@ -55,6 +55,9 @@ test-native:
 	@test -d firmware/.pio/libdeps/sdpro/ArduinoJson/src || { echo "run make build first to install ArduinoJson"; exit 1; }
 	@mkdir -p .cache/tests
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/graph_painter_test.cpp -o .cache/tests/graph-painter
+	.cache/tests/graph-painter
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
 		firmware/tests/graph_snapshot_test.cpp -o .cache/tests/graph-snapshot
 	.cache/tests/graph-snapshot

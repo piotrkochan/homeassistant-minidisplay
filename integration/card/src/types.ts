@@ -217,6 +217,7 @@ export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
 };
 
 export type Graph = {
+  scale?: "zero" | "fit";
   source?: string;
   type?: "bar" | "line";
   points?: number;

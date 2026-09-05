@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GraphSeries.h"
+#include "GraphScale.h"
 #include <cstdio>
 
 struct CachedGraph {
@@ -13,14 +14,14 @@ struct CachedGraph {
   uint8_t decimals;
   bool line;
   bool labels;
+  bool fit;
 };
 
-// Ordered coverage preserves the page/image beneath a graph without a second
-// framebuffer or LCD readback. The pattern is anchored to content coordinates.
-template <typename Canvas>
+// Blend against the existing compositor band; no extra framebuffer is needed.
+template <typename Canvas, typename Background>
 void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
                 int16_t width, int16_t height, int16_t clipX, int16_t clipY,
-                int16_t clipWidth, int16_t clipHeight) {
+                int16_t clipWidth, int16_t clipHeight, Background background) {
   if (!graph.series || width < 4 || height < 6 || graph.opacity == 0) return;
   const auto &series = *graph.series;
   float low = INFINITY, high = -INFINITY;
@@ -29,10 +30,7 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
     if (std::isfinite(value)) { if (value < low) low = value; if (value > high) high = value; }
   }
   if (!std::isfinite(low)) return;
-  if (std::isfinite(graph.minimum)) low = graph.minimum;
-  else if (!graph.line && low > 0) low = 0;
-  if (std::isfinite(graph.maximum)) high = graph.maximum;
-  if (high <= low) high = low + 1;
+  fitGraphScale(low, high, graph.fit, graph.minimum, graph.maximum);
   const int16_t plotTop = graph.labels ? 6 : 0;
   const int16_t plotHeight = max<int16_t>(1, height - plotTop - 1);
   const auto ordinate = [&](float value) {
@@ -41,16 +39,18 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
   const auto pixel = [&](int16_t px, int16_t py, bool label = false) {
     if (px < 0 || py < 0 || px >= width || py >= height ||
         x + px < clipX || y + py < clipY || x + px >= clipX + clipWidth || y + py >= clipY + clipHeight) return;
-    static constexpr uint8_t pattern[16] = {0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5};
-    if (label || pattern[(py & 3) * 4 + (px & 3)] * 100 < graph.opacity * 16)
-      canvas.drawPixel(x + px, y + py, graph.color);
+    const uint16_t color = label || graph.opacity == 100 ? graph.color :
+        blendGraphColor(graph.color, background(x + px, y + py), graph.opacity);
+    canvas.drawPixel(x + px, y + py, color);
   };
   const auto line = [&](int16_t ax, int16_t ay, int16_t bx, int16_t by) {
     const int16_t dx = abs(bx - ax), sx = ax < bx ? 1 : -1;
     const int16_t dy = -abs(by - ay), sy = ay < by ? 1 : -1;
     int16_t error = dx + dy;
+    bool first = true;
     while (true) {
-      pixel(ax, ay);
+      if (!first) pixel(ax, ay);
+      first = false;
       if (ax == bx && ay == by) break;
       const int16_t twice = error * 2;
       if (twice >= dy) { error += dy; ax += sx; }
@@ -66,8 +66,8 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
     const int16_t center = graph.line ? static_cast<int32_t>(i) * (width - 1) / (series.capacity - 1) : (left + right) / 2;
     const int16_t top = ordinate(value);
     if (graph.line) {
-      pixel(center, top);
       if (previousX >= 0) line(previousX, previousY, center, top);
+      else pixel(center, top);
     } else {
       const int16_t baseline = ordinate(0);
       for (int16_t px = left; px < max<int16_t>(left + 1, right - 1); ++px)

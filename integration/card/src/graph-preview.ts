@@ -20,8 +20,13 @@ export class GraphPreview extends LitElement {
     if(!data) return nothing;
     const valid=data.values.filter((v):v is number=>v!==null && Number.isFinite(v));
     if(!valid.length) return nothing;
-    const low=graph.minimum??Math.min(...valid,...(graph.type==='line'?[]:[0]));
-    const high=Math.max(low+1,graph.maximum??Math.max(...valid));
+    let low=Math.min(...valid), high=Math.max(...valid);
+    if ((graph.scale ?? (graph.type === 'line' ? 'fit' : 'zero')) === 'fit') {
+      const padding=Math.max((high-low)*0.05,0.01);
+      low-=padding; high+=padding;
+    } else { low=Math.min(0,low); high=Math.max(0,high); }
+    low=graph.minimum??low; high=graph.maximum??high;
+    if(high<=low)high=low+0.01;
     const w=Math.max(4,this.width-4), h=Math.max(6,this.height-4), top=graph.showValues?6:0;
     const y=(v:number)=>top+(h-top-1)*(1-Math.max(0,Math.min(1,(v-low)/(high-low))));
     const color=displayColors[graph.color??'accent']??graph.color??'#00ffff';

@@ -44,6 +44,8 @@ bool collect(JsonArrayConst pages, Key *keys, uint8_t &count) {
       if (!key.source[0] || strlen(key.source) > 64 || key.interval < 30 ||
           key.interval > 86400 || key.points < 2 || key.points > kMaxGraphPoints) return false;
       const char *type = graph["type"] | "bar";
+      const char *scale = graph["scale"] | "zero";
+      if (strcmp(scale, "zero") && strcmp(scale, "fit")) return false;
       const char *aggregation = graph["aggregation"] | "mean";
       if ((strcmp(type, "bar") && strcmp(type, "line")) ||
           (strcmp(aggregation, "mean") && strcmp(aggregation, "min") &&

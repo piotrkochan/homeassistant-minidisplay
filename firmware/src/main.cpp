@@ -1683,6 +1683,7 @@ CachedGraph cachedGraph(JsonObjectConst card) {
   result.color = parseColor(graph["color"], TFT_CYAN);
   result.opacity = graph["opacity"] | 50;
   result.line = strcmp(graph["type"] | "bar", "line") == 0;
+  result.fit = strcmp(graph["scale"] | (result.line ? "fit" : "zero"), "fit") == 0;
   result.labels = graph["showValues"] | false;
   result.labelEvery = graph["labelEvery"] | 6;
   result.decimals = graph["decimals"] | 1;

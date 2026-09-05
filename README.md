@@ -108,6 +108,12 @@ or display resynchronization. Each graph uses `points` epoch-aligned buckets of
 History depends on Recorder retention and entity exclusions; deleted history
 cannot be reconstructed. Graph settings and styling are unchanged.
 
+Graphs support columns and lines. `scale: "zero"` includes zero; `scale: "fit"`
+fits the observed range with a 5% margin (at least 0.01 on each side), making
+small variations easier to see without changing the data. Explicit minimum and
+maximum limits override automatic bounds. Partial opacity blends with the
+existing rendering band instead of using a dotted transparency pattern.
+
 `PATCH /api/v1/data` accepts one optional `series` object alongside `values`:
 `{"values":{},"series":{"source":"sensor.power","points":3,"intervalSeconds":300,"aggregation":"mean","bucket":6000000,"values":[12,null,24]},"render":true}`.
 The series must match a configured graph. Values are oldest first, with `null`

@@ -132,7 +132,9 @@ void paintCachedPage(Canvas &canvas, const CachedPage &page, int16_t offsetX,
                    card.imageFit, clipX, clipY, clipWidth, clipHeight,
                    imageCache);
     paintGraph(canvas, card.graph, x + 2, y + 2, card.width - 4, card.height - 4,
-               clipX, clipY, clipWidth, clipHeight);
+               clipX, clipY, clipWidth, clipHeight,
+               [&](int16_t px, int16_t py) { return coverageBackground(canvas, px, py,
+                   (card.flags & 1U) ? page.background : card.background); });
     if (paintTexts && page.freeLayout) {
       paintCachedPageTexts(canvas, page, offsetX, offsetY, clipX, clipY,
                            clipWidth, clipHeight, fontState, card.textStart, card.textEnd);
