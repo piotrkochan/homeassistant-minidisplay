@@ -63,6 +63,7 @@ bool ScreenCapture::supported() {
 bool ScreenCapture::begin() {
 #if defined(ESP8266)
   frame_.setColorDepth(16);
+  frame_.setTextWrap(false, false);
   ready_ = frame_.createSprite(kWidth, kBandHeight) != nullptr;
   return ready_;
 #else

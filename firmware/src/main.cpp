@@ -1771,6 +1771,7 @@ void drawVerticalPageTitle(const char *title, bool right, int16_t offsetX,
   const int16_t height = thickness;
   TFT_eSprite titleSprite(&display);
   titleSprite.setColorDepth(1);
+  titleSprite.setTextWrap(false, false);
   if (titleSprite.createSprite(width, height) == nullptr) return;
   titleSprite.setBitmapColor(foreground, background);
   titleSprite.fillSprite(TFT_BLACK);
@@ -3449,6 +3450,9 @@ void showStartupScreen() {
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
   display.init();
   display.setRotation(0);
+#if defined(ESP8266)
+  display.setTextWrap(false, false);
+#endif
 
   const uint16_t background = display.color565(9, 14, 23);
   const uint16_t panel = display.color565(25, 34, 47);

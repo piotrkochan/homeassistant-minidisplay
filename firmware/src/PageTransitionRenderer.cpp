@@ -13,6 +13,7 @@ constexpr int16_t kDisplaySize = 240;
 constexpr int16_t kFrameBandHeights[] = {24, 20, 16, 12, 8};
 
 int16_t createCompositorBand(TFT_eSprite &frame) {
+  frame.setTextWrap(false, false);
   for (const int16_t height : kFrameBandHeights) {
     if (frame.createSprite(kDisplaySize, height) != nullptr) return height;
   }
@@ -380,6 +381,7 @@ void PageTransitionRenderer::curtain(
   const int16_t stripSize = (kDisplaySize / 2) / curtainFrameCount;
   TFT_eSprite strip(&display_);
   strip.setColorDepth(16);
+  strip.setTextWrap(false, false);
   const int16_t stripWidth = horizontal ? stripSize : kDisplaySize;
   const int16_t stripHeight = horizontal ? kDisplaySize : stripSize;
   if (strip.createSprite(stripWidth, stripHeight) == nullptr) {
