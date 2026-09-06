@@ -1,14 +1,18 @@
 # Home Assistant Mini-Display
 
 ```text
-       .----------------------------------------------.
-   ~-. | Over engineered home assistant mini display   | .-~
-       '----------------------------------------------'
-                     .---------------.
-                     |  156 W   /\/  |
-                     |  tiny screen  |
-                     '-------.-------'
-                            _|_
+        .--------------------------.
+        | .----------------------. |
+        | |                      | |
+        | |   Over engineered    | |
+        | |    home assistant    | |
+        | |     mini display     | |
+        | |                      | |
+        | |        156 W         | |
+        | |     __/\___/\__      | |
+        | |                      | |
+        | '----------------------' |
+        '--------------------------'
 ```
 
 Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
@@ -141,3 +145,5 @@ Hardware research and inspiration:
 ## License
 
 [MIT](LICENSE). See [third-party notices](THIRD_PARTY.md) for dependencies and assets.
+
+Enjoy your tiny screen? You can [buy me a coffee](https://ko-fi.com/piotrkochan).
