@@ -140,4 +140,4 @@ Hardware research and inspiration:
 
 ## License
 
-[MIT](LICENSE). Third-party dependencies and assets retain their own licenses.
+[MIT](LICENSE). See [third-party notices](THIRD_PARTY.md) for dependencies and assets.

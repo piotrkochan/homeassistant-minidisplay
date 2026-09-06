@@ -43,7 +43,9 @@ jobs:
           cache-dependency-path: firmware/web/package-lock.json
 
       - name: Install web dependencies
-        run: npm ci --prefix firmware/web
+        run: |
+          npm ci --prefix firmware/web
+          npm ci --prefix integration/card
 
       - name: Set firmware version
         env:
@@ -58,6 +60,9 @@ jobs:
       - name: Run native regression tests before publishing
         run: make test-native
 
+      - name: Package build sources and dependency licenses
+        run: python firmware/scripts/package_release_sources.py
+
       - name: Add version to artifact names
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
@@ -71,7 +76,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: home-assistant-mini-display-${{ github.ref_name }}
-          path: dist/*.bin
+          path: |
+            dist/*.bin
+            dist/release-sources.tar.gz
+            THIRD_PARTY.md
           if-no-files-found: error
 
       - name: Create GitHub release
@@ -79,4 +87,7 @@ jobs:
         with:
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           generate_release_notes: true
-          files: dist/*.bin
+          files: |
+            dist/*.bin
+            dist/release-sources.tar.gz
+            THIRD_PARTY.md
