@@ -5910,6 +5910,27 @@ var $ = class extends L {
       </div>
     </details>`;
 	}
+	textAlignment(e, t) {
+		return this.segmented("Alignment", e.horizontalAlign ?? t, [
+			{
+				value: "left",
+				label: "Left",
+				icon: "mdi:format-align-left"
+			},
+			{
+				value: "center",
+				label: "Center",
+				icon: "mdi:format-align-center"
+			},
+			{
+				value: "right",
+				label: "Right",
+				icon: "mdi:format-align-right"
+			}
+		], (t) => {
+			e.horizontalAlign = t, this.changed();
+		});
+	}
 	textEffectEditor(e, t) {
 		let n = t.textEffect ?? "none";
 		return O`<details class="position-field effect-field">
@@ -6058,6 +6079,7 @@ var $ = class extends L {
               ${this.fontSelect("Font", i.fontFamily, (e) => {
 			i.fontFamily = e, this.changed();
 		})}
+              ${t ? this.textAlignment(i, "center") : j}
               ${t ? j : this.select("Font size", i.fontSize ?? "auto", [
 			"auto",
 			"small",
@@ -6089,6 +6111,7 @@ var $ = class extends L {
               ${this.fontSelect("Font", a.fontFamily, (e) => {
 			a.fontFamily = e, this.changed();
 		})}
+              ${t ? this.textAlignment(a, "left") : j}
               ${t ? j : this.select("Font size", a.fontSize ?? "auto", [
 			"auto",
 			"small",

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feature: align free layout text
 - fix: add preview schema tabs
 - fix: remove disabled chart containers
 - fix: preserve unit spacing

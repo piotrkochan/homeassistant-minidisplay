@@ -2269,6 +2269,25 @@ export class MiniDisplayEditor extends LitElement {
     </details>`;
   }
 
+  private textAlignment(
+    style: Style,
+    fallback: NonNullable<Style["horizontalAlign"]>,
+  ) {
+    return this.segmented(
+      "Alignment",
+      style.horizontalAlign ?? fallback,
+      [
+        { value: "left", label: "Left", icon: "mdi:format-align-left" },
+        { value: "center", label: "Center", icon: "mdi:format-align-center" },
+        { value: "right", label: "Right", icon: "mdi:format-align-right" },
+      ],
+      (input) => {
+        style.horizontalAlign = input;
+        this.changed();
+      },
+    );
+  }
+
   private textEffectEditor(label: string, style: Style) {
     const effect = style.textEffect ?? "none";
     const effectName =
@@ -2471,6 +2490,7 @@ export class MiniDisplayEditor extends LitElement {
                 value.fontFamily = input;
                 this.changed();
               })}
+              ${freeLayout ? this.textAlignment(value, "center") : nothing}
               ${freeLayout ? nothing : this.select(
                 "Font size",
                 value.fontSize ?? "auto",
@@ -2502,6 +2522,7 @@ export class MiniDisplayEditor extends LitElement {
                 title.fontFamily = input;
                 this.changed();
               })}
+              ${freeLayout ? this.textAlignment(title, "left") : nothing}
               ${freeLayout ? nothing : this.select(
                 "Font size",
                 title.fontSize ?? "auto",
