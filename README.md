@@ -18,21 +18,6 @@
 Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
 **JSON Schema powered. Local. No cloud required. Home Assistant optional.**
 
-## Tiny screen, lots of possibilities
-
-- Rows or free layout: drag, resize and position titles and values independently.
-- Numbers, text, clocks, weather, images, progress bars, rings and charts.
-- Scenes, timed pages, transitions and temporary live preview.
-- Conditional visibility, value/color mappings, custom fonts and image backgrounds.
-- Line and bar charts, including history behind a live value.
-- Device web UI: brightness, pixel shift, fonts, Wi-Fi, time, diagnostics and updates.
-
-The dedicated **Home Assistant integration** adds a highly configurable visual
-editor for multiple displays. It forwards entity values, weather forecasts and
-Recorder history. Without HA, send layouts and data directly to the local API.
-
-![Home Assistant editor with scenes, card settings and live display preview](docs/screenshots/home-assistant-panel.png)
-
 ## On a real display
 
 Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
@@ -42,6 +27,26 @@ Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
 | ![Energy prices, power and history](docs/screenshots/pstryk_energy.png) | ![Battery and charging on a custom background](docs/screenshots/page_1.png) |
 | **Home conditions** | **Car status** |
 | ![Temperature and humidity](docs/screenshots/home_status.png) | ![Fuel and trip information](docs/screenshots/skoda_status.png) |
+
+## Tiny screen, lots of possibilities
+
+- **Layouts:** structured rows or free placement, with independent title and value sizing.
+- **Content:** entities, text, clocks, weather, images, progress bars and rings.
+- **Charts:** lines and bars, standalone or behind a live value.
+- **Customization:** conditional visibility, value/color mappings, fonts and backgrounds.
+- **Scenes:** multiple pages, timed rotation, transitions and temporary device preview.
+- **Device settings:** a local web UI for brightness, fonts, Wi-Fi, time and updates.
+
+## Home Assistant editor
+
+The dedicated integration adds a visual editor in HA's sidebar. Manage multiple
+displays and scenes, drag and resize content, and preview changes on the device.
+HA supplies entity values, weather forecasts and Recorder history.
+
+![Home Assistant editor with scenes, card settings and live display preview](docs/screenshots/home-assistant-panel.png)
+
+Prefer another data source? Home Assistant is optional. Send layouts and values
+directly through the [local API](#json-schema-powered).
 
 ## Install on JUZIPi SD PRO
 
