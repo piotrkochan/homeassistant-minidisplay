@@ -173,6 +173,7 @@ export type DisplayPage = {
   transparentCards?: boolean;
   durationSeconds?: number;
   enabled?: boolean;
+  visibility?: Visibility;
   transition?: PageTransition;
   rows: DisplayRow[];
 };

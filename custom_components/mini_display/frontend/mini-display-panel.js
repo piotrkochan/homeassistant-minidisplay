@@ -2900,7 +2900,7 @@ var ot = {
 		return D`<article class="rule">
       <div class="rule-head">
         <span class="rule-marker" style=${`background:${St(e.id)}`}>${J(e.id)}</span>
-        <label>Value source<select .value=${pt(e.source)} @change=${(e) => this.changeSource(t, e.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <label>Value source<select .value=${pt(e.source)} @change=${(e) => this.changeSource(t, e.target.value)}>${this.canUseCardValue ? D`<option value="card">This card</option>` : A}<option value="entity">${this.canUseCardValue ? "Another entity" : "Entity"}</option></select></label>
         <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${J(e.id)}`} @click=${() => this.removeRule(t)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">
@@ -4429,6 +4429,10 @@ var $ = class extends I {
       grid-column: 1/-1;
       max-width: 460px;
     }
+    .page-visibility {
+      grid-column: 1/-1;
+      padding: 8px 4px;
+    }
     .page-appearance,
     .advanced-settings {
       grid-column: 1/-1;
@@ -5612,7 +5616,8 @@ var $ = class extends I {
 	}
 	visibilityObject() {
 		if (!this.visibilityTarget || !this.dashboard) return;
-		let e = this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row];
+		if (this.visibilityTarget.kind === "page") return this.dashboard.pages[this.pageIndex];
+		let e = this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row ?? -1];
 		if (e) return this.visibilityTarget.kind === "row" ? e : e.cards[this.visibilityTarget.card ?? -1];
 	}
 	openVisibility(e, t, n) {
@@ -6941,7 +6946,7 @@ var $ = class extends I {
                         ><span>Page settings</span
                         ><small
                           >${t.durationSeconds ?? 10}s ·
-                          ${t.enabled === !1 ? "Disabled" : "Enabled"}${t.showTitle === !1 ? " · title hidden" : ""}</small
+                          ${t.enabled === !1 ? "Disabled" : "Enabled"}${t.visibility ? " · conditional" : ""}${t.showTitle === !1 ? " · title hidden" : ""}</small
                         ></span
                       ><button
                         class="icon-button danger"
@@ -6969,6 +6974,11 @@ var $ = class extends I {
                         ${this.checkbox("Show title", t.showTitle !== !1, (e) => {
 			t.showTitle = e, this.changed();
 		})}
+                      </div>
+                      <div class="setting-action page-visibility">
+                        <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
+                        <div><strong>Visibility</strong><small>${t.visibility ? "Shown when configured conditions match" : "Always visible"}</small></div>
+                        <ha-button @click=${() => this.openVisibility("page")}>${t.visibility ? "Edit" : "Configure"}</ha-button>
                       </div>
                       ${t.showTitle === !1 ? A : D`<div class="page-title-position">
                               ${this.segmented("Title position", t.titlePosition ?? "top", [
@@ -7113,7 +7123,7 @@ var $ = class extends I {
           ><ha-icon icon="mdi:plus"></ha-icon>Add integration</ha-button
         ></ha-card
       >`;
-		let e = this.visibilityObject()?.visibility, t = this.visibilityTarget?.kind === "row" ? "Row" : "Card", n = this.visibilityTarget?.kind === "card" ? this.visibilityObject() : void 0;
+		let e = this.visibilityObject()?.visibility, t = this.visibilityTarget?.kind === "page" ? "Page" : this.visibilityTarget?.kind === "row" ? "Row" : "Card", n = this.visibilityTarget?.kind === "card" ? this.visibilityObject() : void 0;
 		return D`
       <div class="layout">
         <mini-display-scene-sidebar

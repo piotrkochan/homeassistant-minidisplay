@@ -38,7 +38,7 @@ const emit = (element: HTMLElement, type: string, detail?: unknown) => {
 export class MiniDisplayVisibilityDialog extends LitElement {
   @property({ attribute: false }) hass?: Hass;
   @property() targetName = "";
-  @property() targetKind: "row" | "card" = "card";
+  @property() targetKind: "page" | "row" | "card" = "card";
   @property({ attribute: false }) card?: DisplayCard;
   @property({ attribute: false }) value?: Visibility;
   @state() private draft: Visibility = emptyVisibility();
@@ -116,7 +116,7 @@ export class MiniDisplayVisibilityDialog extends LitElement {
     return html`<article class="rule">
       <div class="rule-head">
         <span class="rule-marker" style=${`background:${ruleColor(rule.id)}`}>${ruleMarker(rule.id)}</span>
-        <label>Value source<select .value=${live(rule.source)} @change=${(event: Event) => this.changeSource(index, (event.target as HTMLSelectElement).value as "card" | "entity")}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <label>Value source<select .value=${live(rule.source)} @change=${(event: Event) => this.changeSource(index, (event.target as HTMLSelectElement).value as "card" | "entity")}>${this.canUseCardValue ? html`<option value="card">This card</option>` : nothing}<option value="entity">${this.canUseCardValue ? "Another entity" : "Entity"}</option></select></label>
         <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${ruleMarker(rule.id)}`} @click=${() => this.removeRule(index)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
       <div class="rule-fields">

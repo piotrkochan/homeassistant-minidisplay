@@ -4,6 +4,7 @@ import asyncio
 from copy import deepcopy
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -94,6 +95,82 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         release.set()
         await asyncio.gather(update, stop)
         self.assertIsNone(self.manager.preview_scene_id)
+
+    def test_page_visibility_uses_entity_conditions(self):
+        visibility = {
+            "rules": [{
+                "id": "rule_a",
+                "source": "entity",
+                "entity": "binary_sensor.show_page",
+                "operator": "equals",
+                "match": "on",
+            }],
+            "expression": {
+                "type": "group",
+                "operator": "and",
+                "children": [{"type": "rule", "ruleId": "rule_a"}],
+            },
+        }
+        dashboard = deepcopy(self.saved)
+        dashboard["pages"][0]["visibility"] = visibility
+        dashboard["pages"].append({
+            "id": "always",
+            "rows": [{"cards": [{"type": "text", "text": "Always"}]}],
+        })
+        validated = module.validate_dashboard(dashboard)
+        hass = SimpleNamespace(states={
+            "binary_sensor.show_page": SimpleNamespace(state="off")
+        })
+
+        rendered = module.render_dashboard(validated, hass)
+
+        self.assertEqual([page["id"] for page in rendered["pages"]], ["always"])
+        self.assertEqual(
+            module.extract_visibility_sources(validated),
+            {"binary_sensor.show_page"},
+        )
+        self.assertIn("binary_sensor.show_page", module.extract_sources(validated))
+
+    def test_page_visibility_rejects_card_value(self):
+        dashboard = deepcopy(self.saved)
+        dashboard["pages"][0]["visibility"] = {
+            "rules": [{
+                "id": "rule_a",
+                "source": "card",
+                "operator": "available",
+            }],
+            "expression": {
+                "type": "group",
+                "operator": "and",
+                "children": [{"type": "rule", "ruleId": "rule_a"}],
+            },
+        }
+
+        with self.assertRaises(module.DashboardValidationError):
+            module.validate_dashboard(dashboard)
+
+    def test_hidden_pages_have_safe_fallback(self):
+        dashboard = deepcopy(self.saved)
+        dashboard["pages"][0]["visibility"] = {
+            "rules": [{
+                "id": "rule_a",
+                "source": "entity",
+                "entity": "binary_sensor.show_page",
+                "operator": "available",
+            }],
+            "expression": {
+                "type": "group",
+                "operator": "and",
+                "children": [{"type": "rule", "ruleId": "rule_a"}],
+            },
+        }
+        hass = SimpleNamespace(states={})
+
+        rendered = module.render_dashboard(
+            module.validate_dashboard(dashboard), hass
+        )
+
+        self.assertEqual(rendered["pages"][0]["id"], "no_visible_pages")
 
 
 if __name__ == "__main__":

@@ -378,6 +378,7 @@
           "maximum": 86400
         },
         "enabled": { "type": "boolean", "default": true },
+        "visibility": { "$ref": "#/$defs/visibility" },
         "transition": { "$ref": "#/$defs/transition" },
         "style": { "$ref": "#/$defs/style" },
         "backgroundImage": { "$ref": "#/$defs/assetId" },

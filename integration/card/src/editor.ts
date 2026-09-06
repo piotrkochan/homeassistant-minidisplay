@@ -4,6 +4,7 @@ import type {
   Dashboard,
   Display,
   DisplayCard,
+  DisplayPage,
   DisplayRow,
   Hass,
   ImageAsset,
@@ -51,8 +52,8 @@ export class MiniDisplayEditor extends LitElement {
   @state() private sceneName = "";
   @state() private dirtyDisplays = new Set<string>();
   @state() private visibilityTarget?: {
-    kind: "row" | "card";
-    row: number;
+    kind: "page" | "row" | "card";
+    row?: number;
     card?: number;
   };
   @state() private confirmation?:
@@ -451,6 +452,10 @@ export class MiniDisplayEditor extends LitElement {
     .page-title-position {
       grid-column: 1/-1;
       max-width: 460px;
+    }
+    .page-visibility {
+      grid-column: 1/-1;
+      padding: 8px 4px;
     }
     .page-appearance,
     .advanced-settings {
@@ -1905,17 +1910,20 @@ export class MiniDisplayEditor extends LitElement {
     this.changed();
   }
 
-  private visibilityObject(): DisplayRow | DisplayCard | undefined {
+  private visibilityObject(): DisplayPage | DisplayRow | DisplayCard | undefined {
     if (!this.visibilityTarget || !this.dashboard) return undefined;
+    if (this.visibilityTarget.kind === "page") {
+      return this.dashboard.pages[this.pageIndex];
+    }
     const row =
-      this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row];
+      this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row ?? -1];
     if (!row) return undefined;
     return this.visibilityTarget.kind === "row"
       ? row
       : row.cards[this.visibilityTarget.card ?? -1];
   }
 
-  private openVisibility(kind: "row" | "card", row: number, card?: number) {
+  private openVisibility(kind: "page" | "row" | "card", row?: number, card?: number) {
     this.visibilityTarget = { kind, row, card };
   }
 
@@ -3500,7 +3508,7 @@ export class MiniDisplayEditor extends LitElement {
                         ><span>Page settings</span
                         ><small
                           >${page.durationSeconds ?? 10}s ·
-                          ${page.enabled === false ? "Disabled" : "Enabled"}${page.showTitle === false ? " · title hidden" : ""}</small
+                          ${page.enabled === false ? "Disabled" : "Enabled"}${page.visibility ? " · conditional" : ""}${page.showTitle === false ? " · title hidden" : ""}</small
                         ></span
                       ><button
                         class="icon-button danger"
@@ -3549,6 +3557,11 @@ export class MiniDisplayEditor extends LitElement {
                             this.changed();
                           },
                         )}
+                      </div>
+                      <div class="setting-action page-visibility">
+                        <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
+                        <div><strong>Visibility</strong><small>${page.visibility ? "Shown when configured conditions match" : "Always visible"}</small></div>
+                        <ha-button @click=${() => this.openVisibility("page")}>${page.visibility ? "Edit" : "Configure"}</ha-button>
                       </div>
                       ${
                         page.showTitle !== false
@@ -3736,8 +3749,9 @@ export class MiniDisplayEditor extends LitElement {
         ></ha-card
       >`;
     const visibility = this.visibilityObject()?.visibility;
-    const visibilityName =
-      this.visibilityTarget?.kind === "row" ? "Row" : "Card";
+    const visibilityName = this.visibilityTarget?.kind === "page"
+      ? "Page"
+      : this.visibilityTarget?.kind === "row" ? "Row" : "Card";
     const visibilityCard =
       this.visibilityTarget?.kind === "card"
         ? (this.visibilityObject() as DisplayCard)

@@ -111,6 +111,9 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
             )
         if enabled:
             enabled_pages += 1
+        _validate_visibility(
+            page.get("visibility"), f"{page_path}/visibility", allow_card_value=False
+        )
         if "transition" not in page and legacy_transition is not None:
             page["transition"] = deepcopy(legacy_transition)
         _validate_transition(page.get("transition"), f"{page_path}/transition")
@@ -468,6 +471,7 @@ def extract_sources(document: dict[str, Any]) -> set[str]:
     for page in document["pages"]:
         if not page.get("enabled", True):
             continue
+        sources.update(_visibility_sources(page.get("visibility")))
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
@@ -486,6 +490,7 @@ def extract_visibility_sources(document: dict[str, Any]) -> set[str]:
     for page in document["pages"]:
         if not page.get("enabled", True):
             continue
+        sources.update(_visibility_sources(page.get("visibility")))
         for row in page["rows"]:
             sources.update(_visibility_sources(row.get("visibility")))
             for card in row["cards"]:
@@ -606,9 +611,25 @@ def visibility_matches(
 def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
     """Resolve HA visibility rules into a firmware-compatible dashboard."""
     rendered = deepcopy(document)
-    rendered["pages"] = [
-        page for page in rendered["pages"] if page.get("enabled", True)
-    ]
+    visible_pages = []
+    for page in rendered["pages"]:
+        visibility = page.pop("visibility", None)
+        if page.get("enabled", True) and visibility_matches(hass, visibility):
+            visible_pages.append(page)
+    rendered["pages"] = visible_pages
+    if not visible_pages:
+        rendered["pages"] = [{
+            "id": "no_visible_pages",
+            "title": "",
+            "showTitle": False,
+            "durationSeconds": 10,
+            "enabled": True,
+            "rows": [{"cards": [{
+                "type": "text",
+                "text": "No visible pages",
+                "style": {"foreground": "muted"},
+            }]}],
+        }]
     for page in rendered["pages"]:
         visible_rows = []
         for row in page["rows"]:
@@ -1035,6 +1056,8 @@ class MiniDisplayDashboardManager:
     ) -> None:
         """Upload one dashboard and its current entity values."""
         rendered = render_dashboard(dashboard, self.hass)
+        if active_page_id not in {page["id"] for page in rendered["pages"]}:
+            active_page_id = None
         canonical_rendered = deepcopy(rendered)
         sources = extract_sources(rendered)
         values = {entity_id: serialize_state(self.hass.states.get(entity_id)) for entity_id in sources}
