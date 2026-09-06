@@ -69,6 +69,8 @@ not just a USB cable. Check the pinout before connecting anything.
 
 ### Add Home Assistant
 
+[![Open your Home Assistant instance and add this repository to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=piotrkochan&repository=homeassistant-minidisplay&category=integration)
+
 1. In HACS, add `https://github.com/piotrkochan/homeassistant-minidisplay` as a
    custom repository, category **Integration**, and install it.
 2. Restart HA. Add **Home Assistant Mini-Display** in **Settings → Devices & services**,

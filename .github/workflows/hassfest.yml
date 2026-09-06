@@ -1,0 +1,22 @@
+name: Hassfest
+
+on:
+  pull_request:
+    paths: &hassfest-paths
+      - 'custom_components/**'
+      - '.github/workflows/hassfest.yml'
+  push:
+    branches: ['**']
+    paths: *hassfest-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: home-assistant/actions/hassfest@a7c616ce81ccda50150bf1595786c71b1883fabb
