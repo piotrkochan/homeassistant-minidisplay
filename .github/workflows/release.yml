@@ -54,8 +54,15 @@ jobs:
           VERSION="${RELEASE_VERSION#v}"
           sed -i "s/#define MINI_DISPLAY_VERSION \"0.3.0-dev\"/#define MINI_DISPLAY_VERSION \"${VERSION}\"/" firmware/src/main.cpp
 
-      - name: Build all firmware variants
-        run: make PIO=pio build-all
+      - name: Build SD PRO firmware
+        run: |
+          make PIO=pio build
+          mkdir -p dist
+          cp firmware/.pio/build/sdpro/firmware.bin dist/home-assistant-mini-display-sdpro.bin
+
+          # Other display profiles are not supported yet. Keep their release
+          # builds disabled until their hardware support is ready.
+          # make PIO=pio build-all
 
       - name: Run native regression tests before publishing
         run: make test-native
