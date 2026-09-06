@@ -44,7 +44,7 @@ export class GraphEditor extends LitElement {
           .schema=${[{name:"entity",selector:{entity:{domain:["sensor","number","input_number","counter"]}}}]}
           .computeLabel=${()=>"Chart entity"} @value-changed=${(event: CustomEvent)=>this.patchGraph({source:event.detail.value.entity})}></ha-form>` : nothing}
         <div class="grid">
-          <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
+          <div><label>${this.card.type === "chart" ? "Chart style" : "Background chart style"}</label><div class="segments" role="group" aria-label="Chart type">
             ${([['bar','Columns'],['line','Line']] as const).map(([type,label]) => html`<button type="button" aria-pressed=${(graph.type??'bar')===type} @click=${()=>this.patchGraph({type})}>${label}</button>`)}
           </div></div>
           ${this.select("Aggregation", "aggregation", graph.aggregation ?? "mean", [["mean","Average"],["min","Minimum"],["max","Maximum"],["last","Last value"]])}

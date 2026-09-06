@@ -3781,7 +3781,7 @@ var Ot = class extends I {
 		}]}
           .computeLabel=${() => "Chart entity"} @value-changed=${(e) => this.patchGraph({ source: e.detail.value.entity })}></ha-form>` : A}
         <div class="grid">
-          <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
+          <div><label>${this.card.type === "chart" ? "Chart style" : "Background chart style"}</label><div class="segments" role="group" aria-label="Chart type">
             ${[["bar", "Columns"], ["line", "Line"]].map(([t, n]) => D`<button type="button" aria-pressed=${(e.type ?? "bar") === t} @click=${() => this.patchGraph({ type: t })}>${n}</button>`)}
           </div></div>
           ${this.select("Aggregation", "aggregation", e.aggregation ?? "mean", [
