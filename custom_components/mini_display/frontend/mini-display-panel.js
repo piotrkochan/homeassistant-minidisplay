@@ -1,621 +1,737 @@
-const Ze = globalThis, ft = Ze.ShadowRoot && (Ze.ShadyCSS === void 0 || Ze.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, vt = /* @__PURE__ */ Symbol(), Wt = /* @__PURE__ */ new WeakMap();
-let ci = class {
-  constructor(e, i, a) {
-    if (this._$cssResult$ = !0, a !== vt) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-    this.cssText = e, this.t = i;
-  }
-  get styleSheet() {
-    let e = this.o;
-    const i = this.t;
-    if (ft && e === void 0) {
-      const a = i !== void 0 && i.length === 1;
-      a && (e = Wt.get(i)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), a && Wt.set(i, e));
-    }
-    return e;
-  }
-  toString() {
-    return this.cssText;
-  }
+//#region node_modules/@lit/reactive-element/css-tag.js
+var e = globalThis, t = e.ShadowRoot && (e.ShadyCSS === void 0 || e.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, n = Symbol(), r = /* @__PURE__ */ new WeakMap(), i = class {
+	constructor(e, t, r) {
+		if (this._$cssResult$ = !0, r !== n) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+		this.cssText = e, this.t = t;
+	}
+	get styleSheet() {
+		let e = this.o, n = this.t;
+		if (t && e === void 0) {
+			let t = n !== void 0 && n.length === 1;
+			t && (e = r.get(n)), e === void 0 && ((this.o = e = new CSSStyleSheet()).replaceSync(this.cssText), t && r.set(n, e));
+		}
+		return e;
+	}
+	toString() {
+		return this.cssText;
+	}
+}, a = (e) => new i(typeof e == "string" ? e : e + "", void 0, n), o = (e, ...t) => new i(e.length === 1 ? e[0] : t.reduce((t, n, r) => t + ((e) => {
+	if (!0 === e._$cssResult$) return e.cssText;
+	if (typeof e == "number") return e;
+	throw Error("Value passed to 'css' function must be a 'css' function result: " + e + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+})(n) + e[r + 1], e[0]), e, n), s = (n, r) => {
+	if (t) n.adoptedStyleSheets = r.map((e) => e instanceof CSSStyleSheet ? e : e.styleSheet);
+	else for (let t of r) {
+		let r = document.createElement("style"), i = e.litNonce;
+		i !== void 0 && r.setAttribute("nonce", i), r.textContent = t.cssText, n.appendChild(r);
+	}
+}, c = t ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((e) => {
+	let t = "";
+	for (let n of e.cssRules) t += n.cssText;
+	return a(t);
+})(e) : e, { is: l, defineProperty: u, getOwnPropertyDescriptor: d, getOwnPropertyNames: f, getOwnPropertySymbols: p, getPrototypeOf: ee } = Object, m = globalThis, h = m.trustedTypes, te = h ? h.emptyScript : "", ne = m.reactiveElementPolyfillSupport, g = (e, t) => e, _ = {
+	toAttribute(e, t) {
+		switch (t) {
+			case Boolean:
+				e = e ? te : null;
+				break;
+			case Object:
+			case Array: e = e == null ? e : JSON.stringify(e);
+		}
+		return e;
+	},
+	fromAttribute(e, t) {
+		let n = e;
+		switch (t) {
+			case Boolean:
+				n = e !== null;
+				break;
+			case Number:
+				n = e === null ? null : Number(e);
+				break;
+			case Object:
+			case Array: try {
+				n = JSON.parse(e);
+			} catch {
+				n = null;
+			}
+		}
+		return n;
+	}
+}, v = (e, t) => !l(e, t), re = {
+	attribute: !0,
+	type: String,
+	converter: _,
+	reflect: !1,
+	useDefault: !1,
+	hasChanged: v
 };
-const ji = (t) => new ci(typeof t == "string" ? t : t + "", void 0, vt), z = (t, ...e) => {
-  const i = t.length === 1 ? t[0] : e.reduce((a, s, r) => a + ((o) => {
-    if (o._$cssResult$ === !0) return o.cssText;
-    if (typeof o == "number") return o;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + o + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(s) + t[r + 1], t[0]);
-  return new ci(i, t, vt);
-}, Ii = (t, e) => {
-  if (ft) t.adoptedStyleSheets = e.map((i) => i instanceof CSSStyleSheet ? i : i.styleSheet);
-  else for (const i of e) {
-    const a = document.createElement("style"), s = Ze.litNonce;
-    s !== void 0 && a.setAttribute("nonce", s), a.textContent = i.cssText, t.appendChild(a);
-  }
-}, qt = ft ? (t) => t : (t) => t instanceof CSSStyleSheet ? ((e) => {
-  let i = "";
-  for (const a of e.cssRules) i += a.cssText;
-  return ji(i);
-})(t) : t;
-const { is: Ei, defineProperty: Ni, getOwnPropertyDescriptor: Gi, getOwnPropertyNames: Qi, getOwnPropertySymbols: Hi, getPrototypeOf: Si } = Object, qe = globalThis, Jt = qe.trustedTypes, Ti = Jt ? Jt.emptyScript : "", Ri = qe.reactiveElementPolyfillSupport, je = (t, e) => t, Le = { toAttribute(t, e) {
-  switch (e) {
-    case Boolean:
-      t = t ? Ti : null;
-      break;
-    case Object:
-    case Array:
-      t = t == null ? t : JSON.stringify(t);
-  }
-  return t;
-}, fromAttribute(t, e) {
-  let i = t;
-  switch (e) {
-    case Boolean:
-      i = t !== null;
-      break;
-    case Number:
-      i = t === null ? null : Number(t);
-      break;
-    case Object:
-    case Array:
-      try {
-        i = JSON.parse(t);
-      } catch {
-        i = null;
-      }
-  }
-  return i;
-} }, bt = (t, e) => !Ei(t, e), Vt = { attribute: !0, type: String, converter: Le, reflect: !1, useDefault: !1, hasChanged: bt };
-Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), qe.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let ve = class extends HTMLElement {
-  static addInitializer(e) {
-    this._$Ei(), (this.l ??= []).push(e);
-  }
-  static get observedAttributes() {
-    return this.finalize(), this._$Eh && [...this._$Eh.keys()];
-  }
-  static createProperty(e, i = Vt) {
-    if (i.state && (i.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((i = Object.create(i)).wrapped = !0), this.elementProperties.set(e, i), !i.noAccessor) {
-      const a = /* @__PURE__ */ Symbol(), s = this.getPropertyDescriptor(e, a, i);
-      s !== void 0 && Ni(this.prototype, e, s);
-    }
-  }
-  static getPropertyDescriptor(e, i, a) {
-    const { get: s, set: r } = Gi(this.prototype, e) ?? { get() {
-      return this[i];
-    }, set(o) {
-      this[i] = o;
-    } };
-    return { get: s, set(o) {
-      const l = s?.call(this);
-      r?.call(this, o), this.requestUpdate(e, l, a);
-    }, configurable: !0, enumerable: !0 };
-  }
-  static getPropertyOptions(e) {
-    return this.elementProperties.get(e) ?? Vt;
-  }
-  static _$Ei() {
-    if (this.hasOwnProperty(je("elementProperties"))) return;
-    const e = Si(this);
-    e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
-  }
-  static finalize() {
-    if (this.hasOwnProperty(je("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(je("properties"))) {
-      const i = this.properties, a = [...Qi(i), ...Hi(i)];
-      for (const s of a) this.createProperty(s, i[s]);
-    }
-    const e = this[Symbol.metadata];
-    if (e !== null) {
-      const i = litPropertyMetadata.get(e);
-      if (i !== void 0) for (const [a, s] of i) this.elementProperties.set(a, s);
-    }
-    this._$Eh = /* @__PURE__ */ new Map();
-    for (const [i, a] of this.elementProperties) {
-      const s = this._$Eu(i, a);
-      s !== void 0 && this._$Eh.set(s, i);
-    }
-    this.elementStyles = this.finalizeStyles(this.styles);
-  }
-  static finalizeStyles(e) {
-    const i = [];
-    if (Array.isArray(e)) {
-      const a = new Set(e.flat(1 / 0).reverse());
-      for (const s of a) i.unshift(qt(s));
-    } else e !== void 0 && i.push(qt(e));
-    return i;
-  }
-  static _$Eu(e, i) {
-    const a = i.attribute;
-    return a === !1 ? void 0 : typeof a == "string" ? a : typeof e == "string" ? e.toLowerCase() : void 0;
-  }
-  constructor() {
-    super(), this._$Ep = void 0, this.isUpdatePending = !1, this.hasUpdated = !1, this._$Em = null, this._$Ev();
-  }
-  _$Ev() {
-    this._$ES = new Promise((e) => this.enableUpdating = e), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((e) => e(this));
-  }
-  addController(e) {
-    (this._$EO ??= /* @__PURE__ */ new Set()).add(e), this.renderRoot !== void 0 && this.isConnected && e.hostConnected?.();
-  }
-  removeController(e) {
-    this._$EO?.delete(e);
-  }
-  _$E_() {
-    const e = /* @__PURE__ */ new Map(), i = this.constructor.elementProperties;
-    for (const a of i.keys()) this.hasOwnProperty(a) && (e.set(a, this[a]), delete this[a]);
-    e.size > 0 && (this._$Ep = e);
-  }
-  createRenderRoot() {
-    const e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Ii(e, this.constructor.elementStyles), e;
-  }
-  connectedCallback() {
-    this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
-  }
-  enableUpdating(e) {
-  }
-  disconnectedCallback() {
-    this._$EO?.forEach((e) => e.hostDisconnected?.());
-  }
-  attributeChangedCallback(e, i, a) {
-    this._$AK(e, a);
-  }
-  _$ET(e, i) {
-    const a = this.constructor.elementProperties.get(e), s = this.constructor._$Eu(e, a);
-    if (s !== void 0 && a.reflect === !0) {
-      const r = (a.converter?.toAttribute !== void 0 ? a.converter : Le).toAttribute(i, a.type);
-      this._$Em = e, r == null ? this.removeAttribute(s) : this.setAttribute(s, r), this._$Em = null;
-    }
-  }
-  _$AK(e, i) {
-    const a = this.constructor, s = a._$Eh.get(e);
-    if (s !== void 0 && this._$Em !== s) {
-      const r = a.getPropertyOptions(s), o = typeof r.converter == "function" ? { fromAttribute: r.converter } : r.converter?.fromAttribute !== void 0 ? r.converter : Le;
-      this._$Em = s;
-      const l = o.fromAttribute(i, r.type);
-      this[s] = l ?? this._$Ej?.get(s) ?? l, this._$Em = null;
-    }
-  }
-  requestUpdate(e, i, a, s = !1, r) {
-    if (e !== void 0) {
-      const o = this.constructor;
-      if (s === !1 && (r = this[e]), a ??= o.getPropertyOptions(e), !((a.hasChanged ?? bt)(r, i) || a.useDefault && a.reflect && r === this._$Ej?.get(e) && !this.hasAttribute(o._$Eu(e, a)))) return;
-      this.C(e, i, a);
-    }
-    this.isUpdatePending === !1 && (this._$ES = this._$EP());
-  }
-  C(e, i, { useDefault: a, reflect: s, wrapped: r }, o) {
-    a && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(e) && (this._$Ej.set(e, o ?? i ?? this[e]), r !== !0 || o !== void 0) || (this._$AL.has(e) || (this.hasUpdated || a || (i = void 0), this._$AL.set(e, i)), s === !0 && this._$Em !== e && (this._$Eq ??= /* @__PURE__ */ new Set()).add(e));
-  }
-  async _$EP() {
-    this.isUpdatePending = !0;
-    try {
-      await this._$ES;
-    } catch (i) {
-      Promise.reject(i);
-    }
-    const e = this.scheduleUpdate();
-    return e != null && await e, !this.isUpdatePending;
-  }
-  scheduleUpdate() {
-    return this.performUpdate();
-  }
-  performUpdate() {
-    if (!this.isUpdatePending) return;
-    if (!this.hasUpdated) {
-      if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
-        for (const [s, r] of this._$Ep) this[s] = r;
-        this._$Ep = void 0;
-      }
-      const a = this.constructor.elementProperties;
-      if (a.size > 0) for (const [s, r] of a) {
-        const { wrapped: o } = r, l = this[s];
-        o !== !0 || this._$AL.has(s) || l === void 0 || this.C(s, void 0, r, l);
-      }
-    }
-    let e = !1;
-    const i = this._$AL;
-    try {
-      e = this.shouldUpdate(i), e ? (this.willUpdate(i), this._$EO?.forEach((a) => a.hostUpdate?.()), this.update(i)) : this._$EM();
-    } catch (a) {
-      throw e = !1, this._$EM(), a;
-    }
-    e && this._$AE(i);
-  }
-  willUpdate(e) {
-  }
-  _$AE(e) {
-    this._$EO?.forEach((i) => i.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(e)), this.updated(e);
-  }
-  _$EM() {
-    this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = !1;
-  }
-  get updateComplete() {
-    return this.getUpdateComplete();
-  }
-  getUpdateComplete() {
-    return this._$ES;
-  }
-  shouldUpdate(e) {
-    return !0;
-  }
-  update(e) {
-    this._$Eq &&= this._$Eq.forEach((i) => this._$ET(i, this[i])), this._$EM();
-  }
-  updated(e) {
-  }
-  firstUpdated(e) {
-  }
+Symbol.metadata ??= Symbol("metadata"), m.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+var y = class extends HTMLElement {
+	static addInitializer(e) {
+		this._$Ei(), (this.l ??= []).push(e);
+	}
+	static get observedAttributes() {
+		return this.finalize(), this._$Eh && [...this._$Eh.keys()];
+	}
+	static createProperty(e, t = re) {
+		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
+			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
+			r !== void 0 && u(this.prototype, e, r);
+		}
+	}
+	static getPropertyDescriptor(e, t, n) {
+		let { get: r, set: i } = d(this.prototype, e) ?? {
+			get() {
+				return this[t];
+			},
+			set(e) {
+				this[t] = e;
+			}
+		};
+		return {
+			get: r,
+			set(t) {
+				let a = r?.call(this);
+				i?.call(this, t), this.requestUpdate(e, a, n);
+			},
+			configurable: !0,
+			enumerable: !0
+		};
+	}
+	static getPropertyOptions(e) {
+		return this.elementProperties.get(e) ?? re;
+	}
+	static _$Ei() {
+		if (this.hasOwnProperty(g("elementProperties"))) return;
+		let e = ee(this);
+		e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
+	}
+	static finalize() {
+		if (this.hasOwnProperty(g("finalized"))) return;
+		if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(g("properties"))) {
+			let e = this.properties, t = [...f(e), ...p(e)];
+			for (let n of t) this.createProperty(n, e[n]);
+		}
+		let e = this[Symbol.metadata];
+		if (e !== null) {
+			let t = litPropertyMetadata.get(e);
+			if (t !== void 0) for (let [e, n] of t) this.elementProperties.set(e, n);
+		}
+		this._$Eh = /* @__PURE__ */ new Map();
+		for (let [e, t] of this.elementProperties) {
+			let n = this._$Eu(e, t);
+			n !== void 0 && this._$Eh.set(n, e);
+		}
+		this.elementStyles = this.finalizeStyles(this.styles);
+	}
+	static finalizeStyles(e) {
+		let t = [];
+		if (Array.isArray(e)) {
+			let n = new Set(e.flat(1 / 0).reverse());
+			for (let e of n) t.unshift(c(e));
+		} else e !== void 0 && t.push(c(e));
+		return t;
+	}
+	static _$Eu(e, t) {
+		let n = t.attribute;
+		return !1 === n ? void 0 : typeof n == "string" ? n : typeof e == "string" ? e.toLowerCase() : void 0;
+	}
+	constructor() {
+		super(), this._$Ep = void 0, this.isUpdatePending = !1, this.hasUpdated = !1, this._$Em = null, this._$Ev();
+	}
+	_$Ev() {
+		this._$ES = new Promise((e) => this.enableUpdating = e), this._$AL = /* @__PURE__ */ new Map(), this._$E_(), this.requestUpdate(), this.constructor.l?.forEach((e) => e(this));
+	}
+	addController(e) {
+		(this._$EO ??= /* @__PURE__ */ new Set()).add(e), this.renderRoot !== void 0 && this.isConnected && e.hostConnected?.();
+	}
+	removeController(e) {
+		this._$EO?.delete(e);
+	}
+	_$E_() {
+		let e = /* @__PURE__ */ new Map(), t = this.constructor.elementProperties;
+		for (let n of t.keys()) this.hasOwnProperty(n) && (e.set(n, this[n]), delete this[n]);
+		e.size > 0 && (this._$Ep = e);
+	}
+	createRenderRoot() {
+		let e = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+		return s(e, this.constructor.elementStyles), e;
+	}
+	connectedCallback() {
+		this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((e) => e.hostConnected?.());
+	}
+	enableUpdating(e) {}
+	disconnectedCallback() {
+		this._$EO?.forEach((e) => e.hostDisconnected?.());
+	}
+	attributeChangedCallback(e, t, n) {
+		this._$AK(e, n);
+	}
+	_$ET(e, t) {
+		let n = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, n);
+		if (r !== void 0 && !0 === n.reflect) {
+			let i = (n.converter?.toAttribute === void 0 ? _ : n.converter).toAttribute(t, n.type);
+			this._$Em = e, i == null ? this.removeAttribute(r) : this.setAttribute(r, i), this._$Em = null;
+		}
+	}
+	_$AK(e, t) {
+		let n = this.constructor, r = n._$Eh.get(e);
+		if (r !== void 0 && this._$Em !== r) {
+			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? _ : e.converter;
+			this._$Em = r;
+			let a = i.fromAttribute(t, e.type);
+			this[r] = a ?? this._$Ej?.get(r) ?? a, this._$Em = null;
+		}
+	}
+	requestUpdate(e, t, n, r = !1, i) {
+		if (e !== void 0) {
+			let a = this.constructor;
+			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? v)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
+			this.C(e, t, n);
+		}
+		!1 === this.isUpdatePending && (this._$ES = this._$EP());
+	}
+	C(e, t, { useDefault: n, reflect: r, wrapped: i }, a) {
+		n && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(e) && (this._$Ej.set(e, a ?? t ?? this[e]), !0 !== i || a !== void 0) || (this._$AL.has(e) || (this.hasUpdated || n || (t = void 0), this._$AL.set(e, t)), !0 === r && this._$Em !== e && (this._$Eq ??= /* @__PURE__ */ new Set()).add(e));
+	}
+	async _$EP() {
+		this.isUpdatePending = !0;
+		try {
+			await this._$ES;
+		} catch (e) {
+			Promise.reject(e);
+		}
+		let e = this.scheduleUpdate();
+		return e != null && await e, !this.isUpdatePending;
+	}
+	scheduleUpdate() {
+		return this.performUpdate();
+	}
+	performUpdate() {
+		if (!this.isUpdatePending) return;
+		if (!this.hasUpdated) {
+			if (this.renderRoot ??= this.createRenderRoot(), this._$Ep) {
+				for (let [e, t] of this._$Ep) this[e] = t;
+				this._$Ep = void 0;
+			}
+			let e = this.constructor.elementProperties;
+			if (e.size > 0) for (let [t, n] of e) {
+				let { wrapped: e } = n, r = this[t];
+				!0 !== e || this._$AL.has(t) || r === void 0 || this.C(t, void 0, n, r);
+			}
+		}
+		let e = !1, t = this._$AL;
+		try {
+			e = this.shouldUpdate(t), e ? (this.willUpdate(t), this._$EO?.forEach((e) => e.hostUpdate?.()), this.update(t)) : this._$EM();
+		} catch (t) {
+			throw e = !1, this._$EM(), t;
+		}
+		e && this._$AE(t);
+	}
+	willUpdate(e) {}
+	_$AE(e) {
+		this._$EO?.forEach((e) => e.hostUpdated?.()), this.hasUpdated || (this.hasUpdated = !0, this.firstUpdated(e)), this.updated(e);
+	}
+	_$EM() {
+		this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = !1;
+	}
+	get updateComplete() {
+		return this.getUpdateComplete();
+	}
+	getUpdateComplete() {
+		return this._$ES;
+	}
+	shouldUpdate(e) {
+		return !0;
+	}
+	update(e) {
+		this._$Eq &&= this._$Eq.forEach((e) => this._$ET(e, this[e])), this._$EM();
+	}
+	updated(e) {}
+	firstUpdated(e) {}
 };
-ve.elementStyles = [], ve.shadowRootOptions = { mode: "open" }, ve[je("elementProperties")] = /* @__PURE__ */ new Map(), ve[je("finalized")] = /* @__PURE__ */ new Map(), Ri?.({ ReactiveElement: ve }), (qe.reactiveElementVersions ??= []).push("2.1.2");
-const yt = globalThis, $t = (t) => t, Fe = yt.trustedTypes, _t = Fe ? Fe.createPolicy("lit-html", { createHTML: (t) => t }) : void 0, Ai = "$lit$", ee = `lit$${Math.random().toFixed(9).slice(2)}$`, pi = "?" + ee, Zi = `<${pi}>`, le = document, Ee = () => le.createComment(""), Ne = (t) => t === null || typeof t != "object" && typeof t != "function", wt = Array.isArray, Ui = (t) => wt(t) || typeof t?.[Symbol.iterator] == "function", nt = `[ 	
-\f\r]`, ke = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, ei = /-->/g, ti = />/g, oe = RegExp(`>|${nt}(?:([^\\s"'>=/]+)(${nt}*=${nt}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), ii = /'/g, ai = /"/g, hi = /^(?:script|style|textarea|title)$/i, gi = (t) => (e, ...i) => ({ _$litType$: t, strings: e, values: i }), d = gi(1), ue = gi(2), F = /* @__PURE__ */ Symbol.for("lit-noChange"), c = /* @__PURE__ */ Symbol.for("lit-nothing"), si = /* @__PURE__ */ new WeakMap(), ne = le.createTreeWalker(le, 129);
-function ui(t, e) {
-  if (!wt(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return _t !== void 0 ? _t.createHTML(e) : e;
+y.elementStyles = [], y.shadowRootOptions = { mode: "open" }, y[g("elementProperties")] = /* @__PURE__ */ new Map(), y[g("finalized")] = /* @__PURE__ */ new Map(), ne?.({ ReactiveElement: y }), (m.reactiveElementVersions ??= []).push("2.1.2");
+//#endregion
+//#region node_modules/lit-html/lit-html.js
+var b = globalThis, ie = (e) => e, x = b.trustedTypes, ae = x ? x.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, oe = "$lit$", S = `lit$${Math.random().toFixed(9).slice(2)}$`, se = "?" + S, ce = `<${se}>`, C = document, w = () => C.createComment(""), le = (e) => e === null || typeof e != "object" && typeof e != "function", ue = Array.isArray, de = (e) => ue(e) || typeof e?.[Symbol.iterator] == "function", fe = "[ 	\n\f\r]", T = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, pe = /-->/g, me = />/g, E = RegExp(`>|${fe}(?:([^\\s"'>=/]+)(${fe}*=${fe}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), he = /'/g, ge = /"/g, _e = /^(?:script|style|textarea|title)$/i, ve = (e) => (t, ...n) => ({
+	_$litType$: e,
+	strings: t,
+	values: n
+}), D = ve(1), O = ve(2), k = Symbol.for("lit-noChange"), A = Symbol.for("lit-nothing"), ye = /* @__PURE__ */ new WeakMap(), j = C.createTreeWalker(C, 129);
+function be(e, t) {
+	if (!ue(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+	return ae === void 0 ? t : ae.createHTML(t);
 }
-const Li = (t, e) => {
-  const i = t.length - 1, a = [];
-  let s, r = e === 2 ? "<svg>" : e === 3 ? "<math>" : "", o = ke;
-  for (let l = 0; l < i; l++) {
-    const n = t[l];
-    let h, u, A = -1, m = 0;
-    for (; m < n.length && (o.lastIndex = m, u = o.exec(n), u !== null); ) m = o.lastIndex, o === ke ? u[1] === "!--" ? o = ei : u[1] !== void 0 ? o = ti : u[2] !== void 0 ? (hi.test(u[2]) && (s = RegExp("</" + u[2], "g")), o = oe) : u[3] !== void 0 && (o = oe) : o === oe ? u[0] === ">" ? (o = s ?? ke, A = -1) : u[1] === void 0 ? A = -2 : (A = o.lastIndex - u[2].length, h = u[1], o = u[3] === void 0 ? oe : u[3] === '"' ? ai : ii) : o === ai || o === ii ? o = oe : o === ei || o === ti ? o = ke : (o = oe, s = void 0);
-    const f = o === oe && t[l + 1].startsWith("/>") ? " " : "";
-    r += o === ke ? n + Zi : A >= 0 ? (a.push(h), n.slice(0, A) + Ai + n.slice(A) + ee + f) : n + ee + (A === -2 ? l : f);
-  }
-  return [ui(t, r + (t[i] || "<?>") + (e === 2 ? "</svg>" : e === 3 ? "</math>" : "")), a];
+var xe = (e, t) => {
+	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = T;
+	for (let t = 0; t < n; t++) {
+		let n = e[t], s, c, l = -1, u = 0;
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === T ? c[1] === "!--" ? o = pe : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = E) : (_e.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = E) : o = me : o === E ? c[0] === ">" ? (o = i ?? T, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? E : c[3] === "\"" ? ge : he) : o === ge || o === he ? o = E : o === pe || o === me ? o = T : (o = E, i = void 0);
+		let d = o === E && e[t + 1].startsWith("/>") ? " " : "";
+		a += o === T ? n + ce : l >= 0 ? (r.push(s), n.slice(0, l) + oe + n.slice(l) + S + d) : n + S + (l === -2 ? t : d);
+	}
+	return [be(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
+}, Se = class e {
+	constructor({ strings: t, _$litType$: n }, r) {
+		let i;
+		this.parts = [];
+		let a = 0, o = 0, s = t.length - 1, c = this.parts, [l, u] = xe(t, n);
+		if (this.el = e.createElement(l, r), j.currentNode = this.el.content, n === 2 || n === 3) {
+			let e = this.el.content.firstChild;
+			e.replaceWith(...e.childNodes);
+		}
+		for (; (i = j.nextNode()) !== null && c.length < s;) {
+			if (i.nodeType === 1) {
+				if (i.hasAttributes()) for (let e of i.getAttributeNames()) if (e.endsWith(oe)) {
+					let t = u[o++], n = i.getAttribute(e).split(S), r = /([.?@])?(.*)/.exec(t);
+					c.push({
+						type: 1,
+						index: a,
+						name: r[2],
+						strings: n,
+						ctor: r[1] === "." ? Ce : r[1] === "?" ? we : r[1] === "@" ? Te : F
+					}), i.removeAttribute(e);
+				} else e.startsWith(S) && (c.push({
+					type: 6,
+					index: a
+				}), i.removeAttribute(e));
+				if (_e.test(i.tagName)) {
+					let e = i.textContent.split(S), t = e.length - 1;
+					if (t > 0) {
+						i.textContent = x ? x.emptyScript : "";
+						for (let n = 0; n < t; n++) i.append(e[n], w()), j.nextNode(), c.push({
+							type: 2,
+							index: ++a
+						});
+						i.append(e[t], w());
+					}
+				}
+			} else if (i.nodeType === 8) {
+				if (i.data === se) c.push({
+					type: 2,
+					index: a
+				});
+				else {
+					let e = -1;
+					for (; (e = i.data.indexOf(S, e + 1)) !== -1;) c.push({
+						type: 7,
+						index: a
+					}), e += S.length - 1;
+				}
+			}
+			a++;
+		}
+	}
+	static createElement(e, t) {
+		let n = C.createElement("template");
+		return n.innerHTML = e, n;
+	}
 };
-class Ge {
-  constructor({ strings: e, _$litType$: i }, a) {
-    let s;
-    this.parts = [];
-    let r = 0, o = 0;
-    const l = e.length - 1, n = this.parts, [h, u] = Li(e, i);
-    if (this.el = Ge.createElement(h, a), ne.currentNode = this.el.content, i === 2 || i === 3) {
-      const A = this.el.content.firstChild;
-      A.replaceWith(...A.childNodes);
-    }
-    for (; (s = ne.nextNode()) !== null && n.length < l; ) {
-      if (s.nodeType === 1) {
-        if (s.hasAttributes()) for (const A of s.getAttributeNames()) if (A.endsWith(Ai)) {
-          const m = u[o++], f = s.getAttribute(A).split(ee), b = /([.?@])?(.*)/.exec(m);
-          n.push({ type: 1, index: r, name: b[2], strings: f, ctor: b[1] === "." ? Xi : b[1] === "?" ? Yi : b[1] === "@" ? Ki : Je }), s.removeAttribute(A);
-        } else A.startsWith(ee) && (n.push({ type: 6, index: r }), s.removeAttribute(A));
-        if (hi.test(s.tagName)) {
-          const A = s.textContent.split(ee), m = A.length - 1;
-          if (m > 0) {
-            s.textContent = Fe ? Fe.emptyScript : "";
-            for (let f = 0; f < m; f++) s.append(A[f], Ee()), ne.nextNode(), n.push({ type: 2, index: ++r });
-            s.append(A[m], Ee());
-          }
-        }
-      } else if (s.nodeType === 8) if (s.data === pi) n.push({ type: 2, index: r });
-      else {
-        let A = -1;
-        for (; (A = s.data.indexOf(ee, A + 1)) !== -1; ) n.push({ type: 7, index: r }), A += ee.length - 1;
-      }
-      r++;
-    }
-  }
-  static createElement(e, i) {
-    const a = le.createElement("template");
-    return a.innerHTML = e, a;
-  }
+function M(e, t, n = e, r) {
+	if (t === k) return t;
+	let i = r === void 0 ? n._$Cl : n._$Co?.[r], a = le(t) ? void 0 : t._$litDirective$;
+	return i?.constructor !== a && (i?._$AO?.(!1), a === void 0 ? i = void 0 : (i = new a(e), i._$AT(e, n, r)), r === void 0 ? n._$Cl = i : (n._$Co ??= [])[r] = i), i !== void 0 && (t = M(e, i._$AS(e, t.values), i, r)), t;
 }
-function be(t, e, i = t, a) {
-  if (e === F) return e;
-  let s = a !== void 0 ? i._$Co?.[a] : i._$Cl;
-  const r = Ne(e) ? void 0 : e._$litDirective$;
-  return s?.constructor !== r && (s?._$AO?.(!1), r === void 0 ? s = void 0 : (s = new r(t), s._$AT(t, i, a)), a !== void 0 ? (i._$Co ??= [])[a] = s : i._$Cl = s), s !== void 0 && (e = be(t, s._$AS(t, e.values), s, a)), e;
-}
-class Fi {
-  constructor(e, i) {
-    this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = i;
-  }
-  get parentNode() {
-    return this._$AM.parentNode;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  u(e) {
-    const { el: { content: i }, parts: a } = this._$AD, s = (e?.creationScope ?? le).importNode(i, !0);
-    ne.currentNode = s;
-    let r = ne.nextNode(), o = 0, l = 0, n = a[0];
-    for (; n !== void 0; ) {
-      if (o === n.index) {
-        let h;
-        n.type === 2 ? h = new He(r, r.nextSibling, this, e) : n.type === 1 ? h = new n.ctor(r, n.name, n.strings, this, e) : n.type === 6 && (h = new Wi(r, this, e)), this._$AV.push(h), n = a[++l];
-      }
-      o !== n?.index && (r = ne.nextNode(), o++);
-    }
-    return ne.currentNode = le, s;
-  }
-  p(e) {
-    let i = 0;
-    for (const a of this._$AV) a !== void 0 && (a.strings !== void 0 ? (a._$AI(e, a, i), i += a.strings.length - 2) : a._$AI(e[i])), i++;
-  }
-}
-class He {
-  get _$AU() {
-    return this._$AM?._$AU ?? this._$Cv;
-  }
-  constructor(e, i, a, s) {
-    this.type = 2, this._$AH = c, this._$AN = void 0, this._$AA = e, this._$AB = i, this._$AM = a, this.options = s, this._$Cv = s?.isConnected ?? !0;
-  }
-  get parentNode() {
-    let e = this._$AA.parentNode;
-    const i = this._$AM;
-    return i !== void 0 && e?.nodeType === 11 && (e = i.parentNode), e;
-  }
-  get startNode() {
-    return this._$AA;
-  }
-  get endNode() {
-    return this._$AB;
-  }
-  _$AI(e, i = this) {
-    e = be(this, e, i), Ne(e) ? e === c || e == null || e === "" ? (this._$AH !== c && this._$AR(), this._$AH = c) : e !== this._$AH && e !== F && this._(e) : e._$litType$ !== void 0 ? this.$(e) : e.nodeType !== void 0 ? this.T(e) : Ui(e) ? this.k(e) : this._(e);
-  }
-  O(e) {
-    return this._$AA.parentNode.insertBefore(e, this._$AB);
-  }
-  T(e) {
-    this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
-  }
-  _(e) {
-    this._$AH !== c && Ne(this._$AH) ? this._$AA.nextSibling.data = e : this.T(le.createTextNode(e)), this._$AH = e;
-  }
-  $(e) {
-    const { values: i, _$litType$: a } = e, s = typeof a == "number" ? this._$AC(e) : (a.el === void 0 && (a.el = Ge.createElement(ui(a.h, a.h[0]), this.options)), a);
-    if (this._$AH?._$AD === s) this._$AH.p(i);
-    else {
-      const r = new Fi(s, this), o = r.u(this.options);
-      r.p(i), this.T(o), this._$AH = r;
-    }
-  }
-  _$AC(e) {
-    let i = si.get(e.strings);
-    return i === void 0 && si.set(e.strings, i = new Ge(e)), i;
-  }
-  k(e) {
-    wt(this._$AH) || (this._$AH = [], this._$AR());
-    const i = this._$AH;
-    let a, s = 0;
-    for (const r of e) s === i.length ? i.push(a = new He(this.O(Ee()), this.O(Ee()), this, this.options)) : a = i[s], a._$AI(r), s++;
-    s < i.length && (this._$AR(a && a._$AB.nextSibling, s), i.length = s);
-  }
-  _$AR(e = this._$AA.nextSibling, i) {
-    for (this._$AP?.(!1, !0, i); e !== this._$AB; ) {
-      const a = $t(e).nextSibling;
-      $t(e).remove(), e = a;
-    }
-  }
-  setConnected(e) {
-    this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
-  }
-}
-class Je {
-  get tagName() {
-    return this.element.tagName;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  constructor(e, i, a, s, r) {
-    this.type = 1, this._$AH = c, this._$AN = void 0, this.element = e, this.name = i, this._$AM = s, this.options = r, a.length > 2 || a[0] !== "" || a[1] !== "" ? (this._$AH = Array(a.length - 1).fill(new String()), this.strings = a) : this._$AH = c;
-  }
-  _$AI(e, i = this, a, s) {
-    const r = this.strings;
-    let o = !1;
-    if (r === void 0) e = be(this, e, i, 0), o = !Ne(e) || e !== this._$AH && e !== F, o && (this._$AH = e);
-    else {
-      const l = e;
-      let n, h;
-      for (e = r[0], n = 0; n < r.length - 1; n++) h = be(this, l[a + n], i, n), h === F && (h = this._$AH[n]), o ||= !Ne(h) || h !== this._$AH[n], h === c ? e = c : e !== c && (e += (h ?? "") + r[n + 1]), this._$AH[n] = h;
-    }
-    o && !s && this.j(e);
-  }
-  j(e) {
-    e === c ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
-  }
-}
-class Xi extends Je {
-  constructor() {
-    super(...arguments), this.type = 3;
-  }
-  j(e) {
-    this.element[this.name] = e === c ? void 0 : e;
-  }
-}
-class Yi extends Je {
-  constructor() {
-    super(...arguments), this.type = 4;
-  }
-  j(e) {
-    this.element.toggleAttribute(this.name, !!e && e !== c);
-  }
-}
-class Ki extends Je {
-  constructor(e, i, a, s, r) {
-    super(e, i, a, s, r), this.type = 5;
-  }
-  _$AI(e, i = this) {
-    if ((e = be(this, e, i, 0) ?? c) === F) return;
-    const a = this._$AH, s = e === c && a !== c || e.capture !== a.capture || e.once !== a.once || e.passive !== a.passive, r = e !== c && (a === c || s);
-    s && this.element.removeEventListener(this.name, this, a), r && this.element.addEventListener(this.name, this, e), this._$AH = e;
-  }
-  handleEvent(e) {
-    typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
-  }
-}
-class Wi {
-  constructor(e, i, a) {
-    this.element = e, this.type = 6, this._$AN = void 0, this._$AM = i, this.options = a;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AI(e) {
-    be(this, e);
-  }
-}
-const qi = yt.litHtmlPolyfillSupport;
-qi?.(Ge, He), (yt.litHtmlVersions ??= []).push("3.3.3");
-const Ji = (t, e, i) => {
-  const a = i?.renderBefore ?? e;
-  let s = a._$litPart$;
-  if (s === void 0) {
-    const r = i?.renderBefore ?? null;
-    a._$litPart$ = s = new He(e.insertBefore(Ee(), r), r, void 0, i ?? {});
-  }
-  return s._$AI(t), s;
+var N = class {
+	constructor(e, t) {
+		this._$AV = [], this._$AN = void 0, this._$AD = e, this._$AM = t;
+	}
+	get parentNode() {
+		return this._$AM.parentNode;
+	}
+	get _$AU() {
+		return this._$AM._$AU;
+	}
+	u(e) {
+		let { el: { content: t }, parts: n } = this._$AD, r = (e?.creationScope ?? C).importNode(t, !0);
+		j.currentNode = r;
+		let i = j.nextNode(), a = 0, o = 0, s = n[0];
+		for (; s !== void 0;) {
+			if (a === s.index) {
+				let t;
+				s.type === 2 ? t = new P(i, i.nextSibling, this, e) : s.type === 1 ? t = new s.ctor(i, s.name, s.strings, this, e) : s.type === 6 && (t = new Ee(i, this, e)), this._$AV.push(t), s = n[++o];
+			}
+			a !== s?.index && (i = j.nextNode(), a++);
+		}
+		return j.currentNode = C, r;
+	}
+	p(e) {
+		let t = 0;
+		for (let n of this._$AV) n !== void 0 && (n.strings === void 0 ? n._$AI(e[t]) : (n._$AI(e, n, t), t += n.strings.length - 2)), t++;
+	}
+}, P = class e {
+	get _$AU() {
+		return this._$AM?._$AU ?? this._$Cv;
+	}
+	constructor(e, t, n, r) {
+		this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = e, this._$AB = t, this._$AM = n, this.options = r, this._$Cv = r?.isConnected ?? !0;
+	}
+	get parentNode() {
+		let e = this._$AA.parentNode, t = this._$AM;
+		return t !== void 0 && e?.nodeType === 11 && (e = t.parentNode), e;
+	}
+	get startNode() {
+		return this._$AA;
+	}
+	get endNode() {
+		return this._$AB;
+	}
+	_$AI(e, t = this) {
+		e = M(this, e, t), le(e) ? e === A || e == null || e === "" ? (this._$AH !== A && this._$AR(), this._$AH = A) : e !== this._$AH && e !== k && this._(e) : e._$litType$ === void 0 ? e.nodeType === void 0 ? de(e) ? this.k(e) : this._(e) : this.T(e) : this.$(e);
+	}
+	O(e) {
+		return this._$AA.parentNode.insertBefore(e, this._$AB);
+	}
+	T(e) {
+		this._$AH !== e && (this._$AR(), this._$AH = this.O(e));
+	}
+	_(e) {
+		this._$AH !== A && le(this._$AH) ? this._$AA.nextSibling.data = e : this.T(C.createTextNode(e)), this._$AH = e;
+	}
+	$(e) {
+		let { values: t, _$litType$: n } = e, r = typeof n == "number" ? this._$AC(e) : (n.el === void 0 && (n.el = Se.createElement(be(n.h, n.h[0]), this.options)), n);
+		if (this._$AH?._$AD === r) this._$AH.p(t);
+		else {
+			let e = new N(r, this), n = e.u(this.options);
+			e.p(t), this.T(n), this._$AH = e;
+		}
+	}
+	_$AC(e) {
+		let t = ye.get(e.strings);
+		return t === void 0 && ye.set(e.strings, t = new Se(e)), t;
+	}
+	k(t) {
+		ue(this._$AH) || (this._$AH = [], this._$AR());
+		let n = this._$AH, r, i = 0;
+		for (let a of t) i === n.length ? n.push(r = new e(this.O(w()), this.O(w()), this, this.options)) : r = n[i], r._$AI(a), i++;
+		i < n.length && (this._$AR(r && r._$AB.nextSibling, i), n.length = i);
+	}
+	_$AR(e = this._$AA.nextSibling, t) {
+		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
+			let t = ie(e).nextSibling;
+			ie(e).remove(), e = t;
+		}
+	}
+	setConnected(e) {
+		this._$AM === void 0 && (this._$Cv = e, this._$AP?.(e));
+	}
+}, F = class {
+	get tagName() {
+		return this.element.tagName;
+	}
+	get _$AU() {
+		return this._$AM._$AU;
+	}
+	constructor(e, t, n, r, i) {
+		this.type = 1, this._$AH = A, this._$AN = void 0, this.element = e, this.name = t, this._$AM = r, this.options = i, n.length > 2 || n[0] !== "" || n[1] !== "" ? (this._$AH = Array(n.length - 1).fill(/* @__PURE__ */ new String()), this.strings = n) : this._$AH = A;
+	}
+	_$AI(e, t = this, n, r) {
+		let i = this.strings, a = !1;
+		if (i === void 0) e = M(this, e, t, 0), a = !le(e) || e !== this._$AH && e !== k, a && (this._$AH = e);
+		else {
+			let r = e, o, s;
+			for (e = i[0], o = 0; o < i.length - 1; o++) s = M(this, r[n + o], t, o), s === k && (s = this._$AH[o]), a ||= !le(s) || s !== this._$AH[o], s === A ? e = A : e !== A && (e += (s ?? "") + i[o + 1]), this._$AH[o] = s;
+		}
+		a && !r && this.j(e);
+	}
+	j(e) {
+		e === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, e ?? "");
+	}
+}, Ce = class extends F {
+	constructor() {
+		super(...arguments), this.type = 3;
+	}
+	j(e) {
+		this.element[this.name] = e === A ? void 0 : e;
+	}
+}, we = class extends F {
+	constructor() {
+		super(...arguments), this.type = 4;
+	}
+	j(e) {
+		this.element.toggleAttribute(this.name, !!e && e !== A);
+	}
+}, Te = class extends F {
+	constructor(e, t, n, r, i) {
+		super(e, t, n, r, i), this.type = 5;
+	}
+	_$AI(e, t = this) {
+		if ((e = M(this, e, t, 0) ?? A) === k) return;
+		let n = this._$AH, r = e === A && n !== A || e.capture !== n.capture || e.once !== n.once || e.passive !== n.passive, i = e !== A && (n === A || r);
+		r && this.element.removeEventListener(this.name, this, n), i && this.element.addEventListener(this.name, this, e), this._$AH = e;
+	}
+	handleEvent(e) {
+		typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, e) : this._$AH.handleEvent(e);
+	}
+}, Ee = class {
+	constructor(e, t, n) {
+		this.element = e, this.type = 6, this._$AN = void 0, this._$AM = t, this.options = n;
+	}
+	get _$AU() {
+		return this._$AM._$AU;
+	}
+	_$AI(e) {
+		M(this, e);
+	}
+}, De = {
+	M: oe,
+	P: S,
+	A: se,
+	C: 1,
+	L: xe,
+	R: N,
+	D: de,
+	V: M,
+	I: P,
+	H: F,
+	N: we,
+	U: Te,
+	B: Ce,
+	F: Ee
+}, Oe = b.litHtmlPolyfillSupport;
+Oe?.(Se, P), (b.litHtmlVersions ??= []).push("3.3.3");
+var ke = (e, t, n) => {
+	let r = n?.renderBefore ?? t, i = r._$litPart$;
+	if (i === void 0) {
+		let e = n?.renderBefore ?? null;
+		r._$litPart$ = i = new P(t.insertBefore(w(), e), e, void 0, n ?? {});
+	}
+	return i._$AI(e), i;
+}, Ae = globalThis, I = class extends y {
+	constructor() {
+		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
+	}
+	createRenderRoot() {
+		let e = super.createRenderRoot();
+		return this.renderOptions.renderBefore ??= e.firstChild, e;
+	}
+	update(e) {
+		let t = this.render();
+		this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = ke(t, this.renderRoot, this.renderOptions);
+	}
+	connectedCallback() {
+		super.connectedCallback(), this._$Do?.setConnected(!0);
+	}
+	disconnectedCallback() {
+		super.disconnectedCallback(), this._$Do?.setConnected(!1);
+	}
+	render() {
+		return k;
+	}
 };
-const xt = globalThis;
-let C = class extends ve {
-  constructor() {
-    super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
-  }
-  createRenderRoot() {
-    const e = super.createRenderRoot();
-    return this.renderOptions.renderBefore ??= e.firstChild, e;
-  }
-  update(e) {
-    const i = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(e), this._$Do = Ji(i, this.renderRoot, this.renderOptions);
-  }
-  connectedCallback() {
-    super.connectedCallback(), this._$Do?.setConnected(!0);
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback(), this._$Do?.setConnected(!1);
-  }
-  render() {
-    return F;
-  }
+I._$litElement$ = !0, I.finalized = !0, Ae.litElementHydrateSupport?.({ LitElement: I });
+var je = Ae.litElementPolyfillSupport;
+je?.({ LitElement: I }), (Ae.litElementVersions ??= []).push("4.2.2");
+//#endregion
+//#region node_modules/@lit/reactive-element/decorators/custom-element.js
+var L = (e) => (t, n) => {
+	n === void 0 ? customElements.define(e, t) : n.addInitializer(() => {
+		customElements.define(e, t);
+	});
+}, Me = {
+	attribute: !0,
+	type: String,
+	converter: _,
+	reflect: !1,
+	hasChanged: v
+}, Ne = (e = Me, t, n) => {
+	let { kind: r, metadata: i } = n, a = globalThis.litPropertyMetadata.get(i);
+	if (a === void 0 && globalThis.litPropertyMetadata.set(i, a = /* @__PURE__ */ new Map()), r === "setter" && ((e = Object.create(e)).wrapped = !0), a.set(n.name, e), r === "accessor") {
+		let { name: r } = n;
+		return {
+			set(n) {
+				let i = t.get.call(this);
+				t.set.call(this, n), this.requestUpdate(r, i, e, !0, n);
+			},
+			init(t) {
+				return t !== void 0 && this.C(r, void 0, e, t), t;
+			}
+		};
+	}
+	if (r === "setter") {
+		let { name: r } = n;
+		return function(n) {
+			let i = this[r];
+			t.call(this, n), this.requestUpdate(r, i, e, !0, n);
+		};
+	}
+	throw Error("Unsupported decorator location: " + r);
 };
-C._$litElement$ = !0, C.finalized = !0, xt.litElementHydrateSupport?.({ LitElement: C });
-const Vi = xt.litElementPolyfillSupport;
-Vi?.({ LitElement: C });
-(xt.litElementVersions ??= []).push("4.2.2");
-const H = (t) => (e, i) => {
-  i !== void 0 ? i.addInitializer(() => {
-    customElements.define(t, e);
-  }) : customElements.define(t, e);
-};
-const $i = { attribute: !0, type: String, converter: Le, reflect: !1, hasChanged: bt }, _i = (t = $i, e, i) => {
-  const { kind: a, metadata: s } = i;
-  let r = globalThis.litPropertyMetadata.get(s);
-  if (r === void 0 && globalThis.litPropertyMetadata.set(s, r = /* @__PURE__ */ new Map()), a === "setter" && ((t = Object.create(t)).wrapped = !0), r.set(i.name, t), a === "accessor") {
-    const { name: o } = i;
-    return { set(l) {
-      const n = e.get.call(this);
-      e.set.call(this, l), this.requestUpdate(o, n, t, !0, l);
-    }, init(l) {
-      return l !== void 0 && this.C(o, void 0, t, l), l;
-    } };
-  }
-  if (a === "setter") {
-    const { name: o } = i;
-    return function(l) {
-      const n = this[o];
-      e.call(this, l), this.requestUpdate(o, n, t, !0, l);
-    };
-  }
-  throw Error("Unsupported decorator location: " + a);
-};
-function g(t) {
-  return (e, i) => typeof i == "object" ? _i(t, e, i) : ((a, s, r) => {
-    const o = s.hasOwnProperty(r);
-    return s.constructor.createProperty(r, a), o ? Object.getOwnPropertyDescriptor(s, r) : void 0;
-  })(t, e, i);
+function R(e) {
+	return (t, n) => typeof n == "object" ? Ne(e, t, n) : ((e, t, n) => {
+		let r = t.hasOwnProperty(n);
+		return t.constructor.createProperty(n, e), r ? Object.getOwnPropertyDescriptor(t, n) : void 0;
+	})(e, t, n);
 }
-function v(t) {
-  return g({ ...t, state: !0, attribute: !1 });
+//#endregion
+//#region node_modules/@lit/reactive-element/decorators/state.js
+function z(e) {
+	return R({
+		...e,
+		state: !0,
+		attribute: !1
+	});
 }
-const Ue = (t = "number") => t === "weather" ? { type: t, source: "", weather: { period: "current", fields: ["icon", "condition", "temperature"], layout: "vertical" } } : t === "chart" ? { type: t, source: "", graph: mi() } : t === "clock" ? { type: t, format: "24h", showDate: !0 } : t === "image" ? { type: t, image: "", imageFit: "cover", showTitle: !1 } : t === "text" ? { type: t, text: "Text" } : t === "status" ? { type: t, source: "", onText: "On", offText: "Off" } : { type: t, source: "", progress: "none" }, mi = () => ({ type: "bar", points: 48, intervalSeconds: 300, aggregation: "mean", color: "accent", opacity: 50, labelEvery: 6, decimals: 1 }), ut = () => ({
-  weight: 1,
-  gap: "small",
-  cards: [Ue("clock")]
-}), fi = (t) => ({
-  id: `page_${t}`,
-  title: `Page ${t}`,
-  durationSeconds: 10,
-  enabled: !0,
-  transition: { type: "none" },
-  rows: [ut()]
-}), ea = () => ({
-  version: 1,
-  defaults: { pageDurationSeconds: 10, theme: "dark" },
-  pages: [fi(1)]
-}), ta = (t, e) => {
-  if (t.type === "number") {
-    const i = Number(e);
-    if (Number.isFinite(i)) {
-      for (const a of t.valueMappings ?? [])
-        if ((a.minimum === void 0 || i >= a.minimum) && (a.maximum === void 0 || i <= a.maximum))
-          return { value: a.value, mapped: !0 };
-    }
-  }
-  if (t.type === "text") {
-    for (const i of t.valueMappings ?? [])
-      if (i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)) return { value: i.value, mapped: !0 };
-  }
-  return { value: e, mapped: !1 };
-}, ia = (t, e) => {
-  if (t.type === "number") {
-    const i = Number(e);
-    if (Number.isFinite(i))
-      return (t.colorMappings ?? []).find(
-        (a) => (a.minimum === void 0 || i >= a.minimum) && (a.maximum === void 0 || i <= a.maximum)
-      );
-  }
-  if (t.type === "text")
-    return (t.colorMappings ?? []).find(
-      (i) => i.operator === "equals" ? e === i.match : i.operator === "starts_with" ? e.startsWith(i.match) : i.operator === "ends_with" ? e.endsWith(i.match) : e.includes(i.match)
-    );
+//#endregion
+//#region src/types.ts
+var Pe = (e = "number") => e === "weather" ? {
+	type: e,
+	source: "",
+	weather: {
+		period: "current",
+		fields: [
+			"icon",
+			"condition",
+			"temperature"
+		],
+		layout: "vertical"
+	}
+} : e === "chart" ? {
+	type: e,
+	source: "",
+	graph: Fe()
+} : e === "clock" ? {
+	type: e,
+	format: "24h",
+	showDate: !0
+} : e === "image" ? {
+	type: e,
+	image: "",
+	imageFit: "cover",
+	showTitle: !1
+} : e === "text" ? {
+	type: e,
+	text: "Text"
+} : e === "status" ? {
+	type: e,
+	source: "",
+	onText: "On",
+	offText: "Off"
+} : {
+	type: e,
+	source: "",
+	progress: "none"
+}, Fe = () => ({
+	type: "bar",
+	points: 48,
+	intervalSeconds: 300,
+	aggregation: "mean",
+	color: "accent",
+	opacity: 50,
+	labelEvery: 6,
+	decimals: 1
+}), Ie = () => ({
+	weight: 1,
+	gap: "small",
+	cards: [Pe("clock")]
+}), Le = (e) => ({
+	id: `page_${e}`,
+	title: `Page ${e}`,
+	durationSeconds: 10,
+	enabled: !0,
+	transition: { type: "none" },
+	rows: [Ie()]
+}), Re = () => ({
+	version: 1,
+	defaults: {
+		pageDurationSeconds: 10,
+		theme: "dark"
+	},
+	pages: [Le(1)]
+}), ze = (e, t) => {
+	if (e.type === "number") {
+		let n = Number(t);
+		if (Number.isFinite(n)) {
+			for (let t of e.valueMappings ?? []) if ((t.minimum === void 0 || n >= t.minimum) && (t.maximum === void 0 || n <= t.maximum)) return {
+				value: t.value,
+				mapped: !0
+			};
+		}
+	}
+	if (e.type === "text") {
+		for (let n of e.valueMappings ?? []) if (n.operator === "equals" ? t === n.match : n.operator === "starts_with" ? t.startsWith(n.match) : n.operator === "ends_with" ? t.endsWith(n.match) : t.includes(n.match)) return {
+			value: n.value,
+			mapped: !0
+		};
+	}
+	return {
+		value: t,
+		mapped: !1
+	};
+}, Be = (e, t) => {
+	if (e.type === "number") {
+		let n = Number(t);
+		if (Number.isFinite(n)) return (e.colorMappings ?? []).find((e) => (e.minimum === void 0 || n >= e.minimum) && (e.maximum === void 0 || n <= e.maximum));
+	}
+	if (e.type === "text") return (e.colorMappings ?? []).find((e) => e.operator === "equals" ? t === e.match : e.operator === "starts_with" ? t.startsWith(e.match) : e.operator === "ends_with" ? t.endsWith(e.match) : t.includes(e.match));
 };
-function Xe(t, e) {
-  const i = t.frame ?? { x: 0, y: 0, width: 50, height: 25 };
-  if (e === "card") return i;
-  const a = e === "title" ? t.titleFrame : t.valueFrame;
-  if (a) return a;
-  const s = Math.min(i.height, Math.max(2, i.height * 0.3));
-  return e === "title" ? { ...i, height: s } : !!t.title && t.showTitle !== !1 && i.height >= 4 ? {
-    ...i,
-    y: i.y + s,
-    height: Math.max(2, i.height - s)
-  } : { ...i };
+//#endregion
+//#region src/free-text.ts
+function Ve(e, t) {
+	let n = e.frame ?? {
+		x: 0,
+		y: 0,
+		width: 50,
+		height: 25
+	};
+	if (t === "card") return n;
+	let r = t === "title" ? e.titleFrame : e.valueFrame;
+	if (r) return r;
+	let i = Math.min(n.height, Math.max(2, n.height * .3));
+	return t === "title" ? {
+		...n,
+		height: i
+	} : e.title && e.showTitle !== !1 && n.height >= 4 ? {
+		...n,
+		y: n.y + i,
+		height: Math.max(2, n.height - i)
+	} : { ...n };
 }
-function lt(t) {
-  t.titleFrame ??= { ...Xe(t, "title") }, t.valueFrame ??= { ...Xe(t, "value") };
+function He(e) {
+	e.titleFrame ??= { ...Ve(e, "title") }, e.valueFrame ??= { ...Ve(e, "value") };
 }
-var aa = Object.defineProperty, Dt = (t, e, i, a) => {
-  for (var s = void 0, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = o(e, i, s) || s);
-  return s && aa(e, i, s), s;
-};
-const L = {
-  background: "#000000",
-  surface: "#1e222a",
-  primary: "#ffffff",
-  secondary: "#9e9e9e",
-  muted: "#666666",
-  accent: "#00ffff",
-  success: "#00ff00",
-  warning: "#ffa500",
-  error: "#ff0000"
-}, Mt = class Mt extends C {
-  constructor() {
-    super(...arguments), this.label = "Color", this.value = "", this.disabled = !1;
-  }
-  render() {
-    const e = this.value.startsWith("#"), i = e ? "custom" : this.value || "default";
-    return d`
+//#endregion
+//#region \0@oxc-project+runtime@0.148.0/helpers/esm/decorate.js
+function B(e, t, n, r) {
+	var i = arguments.length, a = i < 3 ? t : r === null ? r = Object.getOwnPropertyDescriptor(t, n) : r, o;
+	if (typeof Reflect == "object" && typeof Reflect.decorate == "function") a = Reflect.decorate(e, t, n, r);
+	else for (var s = e.length - 1; s >= 0; s--) (o = e[s]) && (a = (i < 3 ? o(a) : i > 3 ? o(t, n, a) : o(t, n)) || a);
+	return i > 3 && a && Object.defineProperty(t, n, a), a;
+}
+//#endregion
+//#region src/color-field.ts
+var V = {
+	background: "#000000",
+	surface: "#1e222a",
+	primary: "#ffffff",
+	secondary: "#9e9e9e",
+	muted: "#666666",
+	accent: "#00ffff",
+	success: "#00ff00",
+	warning: "#ffa500",
+	error: "#ff0000"
+}, Ue = class extends I {
+	constructor(...e) {
+		super(...e), this.label = "Color", this.value = "", this.disabled = !1;
+	}
+	static {
+		this.styles = o`
+    :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
+    .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
+    select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
+    select { padding: 8px; font: inherit; font-size: 14px; }
+    input { height: 40px; padding: 3px; cursor: pointer; }
+    :host([disabled]) { opacity: .5; }
+    :disabled { cursor: not-allowed; }
+  `;
+	}
+	render() {
+		let e = this.value.startsWith("#"), t = e ? "custom" : this.value || "default";
+		return D`
       <span>${this.label}</span>
       <div class="control">
-        <select .value=${i} ?disabled=${this.disabled} @change=${this.selectColor}>
+        <select .value=${t} ?disabled=${this.disabled} @change=${this.selectColor}>
           <option value="default">Default</option>
           <option value="background">Black</option>
           <option value="surface">Charcoal</option>
@@ -628,204 +744,126 @@ const L = {
           <option value="error">Red</option>
           <option value="custom">Custom</option>
         </select>
-        <input type="color" aria-label="Custom color" .value=${e ? this.value : L[i] ?? "#ffffff"} ?disabled=${this.disabled || !e} @input=${this.customColor}>
+        <input type="color" aria-label="Custom color" .value=${e ? this.value : V[t] ?? "#ffffff"} ?disabled=${this.disabled || !e} @input=${this.customColor}>
       </div>
     `;
-  }
-  selectColor(e) {
-    const i = e.target.value;
-    this.emit(i === "default" ? "" : i === "custom" ? "#ffffff" : i);
-  }
-  customColor(e) {
-    this.emit(e.target.value);
-  }
-  emit(e) {
-    this.disabled || this.dispatchEvent(new CustomEvent("color-changed", { detail: e, bubbles: !0, composed: !0 }));
-  }
+	}
+	selectColor(e) {
+		let t = e.target.value;
+		this.emit(t === "default" ? "" : t === "custom" ? "#ffffff" : t);
+	}
+	customColor(e) {
+		this.emit(e.target.value);
+	}
+	emit(e) {
+		this.disabled || this.dispatchEvent(new CustomEvent("color-changed", {
+			detail: e,
+			bubbles: !0,
+			composed: !0
+		}));
+	}
 };
-Mt.styles = z`
-    :host { display: grid; gap: 5px; color: var(--secondary-text-color); font: 12px var(--ha-font-family-body,Roboto,sans-serif); }
-    .control { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; }
-    select, input { width: 100%; min-height: 40px; color: var(--primary-text-color); background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; }
-    select { padding: 8px; font: inherit; font-size: 14px; }
-    input { height: 40px; padding: 3px; cursor: pointer; }
-    :host([disabled]) { opacity: .5; }
-    :disabled { cursor: not-allowed; }
-  `;
-let ye = Mt;
-Dt([
-  g()
-], ye.prototype, "label");
-Dt([
-  g()
-], ye.prototype, "value");
-Dt([
-  g({ type: Boolean, reflect: !0 })
-], ye.prototype, "disabled");
-customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", ye);
-var sa = Object.defineProperty, ra = Object.getOwnPropertyDescriptor, xe = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? ra(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && sa(e, i, s), s;
-};
-let te = class extends C {
-  constructor() {
-    super(...arguments), this.source = "", this.series = [], this.width = 240, this.height = 80;
-  }
-  render() {
-    const t = this.graph;
-    if (!t) return c;
-    const e = this.series.find((A) => A.source === (t.source || this.source) && A.points === (t.points ?? 48) && A.intervalSeconds === (t.intervalSeconds ?? 300) && A.aggregation === (t.aggregation ?? "mean"));
-    if (!e) return c;
-    const i = e.values.filter((A) => A !== null && Number.isFinite(A));
-    if (!i.length) return c;
-    let a = Math.min(...i), s = Math.max(...i);
-    if ((t.scale ?? (t.type === "line" ? "fit" : "zero")) === "fit") {
-      const A = Math.max((s - a) * 0.05, 0.01);
-      a -= A, s += A;
-    } else
-      a = Math.min(0, a), s = Math.max(0, s);
-    a = t.minimum ?? a, s = t.maximum ?? s, s <= a && (s = a + 0.01);
-    const r = Math.max(4, this.width - 4), o = Math.max(6, this.height - 4), l = t.showValues ? 6 : 0, n = (A) => l + (o - l - 1) * (1 - Math.max(0, Math.min(1, (A - a) / (s - a)))), h = L[t.color ?? "accent"] ?? t.color ?? "#00ffff";
-    let u;
-    return ue`<svg viewBox="0 0 ${r} ${o}" preserveAspectRatio="none" aria-label="Recorded values">
-      ${e.values.map((A, m) => {
-      if (A === null || !Number.isFinite(A))
-        return u = void 0, c;
-      const f = m * r / e.points, b = (m + 1) * r / e.points, P = t.type === "line" ? m * (r - 1) / (e.points - 1) : (f + b) / 2, y = n(A), j = u;
-      return u = { x: P, y }, ue`<g fill=${h} stroke=${h} opacity=${(t.opacity ?? 50) / 100}>
-          ${t.type === "line" ? j ? ue`<line x1=${j.x} y1=${j.y} x2=${P} y2=${y} stroke-width="1"/>` : ue`<circle cx=${P} cy=${y} r="0.6"/>` : ue`<rect x=${f} y=${Math.min(y, n(0))} width=${Math.max(1, b - f - 1)} height=${Math.max(1, Math.abs(n(0) - y))} stroke="none"/>`}
-        </g>${t.showValues && m % (t.labelEvery ?? 6) === 0 ? ue`<text x=${Math.max(10, Math.min(r - 10, P))} y=${Math.max(5, y - 1)} font-size="5" text-anchor="middle" fill=${h}>${A.toFixed(t.decimals ?? 1)}</text>` : c}`;
-    })}
+B([R()], Ue.prototype, "label", void 0), B([R()], Ue.prototype, "value", void 0), B([R({
+	type: Boolean,
+	reflect: !0
+})], Ue.prototype, "disabled", void 0), customElements.get("mini-display-color-field") || customElements.define("mini-display-color-field", Ue);
+//#endregion
+//#region src/graph-preview.ts
+var H = class extends I {
+	constructor(...e) {
+		super(...e), this.source = "", this.series = [], this.width = 240, this.height = 80;
+	}
+	static {
+		this.styles = o`:host{position:absolute;inset:2px;display:block;pointer-events:none}svg{display:block;width:100%;height:100%;overflow:hidden}`;
+	}
+	render() {
+		let e = this.graph;
+		if (!e) return A;
+		let t = this.series.find((t) => t.source === (e.source || this.source) && t.points === (e.points ?? 48) && t.intervalSeconds === (e.intervalSeconds ?? 300) && t.aggregation === (e.aggregation ?? "mean"));
+		if (!t) return A;
+		let n = t.values.filter((e) => e !== null && Number.isFinite(e));
+		if (!n.length) return A;
+		let r = Math.min(...n), i = Math.max(...n);
+		if ((e.scale ?? (e.type === "line" ? "fit" : "zero")) === "fit") {
+			let e = Math.max((i - r) * .05, .01);
+			r -= e, i += e;
+		} else r = Math.min(0, r), i = Math.max(0, i);
+		r = e.minimum ?? r, i = e.maximum ?? i, i <= r && (i = r + .01);
+		let a = Math.max(4, this.width - 4), o = Math.max(6, this.height - 4), s = e.showValues ? 6 : 0, c = (e) => s + (o - s - 1) * (1 - Math.max(0, Math.min(1, (e - r) / (i - r)))), l = V[e.color ?? "accent"] ?? e.color ?? "#00ffff", u;
+		return O`<svg viewBox="0 0 ${a} ${o}" preserveAspectRatio="none" aria-label="Recorded values">
+      ${t.values.map((n, r) => {
+			if (n === null || !Number.isFinite(n)) return u = void 0, A;
+			let i = r * a / t.points, o = (r + 1) * a / t.points, s = e.type === "line" ? r * (a - 1) / (t.points - 1) : (i + o) / 2, d = c(n), f = u;
+			return u = {
+				x: s,
+				y: d
+			}, O`<g fill=${l} stroke=${l} opacity=${(e.opacity ?? 50) / 100}>
+          ${e.type === "line" ? f ? O`<line x1=${f.x} y1=${f.y} x2=${s} y2=${d} stroke-width="1"/>` : O`<circle cx=${s} cy=${d} r="0.6"/>` : O`<rect x=${i} y=${Math.min(d, c(0))} width=${Math.max(1, o - i - 1)} height=${Math.max(1, Math.abs(c(0) - d))} stroke="none"/>`}
+        </g>${e.showValues && r % (e.labelEvery ?? 6) === 0 ? O`<text x=${Math.max(10, Math.min(a - 10, s))} y=${Math.max(5, d - 1)} font-size="5" text-anchor="middle" fill=${l}>${n.toFixed(e.decimals ?? 1)}</text>` : A}`;
+		})}
     </svg>`;
-  }
+	}
 };
-te.styles = z`:host{position:absolute;inset:2px;display:block;pointer-events:none}svg{display:block;width:100%;height:100%;overflow:hidden}`;
-xe([
-  g({ attribute: !1 })
-], te.prototype, "graph", 2);
-xe([
-  g()
-], te.prototype, "source", 2);
-xe([
-  g({ attribute: !1 })
-], te.prototype, "series", 2);
-xe([
-  g({ type: Number })
-], te.prototype, "width", 2);
-xe([
-  g({ type: Number })
-], te.prototype, "height", 2);
-te = xe([
-  H("mini-display-graph-preview")
-], te);
-var oa = Object.defineProperty, na = Object.getOwnPropertyDescriptor, Se = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? na(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && oa(e, i, s), s;
-};
-const ri = [
-  "night",
-  "cloudy",
-  "fog",
-  "hail",
-  "lightning",
-  "lightning-rainy",
-  "partly-cloudy",
-  "pouring",
-  "rainy",
-  "snowy",
-  "snowy-rainy",
-  "sunny",
-  "windy",
-  "windy-variant",
-  "cloudy-alert",
-  "cloudy-alert"
-], la = [
-  "Clear night",
-  "Cloudy",
-  "Fog",
-  "Hail",
-  "Thunder",
-  "Thunder / rain",
-  "Partly cloudy",
-  "Heavy rain",
-  "Rain",
-  "Snow",
-  "Sleet",
-  "Sunny",
-  "Windy",
-  "Wind / clouds",
-  "Exceptional",
-  "Unavailable"
-], da = [
-  "Pogodna noc",
-  "Pochmurno",
-  "Mgła",
-  "Grad",
-  "Burza",
-  "Burza / deszcz",
-  "Zachmurzenie",
-  "Ulewa",
-  "Deszcz",
-  "Śnieg",
-  "Deszcz / śnieg",
-  "Słonecznie",
-  "Wiatr",
-  "Wiatr / chmury",
-  "Ekstremalnie",
-  "Brak danych"
-];
-let de = class extends C {
-  constructor() {
-    super(...arguments), this.signature = "", this.generation = 0, this.pending = !1;
-  }
-  connectedCallback() {
-    super.connectedCallback(), this.timer = window.setInterval(() => {
-      this.refresh();
-    }, 6e4), this.refresh();
-  }
-  disconnectedCallback() {
-    super.disconnectedCallback(), window.clearInterval(this.timer), this.generation++;
-  }
-  updated(t) {
-    t.has("signature") && (this.generation++, this.data = void 0, this.refresh());
-  }
-  async refresh() {
-    if (!this.hass || !this.card?.source || this.pending) return;
-    const t = this.generation;
-    this.pending = !0;
-    try {
-      const e = await this.hass.callWS({
-        type: "mini_display/weather",
-        card: { source: this.card.source, weather: this.card.weather }
-      });
-      this.isConnected && t === this.generation && (this.data = e);
-    } catch {
-      t === this.generation && (this.data = void 0);
-    } finally {
-      this.pending = !1, this.isConnected && t !== this.generation && this.refresh();
-    }
-  }
-  render() {
-    const t = this.card?.weather ?? {}, e = t.fields ?? ["icon", "condition", "temperature"], i = t.period === "current" ? 1 : t.count ?? 1, a = t.language === "pl" ? da : la;
-    return d`${Array.from({ length: i }, (s, r) => {
-      const o = this.data?.values[this.data.weather.sources[r]], l = o?.available, n = l ? o.state.split("|") : [], h = l ? Number(n[0]) : 15, u = this.data?.weather.temperatureUnit ?? "", A = this.data?.weather.windUnit ?? "", m = (f, b) => e.includes(f) ? d`<div class="line ${f}" title=${b}>${b}</div>` : c;
-      return d`<div
-        class="cell ${t.layout ?? "vertical"} ${e.length === 1 && e[0] === "icon" ? "solo" : ""}"
-      >
-        ${e.includes("icon") ? d`<ha-icon icon=${`mdi:weather-${ri[h] ?? ri[15]}`} style=${t.iconStyle === "mono" ? "" : `color:${h === 11 ? "#ffff00" : h === 0 ? "#d3d3d3" : h === 4 || h === 5 ? "#ffa500" : "#00ffff"}`}></ha-icon>` : c}
-        ${e.some((f) => f !== "icon") ? d`<div class="lines">
-                ${m("label", n[6] || "--")}${m("condition", a[h] ?? a[15])}
-                ${m("temperature", (n[1] || "--") + u)}${m("low", "Min " + (n[2] || "--") + u)}
-                ${m("humidity", "RH " + (n[3] || "--") + "%")}${m("precipitation", (t.language === "pl" ? "Deszcz " : "Rain ") + (n[4] || "--") + "%")}
-                ${m("wind", (n[5] || "--") + " " + A)}
-              </div>` : c}
-      </div>`;
-    })}`;
-  }
-};
-de.styles = z`
+B([R({ attribute: !1 })], H.prototype, "graph", void 0), B([R()], H.prototype, "source", void 0), B([R({ attribute: !1 })], H.prototype, "series", void 0), B([R({ type: Number })], H.prototype, "width", void 0), B([R({ type: Number })], H.prototype, "height", void 0), H = B([L("mini-display-graph-preview")], H);
+//#endregion
+//#region src/weather-preview.ts
+var We = [
+	"night",
+	"cloudy",
+	"fog",
+	"hail",
+	"lightning",
+	"lightning-rainy",
+	"partly-cloudy",
+	"pouring",
+	"rainy",
+	"snowy",
+	"snowy-rainy",
+	"sunny",
+	"windy",
+	"windy-variant",
+	"cloudy-alert",
+	"cloudy-alert"
+], Ge = [
+	"Clear night",
+	"Cloudy",
+	"Fog",
+	"Hail",
+	"Thunder",
+	"Thunder / rain",
+	"Partly cloudy",
+	"Heavy rain",
+	"Rain",
+	"Snow",
+	"Sleet",
+	"Sunny",
+	"Windy",
+	"Wind / clouds",
+	"Exceptional",
+	"Unavailable"
+], Ke = [
+	"Pogodna noc",
+	"Pochmurno",
+	"Mgła",
+	"Grad",
+	"Burza",
+	"Burza / deszcz",
+	"Zachmurzenie",
+	"Ulewa",
+	"Deszcz",
+	"Śnieg",
+	"Deszcz / śnieg",
+	"Słonecznie",
+	"Wiatr",
+	"Wiatr / chmury",
+	"Ekstremalnie",
+	"Brak danych"
+], U = class extends I {
+	constructor(...e) {
+		super(...e), this.signature = "", this.generation = 0, this.pending = !1;
+	}
+	static {
+		this.styles = o`
     :host {
       position: absolute;
       inset: 5px;
@@ -878,135 +916,163 @@ de.styles = z`
       --mdc-icon-size: 96px;
     }
   `;
-Se([
-  g({ attribute: !1 })
-], de.prototype, "hass", 2);
-Se([
-  g({ attribute: !1 })
-], de.prototype, "card", 2);
-Se([
-  g()
-], de.prototype, "signature", 2);
-Se([
-  v()
-], de.prototype, "data", 2);
-de = Se([
-  H("mini-display-weather-preview")
-], de);
-const ca = /* @__PURE__ */ new Set(["unknown", "unavailable"]), Aa = /* @__PURE__ */ new Set([
-  "range",
-  "number_equals",
-  "number_not_equals",
-  "greater_than",
-  "greater_than_or_equal",
-  "less_than",
-  "less_than_or_equal"
+	}
+	connectedCallback() {
+		super.connectedCallback(), this.timer = window.setInterval(() => void this.refresh(), 6e4), this.refresh();
+	}
+	disconnectedCallback() {
+		super.disconnectedCallback(), window.clearInterval(this.timer), this.generation++;
+	}
+	updated(e) {
+		e.has("signature") && (this.generation++, this.data = void 0, this.refresh());
+	}
+	async refresh() {
+		if (!this.hass || !this.card?.source || this.pending) return;
+		let e = this.generation;
+		this.pending = !0;
+		try {
+			let t = await this.hass.callWS({
+				type: "mini_display/weather",
+				card: {
+					source: this.card.source,
+					weather: this.card.weather
+				}
+			});
+			this.isConnected && e === this.generation && (this.data = t);
+		} catch {
+			e === this.generation && (this.data = void 0);
+		} finally {
+			this.pending = !1, this.isConnected && e !== this.generation && this.refresh();
+		}
+	}
+	render() {
+		let e = this.card?.weather ?? {}, t = e.fields ?? [
+			"icon",
+			"condition",
+			"temperature"
+		], n = e.period === "current" ? 1 : e.count ?? 1, r = e.language === "pl" ? Ke : Ge;
+		return D`${Array.from({ length: n }, (n, i) => {
+			let a = this.data?.values[this.data.weather.sources[i]], o = a?.available, s = o ? a.state.split("|") : [], c = o ? Number(s[0]) : 15, l = this.data?.weather.temperatureUnit ?? "", u = this.data?.weather.windUnit ?? "", d = (e, n) => t.includes(e) ? D`<div class="line ${e}" title=${n}>${n}</div>` : A;
+			return D`<div
+        class="cell ${e.layout ?? "vertical"} ${t.length === 1 && t[0] === "icon" ? "solo" : ""}"
+      >
+        ${t.includes("icon") ? D`<ha-icon icon=${`mdi:weather-${We[c] ?? We[15]}`} style=${e.iconStyle === "mono" ? "" : `color:${c === 11 ? "#ffff00" : c === 0 ? "#d3d3d3" : c === 4 || c === 5 ? "#ffa500" : "#00ffff"}`}></ha-icon>` : A}
+        ${t.some((e) => e !== "icon") ? D`<div class="lines">
+                ${d("label", s[6] || "--")}${d("condition", r[c] ?? r[15])}
+                ${d("temperature", (s[1] || "--") + l)}${d("low", "Min " + (s[2] || "--") + l)}
+                ${d("humidity", "RH " + (s[3] || "--") + "%")}${d("precipitation", (e.language === "pl" ? "Deszcz " : "Rain ") + (s[4] || "--") + "%")}
+                ${d("wind", (s[5] || "--") + " " + u)}
+              </div>` : A}
+      </div>`;
+		})}`;
+	}
+};
+B([R({ attribute: !1 })], U.prototype, "hass", void 0), B([R({ attribute: !1 })], U.prototype, "card", void 0), B([R()], U.prototype, "signature", void 0), B([z()], U.prototype, "data", void 0), U = B([L("mini-display-weather-preview")], U);
+//#endregion
+//#region src/visibility.ts
+var qe = /* @__PURE__ */ new Set(["unknown", "unavailable"]), Je = /* @__PURE__ */ new Set([
+	"range",
+	"number_equals",
+	"number_not_equals",
+	"greater_than",
+	"greater_than_or_equal",
+	"less_than",
+	"less_than_or_equal"
 ]);
-function pa(t, e, i) {
-  const a = e.source === "card" ? i?.source ? t?.states[i.source]?.state : i?.type === "text" ? i.text : void 0 : e.entity ? t?.states[e.entity]?.state : void 0, s = a !== void 0 && !ca.has(a);
-  if (e.operator === "available") return s;
-  if (e.operator === "unavailable") return !s;
-  if (!s) return !1;
-  if (Aa.has(e.operator)) {
-    const o = Number(a);
-    if (!Number.isFinite(o)) return !1;
-    if (e.operator === "range") return (e.minimum === void 0 || o >= e.minimum) && (e.maximum === void 0 || o <= e.maximum);
-    const l = e.value;
-    return Number.isFinite(l) ? e.operator === "number_equals" ? o === l : e.operator === "number_not_equals" ? o !== l : e.operator === "greater_than" ? o > l : e.operator === "greater_than_or_equal" ? o >= l : e.operator === "less_than" ? o < l : o <= l : !1;
-  }
-  const r = e.match ?? "";
-  return e.operator === "equals" ? a === r : e.operator === "not_equals" ? a !== r : e.operator === "starts_with" ? a.startsWith(r) : e.operator === "ends_with" ? a.endsWith(r) : a.includes(r);
+function Ye(e, t, n) {
+	let r = t.source === "card" ? n?.source ? e?.states[n.source]?.state : n?.type === "text" ? n.text : void 0 : t.entity ? e?.states[t.entity]?.state : void 0, i = r !== void 0 && !qe.has(r);
+	if (t.operator === "available") return i;
+	if (t.operator === "unavailable") return !i;
+	if (!i) return !1;
+	if (Je.has(t.operator)) {
+		let e = Number(r);
+		if (!Number.isFinite(e)) return !1;
+		if (t.operator === "range") return (t.minimum === void 0 || e >= t.minimum) && (t.maximum === void 0 || e <= t.maximum);
+		let n = t.value;
+		return Number.isFinite(n) ? t.operator === "number_equals" ? e === n : t.operator === "number_not_equals" ? e !== n : t.operator === "greater_than" ? e > n : t.operator === "greater_than_or_equal" ? e >= n : t.operator === "less_than" ? e < n : e <= n : !1;
+	}
+	let a = t.match ?? "";
+	return t.operator === "equals" ? r === a : t.operator === "not_equals" ? r !== a : t.operator === "starts_with" ? r.startsWith(a) : t.operator === "ends_with" ? r.endsWith(a) : r.includes(a);
 }
-function Ye(t, e, i) {
-  if (!e) return !0;
-  const a = new Map(e.rules.map((r) => [r.id, r])), s = (r) => {
-    const o = r.type === "rule" ? pa(t, a.get(r.ruleId), i) : r.operator === "and" ? r.children.every(s) : r.children.some(s);
-    return r.negate ? !o : o;
-  };
-  return s(e.expression);
+function Xe(e, t, n) {
+	if (!t) return !0;
+	let r = new Map(t.rules.map((e) => [e.id, e])), i = (t) => {
+		let a = t.type === "rule" ? Ye(e, r.get(t.ruleId), n) : t.operator === "and" ? t.children.every(i) : t.children.some(i);
+		return t.negate ? !a : a;
+	};
+	return i(t.expression);
 }
-const ha = {
-  13: /* @__PURE__ */ JSON.parse('{"height":17,"ascent":13,"space":4,"smooth":true,"glyphs":{"32":[0,0,0,0,3,0,0],"33":[1,0,4,11,4,0,-10],"34":[6,0,7,10,7,0,-10],"35":[14,0,10,10,8,-1,-10],"36":[25,0,8,13,8,0,-11],"37":[34,0,11,11,11,0,-10],"38":[46,0,9,11,8,0,-10],"39":[56,0,4,10,4,0,-10],"40":[61,0,5,13,4,0,-11],"41":[67,0,4,13,4,0,-11],"42":[72,0,7,10,7,0,-10],"43":[80,0,8,8,8,0,-8],"44":[89,0,4,5,4,0,-2],"45":[94,0,6,5,6,0,-5],"46":[101,0,4,4,4,0,-3],"47":[106,0,6,12,5,-1,-10],"48":[113,0,9,11,9,0,-10],"49":[123,0,5,10,5,0,-10],"50":[129,0,8,10,8,0,-10],"51":[138,0,8,11,8,0,-10],"52":[147,0,9,10,8,0,-10],"53":[157,0,8,11,8,0,-10],"54":[166,0,8,11,8,0,-10],"55":[175,0,7,10,7,0,-10],"56":[183,0,8,11,8,0,-10],"57":[192,0,8,11,8,0,-10],"58":[201,0,4,9,4,0,-8],"59":[206,0,4,11,4,0,-8],"60":[211,0,8,8,8,0,-8],"61":[220,0,8,7,8,0,-7],"62":[229,0,8,8,8,0,-8],"63":[238,0,7,11,7,0,-10],"64":[246,0,13,13,13,0,-10],"65":[260,0,10,10,9,0,-10],"66":[271,0,8,10,8,0,-10],"67":[280,0,9,11,9,0,-10],"68":[290,0,9,10,9,0,-10],"69":[300,0,8,10,8,0,-10],"70":[309,0,7,10,7,0,-10],"71":[317,0,9,11,9,0,-10],"72":[327,0,9,10,9,0,-10],"73":[337,0,3,10,3,0,-10],"74":[341,0,7,11,7,0,-10],"75":[349,0,9,10,9,0,-10],"76":[359,0,7,10,7,0,-10],"77":[367,0,11,10,11,0,-10],"78":[379,0,9,10,9,0,-10],"79":[389,0,10,11,10,0,-10],"80":[400,0,8,10,8,0,-10],"81":[409,0,10,11,10,0,-10],"82":[420,0,9,10,8,0,-10],"83":[430,0,8,11,8,0,-10],"84":[439,0,9,10,8,0,-10],"85":[449,0,9,11,9,0,-10],"86":[459,0,10,10,9,0,-10],"87":[470,0,14,10,13,0,-10],"88":[485,0,9,10,9,0,-10],"89":[495,0,9,10,9,0,-10],"90":[0,14,8,10,8,0,-10],"91":[9,14,5,13,4,0,-11],"92":[15,14,6,12,5,-1,-10],"93":[22,14,4,13,4,0,-11],"94":[27,14,6,10,6,0,-10],"95":[34,14,7,2,6,-1,0],"96":[42,14,6,10,6,0,-10],"97":[49,14,7,9,7,0,-8],"98":[57,14,8,11,8,0,-10],"99":[66,14,7,9,7,0,-8],"100":[74,14,8,11,8,0,-10],"101":[83,14,8,9,7,0,-8],"102":[92,14,5,10,5,0,-10],"103":[98,14,8,11,8,0,-8],"104":[107,14,8,10,8,0,-10],"105":[116,14,3,10,3,0,-10],"106":[120,14,4,13,3,-1,-10],"107":[125,14,8,10,7,0,-10],"108":[134,14,3,10,3,0,-10],"109":[138,14,11,8,11,0,-8],"110":[150,14,8,8,8,0,-8],"111":[159,14,8,9,8,0,-8],"112":[168,14,8,11,8,0,-8],"113":[177,14,8,11,8,0,-8],"114":[186,14,5,8,5,0,-8],"115":[192,14,7,9,7,0,-8],"116":[200,14,5,10,5,0,-9],"117":[206,14,8,9,8,0,-8],"118":[215,14,8,8,7,0,-8],"119":[224,14,11,8,11,0,-8],"120":[236,14,7,8,7,0,-8],"121":[244,14,8,11,7,0,-8],"122":[253,14,7,8,7,0,-8],"123":[261,14,6,13,6,0,-11],"124":[268,14,4,17,4,0,-13],"125":[273,14,6,13,6,0,-11],"126":[280,14,8,6,8,0,-6],"160":[289,14,0,0,3,0,0],"161":[290,14,4,11,4,0,-8],"162":[295,14,7,10,7,0,-10],"163":[303,14,8,10,8,0,-10],"164":[312,14,10,10,10,0,-9],"165":[323,14,9,10,7,-1,-10],"166":[333,14,4,12,4,0,-10],"167":[338,14,7,12,7,0,-10],"168":[346,14,7,10,7,0,-10],"169":[354,14,11,11,11,0,-10],"170":[366,14,6,10,6,0,-10],"171":[373,14,8,7,8,0,-7],"172":[382,14,7,6,7,0,-6],"173":[390,14,0,0,1,0,0],"174":[391,14,8,10,8,0,-10],"175":[400,14,7,10,7,0,-10],"176":[408,14,6,10,6,0,-10],"177":[415,14,8,8,8,0,-8],"178":[424,14,5,11,5,0,-11],"179":[430,14,6,11,5,0,-11],"180":[437,14,6,10,6,0,-10],"181":[444,14,8,11,8,0,-8],"182":[453,14,8,10,8,0,-10],"183":[462,14,4,6,4,0,-6],"184":[467,14,4,4,4,0,-1],"185":[472,14,4,11,4,0,-11],"186":[477,14,6,10,6,0,-10],"187":[484,14,8,7,8,0,-7],"188":[493,14,11,10,11,0,-10],"189":[0,32,12,10,11,0,-10],"190":[13,32,12,10,12,0,-10],"191":[26,32,7,11,7,0,-8],"192":[34,32,10,12,9,0,-12],"193":[45,32,10,12,9,0,-12],"194":[56,32,10,13,9,0,-13],"195":[67,32,10,12,9,0,-12],"196":[78,32,10,12,9,0,-12],"197":[89,32,10,13,9,0,-13],"198":[100,32,13,10,13,0,-10],"199":[114,32,9,13,9,0,-10],"200":[124,32,8,12,8,0,-12],"201":[133,32,8,12,8,0,-12],"202":[142,32,8,13,8,0,-13],"203":[151,32,8,12,8,0,-12],"204":[160,32,4,12,3,-1,-12],"205":[165,32,4,12,3,0,-12],"206":[170,32,6,13,3,-1,-13],"207":[177,32,5,12,3,-1,-12],"208":[183,32,10,10,9,-1,-10],"209":[194,32,9,12,9,0,-12],"210":[204,32,10,13,10,0,-12],"211":[215,32,10,13,10,0,-12],"212":[226,32,10,14,10,0,-13],"213":[237,32,10,13,10,0,-12],"214":[248,32,10,13,10,0,-12],"215":[259,32,8,8,8,0,-8],"216":[268,32,10,11,10,0,-10],"217":[279,32,9,13,9,0,-12],"218":[289,32,9,13,9,0,-12],"219":[299,32,9,14,9,0,-13],"220":[309,32,9,13,9,0,-12],"221":[319,32,9,12,9,0,-12],"222":[329,32,8,10,8,0,-10],"223":[338,32,8,10,8,0,-10],"224":[347,32,7,11,7,0,-10],"225":[355,32,7,11,7,0,-10],"226":[363,32,7,12,7,0,-11],"227":[371,32,7,11,7,0,-10],"228":[379,32,7,11,7,0,-10],"229":[387,32,7,12,7,0,-11],"230":[395,32,12,9,11,0,-8],"231":[408,32,7,11,7,0,-8],"232":[416,32,8,11,7,0,-10],"233":[425,32,8,11,7,0,-10],"234":[434,32,8,12,7,0,-11],"235":[443,32,8,11,7,0,-10],"236":[452,32,4,10,3,-1,-10],"237":[457,32,4,10,3,0,-10],"238":[462,32,7,11,3,-2,-11],"239":[470,32,5,10,3,-1,-10],"240":[476,32,8,11,7,0,-10],"241":[485,32,8,10,8,0,-10],"242":[494,32,8,11,8,0,-10],"243":[503,32,8,11,8,0,-10],"244":[0,47,8,12,8,0,-11],"245":[9,47,8,11,8,0,-10],"246":[18,47,8,11,8,0,-10],"247":[27,47,8,8,8,0,-8],"248":[36,47,8,9,8,0,-8],"249":[45,47,8,11,8,0,-10],"250":[54,47,8,11,8,0,-10],"251":[63,47,8,12,8,0,-11],"252":[72,47,8,11,8,0,-10],"253":[81,47,8,13,7,0,-10],"254":[90,47,8,13,8,0,-10],"255":[99,47,8,13,7,0,-10],"260":[108,47,10,13,9,0,-10],"261":[119,47,7,11,7,0,-8],"262":[127,47,9,13,9,0,-12],"263":[137,47,7,11,7,0,-10],"280":[145,47,8,13,8,0,-10],"281":[154,47,8,11,7,0,-8],"321":[163,47,9,10,7,-1,-10],"322":[173,47,5,10,3,-1,-10],"323":[179,47,9,12,9,0,-12],"324":[189,47,8,10,8,0,-10],"346":[198,47,8,13,8,0,-12],"347":[207,47,7,11,7,0,-10],"377":[215,47,8,12,8,0,-12],"378":[224,47,7,10,7,0,-10],"379":[232,47,8,12,8,0,-12],"380":[241,47,7,10,7,0,-10],"8211":[249,47,7,5,6,0,-5],"8212":[257,47,13,5,13,0,-5],"8226":[271,47,5,6,5,0,-6],"8230":[277,47,10,4,10,0,-3],"8364":[288,47,9,11,8,0,-10],"8592":[298,47,12,10,12,0,-9],"8593":[311,47,12,10,12,0,-10],"8594":[324,47,12,10,12,0,-9],"8595":[337,47,12,11,12,0,-10],"10003":[350,47,11,8,11,0,-8],"10005":[362,47,7,17,6,0,-13]},"atlas":"data:image/png;base64,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"}'),
-  18: /* @__PURE__ */ JSON.parse('{"height":23,"ascent":18,"space":5,"smooth":true,"glyphs":{"32":[0,0,0,0,4,0,0],"33":[1,0,6,15,6,0,-14],"34":[8,0,9,14,9,0,-14],"35":[18,0,13,14,11,-1,-14],"36":[32,0,11,17,11,0,-15],"37":[44,0,15,15,15,0,-14],"38":[60,0,12,15,12,0,-14],"39":[73,0,6,14,6,0,-14],"40":[80,0,6,17,6,0,-14],"41":[87,0,6,17,6,0,-14],"42":[94,0,10,14,10,0,-14],"43":[105,0,12,10,12,0,-10],"44":[118,0,6,7,6,0,-3],"45":[125,0,8,7,8,0,-7],"46":[134,0,5,4,5,0,-3],"47":[140,0,8,16,6,-1,-14],"48":[149,0,12,15,12,0,-14],"49":[162,0,7,14,7,0,-14],"50":[170,0,11,14,11,0,-14],"51":[182,0,11,15,11,0,-14],"52":[194,0,12,14,12,0,-14],"53":[207,0,11,15,11,0,-14],"54":[219,0,11,15,11,0,-14],"55":[231,0,10,14,10,0,-14],"56":[242,0,11,15,11,0,-14],"57":[254,0,11,15,11,0,-14],"58":[266,0,5,10,5,0,-9],"59":[272,0,6,13,6,0,-9],"60":[279,0,12,11,12,0,-11],"61":[292,0,12,9,12,0,-9],"62":[305,0,12,11,12,0,-11],"63":[318,0,10,15,10,0,-14],"64":[329,0,18,18,18,0,-14],"65":[348,0,13,14,13,0,-14],"66":[362,0,11,14,11,0,-14],"67":[374,0,13,15,13,0,-14],"68":[388,0,13,14,12,0,-14],"69":[402,0,10,14,10,0,-14],"70":[413,0,10,14,10,0,-14],"71":[424,0,13,15,13,0,-14],"72":[438,0,13,14,13,0,-14],"73":[452,0,4,14,4,0,-14],"74":[457,0,10,15,10,0,-14],"75":[468,0,12,14,12,0,-14],"76":[481,0,10,14,10,0,-14],"77":[492,0,16,14,16,0,-14],"78":[0,19,13,14,13,0,-14],"79":[14,19,13,15,13,0,-14],"80":[28,19,11,14,11,0,-14],"81":[40,19,14,16,14,0,-14],"82":[55,19,12,14,11,0,-14],"83":[68,19,11,15,11,0,-14],"84":[80,19,12,14,11,0,-14],"85":[93,19,13,15,13,0,-14],"86":[107,19,13,14,13,0,-14],"87":[121,19,19,14,18,0,-14],"88":[141,19,13,14,12,0,-14],"89":[155,19,13,14,12,0,-14],"90":[169,19,11,14,11,0,-14],"91":[181,19,6,17,6,0,-14],"92":[188,19,8,16,6,-1,-14],"93":[197,19,6,17,6,0,-14],"94":[204,19,8,13,8,0,-13],"95":[213,19,10,3,8,-1,0],"96":[224,19,8,14,8,0,-14],"97":[233,19,10,11,10,0,-10],"98":[244,19,11,15,11,0,-14],"99":[256,19,10,11,10,0,-10],"100":[267,19,11,15,11,0,-14],"101":[279,19,10,11,10,0,-10],"102":[290,19,7,14,6,0,-14],"103":[298,19,11,14,11,0,-10],"104":[310,19,11,14,11,0,-14],"105":[322,19,4,14,4,0,-14],"106":[327,19,5,18,4,-1,-14],"107":[333,19,11,14,10,0,-14],"108":[345,19,4,14,4,0,-14],"109":[350,19,16,10,16,0,-10],"110":[367,19,11,10,11,0,-10],"111":[379,19,11,11,10,0,-10],"112":[391,19,11,14,11,0,-10],"113":[403,19,11,14,11,0,-10],"114":[415,19,7,10,7,0,-10],"115":[423,19,10,11,10,0,-10],"116":[434,19,7,14,6,0,-13],"117":[442,19,11,11,11,0,-10],"118":[454,19,10,10,10,0,-10],"119":[465,19,15,10,15,0,-10],"120":[481,19,10,10,10,0,-10],"121":[492,19,10,14,10,0,-10],"122":[0,38,10,10,10,0,-10],"123":[11,38,8,17,8,0,-14],"124":[20,38,6,23,6,0,-18],"125":[27,38,8,17,8,0,-14],"126":[36,38,12,8,12,0,-8],"160":[49,38,0,0,4,0,0],"161":[50,38,6,14,6,0,-10],"162":[57,38,10,14,10,0,-14],"163":[68,38,12,14,12,0,-14],"164":[81,38,13,13,13,0,-12],"165":[95,38,11,14,10,-1,-14],"166":[107,38,6,17,6,0,-14],"167":[114,38,10,17,10,0,-14],"168":[125,38,9,14,9,0,-14],"169":[135,38,16,15,16,0,-14],"170":[152,38,8,13,8,0,-13],"171":[161,38,11,10,11,0,-10],"172":[173,38,10,8,10,0,-8],"173":[184,38,0,0,1,0,0],"174":[185,38,11,14,11,0,-14],"175":[197,38,10,14,10,0,-14],"176":[208,38,8,14,8,0,-14],"177":[217,38,12,11,12,0,-11],"178":[230,38,7,15,7,0,-15],"179":[238,38,8,15,7,0,-15],"180":[247,38,8,14,8,0,-14],"181":[256,38,11,14,11,0,-10],"182":[268,38,10,14,10,0,-14],"183":[279,38,5,7,5,0,-7],"184":[285,38,6,6,6,0,-1],"185":[292,38,5,15,5,0,-15],"186":[298,38,8,13,8,0,-13],"187":[307,38,11,10,11,0,-10],"188":[319,38,16,14,15,0,-14],"189":[336,38,16,14,16,0,-14],"190":[353,38,17,14,17,0,-14],"191":[371,38,10,14,10,0,-10],"192":[382,38,13,17,13,0,-17],"193":[396,38,13,17,13,0,-17],"194":[410,38,13,18,13,0,-18],"195":[424,38,13,17,13,0,-17],"196":[438,38,13,17,13,0,-17],"197":[452,38,13,18,13,0,-18],"198":[466,38,18,14,18,0,-14],"199":[485,38,13,19,13,0,-14],"200":[499,38,10,17,10,0,-17],"201":[0,62,10,17,10,0,-17],"202":[11,62,10,18,10,0,-18],"203":[22,62,10,17,10,0,-17],"204":[33,62,5,17,4,-1,-17],"205":[39,62,5,17,4,0,-17],"206":[45,62,8,18,4,-2,-18],"207":[54,62,8,17,4,-2,-17],"208":[63,62,14,14,12,-1,-14],"209":[78,62,13,17,13,0,-17],"210":[92,62,13,18,13,0,-17],"211":[106,62,13,18,13,0,-17],"212":[120,62,13,19,13,0,-18],"213":[134,62,13,18,13,0,-17],"214":[148,62,13,18,13,0,-17],"215":[162,62,12,10,12,0,-10],"216":[175,62,13,15,13,0,-14],"217":[189,62,13,18,13,0,-17],"218":[203,62,13,18,13,0,-17],"219":[217,62,13,19,13,0,-18],"220":[231,62,13,18,13,0,-17],"221":[245,62,13,17,12,0,-17],"222":[259,62,11,14,11,0,-14],"223":[271,62,11,14,11,0,-14],"224":[283,62,10,15,10,0,-14],"225":[294,62,10,15,10,0,-14],"226":[305,62,10,15,10,0,-14],"227":[316,62,10,15,10,0,-14],"228":[327,62,10,15,10,0,-14],"229":[338,62,10,17,10,0,-16],"230":[349,62,16,11,16,0,-10],"231":[366,62,10,15,10,0,-10],"232":[377,62,10,15,10,0,-14],"233":[388,62,10,15,10,0,-14],"234":[399,62,10,15,10,0,-14],"235":[410,62,10,15,10,0,-14],"236":[421,62,5,14,4,-1,-14],"237":[427,62,5,14,4,0,-14],"238":[433,62,8,14,4,-2,-14],"239":[442,62,8,14,4,-2,-14],"240":[451,62,10,15,10,0,-14],"241":[462,62,11,14,11,0,-14],"242":[474,62,11,15,10,0,-14],"243":[486,62,11,15,10,0,-14],"244":[498,62,11,15,10,0,-14],"245":[0,82,11,15,10,0,-14],"246":[12,82,11,15,10,0,-14],"247":[24,82,12,11,12,0,-11],"248":[37,82,11,12,10,0,-11],"249":[49,82,11,15,11,0,-14],"250":[61,82,11,15,11,0,-14],"251":[73,82,11,15,11,0,-14],"252":[85,82,11,15,11,0,-14],"253":[97,82,10,18,10,0,-14],"254":[108,82,11,18,11,0,-14],"255":[120,82,10,18,10,0,-14],"260":[131,82,13,18,13,0,-14],"261":[145,82,10,14,10,0,-10],"262":[156,82,13,18,13,0,-17],"263":[170,82,10,15,10,0,-14],"280":[181,82,10,18,10,0,-14],"281":[192,82,10,14,10,0,-10],"321":[203,82,11,14,10,-1,-14],"322":[215,82,6,14,4,-1,-14],"323":[222,82,13,17,13,0,-17],"324":[236,82,11,14,11,0,-14],"346":[248,82,11,18,11,0,-17],"347":[260,82,10,15,10,0,-14],"377":[271,82,11,17,11,0,-17],"378":[283,82,10,14,10,0,-14],"379":[294,82,11,17,11,0,-17],"380":[306,82,10,14,10,0,-14],"8211":[317,82,9,7,9,0,-7],"8212":[327,82,18,7,18,0,-7],"8226":[346,82,7,9,7,0,-9],"8230":[354,82,14,4,14,0,-3],"8364":[369,82,12,15,12,0,-14],"8592":[382,82,17,14,17,0,-13],"8593":[400,82,17,14,17,0,-14],"8594":[418,82,17,14,17,0,-13],"8595":[436,82,17,15,17,0,-14],"10003":[454,82,15,11,15,0,-11],"10005":[470,82,9,23,9,0,-18]},"atlas":"data:image/png;base64,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"}'),
-  24: /* @__PURE__ */ JSON.parse('{"height":30,"ascent":24,"space":7,"smooth":true,"glyphs":{"32":[0,0,0,0,5,0,0],"33":[1,0,8,19,8,0,-18],"34":[10,0,13,18,13,0,-18],"35":[24,0,16,18,15,-1,-18],"36":[41,0,15,23,15,0,-20],"37":[57,0,20,20,20,0,-19],"38":[78,0,16,19,15,0,-18],"39":[95,0,7,18,7,0,-18],"40":[103,0,8,23,8,0,-19],"41":[112,0,8,23,8,0,-19],"42":[121,0,13,18,13,0,-18],"43":[135,0,16,14,16,0,-14],"44":[152,0,8,8,8,0,-3],"45":[161,0,10,9,10,0,-9],"46":[172,0,7,5,7,0,-4],"47":[180,0,10,22,9,-1,-19],"48":[191,0,16,19,16,0,-18],"49":[208,0,10,18,10,0,-18],"50":[219,0,14,18,14,0,-18],"51":[234,0,15,19,15,0,-18],"52":[250,0,15,18,15,0,-18],"53":[266,0,15,19,15,0,-18],"54":[282,0,15,19,15,0,-18],"55":[298,0,13,18,13,0,-18],"56":[312,0,15,19,15,0,-18],"57":[328,0,15,19,15,0,-18],"58":[344,0,7,14,7,0,-13],"59":[352,0,8,18,8,0,-13],"60":[361,0,16,14,16,0,-14],"61":[378,0,16,12,16,0,-12],"62":[395,0,16,14,16,0,-14],"63":[412,0,13,19,13,0,-18],"64":[426,0,24,24,24,0,-18],"65":[451,0,17,18,17,0,-18],"66":[469,0,15,18,15,0,-18],"67":[485,0,17,19,17,0,-18],"68":[0,25,17,18,17,0,-18],"69":[18,25,14,18,14,0,-18],"70":[33,25,13,18,13,0,-18],"71":[47,25,17,19,17,0,-18],"72":[65,25,17,18,17,0,-18],"73":[83,25,6,18,6,0,-18],"74":[90,25,13,19,13,0,-18],"75":[104,25,16,18,16,0,-18],"76":[121,25,13,18,13,0,-18],"77":[135,25,21,18,21,0,-18],"78":[157,25,17,18,17,0,-18],"79":[175,25,18,19,18,0,-18],"80":[194,25,15,18,15,0,-18],"81":[210,25,18,20,18,0,-18],"82":[229,25,15,18,15,0,-18],"83":[245,25,15,19,15,0,-18],"84":[261,25,15,18,15,0,-18],"85":[277,25,17,19,17,0,-18],"86":[295,25,17,18,17,0,-18],"87":[313,25,25,18,24,0,-18],"88":[339,25,17,18,16,0,-18],"89":[357,25,17,18,17,0,-18],"90":[375,25,15,18,15,0,-18],"91":[391,25,8,23,8,0,-19],"92":[400,25,10,22,9,-1,-19],"93":[411,25,8,23,8,0,-19],"94":[420,25,11,18,11,0,-18],"95":[432,25,13,3,11,-1,0],"96":[446,25,10,19,10,0,-19],"97":[457,25,13,15,13,0,-14],"98":[471,25,14,19,14,0,-18],"99":[486,25,13,15,13,0,-14],"100":[0,49,14,19,14,0,-18],"101":[15,49,14,15,14,0,-14],"102":[30,49,9,19,9,0,-19],"103":[40,49,14,20,14,0,-14],"104":[55,49,14,18,14,0,-18],"105":[70,49,6,19,6,0,-19],"106":[77,49,8,24,6,-2,-19],"107":[86,49,14,18,13,0,-18],"108":[101,49,6,18,6,0,-18],"109":[108,49,21,14,21,0,-14],"110":[130,49,14,14,14,0,-14],"111":[145,49,14,15,14,0,-14],"112":[160,49,14,19,14,0,-14],"113":[175,49,14,19,14,0,-14],"114":[190,49,9,14,9,0,-14],"115":[200,49,13,15,13,0,-14],"116":[214,49,9,18,9,0,-17],"117":[224,49,14,15,14,0,-14],"118":[239,49,14,14,13,0,-14],"119":[254,49,20,14,20,0,-14],"120":[275,49,13,14,13,0,-14],"121":[289,49,14,19,13,0,-14],"122":[304,49,13,14,13,0,-14],"123":[318,49,11,23,11,0,-19],"124":[330,49,8,30,8,0,-24],"125":[339,49,11,23,11,0,-19],"126":[351,49,16,10,16,0,-10],"160":[368,49,0,0,5,0,0],"161":[369,49,7,19,7,0,-14],"162":[377,49,13,18,13,0,-18],"163":[391,49,15,18,15,0,-18],"164":[407,49,18,16,18,0,-15],"165":[426,49,15,18,13,-1,-18],"166":[442,49,7,22,7,0,-18],"167":[450,49,13,22,13,0,-18],"168":[464,49,12,19,12,0,-19],"169":[477,49,21,19,21,0,-18],"170":[499,49,11,18,11,0,-18],"171":[0,80,15,13,15,0,-13],"172":[16,80,13,10,13,0,-10],"173":[30,80,0,0,1,0,0],"174":[31,80,15,18,15,0,-18],"175":[47,80,13,18,13,0,-18],"176":[61,80,10,18,10,0,-18],"177":[72,80,16,14,16,0,-14],"178":[89,80,9,20,9,0,-20],"179":[99,80,10,20,10,0,-20],"180":[110,80,10,19,10,0,-19],"181":[121,80,15,19,15,0,-14],"182":[137,80,14,18,14,0,-18],"183":[152,80,7,10,7,0,-10],"184":[160,80,8,7,8,0,-1],"185":[169,80,7,20,7,0,-20],"186":[177,80,11,18,11,0,-18],"187":[189,80,15,13,15,0,-13],"188":[205,80,21,18,20,0,-18],"189":[227,80,21,18,21,0,-18],"190":[249,80,23,18,22,0,-18],"191":[273,80,13,19,13,0,-14],"192":[287,80,17,23,17,0,-23],"193":[305,80,17,23,17,0,-23],"194":[323,80,17,23,17,0,-23],"195":[341,80,17,22,17,0,-22],"196":[359,80,17,23,17,0,-23],"197":[377,80,17,24,17,0,-24],"198":[395,80,24,18,24,0,-18],"199":[420,80,17,24,17,0,-18],"200":[438,80,14,23,14,0,-23],"201":[453,80,14,23,14,0,-23],"202":[468,80,14,23,14,0,-23],"203":[483,80,14,23,14,0,-23],"204":[498,80,7,23,6,-1,-23],"205":[0,105,7,23,6,0,-23],"206":[8,105,10,23,6,-2,-23],"207":[19,105,10,23,6,-2,-23],"208":[30,105,19,18,17,-2,-18],"209":[50,105,17,22,17,0,-22],"210":[68,105,18,24,18,0,-23],"211":[87,105,18,24,18,0,-23],"212":[106,105,18,24,18,0,-23],"213":[125,105,18,23,18,0,-22],"214":[144,105,18,24,18,0,-23],"215":[163,105,16,14,16,0,-14],"216":[180,105,18,20,18,0,-19],"217":[199,105,17,24,17,0,-23],"218":[217,105,17,24,17,0,-23],"219":[235,105,17,24,17,0,-23],"220":[253,105,17,24,17,0,-23],"221":[271,105,17,23,17,0,-23],"222":[289,105,15,18,15,0,-18],"223":[305,105,15,18,15,0,-18],"224":[321,105,13,20,13,0,-19],"225":[335,105,13,20,13,0,-19],"226":[349,105,13,20,13,0,-19],"227":[363,105,13,19,13,0,-18],"228":[377,105,13,20,13,0,-19],"229":[391,105,13,22,13,0,-21],"230":[405,105,21,15,21,0,-14],"231":[427,105,13,20,13,0,-14],"232":[441,105,14,20,14,0,-19],"233":[456,105,14,20,14,0,-19],"234":[471,105,14,20,14,0,-19],"235":[486,105,14,20,14,0,-19],"236":[501,105,7,19,6,-1,-19],"237":[0,130,7,19,6,0,-19],"238":[8,130,10,19,6,-2,-19],"239":[19,130,10,19,6,-2,-19],"240":[30,130,14,20,14,0,-19],"241":[45,130,14,18,14,0,-18],"242":[60,130,14,20,14,0,-19],"243":[75,130,14,20,14,0,-19],"244":[90,130,14,20,14,0,-19],"245":[105,130,14,19,14,0,-18],"246":[120,130,14,20,14,0,-19],"247":[135,130,16,14,16,0,-14],"248":[152,130,14,15,14,0,-14],"249":[167,130,14,20,14,0,-19],"250":[182,130,14,20,14,0,-19],"251":[197,130,14,20,14,0,-19],"252":[212,130,14,20,14,0,-19],"253":[227,130,14,24,13,0,-19],"254":[242,130,14,23,14,0,-18],"255":[257,130,14,24,13,0,-19],"260":[272,130,18,23,17,0,-18],"261":[291,130,13,19,13,0,-14],"262":[305,130,17,24,17,0,-23],"263":[323,130,13,20,13,0,-19],"280":[337,130,14,23,14,0,-18],"281":[352,130,14,19,14,0,-14],"321":[367,130,15,18,13,-1,-18],"322":[383,130,8,18,6,-1,-18],"323":[392,130,17,23,17,0,-23],"324":[410,130,14,19,14,0,-19],"346":[425,130,15,24,15,0,-23],"347":[441,130,13,20,13,0,-19],"377":[455,130,15,23,15,0,-23],"378":[471,130,13,19,13,0,-19],"379":[485,130,15,23,15,0,-23],"380":[0,155,13,19,13,0,-19],"8211":[14,155,12,9,12,0,-9],"8212":[27,155,24,9,24,0,-9],"8226":[52,155,10,11,10,0,-11],"8230":[63,155,18,5,18,0,-4],"8364":[82,155,16,19,16,0,-18],"8592":[99,155,22,18,22,0,-17],"8593":[122,155,22,18,22,0,-18],"8594":[145,155,22,18,22,0,-17],"8595":[168,155,22,19,22,0,-18],"10003":[191,155,20,15,20,0,-15],"10005":[212,155,12,30,12,0,-24]},"atlas":"data:image/png;base64,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"}'),
-  36: /* @__PURE__ */ JSON.parse('{"height":44,"ascent":36,"space":7,"smooth":false,"glyphs":{"32":[0,0,7,0,7,0,0],"33":[8,0,11,28,11,0,-27],"34":[20,0,19,27,19,0,-27],"35":[40,0,24,27,22,-1,-27],"36":[65,0,22,34,22,0,-30],"37":[88,0,30,29,30,0,-28],"38":[119,0,24,28,23,0,-27],"39":[144,0,11,27,11,0,-27],"40":[156,0,12,33,12,0,-28],"41":[169,0,12,33,12,0,-28],"42":[182,0,19,27,19,0,-27],"43":[202,0,23,20,23,0,-20],"44":[226,0,12,12,12,0,-5],"45":[239,0,16,13,16,0,-13],"46":[256,0,11,7,11,0,-6],"47":[268,0,14,32,13,-1,-28],"48":[283,0,24,28,24,0,-27],"49":[308,0,14,27,14,0,-27],"50":[323,0,22,27,22,0,-27],"51":[346,0,23,28,23,0,-27],"52":[370,0,23,27,23,0,-27],"53":[394,0,22,28,22,0,-27],"54":[417,0,23,28,23,0,-27],"55":[441,0,20,27,20,0,-27],"56":[462,0,23,28,23,0,-27],"57":[486,0,23,28,23,0,-27],"58":[0,35,11,20,11,0,-19],"59":[12,35,11,26,11,0,-19],"60":[24,35,23,21,23,0,-21],"61":[48,35,23,17,23,0,-17],"62":[72,35,23,21,23,0,-21],"63":[96,35,19,28,19,0,-27],"64":[116,35,36,35,36,0,-27],"65":[153,35,26,27,26,0,-27],"66":[180,35,23,27,23,0,-27],"67":[204,35,26,28,26,0,-27],"68":[231,35,25,27,25,0,-27],"69":[257,35,21,27,21,0,-27],"70":[279,35,20,27,20,0,-27],"71":[300,35,26,28,26,0,-27],"72":[327,35,26,27,26,0,-27],"73":[354,35,9,27,9,0,-27],"74":[364,35,19,28,19,0,-27],"75":[384,35,24,27,24,0,-27],"76":[409,35,19,27,19,0,-27],"77":[429,35,32,27,32,0,-27],"78":[462,35,25,27,25,0,-27],"79":[0,71,27,28,27,0,-27],"80":[28,71,22,27,22,0,-27],"81":[51,71,27,30,27,0,-27],"82":[79,71,23,27,22,0,-27],"83":[103,71,22,28,22,0,-27],"84":[126,71,23,27,23,0,-27],"85":[150,71,25,28,25,0,-27],"86":[176,71,26,27,26,0,-27],"87":[203,71,37,27,36,0,-27],"88":[241,71,25,27,25,0,-27],"89":[267,71,25,27,25,0,-27],"90":[293,71,23,27,23,0,-27],"91":[317,71,12,33,12,0,-28],"92":[330,71,14,32,13,-1,-28],"93":[345,71,12,33,12,0,-28],"94":[358,71,16,26,16,0,-26],"95":[375,71,18,5,16,-1,0],"96":[394,71,16,28,16,0,-28],"97":[411,71,20,21,20,0,-20],"98":[432,71,22,28,22,0,-27],"99":[455,71,20,21,20,0,-20],"100":[476,71,22,28,22,0,-27],"101":[0,105,20,21,20,0,-20],"102":[21,105,14,28,13,0,-28],"103":[36,105,22,28,22,0,-20],"104":[59,105,21,27,21,0,-27],"105":[81,105,9,28,9,0,-28],"106":[91,105,11,36,9,-2,-28],"107":[103,105,21,27,20,0,-27],"108":[125,105,9,27,9,0,-27],"109":[135,105,32,20,32,0,-20],"110":[168,105,21,20,21,0,-20],"111":[190,105,21,21,21,0,-20],"112":[212,105,22,28,22,0,-20],"113":[235,105,22,28,22,0,-20],"114":[258,105,14,20,14,0,-20],"115":[273,105,19,21,19,0,-20],"116":[293,105,13,26,13,0,-25],"117":[307,105,21,21,21,0,-20],"118":[329,105,20,20,20,0,-20],"119":[350,105,30,20,29,0,-20],"120":[381,105,20,20,19,0,-20],"121":[402,105,20,28,20,0,-20],"122":[423,105,19,20,19,0,-20],"123":[443,105,16,33,16,0,-28],"124":[460,105,12,44,12,0,-35],"125":[473,105,16,33,16,0,-28],"126":[0,150,23,15,23,0,-15],"127":[24,150,18,44,18,0,-35],"128":[43,150,18,44,18,0,-35],"129":[62,150,18,44,18,0,-35],"130":[81,150,18,44,18,0,-35],"131":[100,150,18,44,18,0,-35],"132":[119,150,18,44,18,0,-35],"133":[138,150,18,44,18,0,-35],"134":[157,150,18,44,18,0,-35],"135":[176,150,18,44,18,0,-35],"136":[195,150,18,44,18,0,-35],"137":[214,150,18,44,18,0,-35],"138":[233,150,18,44,18,0,-35],"139":[252,150,18,44,18,0,-35],"140":[271,150,18,44,18,0,-35],"141":[290,150,18,44,18,0,-35],"142":[309,150,18,44,18,0,-35],"143":[328,150,18,44,18,0,-35],"144":[347,150,18,44,18,0,-35],"145":[366,150,18,44,18,0,-35],"146":[385,150,18,44,18,0,-35],"147":[404,150,18,44,18,0,-35],"148":[423,150,18,44,18,0,-35],"149":[442,150,18,44,18,0,-35],"150":[461,150,18,44,18,0,-35],"151":[480,150,18,44,18,0,-35],"152":[0,195,18,44,18,0,-35],"153":[19,195,18,44,18,0,-35],"154":[38,195,18,44,18,0,-35],"155":[57,195,18,44,18,0,-35],"156":[76,195,18,44,18,0,-35],"157":[95,195,18,44,18,0,-35],"158":[114,195,18,44,18,0,-35],"159":[133,195,18,44,18,0,-35],"160":[152,195,7,0,7,0,0],"161":[160,195,11,27,11,0,-20],"162":[172,195,20,27,20,0,-27],"163":[193,195,23,27,23,0,-27],"164":[217,195,26,24,26,0,-23],"165":[244,195,21,27,19,-1,-27],"166":[266,195,11,32,11,0,-27],"167":[278,195,20,33,20,0,-27],"168":[299,195,18,28,18,0,-28],"169":[318,195,32,28,32,0,-27],"170":[351,195,16,26,16,0,-26],"171":[368,195,22,19,22,0,-19],"172":[391,195,20,15,20,0,-15],"173":[412,195,0,0,1,0,0],"174":[413,195,23,27,23,0,-27],"175":[437,195,19,27,19,0,-27],"176":[457,195,15,27,15,0,-27],"177":[473,195,23,21,23,0,-21],"178":[497,195,14,29,14,0,-29],"179":[0,240,15,29,15,0,-29],"180":[16,240,16,28,16,0,-28],"181":[33,240,23,28,23,0,-20],"182":[57,240,21,27,21,0,-27],"183":[79,240,11,15,11,0,-15],"184":[91,240,12,10,12,0,-1],"185":[104,240,10,29,10,0,-29],"186":[115,240,16,26,16,0,-26],"187":[132,240,22,19,22,0,-19],"188":[155,240,31,27,30,0,-27],"189":[187,240,32,27,32,0,-27],"190":[220,240,34,27,34,0,-27],"191":[255,240,19,28,19,0,-20],"192":[275,240,26,35,26,0,-35],"193":[302,240,26,35,26,0,-35],"194":[329,240,26,35,26,0,-35],"195":[356,240,26,34,26,0,-34],"196":[383,240,26,35,26,0,-35],"197":[410,240,26,36,26,0,-36],"198":[437,240,36,27,36,0,-27],"199":[474,240,26,36,26,0,-27],"200":[0,277,21,35,21,0,-35],"201":[22,277,21,35,21,0,-35],"202":[44,277,21,35,21,0,-35],"203":[66,277,21,35,21,0,-35],"204":[88,277,10,35,9,-1,-35],"205":[99,277,10,35,9,0,-35],"206":[110,277,15,35,9,-3,-35],"207":[126,277,15,35,9,-3,-35],"208":[142,277,27,27,25,-2,-27],"209":[170,277,25,34,25,0,-34],"210":[196,277,27,36,27,0,-35],"211":[224,277,27,36,27,0,-35],"212":[252,277,27,36,27,0,-35],"213":[280,277,27,35,27,0,-34],"214":[308,277,27,36,27,0,-35],"215":[336,277,23,20,23,0,-20],"216":[360,277,27,30,27,0,-28],"217":[388,277,25,36,25,0,-35],"218":[414,277,25,36,25,0,-35],"219":[440,277,25,36,25,0,-35],"220":[466,277,25,36,25,0,-35],"221":[0,314,25,35,25,0,-35],"222":[26,314,23,27,23,0,-27],"223":[50,314,23,27,23,0,-27],"224":[74,314,20,29,20,0,-28],"225":[95,314,20,29,20,0,-28],"226":[116,314,20,29,20,0,-28],"227":[137,314,20,28,20,0,-27],"228":[158,314,20,29,20,0,-28],"229":[179,314,20,32,20,0,-31],"230":[200,314,32,21,32,0,-20],"231":[233,314,20,29,20,0,-20],"232":[254,314,20,29,20,0,-28],"233":[275,314,20,29,20,0,-28],"234":[296,314,20,29,20,0,-28],"235":[317,314,20,29,20,0,-28],"236":[338,314,11,28,9,-2,-28],"237":[350,314,10,28,9,0,-28],"238":[361,314,15,28,9,-3,-28],"239":[377,314,14,28,9,-3,-28],"240":[392,314,20,29,20,0,-28],"241":[413,314,21,27,21,0,-27],"242":[435,314,21,29,21,0,-28],"243":[457,314,21,29,21,0,-28],"244":[479,314,21,29,21,0,-28],"245":[0,350,21,28,21,0,-27],"246":[22,350,21,29,21,0,-28],"247":[44,350,23,21,23,0,-21],"248":[68,350,21,23,21,0,-21],"249":[90,350,21,29,21,0,-28],"250":[112,350,21,29,21,0,-28],"251":[134,350,21,29,21,0,-28],"252":[156,350,21,29,21,0,-28],"253":[178,350,20,36,20,0,-28],"254":[199,350,22,35,22,0,-27],"255":[222,350,20,36,20,0,-28],"256":[243,350,26,34,26,0,-34],"257":[270,350,20,28,20,0,-27],"258":[291,350,26,35,26,0,-35],"259":[318,350,20,29,20,0,-28],"260":[339,350,26,35,26,0,-27],"261":[366,350,20,28,20,0,-20],"262":[387,350,26,36,26,0,-35],"263":[414,350,20,29,20,0,-28],"264":[435,350,26,36,26,0,-35],"265":[462,350,20,29,20,0,-28],"266":[483,350,26,36,26,0,-35],"267":[0,387,20,29,20,0,-28],"268":[21,387,26,36,26,0,-35],"269":[48,387,20,29,20,0,-28],"270":[69,387,25,35,25,0,-35],"271":[95,387,27,29,25,0,-28],"272":[123,387,27,27,25,-2,-27],"273":[151,387,23,28,22,0,-27],"274":[175,387,21,34,21,0,-34],"275":[197,387,20,28,20,0,-27],"276":[218,387,21,35,21,0,-35],"277":[240,387,20,29,20,0,-28],"278":[261,387,21,35,21,0,-35],"279":[283,387,20,29,20,0,-28],"280":[304,387,21,35,21,0,-27],"281":[326,387,20,27,20,0,-20],"282":[347,387,21,35,21,0,-35],"283":[369,387,20,29,20,0,-28],"284":[390,387,26,36,26,0,-35],"285":[417,387,22,36,22,0,-28],"286":[440,387,26,36,26,0,-35],"287":[467,387,22,36,22,0,-28],"288":[0,424,26,36,26,0,-35],"289":[27,424,22,36,22,0,-28],"290":[50,424,26,36,26,0,-27],"291":[77,424,22,39,22,0,-31],"292":[100,424,26,35,26,0,-35],"293":[127,424,24,35,21,-3,-35],"294":[152,424,28,27,28,0,-27],"295":[181,424,24,27,21,-3,-27],"296":[206,424,13,34,9,-2,-34],"297":[220,424,13,27,9,-2,-27],"298":[234,424,13,34,9,-2,-34],"299":[248,424,13,27,9,-2,-27],"300":[262,424,13,35,9,-2,-35],"301":[276,424,14,28,9,-3,-28],"302":[291,424,9,35,9,0,-27],"303":[301,424,10,36,9,-1,-28],"304":[312,424,9,35,9,0,-35],"305":[322,424,9,20,9,0,-20],"306":[332,424,28,28,28,0,-27],"307":[361,424,17,36,17,0,-28],"308":[379,424,23,36,19,0,-35],"309":[403,424,15,36,9,-3,-28],"310":[419,424,24,36,24,0,-27],"311":[444,424,21,36,20,0,-27],"312":[466,424,23,20,23,0,-20],"313":[490,424,19,35,19,0,-35],"314":[0,464,10,35,9,0,-35],"315":[11,464,19,36,19,0,-27],"316":[31,464,9,36,9,0,-27],"317":[41,464,19,28,19,0,-28],"318":[61,464,14,28,12,0,-28],"319":[76,464,20,27,20,0,-27],"320":[97,464,15,27,14,0,-27],"321":[113,464,21,27,20,-1,-27],"322":[135,464,11,27,9,-1,-27],"323":[147,464,25,35,25,0,-35],"324":[173,464,21,28,21,0,-28],"325":[195,464,25,36,25,0,-27],"326":[221,464,21,29,21,0,-20],"327":[243,464,25,35,25,0,-35],"328":[269,464,21,28,21,0,-28],"329":[291,464,18,44,18,0,-35],"330":[310,464,25,35,25,0,-27],"331":[336,464,21,28,21,0,-20],"332":[358,464,27,35,27,0,-34],"333":[386,464,21,28,21,0,-27],"334":[408,464,27,36,27,0,-35],"335":[436,464,21,29,21,0,-28],"336":[458,464,27,35,27,0,-34],"337":[486,464,21,28,21,0,-27],"338":[0,509,36,27,36,0,-27],"339":[37,509,34,21,34,0,-20],"340":[72,509,23,35,22,0,-35],"341":[96,509,14,28,14,0,-28],"342":[111,509,23,36,22,0,-27],"343":[135,509,14,29,14,0,-20],"344":[150,509,23,35,22,0,-35],"345":[174,509,15,28,14,0,-28],"346":[190,509,22,36,22,0,-35],"347":[213,509,19,29,19,0,-28],"348":[233,509,22,36,22,0,-35],"349":[256,509,19,29,19,0,-28],"350":[276,509,22,36,22,0,-27],"351":[299,509,19,29,19,0,-20],"352":[319,509,22,36,22,0,-35],"353":[342,509,19,29,19,0,-28],"354":[362,509,23,36,23,0,-27],"355":[386,509,13,34,13,0,-25],"356":[400,509,23,35,23,0,-35],"357":[424,509,15,30,14,0,-29],"358":[440,509,23,27,23,0,-27],"359":[464,509,13,26,13,0,-25],"360":[478,509,25,35,25,0,-34],"361":[0,546,21,28,21,0,-27],"362":[22,546,25,35,25,0,-34],"363":[48,546,21,28,21,0,-27],"364":[70,546,25,36,25,0,-35],"365":[96,546,21,29,21,0,-28],"366":[118,546,25,37,25,0,-36],"367":[144,546,21,32,21,0,-31],"368":[166,546,25,35,25,0,-34],"369":[192,546,21,28,21,0,-27],"370":[214,546,25,35,25,0,-27],"371":[240,546,21,28,21,0,-20],"372":[262,546,37,35,36,0,-35],"373":[300,546,30,28,29,0,-28],"374":[331,546,25,35,25,0,-35],"375":[357,546,20,36,20,0,-28],"376":[378,546,25,35,25,0,-35],"377":[404,546,23,35,23,0,-35],"378":[428,546,19,28,19,0,-28],"379":[448,546,23,35,23,0,-35],"380":[472,546,19,28,19,0,-28],"381":[0,584,23,35,23,0,-35],"382":[24,584,19,28,19,0,-28],"383":[44,584,11,28,9,-1,-28]},"atlas":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAJsCAYAAACLThvbAAB+E0lEQVR42u1d25LkKq41FfWL+CPhIzkPp3OP221AVy7OtSIyemZXphBCSEKACEcHpZTr/40PX8mf/xFCYH1fQO8JsUK7xQe3DU5bh5C2KZiyi5f+ZEUbmvGMT78PIZyllFihfRr0vdtnxjjGB7rZWo4Pv+EoWf7IrdKvVJMvUw73Pmbmb+Ot39lY5/+SK+G3saE32XguevS7O0ZEXaP8nqKDUp2KQtlr+P2L90XGU0WfjFLK5xPLM9LnO7fvH5Xv9+gdDXr3T6rx0mgnMdt4ai9Svt+gnSpyjAxe4uXDabvW/hXS/mnG85GPy2/IfBLHlNxfho6kVv+VcoyN33CQnMavRSd1fhsJOlmb31qdT53fRq5cjedi1zYwbRilTz36qegQFTZeIvtY7GAxnkU4nmbz5IOfYx7yJjStkSrRaGz8rfbddFuxkWI6QhvJMGLWrEZyZ7Ufj/chTtLtKFgpUr+fCbpM1fvC5Enym+s8SE7tcL4fhXO91a8d5kFx1IuZ/B6C8XSZJz/H3oiC72RhO/Hh/0fBxIsGkzP10uAGE39kEJAITiNTtw0ak4cSOKZjvcAiT5xL0Xnck/B30ZG+Rg8ov4tCvuKhd97JUVcsdTENHLNZ/H4c9bR58ruYccoL8dJbrd/3Ak/CYN9pnZW/pQa9dGs3M5RNspqbtfI8K+MbBTzGy2Q7G8FEuvzvcKyDXv9OozaiwZyi0pDo430eBCdHmRbmLSrmpVbmo5CcZD+D396Zt569t5gnp9iOE/aNInOvqLlXyNjbisT9Vu7+lmbPqLVPGzt7QJS+ROr+MnEsEmcPWNhGT9aJsU8dBXuWsUK/9f97e+WeZwBINBg8acZPcl6GusdO3e+O1L3OSxvsMxE3/qj7tlGwz50Y+7aRsk/P0AXyPrfwjAr1IzlfkG40ElP2kflJxDMAVuMZmed7Evecy9MZAE4AcDAZHx0AJKMAwOuAS+oYk8QMZrgH1yjOPXIcmFEAYHFQLRqPaWIeVPIMANLAAOCqB5I2Y21siIFcEhxaowYAkRgARIqOKXSYe2hLsvDSHE4rRrZEooNRIB+u/dAES4kRAFiMZ/TSF8stgFVSLdTUWiuFbpEi80pBSVP/M/eVpel/Sdo5E1LkvdSudCun1Z/ETN3HkeNUuRKUDcczK7d9ruOSBGN/HdNM3J9/otFrIzrNxWw0z2rXaJPTGHtvB7b6YGHDpfNVOp5PeiyRB4f+8AAgKyZOFE7e1ncyceDzhdd4+f9JsKdjMYFPoexjR1bWzicLx4trbCOTH4mRlxoYbZCzw80WrlwkToRl2C7zZDX5hUXGJW+iPydBL8JEeWmDPw97QLaRu98CsBR67Kwg8oOzCIwVDscZ5kZmwzKwSLf/HRcwEtloohwPMkyd1XvvO6s40B3nl0VAxJlrQagr55/fXj/nRBlqA0hWES3jBYtXoOx5mJGz+t9tHsedA4BZQrVySE/ZhnT0ty6i0YrmbDi9UnH+ecExzUxanPuz90BgRQe60/y0DgA0ur7jCrtmGzi00wD55Etb5fi7Rkk5bO7oxwf65fL/46SxPBlyPxrjOWWue28BcKP6Xuo3NyLAkyDs06mPJ+O7kRGdXxXbat8/EhX+dBpvL0dQSwXnSt+up2HCgxGR7uNp+5MNZLFyAGCtv62xH4FkpMeRsco9Fbxp7UhkBCp3Xlp2JXYCi0jIOGi3fKSr/9o5hHTTW+14UhdNdotl5S0Az1PK6hsAghOXFqWAqWV4o+aUbUN2qjKSmpPot+9H4Yl+7tXBa1uxIof796TlosW3AAzmpmh+GbZJvdGTFKfImzpDkEkSlAKW8CPRH3GJ1wp9ypVZybVa7S2pwtCLJGgvKmwUSeZMeWvGU3ILoHs9ctctAG2kqjlkZJliOo/nMwWfvcf8EI1aZi4ygbcd09690/2BqANhARmQEEJQfZxX/29HKz3vkWLnzs0Rqf9eppa70j4IWRAKbWkFR83qnHvuhKInHJ8k8lM/G08+j1QjVeDaQyhXhx8eAgLrK38fnnt7ca30nvTtgR2cxjc6sFUDuZ2dv5eTbZ3VGZX6pyxswiVQCcx0P4d+6KT7o5EN4J618HgL4iToxP0cBJnv35dPUu5g3veGKZFpNp5cFlf+OAbr6XtnJwp/m4N6s7OaFUDlF/fVy/lTy8b29tI9T/2fFR5zY6GTKv04GW3mSkDztOqVvNGiGc+iGNPeeF6voHPGiLTH97vRpGvdYY8EJaA61nDwT41Hw0AgNSZb7fCjNOWWG3LKC6/sLO7engcwM9h+o/PPxvpYa681R0em/rPRd3q/lxRh4hwM1QSwLdtaO5jOtbknYxFnO9aLHAK0OHjCLRWpfg9AII9UOegRuYdJCLKLxL+bldm8fT8JDiCRDi856uFShwBngFP+1+EQYFKOu+YQYKIePHMo21yI/bYqS2vNP6WufpLItueXFONKGU/JIT2tHifF+xnqUsDZIcKTRmgjVpnh4O/7S19fqmUoKJFfbKTUYme1clai0jRxvN+wrYD0v9+KbTRaGcER1QapGa8oSFH3vj+qmqJVRT1v/aXI+xT2lTIHTFf43ADgLWnTLPjudb8pdxRA8h5AK/VfS4mljjJS79qfB30vbeU3BFbQKwRIsrlHfdZ5tD62nH8w0lvr2herOszV7MjIg5wj5U0uHvW7odGg7je2DqhY7Uu1Vuecydl7oOj6t7MRSVLbjJUgoGwwaafA+NrcmzMAmlrlLf1NE3TS0vlf+2hBa9ZYJ0EWJBJ1QmJHo6HurmbjJPJmBZk/wkkxumb6eTzfn786xeunR6M1OTl1rC3u/GpO/WtqG0iMmuXkyMYTGivvPVYnkrGPx5gSwp7O/xAEN7P6bjlnOYGbpO6/NDD0XP0nwbyx0JfIlQc3A1AeGhz94lY0NDg9oVL6pklp3tv1KlUcK4rCue63Unob9/bfGwAUhl56pWpTx+lSa2Gcin5LnP8pGL/elcHMsCdP5dq5/JfKeOQH+lInHg+7st2t2imnQLeobZSjXx5fP084ZS9v3/c6fU05rUk+SXppg3Ka86kUcLU8KUEeiVnOOHVO8UbGSVXVDQeDWwAkmT/8pltC2EMPgYMyfokx9lq9TILT6pRbAObzhWhHLcrpWpUylpTwtropZaoXFdlobqLcaSYCP5SSxpFpJ1XzRLIFsMKqS3rfWPPUaHSSiyT1Lyl4Yblyt972yYvSAsakkzUr+HPjfmt19dx83LKjfEat/qn9oWwp92icXmP1wyS2a1pS07+nEo+U0pw9paCm/nPFCSdGQCTZpqlNRMsgIAvGD+n/vdP/WmfyuZ67M6RvbnDrza8WBFDt0OmoFx7bSdpn2rPTPNEHip3USSq2BSN6Kb1ESO1TXwr0eumKUoQiMQpdRMP0fCSmrCKziId0PKNROsxdD4GDMlc0xXC4enlsugUgfQUwFvtCQxaFgKg2ZYpe3OhLC/dwePYez2gxTz4IlAnfiKL+ilx2vSp166PW4v8XeYUQnuR3f7SBmvpPnGiv0rbpCk4y3h159GRIuhaDK3tD5krhrDgI+tjSzeylj5NsjOmcHNFvIf8k3j31wks23uPpJW/Yx36WQ5MJcF2J3g6TpFa0t5GsOWV9E/eQC+AyfqTyvxgTAAB2DACoqa1mCgkgy5qaPiXVCgcQAAAAAGicUisgSIS9ewiWLmvKOQPSfiXkPmT82I8eAQAA7BwA1OoAwOjZyLpXS4H8UhjgPn7sQ1QAAKyHH4gAWAStlwxrh2lw938wQghH+Bfnn/9e/QAAsOB8hggOySlUnLYEAAAAAAAAAAAANssAVO5lf0C5W159ypZ5x5O9AifeEefibNAnr/6pGYKGfGKl3SykN0fBdPd8D47MK+NFQXbsy9Oz1NmpL1k5PhZVFrMX3cXkn4W2SyKrrJzfUdOuZt5ay5GoV1obHRW6baoX7iAcxOJU5vN6lOV+At/rkYoW/5FRvU9TUSpKK0kJ5R2Jj1Uk6u0HIU+iSmKVtqKijkNS9kV1ddS4L3GAzHrXN80ev1lM/lFweLhX6yIqKgp6VD+MSnlby5GqV0lhl7sPMBF40LaXRi3kfghRD/eNbsta7Z9nMq0fodEiXfiyppuIcknK9tNNtpQa/JQ3ECwjbg+dovRR0j+uXKKDHGs68g3vJ8TF5H98icxHP9Ws5WuEnUm7DKAmAPAUopeD9TI6FkY2CWWdhLKNRmMUjeQ4anJ6jIdm/JOznscvCAI0MvSW/5udf2o4/7wAf7Mcd9xlvv3e9h04ezTc/04VmuY1vzxR2eKFhzxQYa5t9+CRV0qH/uUpagAwenzT0b8pY+FcP8b0dO5LPvZ9Rnd3+b8x6FrNDs9euHJtx3IBwD0I6A3mefx7CPAUCJ7jAD3eTbYOBLhRcCRG0jVj13OOlMeEauMdK/9aGdA4cIKeggAsCX/3JM/W9zmBXGseRKNgUWrQsxPd1eQP5/8s75WCKM54Ric5rR1UNg6GcQ5BRcGhtKg90NSh73lILzF579HnHI6RHJJSHRRj9D85PPfJqjevOHDUfSr0oS/SQ0iJ0Za0L6l3mMnjkJYn3QHyLzgE2O0jSa+89IBAT3ogj0yLyUPc5RCgJo3PieY5+/ufiPJcKDL/8BQO+lO+pbN654xBNorWpXK9jonFVganyl90HlfOykCzCjob/YuGOpqZvH/LKvQUZlC+HS39DAvzPGP1v8Vc+x08EFSnL00PWgib03b+o/iUbYxrivF8oDFywp5EB5sJTiY9jEFQTs5c+bu3cc4MGWhPP+cB/TmP53Mfb3ByXvLHNgDffp+L890bT28nvexWwO9CvGgcv/XqSRM0xMP/VDeV50R0/qnjjPODfM9GEEA1opJCHp4GWnsewWKv3Lp/Z0UPdnZ0VvLHoT/94upcXI9WuGK87CHTFR4D+qyAV1ckbn88+lIYho+SWqfche5dI9Ok6nvBzMhtAIvVDXfMw8PndNDHb4F06zIbLEDejEJY+KysA8loQaXhYcmrgStkAD5O6C0ReXQY7FZWgbNffjImhmaVqdl3uwcA1tsAkTE5T8cV6Ap6qsnSzAw4VpD/t5wV2OXE/3XOFsZY1QIAzfjWfr/c1cCVtgCugcBukbiH078qTRRMwt5etuU2RRY4GI0Rl6avE6M/b0oPawwaR69PJt2dsxjbFHtx6uO5mb5Hog206ldt622prYDfjpE8jQclHP3CHVel4xhiz8N0Fo5fEthYOf+7EeUcDvSqIkdJvY3aJ6dkVIB5DtRiXnPuVeEd736QtvIdd2oA4LH6v9uRWNH7JWzMz8MkuTq1QpzEHEdoeYVu1qRIDL40Zxxa0fepcK6cmwFUvjPDeHBW/6OvA3q9dwAA3xrAzQgAejbDY++fajuXuRr4SzCqrWglMTpdc4ycK3Qc+jNX+xZ8et63jcxVr/WVNW4AYHVdi7slkY73HE4FAGusXO62dkX5HBgAfPgoq2ZQNAGA1UGc+zUzyrWNmTX/KX3JTm15KUxW/t2ib9wgQ2J8WmNTO2i5RU1vpd56BrJvBfe8w87ZpNbcXHUroOWz4sAAoBaMLKETmseArB3F1TiTU/4hhFWUbeW945X44j4vPSoYrNU0eDJyOxWRWfXGgiawkMg/VMY1DphXu28lnY0AeeU3FFp78KMWV/dF7l3/puKnszryegiEonDhWP8k9ugaBm9YicVFaVnIl8tPefikheX9DbqFbMdz4NTyBauWu82MoM973Jf0ZT8Nx9tzwCOEuGqRoBEByqeN68fLMFpUy9KW0F3ZuXn0bdTK/A01Cw6G/OOC+mOJVPl49PFkOLG0kZ7MmgvrVQIMIRwPn/z03ycKcZVHgT5O+W2rhLhxO7OMuHY1lAbMox1rt79J/p7ziHv7ytuJrXrOIRt9x4qXpfTrR6mEXSFWAgzpJ1+DkxGotW3xIcr4E+FH50nRu/PLdcKc6y+B8OFW5bN0mJlpCFtXCFvXa62MQ4+HNwSwrSCmEPT5bbKxeGlU68TSZnoyY8yXCr4tKwFi78wWT+UsOVcsW4UwagdS7sWFqFF9UgQY2jQdN+UbBXRyYzKnjkw49RG0J8updTgOI5nNXuXMlP/MFS3lymqvfLhW7qUhd68bElLdat1imDHm5yrBkjQAQIGU8dH83YlLVvj5NpEiY3V6VAKGyGhfa4y0p++j0Hjkzt+iQZvngDloWYxqhYWApfx3qQCZO0HAqPFpvTLJuRUwoiR0PtbK+FD0dgh+DDsEzAsMKGPy9JyvBz+cx4kkAcDogPQk/N1iRTXiFPIb56lFv3Z7+yEv0M+dtgLygn5rCX37MVAA1E5fc+JTnLD1Ows1A2NZNGpUAMB5W+JUTGhvx+z5PPVKQcA54bcz7cA54DcaJ7ZDELBCLYy9AoDLgbjz8snCQ24APbrmTmDKm9Q955BvBvIUGlLL9JtnEJAf+sx1tBSH/mnDwzHnG/3zi+bMCvJfrb9SfdY6sdVuBZyMDMZMOz8U8NKTUUp3yz1SnWUI4U6vdhDoJDhSat383OPpy8arF5SQJjwCaMhf0P/I6St0DABeaCBvn1SekR6+a/4BAAAA1gRCwO9YIbU8Meccx/UxDVJKEasMAAAABADAvACgFwTcA4KW8/+AdHgNAQAAAAAADAoAGp/adoAECVsAAAAAyAAA62cArit5qxO6Xf1BBgAAAAAA5mcArp8ozAikP7/FIUAAAABkAICNMgCtzMDT/86V/01TMGQAAAAAAAAAAAAAFskAMFaMsbE6JBfXuLRn+gjEQxGcbfvC6I+oHxfaLiV0CbLhZBKqv+/0Q1phK3b6pGkrGv2OytfKso5C3RHrZWXeRoI+Z2nfL+1RSuOehLn/9PJmrrRr8Yx4DiGcD/ywZNHpU3ywZbnVP6INFlfZE/B75TULaKrnpwiEfdxkdSr80l5UnDyPHdrb94XQH1U//tCOxQeRIJvIOKtQ/f2fdiwLHfX6lBT9qf2WclajhqueFKWsm3Ls6AxX1omgO8laLx/mVWTqs8ZOUNCb+2Qd6ugry05V+IkceVRoJO74MW2wqoCZte0l+ijR2EvRegsgHf9/dzwyopNy+NZ//pS25T40sXJfPPka0Y/Z4L4/cAi+38uqRCV98YqWIIdE5I3yXnoW/J763R0eFcvOYyrVoThJFhp5JMH3Zz4wJLW9S+PHaHBGDxRnMFbvC5VHDS/peHcQYPFAECWFbrmtQOWRmtrPCjkkRnClDbiSwVbFSno2al5FgUxHBN+SIEBqj2Y+MJQG/25aAGDhLOJAx+nt+Fboi4XiL62ImwQA1k7cMgCQZgESY4XX+u9R2Zc8SUdqju18cHCaAKBGUzp/KY738+Kh5nMy5ZoIOlDLAJ2EdmfYsdTpf+8l1GUXX79MZu8TtfX9z9+4E48rwCg0SDP60msnVX7XM9L5ZgQSgX7veeHYMCpWhnalAIBKO1foxsPuMJzGmdX4S435dTDHWSoDTqZBEhQkQV+47d77HoVjpglOP0FEacl+0BXcjx1JRD1oOf8e3RmIDJ5DZdGZjlWv3BMPQaUiP1zHObQRpW1s1pfIOAgUjfvxJCsOj7HoD0haHgLsHiyz6KtyPEiHv5R8kQ4zUg/jEQ4wceVNkhtRN63oR8HhrcQ5bFbpT2QeAqy1l1p64egnrA7VRaGdjAMPASajOauVo/shwNSJ8Hqr3eycsjkZUeXqfdHs11JX2jvsqa6SBeCk2bly1bQv3Zag7NNrD+NxU7QWq3Pv1b9Uz7wPC9fan30o0dMOWvfnc4aq/PkkxdzMhD7lg/7SalTwZ7YFEJUT6DyeTz1a3+XVGNQd+6JNzSEA8JnkUenEKalz6d3m3ODx05bFYTzqVsBbnH8rAPAKuFOjT/dxjs68eAc5kq0VCu3USe2fAr2XBMe18Y0N/lzt+I9ypWFphL0i5p37ol1ZciPRbwwCJPpirRseOnV2VkKSFZk0C2A1J4+OIdf0RaNncdAczxN58ehbuqx202H7UFnL+XOcsCcoq3zXQ+g/ykjHY0KPdg6r9yV3FOPN1/t2CwCoRpyy2rdwmtwre5KVRq8Nz9V5zTh6Z79GbQMkQruZGBCthDTIdkWFrEfIIDr049UZAOv93NX7Qg0Cyi2CRgCgCwCs7vtrVqYWesxZBZ8KmeeGgfNcnY9M/c/SZ0oG7zz2yfL1HF8++lfruPPxSo9zS8VTlj0Z3Hl1seu/G02GePimEleZBLX73YUpn29J+z/JTxtZZ2E7mlU8Ze82O8lDqyetq4de83Wm8x91DuBk8LPLPI+dQMd6sfVUy6F1LoDahyzoI8UuPFXedMuW/GykNLtVELue7Lyf8JSkYMPBTz2PSrXtmgXQBgC9dlqGoGfsrDITFOeQDWSeHb7LXQyMdIS7n8Bfxfkfh7w4klTXOLewJNs96eGjsTtuOr1aAHB1ktdPMoiSZ2UsqAdbKMZLkhb7trMC2gAgK9uh/qZlWHbMdJ3G31t19a9xDIBNwHAYzFFNANDiLQn7lTsBgMvc/9lcQd6018dJ94WDX1b024MAj0N2XCeuef5Xcy5B+haApcF9k/NHAODv6C3OM1kc5M0MexqN5647dg4AzuMd+9vSwy7XwzLUgCAd3wFpen5kADDrJLmnbniXiV79JUEEAHJnej00OvvlP6pe3zPWlOBUandcMwBWJ95HpC4/K2DufsnovlDv32dDuVBOz8YvNjTU/XmLFYbmDrfVKiIx9d3q0JXHCn3Wlb/hRvmL5+b9zNJKV7Gz8XzYIgNg+aa6xGnenVpQCPSJt9ZZA4u+nLePxEhzzxLMNoqrrKhm7rEnIu3M0AdJCWLuYdO4oS7M1HNsA8gcovfV1Nl8t36zVtBIeEBE+xhHcXokpvXYBLUvtcdAvPoieXxFI6fHx1FusprxGFBSPoARCY9rtPjnPvDRaisVGqLwoaCmvAR8RcljPkSdUc/tSjvJyl7c6EseA+qNX3J4DEhkD538hNVjQImo75rHgKLEPnbGIBLmfOrIwPRxN6vHgLTvL69UlIPal6eVcnTsi/f2BOU7IyPQrEg3a+s+cNvOxn2kfi8btkHpY+7QXO2cyOr7/rgOKLfR4SFLes/yhoeP5jCt1j7mBu+aLHVU/t0kspOsYCL1qdOBGQBuX6irOIu+kFYzF/rS1U/1dwMzAD3ZSnQqMVZK1HHt9ou5CuRE95Gjd0S+qHQSld+JGQBtZtI7A5AEzzV/ZQbA0X9FgZ4UjxU1kd/EtBPJi9/fh6is9ZwnN9o9J0eYnL6M2o9qVU0LzO8flQxGr8zk6HEondUmR68sXquzlkt2lDn3t5zsVevVyxVelWudh0gCOXoVm8Gqf12U4++9+BWKyrVe0Uy3uep7fVu5amKtegZnAFbuS3dVz1hFF+4qd3AGgLrKZY8DsR9FuUKntBWlK3gCj0m5ou3xQPrNhAyAlc60dN8iA3AIslTIAIzLALB1ZAC/ljbd7AzAdVVgURp0hROcVrUCTge+tKs3yZjMWtHliTrlscfO+X0e8HuN/rTGZuZ5gJ1W1TgHsCZO5hjmRXlzy6b/NBo7FR1b7fqG1atSnkajZ3TDoTuodm48DprfjggAPNvnVHqUGjbNYU0A1wFXHhfq/FvpsPoQ598KAD5CCcRV9PVkZF5UETh9eTKucdDgR4IjzIJ+7zYOh5FOjaqw5XHKn3PaWXNPnvM4CjBg0RBCUH0A0uLB6tlhrT3MHf7cfGpg7h+ork95K6ZhX2oHRcKovjD6wx6ThXhX6RQMHaDUzad5/s9qMIRA0efyRKfy26Z9WVGvtfviXn1S2Py8IL9k/qz4DS+d2FYRfNU4wPkAwGsDgL/ebCAGAE9ZwnD57b0MddwpAACALSb2qA8AANvbCcrpcU3djOtv3U90AwAXP2/qjHbfDHtsAAAIgYOAAAIAAAAABAEAsD5+IQIAAIA2iFm/Xr2FlSp0AgAAAAAAAF8Z2DYOnVxPqsZblFq9N0w4MVu99tX4bY2XKx+1k7XnA+1oFX0/8JyeZNToG+X7Zq/XUeneTi8/yStXxiZ3VkOpM45PvDbHVkGXqmsHoV9u/A6cGz2+4+07ZwghM/jq2pCHfpJ0nyn7mk7+o+N/6EordKbKWJ4VmtyqjLXvV2Xwpz+SFxZ7ND1k1PwOEddxpP7mqa9nRTdbtvGql4kh63902w3Wb5w3aHbrpVd+S317mVpfOzq+LsatCU75vhe/Gnkl4phGzat3RF4jV08N9D4pZBsN59XIufHUVnrgK0rrrzNeA4xSvWaM+/Vd+GT4xkMU0IzMdyIiwcYmA3pRKaNIuHmhrfOfGO8rJCaN7lsSl9+o3iHxws9D5FMO+unVRIzOkjCKo1Tgi8cab5gnRtTc+v4uoMg9XWRAGaNiJHeuHnH1nvt9a35Hzw1qSWBJe2kDvZdUSey9N5+NxoWVZe30qTbOlGyBZSXJGechyiQ9nOq/fgTGidsBivHIwt9JvruDY90ByUnBvb4bjehofmfVtzR4biQneVikeHcKAKQOk9sONQCgXF2MioBCK6PVbJmnzZ9i938IQrjWSz4FzjoKJ1jqfP/OS1zQSLT2ebjfXzVI6fH89N3MNAq971LpRqaeUd5eSEJ+NbTj5LnBma+feuefz2kgx1Xmt9a5UWlGJ/5PwjzhnBXwkhHlo8kmRMZckqI33+f4L+Eb3omxT2K5h5oEe7cjzwDEP7wk4tv1lO+veAagph+J8d1oMGY1HU3EN+Gt9Cwq+bWQhefcoMxZ7Z7yfc89dfZk/5o3yvlCsWfRYDw552uoe+BJ2DZl3EiydJaRtArjX+126EnP4XDOAFDm5Piqs4LJ2xIaNQCIAmNSBPyMDgDU39soAIiMceA6J63TO4iHebh6Fol0JfxSg4vEHA/P4EJjQ1o2gHoY88nueAUAnD4mwwO+3MOz1LYpNlriGJMiSE8Ce0nS2QY9sr4YBgAsHR2xBSDZi/EsfWnFj2ZPKB3/fzCkHHscVLrvud8/I9LA3HHQjtk5WM+0WzSSVGUk8pydeNaMU2zo3o6FbzQp+ywc8yjUY46sT+aWzkgZSfbv87HOE+jHyrr/2xGsdK82ERQ2Mg35CKHVDqz9dff5YN69Ze5Jnw7873K2wHqSjTqBHA1o58VlKZX3Xc+vupg31Kna+GfCfjJVbi1659E/dC1x2pT5IrXTkThfuPqQFHwem85F8wBAcpXl6EwEyvUk7gTyMvg95/mkdKdRBsRyVR4dJ8QbMUvPPHjOC/CcGXP/HvznBi1uxmPFwDIL6UWinFt2Nxv1KytpReMAODksoL4OeAxI5hBWPLEM5w/MhuTE9Ger7cnZnB1nNCMQ6AX+km0lbqCXK9+Pxv1aRUa9IHKFwHDbDEA2VIjspDyjAwBKNiIupGzF0CB/CzJ4dgsCrkaaU1Ts3HQMLJ1bz8lx6WWG/K0WSJ4yam1zYrEjCACOTpRtYQR6tKl3Na3uj3NWMLVU0yoBQILzNw8EvfTMS2dGzA2Jo8wPDi12HF6eNObcvlnua7fOT9RoPW0DSB0rNVDjBGnWMqLYuxFjP9P2mOOHGLFJJ79lCi86D2SNl5WjynQgFea5mqPqmYUOa4yj99ywkvV5/H8xoJWcfDTUG6luZAM9S8Z6qa3Omh3mT3Fw/rNuqGSGPXcPACQT47N353HVjPMiVuu/S7IWxySFsFRepMLsjVRLzywCACrtGXODGozer8/GhebT7gFANqJL5fs8+BVaPWVklemMx9/Xu2fpZ+741TJiUvx0nF9tEl+d/TW1ZyW4szN410dmZj3isMLq3zIaRgDQjsSt9mTv+hobk517dzxNXFE8pfi5TtfzDNHVVsSLoY3G7Uj7w71fnx3tyEmww5I+eW1RxM6HMwZhoO2Zvk37e2Oo5uzzoMl7EPipKcTM61nAvqjdq06M31sFb9QAoLVnXCbJsbbnWybYj8zM4kiv9mkL8HjzkIV6mDvzIxEdpYWMetezKXMpGH3HY87kY+KLgD/EVEovmvJIO3OiI+x5850LoNcd7m9PI9qngM8RgRQnO2ARSI1YeY/KAEiDQY1jpdyjr+lhGiSjUYu6Msl2pmOh54AlKQnPPWcKP9jzpk1swCbYvP5G4oiz0Zw6GXyOguSAn0falWoTtLbDsrCNdZVIiWPlvvIXJ/TL23aOdMbTt69/GoaN6ni9Dczn5PB5/Ht7YET7qzsuZAHsZMnR+6xsRzuncsfhztpjXMV+9Ppv0fYop52N2+cexvPKAswIAPLNn8xaQKWOvxuyJfFLGPC40MAhzf/vqrV1dkNl4EIIkhXaKZiM1jxIV76j9P7Tn2hA+3zgNw8a61lyjEQ6T3ywr/r+kY1p9qJCU6KzQdD2qPkkCSruMvIMEPNRP/Dr7Ws4Ny/8AoCGcq+UpqFM+G9Le+eL0rROrSNo4hn1kXqfF6VlKUuvwkfxttKfwQcgc3QrjcdKh8eHy+RnYaUpx9/3NSWlKr9l0nOuswHATjgF8x5YBzPv2gObBgA1lFv0f73P+81K1kqnwUACb9VtYP3FG5w/AgDTSX+tNtZa4X6b4WgdasGhQOCNuo0gd80AgDKeAAIA1aTvBRDfqGS9Og4AsHMQ8DkdfV4+s94WAGQBwPmCPrwGvxtMeu4K9ptfwfsEPrXKduEAgMWxycFkgOc4Ua9lwQDjdwNhXa9M9U6UUq6VjLwCY2EIufx6Xq0DeIHYSvzAaQIjbfUuAVsra+rFN7Kx34hSyvUTyzOOUgqEBQAA4Gd/r58a4p/PfzaZYMPT9Tu338Q/fy+9391pfHMGAAAAAAA8swC1Ymqfv2szeoXAw3D8YOynASfzAQAA5mP2dt20LToEAGNxvSO7TBQIAADw5Zh1m2TqeSFsAYwPAHrKAAAAAMzJBNwPm1sd2PtsM9wPrMPmfwsaB0DK9bAJDgECAAAsacPZhwBXBjIA83F93hgAAAAAEAC82Nlf/z8AAAAAIAB4M/68ww0AAAAA04FbAAAAAACAAAAAAAAAAAQAAAAAAAAgAAAAAAAAAAEAAAAAAAAIAAAAAAAA2AW4BggAAAAAMpwQAQAAAAAAWyE06hVfH0UQlaoNIVzrIUsLIwfQAi3QAi3QAi3QqtOS4GkLIB3/voAUj3bN+vLEFAAAAAAAa+KX4PzvGYHzFgRwn0ukBgcFtEALtEALtEALtES0uvh5cPI9pD8fSQBgmRkALdACLdACLdACLYMMAMeRx0YEkjtRi1UnQQu0QAu0QAu0QMsgA/AUAJx/GOJcdciI4kALtEALtEALtNbOAPx0HHm+/G8Kc73bAsWQd9ACLdACLdACLdByCgCeIpTc+H4vU4AoDrRAC7RAC7RAa4EMwPUMADXN//ne51ZAbgQMTxEO9nFAC7RAC7RAC7T8aLEDAC4kxYEQxYEWaIEWaIEWaC2QARj9GBD2cUALtEALtEALtHxpLRkAIIoDLdACLdACLdBCBgC0QAu0QAu0QAu0kAEALdACLdACLdACLWQAQAu0QAu0QAu0QMsHv9JnBBF5gRZogRZogRZoIQOAyAu0QAu0QAu0QGujDADOAIAWaIEWaIEWaCEDgAwAaIEWaIEWaIEWMgDIAIAWaIEWaIEWaCEDgMgLtEALtEALtEALGQBEXqAFWqAFWqAFWsgAIPICLdACLdACLdBCBgBRHGiBFmiBFmiBFjIAiOJAC7RAC7RAC7SQAQAt0AIt0AIt0AItZABAC7RAC7RAC7RACxkA0AIt0AIt0AIt0EIGALRAC7RAC7RAC7SQAQAt0AIt0AIt0AItZABAC7RAC7RAC7RACxkA0AIt0AIt0AItZACQAQAt0AIt0AIt0EIGABkA0AIt0AIt0AItZACQAQAt0AIt0AIt0EIGABkA0AIt0AIt0AItZACQAQAt0AIt0AIt0EIGAJEXaIEWaIEWaIEWMgCIvEALtEALtEALtJABQOQFWqAFWqAFWqCFDACiONACLdACLdACLWQAEMWBFmiBFmiBFmgtlQH4RQYAtEALtEALtEALGYBRGQDuv6AFWqAFWqAFWqBFowUAAAAAAFCJOEop2vRDOI7jCCEcoAVad1o9XNo6juOIl0++fI4H3nqI199WGeXTvP6bb/9q6esm8//aig9/zoz+/fW7Sh9ijT6hz1ZyjJ3fPf5dMSbx1u/MkC1VL9KDfP+ZC4R+xMoYZcp3HmhHoVr+pRcPc57CP1nORF0l8UuUcXN+MXRNNGcr49Qa+7/Ho5Ty+UjxHwOgBVp3WpQAoNPeUeGt9Ul/fht73yXSTIQ+RyL9eO/X7W/p9okNnlKlrdSTZaXtx3499CEJxyl2ZJgYcmzJPxrpEYXnLu9MvSDrWKcflPF/6sMT7aSwBfFuDzqyTgQ5c+TK5T0RZBypvAlsFnW+SsfprzF+UgYqwxTHAVpfTosRAESKwg4OAKLGeDzQj5UJnpgOJnXkEzlBSsNhJIZR7ck0SZwGUY532ScDPYpCh5eEevdERxpoJYJMU89ZDw4AkpTu4AAgcfs8KABI3D4ex7+3AHDVArQ8aXFTYBY0s+K3Sfibs/L3O73CpP3pT6z8917qsCaPSEmHKseBM74fGeZjDpJCHz995fAfO3OuMHRalfqfNAdTZcujNX/Sn++c3LT+AL1Ix/gDene+rvp3t2XxKRrDiha0VswAUKPpZJRaNl/1EFbaTyu/pFxtRMY2AHfFzF2ZSlfSllsAFnrEHZ/E3AKIFT1NjH70xpykF8xtkhb9XgYgMbJUTfpKvinjVLMrVX0blAGIBL1LT1t7yACA1ioZgE80nypRrGalfl3xUFdmtUi/FVlTVj2hsvJvrWZq7bT6kjura/UBJGVmpyfHSNDLVFkxfmQZmavb1JBF7mRWUidrw12lRsGKOgnpnscc3DMRQWAnRq22Y2fuBUKmJnbGlTKeT2OWH/4/DVjRgtYiGYB7lO+xv0ddRXH20CPjUCVl9cpZJcQiO1hGkeFhlAGIxP4mxapds6qTjnlkZA+0PFAyM1G4+k+Kw7HaDMATn5G47x+V54S4upIEmTTqGImzY4z+lifefrCiBa1FMgDc1Sd3X5kaWXP5ysq2OXvFJ7Mfvetxs1aEtTbvn5FnAHoZlvhnhVf+fDdd/n+89UGib4m4gufyT8kizVr99/p4z7qk4/lqZzyAlpxLTafuAQDKLYKWJy2qEUwNg9gzqlejkZnpUk2QdP9QDR/XyVHS9z0HEju/9Xa8kZBqH+n8Y8f5U3QxNca0F6ze/35e9Ii6DdYbxzhonPMtiKPwfDZ0/bzNp9gIcEYuSlJnDGcdYD06Qd9f2wU4AwBaK2UAovJ79/3BjzF+2tuNkyakdvX15FxyJ2AojADA2nB9xiA+GNAZzp4SDOab84/EsU0Xp1UY46QNCmsyvrZZ4yk6jfkoRzwKuTLe+ajfqjhazpcQJJ5KnY7d9rGnDVoLnQGg7kX39lqf6gCU2j4Yd19fsd8ctfSIdQCop/yl+9XcWwDsIjeGe9LcMbnyEjsnv1vnFjgySo09+eh8BqB4y7tyBoDCYyLcEujVrPDWFevaJZpCQJw6EI9bAFjRgtbMDIAmU9BbGTztMc/kW7OS4e5/ZiMZarMAvRVLOdbYz82NjM156c951E/ZZ8V4Xs8ZJAaN3vkDyv361eZ5rGzLzMjiUbMzM89VlKN/Y+GobQEUQ4MPWqA1M0UncW6pY1jSYhNemyIe0Q9uQaXUM1rOwWRmpubPByfbCroycXzubUfhOMeJWwE9Xqn6mAzmvxXOo11vf6bzbx3yfNRznAEArd0yAHEi7Z1OG0tuSVBWi9xAITWcVOz8bmY1QMqermXgdB7tCn2JQac8yDI0gpZjcgDQCoyu3733Y9Z8vM4NS7lp6CTBoiUjAwBab8kA7IC70bNwTtkwAOA4PWlAdd5kETsZl/Bl+mERdD05+HSTPaWktHdfqeP8FCzcXwtc5XCgJgAcDmQAQGu3DEA+9gX3BL8mAFglC0FxeK1AIE0yjpyxomZORgcS3K2Avxwx5Tlvw4D4mvE5H753bjoHuHNiqB1EBgC03pIB6DlTShGUEfem70aPK9tE5Ily5az1Xeu+thz61WGNPpBG3XuvPfSUKs5o5CHL2oqyl9EJx9xtrWsQEo/2tk+rINAuAYCVfufKWAqs+9/XKQ7D62OgBVoc/fO8BhiZ1wAPyVU1xqMvpAdjCNcTk+DqlvsVvMv3o+ChnER8knjWNcDSeQhI82SyRUlj0yt7HiBcTYyMJ5pdZaKlR9C1UaWAH3lDBgC0dswAZGa6OC7G+9OqoJfmjozVf63PnIdILFasrdsHnytL92JAcfJ4XDMzrQI7RyejZH2e4q14egQsEeb6zBP37wFWtKC1eAYgEp/mfFqdtVZqcVIGIHWK4cSHVU/vN73iMtarjPjw0T4HnASPKlmt6nqP5LCeZaYUYrHKAGzuc6SPe6VRWZG3ZwBQ2Q60Vq8EGJ0m0zEhAEjFB3FwACBJbydp+4NeA6S8PpcalQF7VRcPBAAHtd+pshUUy+BtEeMAwGWrxnILAKfaQcuTVi/FrU0dcg4fSXixTuPW7n5zf8M5xDfyEOCTzCm19Wekd2tX564V/yjVDGe8rvg2vEpeA25TyHm7RJKFafD/+n4I4QAt0LrToqwGGnvcx8X43nnr/Y7kWG40E9NJdo3YA88fJ3F/ajZ2Ao/a06ih0pfeGD3KuGbAKn14DBSJfPTG7a+xItIkG+QKrVZwUpNRb+wef2fRn5UdC3HOuzhbS/paeiPGSMpfCOGfAIDDbc9xgBZojQgAKIa4+upcJeAxy5w0ghbqCj0bG6tVAgBKIEAde0ujTn39jxoEZi9HhQAAAYA2AMAtANAaScsTT0+4ziwl2zICudOPb0L+o1+WjlfrtC3ua58HTv4DiwNnAEBrJC3g+0ApwPQJBFrv2Y8OSiTnM66/BYDtAgCsaEFrZgYAK6Z3YhXHztVFynsF9++ztmwAYCZwBgC0pp4BAPaA4gxALbV/L/5TOz0/+gwAJ5ARB62YG4DT3GTpIG4BgNbUWwDA6wOAq16wbRQcJgD4BQA/tQlnEWiDFmgBwCHbE8d2EABQV/KCz3Ec/wQAlvczQAu0AODjzDPz+zhIBwDOQAYAtJABAEZlAXpX4/LlewAAeGcPsKcNWp60gO8EsRLg3fnXDRV0CQDcAwCcagct3AIAAAD4AuAMAGiNpAUAAAAsGgBgTxu0PGkBAAAAyACAFjIAAAAAADIAoIUMAAAAAIAMAGghAwAAAAAgAwBayAAAAAAAyACAFjIAAAAAADIAoIUMAAAAAMDCL1a0oIUMAAAAADIAQfhva+UIWqAFAAAAAAAAAAAAzEZ4eLQj/fn3+lhHPh6e9LzVjb8jPvy3fx78uNCIld9QXgZLtd91eOzxe9T6UKGbanwz+Oj9Jj3wkxv044Nse+P5NBb37z9952T2xQqxpWMrtD+ABw953MdYM76xNZ8M5oV0jmfjtqK0f4wxSY15nC48BIO2an2IjjLste3VljWygKfYkG+m9J+FUsrnEwsN//3m9vv754709L0Ljdhrr/Kp/S52eIx/eOKi1neJrOKd38ZvuP2kjGdstNcbv0gd4wp/qcUL45N2aJ85RknIi0YeVN6k9A7h/Ja2JbZJirZUY6kYk/Tnb5Eq205bsTNOkdNHpgxTz04Z64bEB1ARGTxR+ejKWhIARCMnSFWg2QGAZtDZzpkYAPwzuJffJIGSPSlOYvCYCMpHnqyEcZY4YInBm9I+IcCy4MnKAbR0LioMb7SQuzAASJLgg9FWkhptRlscaJxyb+6zdNVIhtFBN2LxRRTKWmwbuPhppJXPPymkU5AySYI0/igkh5RPVKSWciW910q1c7dEPuP4GdPc2T45GuPeSwknYvrSaiw5Oja7/ZaM8kOKLw7iZ1S61KKPVnyfjjYlO+hdrMzpgzF/V8c17R9utioupsuzfVGysGU/D3tJH+efb8GAZg8sL6JgyWnQs3B/M18cM0UpT4ajaxmCkzgRKMEfJwiIDNlwnB1Vx2a3Xxufa4CWhQYqDZpzWrqnQYCrGStr+aTKnPDo533PP1905/7frMc4d+Z8dtIxT98xMwCw8EX6wFKYmuGk1w9latZyC4CbOouM7Y9ETOdT+nDlPXZ46vWTkk7kbpewtwL+0E63v0lTwUmYXp3WviJN7vIb4b5kckq9JuctAK+2etsK0SlVrv4Qzxuky/mC1t+txutpjJLxNoom9X49a0H5cM/+1NpJ1O0ALn4bkUVsrJzyhqkn72jvvLSTmTylTgTsEQVnokzO499iQPHWzyda6WElkg30IypW8rPb7+mBlLZX6v88hKexCeMwsl6EV1u9uZmPPVPx1L5Z26XzsjIujhmGmj+49ik59jkx9SV3sgZRyhc1AHhKP+2GOHDiaFJAKxqM80Fprw4+N4KA03gS351ddhgbr/apaTzOXPNO/e8631eZ617yiy8cr5odOY37FZntW6f+pcHiWfEbURoE/ApWPieMgpvyj3T+kcnb0Yk8c0UxvSbPjGB0VPvUuUa+p2+8StrJeb2xrTLYjoyU4Xlrc3edoLZNHTPTAOW3Ewk9GZl07J3aWmlVHQcoHaWN3t8p6bDoPKG8nd2s9u9z6dpOagQB8fA/9e9xeG6k83pjW1H5992CDetAIA6wVZ6BB2UxZhIA3P93cVSyr8BDlSbPk9otJ5IYPFAqNGqqOEqc0Yzg07P9+3wrhInNOZfj4WhWd17f2pbYGXxJsKFdgXvZa5YrscwAxAHGBBifXSg351W7TytZ/Z+C71g5391T/08rd+7Vv3RbGXkYr1n3rkc5L7T1ncGGZvXP5YFa82Kav/19YCwefx9CGnFPd1SU9U2Zi3D0szaUPeYnOfYKCVk66bel/nMluMhE4+RxC6HXZ6u24CjHBGWeznJnGSalA+b4wi22yH+OenWu9MeBpEPxwMVCkeE3ZjauRULyTQ7BYPVfuy0yI/X/0dfrZ1T7T22Xg19lkaKz1FsITzxRswtaQznbeX17WxbtrRpseLTxtRnvH+JK0NPAUwxSNIjItonKHDIf1zLA1GqClLS+92EaaurdK0tFab909LM0xiQTxmyUPGKnLxb1E1ZzXm9oq6YHb5RhdGjju7e7GS/kpc7rcdqKVC7VkSo8JotKgBPGh1oJ0GMsrF8DtKpuFw1erpS2X6uS+CiXDg+xU42QU+2PVDGMUZksFp+HbBKx0iTaalc8ZVdRXUyGnKp8UdhWYsjI4pGgyHjUzbTCIwe/G6XJLVd554XebucCRlRRe8ryZMF3RqX+vTJPvfZjQx7XzBX3UajR8tAUJ7FYfVnWj/jWtmq/yYv3q5dJjAZ9ap1p8cog75FZcK4nbZkBaK3YtW8xP9ZwXjQDMGIsZtQel9Taf3qjwiIDwGm/Vg/9H14U8rWSR2TMO++a+cXpedm3ttUbI9bKfKF+jchspGKD6OTj4qwMwOoBQCIEBodBAMBRTgQAvrSlqf9oFABIHuMhPYollK9GHseotORCzuuNbVEcB8tZflmwURYPAFKRP271zzYjBz8bpbzvJ9nPY+yDIl+BEILLxzn1b/28q/bgW+99+JXkwT3IGR8+2tS11SG2b27L6uDcyH5R9E/bltcWodSXacfI9DDjDgHA1fhdT7JfOxwePihmtB+oTiw57FNbBRWpczbAWx7H4XvbJT184kbO6y1tZQfn8sZgY7UzXtQ5zA1oZP5ugy2AmTx+3RbAxL5o9rl7aXDL9jm6khRjpE39U+WRGOnOarq20TdqypOcGv2ytqLF+CwqQwq/rH3zW1vSlHt02gKgbElEwc2EZHULAABmgFPdLjIi53TJEFm1X/v90yp8ROpfIg8Kb/ennCXVATmrSe1rkmirfqqdenJ+ZL8sMhvZsD8SO0VZ7edKNjt15mhmyFae8UMGABmABTIAnChbAsv2e6sYi1oInGyE5IRzvPGiPhhV6ZvF3euoPOm9e1uUmiixc2q+LNgv78yG5sCdRR0A6dxQHUxEBgDYDdx9d86KMzu0f//t0yqoVKJ06iqM+/aAVibnITsslQ/ZWxLcQ1yBKLe3tWVVAVWzYh4pQ8vMxuqV/86jf36GQkPXH2QAkAGYmAGwunLXpefUvmbVzd3Pt5BH60xE1K48nFZR39xWMmwrLdSvEZmNQs0aTMoAaNuKFjZ8p1sAQAcDr+p5rP7PL2y/tWoZXZXzc922t6qgPiQVneSCtt7b1ucszdOHQ8vjMavZ8+7z3fMwvOUWNCu/EIJ65WhBo0d/Z1Bls3s/gXV1SziPrSd1+LK24mF/h/0/JzNZhtrU95NTXNoOMufadewzZzHA7f+PxcTXrjq9is/AKQKA39xtzDOPu9dxwMp1pbZSw7H2PufC/Rqdbdgdru/V/MC5vsNIA8BCGOm83tiW9gBbXliGo4ONXZFv/SswKwAALAvDeufNA1xf0BanOBP3emic2C+vw3niQjiD54bZIV6rg9w4BAgAwIjVGOfQEnUFi7a+qy2rcsc7ZgEAAACWzwBoVnikld7L27J6Me4gFsYaKcMhmY0XZAA+Vx8Td0wAAABmGbmRzuutbVk4ya6zfHOwsXkAoHqHAAAAYJaRG+m8XtnWi8drWLDxsgAgccYDAAAAAL42ONw8ADg0FUABAAAAAAC6qFUC5D77+TdRfnU/UntEumzeG3Q/RRhqlZiaf/9DV9u3+PDdrBm3h4pjrD5WeKVG3+yTrcRxv1YXe6qeVS5/OxXtRIs+CeeJl5679JXRXmvs7lXRTmV7qjlNbC8dvNLSj993rJIahfY1DpzP6vaZ7Yj7RpSbWudc6r0wDiKk4vMwTeQ8dOBxgKJCN3b6330G9g9dUv8qPCTGozKS5zkTs4/R+CER0v4WYdxThz7peV2i3kajNKYkNdjUiwHzsnD3IxXpXNbYCfWEpO/M9hLzcFvq2A/JyfF0e1jnaQ89GdnXNEjvo5Fddzl4x9zTFz8nPnJvIklPazIHuHAEoHhVKTLp9mhwXqZKjO92ZSNwwJHxYlaPpmUAQAoECPqkfkWLqbfiuWEUAIiMsIFBtDSM6hcIjfSkq++M9rh6kZgv9mnelU+V71u0N0Lv2TqvCOgtA2u1H5kVAByOE7/73C6Tbi0y1WQWLAOAg+GUSU8Ra/reCQDihABAk/mJD0ZBdOJYGbjGMm8lZNmeai4pVuSqsVMEANEoACA/WUvIfFD6k6znG0MfVbovPBTH1nlFRsMy8DTTuRkBgJfgLVNuByPa1aTfpVsApFTQAw8UBx6ZfdduASTnAECSmoy3lOed/2S8YlA7YuOVkHVKnq1PygCgNXbl8vej2G8VidOxjAzAk6xI32v0J02YZ2a6L9D7JNF5QUAo0nVmoLbNFoCqHrHwvqOEbmEKuBReZqFlgGIrfU0wEJEYLFBT+KS+P7TVSsH/Y6AZAUCqfLxWJqrPKMNkuBJKxu2p59KMcRPYHZa+K84APMmKGiRI6I8KAFS6rwy0rc6imek6cSEt9iOeAUDwIOx1evWBLvXkZvN7A/m1/K64741bBJpxeHpR7Dza9btbT12GAaehR5263qE9k7kEef5zq4FMTjHPjtsNivscq+EcYQdnjRPnZpVG10f2BwHAS+l6fXfQ7yUBQM9Y/nfl6+HaouYaUnVSf3kAMLu9+DA+2fg61sj+cYKAQKRfGo6/9SxvorT9RQHAtu1Y47djGLmgRlHfSNdllWX0O6vfS3BWDFtkGDPOzEhMA+rmsNBe11FG5RjN7N9JDAKCQm8pckkEuudEW4J2Ztpgj1PcoPt4Xz4qeYiFV7eAe+hR83vtnXGtbLRvlyfHa1de9+R3by9p5tZG8rS61si5YcDt68G1QcJ+R7Sja8caPwcAzIc2wu3tdVqtVAujncj8/je1l5R8pg3kSV19S1eFvXlznxO98zjAFwIBAKB1utHoe1rDlBz7Otphvbk9TVtXvUgLy5PTpmZpl4nz4ak0NgAgAABUTjF1DOT17z1jmI14Wsn5SxzWm9vrBYKf/ezz6B8gpQaVOwQchdA+Z87ceT0730cG4EvxSzDKHMOcGd8DXcArK5GN6VH1ovV9Cm9vb497kC13HGo62ofoRvev5/zPRhvl4B1mpfb5hFkARgUAHAcJuoBXZiIY0hrpsN7cnvQU+8eJtdo8F5Jnr65FbnzPIghIsFsAFdgCAKQIl8/ZMNy973gFAaOd/73fmUn37e21VsUUnEy6M/rXLWqloC/RWaz+AQQAwBaIxrSSEz9eDuvN7UlOsXO+HxeQZ221HZhBxqnQV6T+AQQAwGucP+eMBmdF5s0P12G9vb3Dub1jkf7dnXovnc/9PjXgReofQAAAfM3q3yOdOtJhvb29twccT049GH6/129qxcTopDfApvgVTlwvg/BtdAE7w3RWHH7rkNhMh5W/qL0d9UnTP66+adP+1NQ/rvsB7AAgOigx6AK9VTpXjp+0Z6yMHYIywBweD7QIMgBU548MAPAXsAUAzFylFWOjVDtYlSBuYHP0AuLevr9VoA18UQYAALROnnoAzcoo1V4XTAeMHbAvsvDvvRsxWP0jAAAAtwDAahXPpZEIwQgA7JYFaNV1yMz5h4D4y/FDUJBA/HAPbIEu4OH8P6sabAWsv3rlBmTfvofdS/PHg/74Fq4KAjgDACxj2KyDp1PJz0iH9fb2Duf2EHDw9RurfwABADB1JfPJrHgZI2u60fn7b23PwiFbnGIfLc/DQf+iwZw4B/A5Sh5oBwEAMBohhOsnBx7OP598o/P4MQg0ZmQAOA7r7e21gjHOs8XUIG+VgMMa92p/n+CZckDwE2xreI/G30M7CAAAwBWn8e88HNY3tNdyyq3roJ+/c4O10f0bEncff2fP7s79fPhQgwTqWPWclFUginYGBJwIAAAEAWs4rLe31xuH9PApHYd9LjR+I3W5FWTdP1K0ymu3ZJeM9BDtDNA3y0qAB0PpQBcYiVqVQIqxHXnt6u3t9cbBeo5tf21uUKXBWl9LJzvCkV9GO6bt2KCUcpRSYrFBLKWA7r90W7SpPMQPrRtd8u8sfz8aXB4rnxpSQy7JSCcScRze3p5Fm+mJ7oz+vQ1Em6CSHdqRt2MNbAEA34RT+BuLV/ZOtEdKY1v/dkb/3pY585Yd2pmkcwgAABi0tRzWN7T3GYtRp9hn9O9NQfMI2aGdCTqHUsDAFvizF8p5Z90yC3Btm1JpzeoQ1pvbewrKYuXvVsHfjP69JXCmyu445FkXtDNY5wJ0GwD+B+Zem8phhRBe397bx++L9V8sO6Yeop0X6xsAAAAAABMQhKcLWVHMLUIyT/MRIrD48L8zte0G/aWiRqIc4gOdLOx7vMnzml6/3nv9K7VFlGdu/D0r5WmhV9e+P+lU7sir930pD1d6eSN9/qetCfqs1T3tPI0P382V7z5dbzwJtjc2ZPSXDCp8Ro3N7oxputG/81kqtsZFp4V2xcpWk8dYlSUgXp/qXatpXsO6tKO9xnUwrv9wrmOkFg8N+k+y0PJMvb7GpRl71xYZNHu0YovXCs0eT0VAs8dzFIxRYl7hiQ5X2yR8SGlGB31OBvp8GOpzYupeZNi3qNAr6lyhjDW7jwQ+W3YzGl0NTRdaEp2OGn9joNdRSDdx7IT4qqDA4bIYmhgASO7/JsFgseXBVKxopFSk2gVOsu3RjB05JsFdXGrAkhhjlAT6JKoh4XDHGPrMk6dU95IwAKPUEqHo4JP+9Pr4OP8YwUdq0NIuKDS1TWYv1JKQbpL4KUkAwL0G+JRuW/GKTKvUZ69/3DfjT2J6UwpWirMhj964pUP2aEXvetYK+pFu/b5uSUQGjRGvySXl37W/20Gfk7E+W+IkbFNQ+pMJOjij37Wtg3L8W7pZc3K+V+5YMyaj9PoUztNI0KlkwrVy9c9ND47IAFhU/opFl66JRpFl5KZ/CLwlTmTcoJke+Lmm6hJzZdcag6gYo0hIe0ah3iYCn0/fjw9pzccxYuh2qmy/UFaVHJ2x1OcyQJ9jsd9+4mZpetkqSrYmMVfwsfP7JNwC4OgiZ0sxVX6XbjZFqn+Rq9PMDIDX9mLkbi95BQDRYB8lEg3j9cMdpGJgrJNACTwMZlIqFSX1lRTpYuszG6lhPFpGwjsA6KaBCXrF/T5n7nAMtFT33q7PqbOnzdW9ROQhEoILyt5yIjhxVh8V22rFKKVuYVNmLNQkdCkOnrQQGnELQHryU5q6oJ5qrtFvpWNqAggTT5iDpi3Np9PD1VsKHZq9U9A1HQyCtN/1JHYttRu4fEBP5tLkfF/Lr+b3Df2n2vAwQv6gK78FsEslwOv1FcunXT9/iwegGZcnx7hSJbXz4kCLck8xE2TC/c2TDsbb76JAr1HJDrBGqizMngKD0glQY2e/Pj3YFui1ZcDAub8qOAhx3FYxFocXWndArVZfnAyAyAluTpNz0Oif1fWEvtd0oxlQEvh8+lcSOMQ6C//xUCiyNVh9fKM+W9NsOrebvWo6wcYqvOc81b+v/LY0HHF3jhFtNcVPUGuL1Mb1Oran4VyZTpcFwd4i91DIdR/K+znGyNmPUl4x4xw21NwFXo1mMhwv777X9uukd9tjsXtelnR1rzNHY7E/g2Et/2+kqT3XIb02p63jQf1t6/83zysQ+862AwbjOqwOhzddbgAgKqjBOfhEGPQoOGhiEQCQ+BnkBHegqXF+cUJQYXmwaKTjHx0ARAf5g+Y7AwDKojEpD7Wyx8FoXCU3PJajKwkAtFkA6rUjiSGLjMGnKDb5CtZAJ7gDTYurcCODitoNgivf1AqQlMIcrWt4SfjpBelWAYA6EweaXxMAUOel1Bc8zZnC8DHacS1Oc2UYXUkA0Ezha1b/BgFAN03PDABY6b0BTnAXmhZX4UYFFdbbChQeqVUNpc5aEqA/XqslzntqzQLQ/J4AQANqNrhmhy3GtRDGtBXcbUFXGgBIswAWKfoVAgDKPV8PJ7gLTc4+eiROVk8+rbYVrLaVtAFAEtBtbStI5mNSGPZvoPnmAIAaLFG2tKT+RhNYcOtlxF3pSgMASRYgMgzpDhmAHv8eTnBHmuIDoYP4tNxW4Dp0SSYtPqQ9o4PDKooAjBpUfDPNtwYAVroXlQe2KQEAN1COb6PLwU/vGsnD3U/Kf7eu/255Tz8T20sEOtmY511o3q+rpMunTOYzNq61ft4tCAJdp/DTqvueGr9Jt99zruWmSg0BCg1pzYKWLL6Z5lsRmfPV6/2PrOBVand2pUvCb6WBmqHKE5x/UigDhb+as+c+jBMNjcLKNONBe+BkFp8t5//035LQ6KTbZOQ8+kJ5iChXdDcpgpaTON+sA8ZvpvnmAKA3b3rFrUbBqqbN7nRJAcB5PBcdScffBXWiMfOR0SnLKKjlCGIj6rd2gjvQ9HppzJLP80F/soCfTAyKezoqCS57L6FFpVx6PEShvL6Z5rdhxT5HRV/ii+iqAoCD4BCtV//czpwOykyNWD2c4A40e/Ty7d80se9UI8WpZsjh85px4E7WXnW/UyAzUcVAAFjBSQF++GU6xPTHmHD3hCwx8315Dye4C83WmGeh0fAKKmq8a7Y/PnqfCIFkfvhdJPT1ZPKioZkNV3YZNIEXZyV2o6sOAFoRXJrUGe9VTBR+R+sEd6AZnYIxj75fv2+9pZKP/9Uq5+j//ayAxby500wd+UnoWsrtW2m+1an2tj6s3pexsu0eZzt2o8sOAKhpHO3E6UXk3oojXQFrneAuNEcFU1Z8mm0rVB7X8NB1a9lnIi/WB7W+mSbg4KSMxlWyENmZrjoA+BhjyuXC02DQ8gTFpKRQV5oAq9GMlZX6TD5HbSusuFK7bnW0nmLVyDkdz4ckM2i+OgvwtB0cmHLMk3htBXfUjPZudGlQFHUh1yO/tGP6qIljIaCnwh0c3rtlLjej2augSClXOZPPxKQrq6rlBOZ84JS25j4ElojFcL6Z5jcVAkqKgl2mL7cKx5VbYnwLupYZAEoW4K3RbyD2U3IffDeavUg1Er/rzecK2x9vWN1dx0Gyqvtmmm/VkVqquhDn/EhZedXL2I2u2epCtXLfLAOQivxVuDsdaT38FWly6B6T+DQt27tRBqCWgYnEVaG0dHICTTwGJCiv7Z0BMBnXXely8IMF0F8R7tmJpjg3EThXunagSaGbmfvOXnxSMgOe1QxH4lqKOQr3piU3bLLhXHkbzbciCGQ1qwbFKeT1fBndNTIAu4MRraVOxBwFEeBKNGtPzWreo7fk0/SswgYZgEg879BbFR5E2fRezATN92YAOLKKo32B9bh66Ys3XVZER/xRrQAKKWqpXKXaLgAgrCzJEVwIYRuam8mTW7Ev1vR6Fb0lzFFWyeOGnvSyJhk032nfDHRvuqysefXSF2+6yAAAXwmPswoAAABvBc4AAG+E9VkFAACA1+EXIgBeHAQcR39bAYEAAAAIAABgZziU7QUAAHgtsAUAAAAAAAgAAAAAAAAAAAAAAAB4JVp1AK73qe9vjN/fH/+rGlHnPno86lXKmn8n3p280zoOYrUkJv2W3DjyuMPi3n9LJt32iHRrdSEk/MZO/631gisD07fNCXLIXBkZ6e4xcJ58M/+qtwU6bV3t3l2fqtUhlTLxqMXAor+g/jx9IRjrZOnRrbX1Pwq8GunpoVJRIlY5Sp2a+9065g1+KfxLKtQ9VWi69/1alSl16l9T6iskRUU9bi2HKKSbGK+DcauSJabecOVA4vlCU1KznDtusUM/Kqq2Seu4c8dRRZ/Jv+Y7FP7Z9Bk6yHqHhME/p5Z8VM6hXrvR0G4lJ/7Fc5rYlsWc4tBn2Z9WABClDz0IDIRVaUoK/0kxsJKHGiIjsPBURLIjJdJNUiPG0IvImUgegeHgACB15Ng1gl8WABSNQSTyz/q70jZpFyoS+5SMAgBLO2sRsGuDMK3dFc2t0QHMBz+EVGNopHY5D47siM9zl9xHYzhyefpucuhH5KTrFXSiA/+WctDKYNvtPua/q7URHtKf1w8p1cqkfxjSP4h2hGtr0iF71MriMaynGhun43y1oF+I424155auM/LTcUr5Fgjk20BwBiM3/n/u/N0CEnrJcaL3nOhqju/JsZ/Hc1U9ThBwdsbKSi/iwsFrZspAKocRDtozwBiN4jwPtbYjNvbHz4sDOo3tW+331vPJmj41kCtC2oUZXC6g4YpUpuK1sdhI0UpeUBKnuxv0ey/UxUJ8xU6YHoyGqTRtio5yfiAq0ozX8xVsvSHKIXHSZYO3AO4yiFwZec3lUW0ZpHCt27Lew40W2y+3thIjBU99oVB6pigay59F32ALyfIMSeHyIJxT5fYvewuA+hogbyngdCJTcdKWe7q2toJ9SkGVzuo2LyIP0JXRrOlCWJRf/70E8C+hyUnVN9+yqLTVexGy+aIr9Oe7+P/gl5heenKmq++fatJFkZiuTgQ6KEX7fqQHI5y/fOzLLVgqx3e/u9C6yhYN7EYWtA98OX4F0Wq8THDJoQyrwCIaKfWToabca5W0X/vNSXAuLZ5Btx6M9fRJ+rvWqupegyIbtqvh9+6YD8PMRiH8rSjbmBG8WMimd+8/GjrrJ9vqdaboyX5nA9o1+tZBdTEY2xH648e/8gog90oS9boKZZ9Tyitlr77Xx6e767W+XelK9pOr+3yg+xfdJKBZ4yMSeI3K+eHFr/Y6oHQPVwLre/Sj+Le6Oku1N5QzOklju4nyV9lvT/9A5N/zGuyIa4Bm/H/ww0xpc1cl16iOc51Oev3OK1XX6m8++u/PA/7IhqnPbKQnvezFSH4pq3/pKqRsrjvFuc+9jGJW6EE65FcBOfrrab+l3/fUUU+dKKvw/0N04ifBySVFgGD9u8N5MkiML7BeAKAp8RtvASB3fozmdyTCw8fKyM52/tbpf00A0HP8+ZBd2ea0QQlOvOy8t38oi+iQG/+/F2Vr3Se9K+qTUlzrtVMH6ey0//n9qVz5cBxH7kzmeOMfAcBaQQBnP1XrUM8HQ946FzCbX6rRCFYG5hYUjDCUVocNKXe3KW1p6v73DgPGhtPPDL3ycP7Xdls2PBECmONon7XJjo65d26FeqZGoj/u/P92lONkGNonhfUMLEafsr735elgG7BeAFAzpKoHWRr6lxl8jOTXa6X/RgTDAIYStGVBAMC12Vp719P/1vdjQ6cp/uEj/yf/kA6byo+WK/nACATKTP5/hCsLqvOVBBYcOhQFttpTpZTAXck4f2sAwE3hS8crC/4WJ/JbnL47iqZX9oC6XSF1olT90JwD0PByMFfm1/Lw12zDp/Igx4Zb+QeuvgRBQFsG6uQo/qulgKXOi5LOtAgsKMp7/1jiVEx0wD8IkBof7wBgJr8t5+dpwLwPCXqu5LQ0tQGAxHFHwWqe4/x7GYbzaD/pbeEf7h8L50n9u6XOSrYVTPn/VUSZ+fA9sSydBDVF4xTXOBuD8JT6SggAtgoAVgrYRvA7au99dLthcH8s7BbXbtZS3Lnx/auNktYr4azMrXwDRafPAfqiOa9CddCStzHM+f9xnEBeCjCKn7NB5/oKWXJQVGBMFmCVYG0Gv1bOc8Q1wFEBTDHsT2s/PB28LCU3ALy2EZn6YhEcU7IZo89MhU30cCj/P1ilNpU4T/gt4O9QVzuvMZtfaRq9MOiPPjDodSfbewHEXZFzsprWOkoZ8+tnp0VROHzPhyzB/49CgVddUdWc7zloEucDq/9vCADiZvzOND7eKyLvNiT9GHWArxcEfA7tRWVbKzzPDhjj9zIY3HrUUqMkudvKxXn8W4+di6fCLZRrMdaK7ZUqeztdjk5Lz6VwD27lCfxqVreSK0qe9c5HZQm0wUV00v/cWd3Hhp4kZQZhFKS1D0boi9ecOWbx/9txbrXBoB56Mw8srk8ZCjMB3CAi3SaKx2osHj7XgL6ZbkunrQIAavAoDQC89M3ynvsqhu2J/1kBTFLQbhWSygSdp+rqCulsiX/oPc09quCUtK2yEP//bQG0TpTWTtRTAwCO8VztNP0nfZYrK32rFX9k/nfQpY3dQdRd6Rje65e3apTnCfzuXqOf46RXOYhoUWDKem7FReyptq9pc50vq/H/c1vx1oQuPfXuFVj4WZYQzD9EhS8XGXAf3wBdWjseq+lEmBvUdkbwGwYbOc0hu7JQv7RBrPUp+jfAwj/kBfWgLDw/qwGA16l3j8DijUr/kcld+TPoih1fNvqOVi+zIS/aAKA0PlbGzPI63WhjfOfb4uW/2QFArgTas15c9fQPo3UuMOYZ5ffTMgAfYWbBAJ4Gxs/6tzsGAPiurdPLzrSp9M8F+PVwoh5FTDRBjOVqS0LTKoPpHQCslH3Q2Phz9gpa2WZYKQNwd+iUPUtqwOARWOwcAJyG3wNdufHTOtOWjkqfYbXid+RBKA8Dacl/GdRPyy1Ma0cclPoeBTIvjFW8xD94zgerINNqTrjw/0uIyqz2Ia9X82Zcp1sxCKjJ4lQYDdD9tw3PsyVP96zzwvzOXAGFhXkvBnyfA+yGxc2mlj5ZBB4S/eX4h3NBPafo0ex5EIYxUkqRKElTuRlXAJdDRx7ccp3/yQN0SXQL15BcaNauZYmV0ZnflhGi8tz8vdc8vMnEOoMRGPL3GFNt1uK/YHiA/NNBf6ZXpD/W/oGo/9Q5YMG/Rn/c+QeAV6GUUvvE8ozY+M2VZu33h/TjzO9hwG9p0RgwhkXZh+ZvJ+gg93PXgTSB/xYiU3f/6sNk/nfRnyH8IxQAXhMASKLhBTMAWn4tDuzNzgC8IYOhwZPO/ZXBGMB/65XT2oo8UjMwg+Tvsmf/Jv49XwMEgBm4v9ZIMVxv4tfCOkneKffGNy1Wam/cj7y2RzlvEA/avv3uh7nDW/lHAAC8MQDo4Xwxv7tX//M8sb+TbFYoBmRxCHfmewNhERrL8o8AAPi2AOB8Mb8W6f9vXHGviFUe6tFcx16hD0Gh/yvMAVf+fzHPgC9x/tLrQ57Xjkz5Dfabk6MNYFmEj5WCgKuezH4TZedr3Dtc0xvOP6J84BV4OMB0N0q82eZ8VWY3foGvm0OS4DXP1FXPE/rgHwAAAACA1yAQo45CzRgIipwE4XdqbanoP9Dsvd9M/Q5XTuqA8u/mwrAIc0T/vOhvUiRmFV4t7YKWpsXhuEzg9ZoCv6fmq6lvD1ulsFdcG7jCPCb5hME2dkhbnit2SgDAcm5EQRSGM+W21eO3+XcjmrOVs/zbXLC6ZxoGTIjuXrBXf4zoSmhaGP/e3Op+RzB/LQNeqa2h3Fmn4DyOIzd4TQf91kb2tlVe9kowd4uzndDWxrBajEr8nmo+egcAK9wCuN5/9roCVJSKGpRK5CUzr4cqqG0DfkFbcaB5LDxuK+vTp1YDNcuQiAGJh63i0g1O41YG6EXZTCeXm4+zAoBAXPlbPrOomVC1TMUM5/9Go00NZCiBR2D+yx1/K7qBGVwFpZ6urq8rzx1JdoGalfCwVRy6lvPf+m17S5/AtenFuY0l5uOb6wAE5d+5v/nWo5XabIBHuUsvZ+0VVOzsHN+OmhO/Pvdcu+/euzLnaas86XIyCcXZLmjtj1cAtgV+GQIqDkIIzlFQcBjMcOyV/g7C/t3/9eTvm7cTgoPRYe0jK3kOTrKwoMu9j56JDvzJ4efj+YxAJPIQHMfKmm7LZnPuq3Ocf3C0GT16YcE5PiwA8GbUWwBhQ55XcUqB6FC0RpuaOgxfIPOddHV1nrUFaSKT5vmgu/GFOhCc2wyL9ul1fgOlgN/rTLxKWXIORPa+Z73fNgr3PTwciHwnJMVuMpEOAExHLwMwaiVWnGjvupJcfQ9KmoIrhCAgGI6zZXTeO+1cFhynnfR/F15TJwiIXypXDxvuUoPlS/qhDgAo1y+CsVI+/c2zjaCgcThMLE+ZrxIE7Igi+K7ni3RhYf2fxeuI1b/Uyd/PAbxBrp42fKQ+vKUfZgGApbGzMCjcvWVP/j0jyOIowx0d6I68a/R2xWAFvCJgtZgTnLlQBs6vt/TDLABYuUhIcBhQ8L1GJmFH578i3zvp0QheuSv1XPnfB+G/U+nuLteVAuKCftgFANQCK0UgFMuqZtLUqoZ/T76pTrIMUjSLtJf0frvH9R7PgKXH98joXhOsjF6FjOKVeg//OOhPL6/41O0Iua5iw4ujjHbqhwl+CIzeT5PXTpdLOxQePpbG2pp/bfEXKe+eJ/u9HSTne2EwHysEG4H54dI9jPV/F161GHmif2e5jrTh3jec3tAPdgDgOaEkBRa4kejoaOopCAiHLIJ+W/q/vKR/O1UDQ+p/HHoBQPrTx3T5xM3l+hYb/kZfpMKv8ve9anGa6koj0iQe1e7C4VMsx2OV6lkl7o14qpAYFhjX3cdhVV7Phl17qgZ4dfbxRmdXua5uw7+tH8MCAGodaUkqnJMmLk7K75nK/+bytuXQ1yBfWX6l8+8qQR+yAvUa/Rzkygr+Xg8gNn7/Nrla2HALO4F+TM4AzIxKd9gL9wxeysL9BiCPt+A86mn8Xmo/T1z9r6TTnuekCvohx88myuZ5OAN45woT5XmRNZiZSdjV+WPefBHwFgCwopEphu1QPtpg1OK0tudKzes542/i9SQGAtdngldare+gA8Bg9EoBe5W1HeVkVq15HpTfWUG2LWPz5sAlDJSnRsZehn8nXq1xrQFw3xbQrvhXlOvqNnyX6qnL2vPfy8AXA4X1fLO5p+jW/HtH5G9bvQfDsVll5SQtFTr6dsATr6sGwDvx2kJ8CA7eJlcru0qxhZ524i39GJoB0ApnZSGUyW0HxffKS2TzVE1rh4nTG5cZTwQXo9+El/HKqQR4X+G/JTDXyHUFHbawg2/px/AAQBNBrhAJ7XA/m1M34I0n/8uCPElW+rtlK76BV81bAJTvXumnwYHUCLmuksXV2sG39MMcPwSlpR6amr1/ZM3/KpG65LDaas5/les2ln2jrPQ5e7UehwotDj7uzKsnsoOurSbXlWSv0Ye39MM1ANAY3rCIEQ+DfzdLVis4SElN8p2c/046JRkPq9++nddWAHAaZR5WlWtQ0JEELZ7ffUM/zPFrpHTcCMji7enVH43xSlOtcrVM+tuycN96fO0wPsDYICAc/94GeDusbDj6MduwlVI0nf1HeCGE40LTwnlXD6rc2hrFv/a6lJR3VR3/EMb7pUb/9IprN04tujvzOlv/R/PKwVNlv//u+HvNlRfpgIUN/9MUaQxbt2qo/mHrfszIAIw4ROUZcc1ciWmVLSzeP7Jx2jIqDq9YxOMxoGfElvN/2wJvYRsu2T4M6IdxAOBs7LxOpq5srMmK8hJHszJ6r/et/Jrf64KVRXnd+erfCLl6vG4aDOf3t/VjWAbAW4He9E48sO44Uf/dSacCeDXNCBzQAZXz9JRBQD/8sNtbALsumbHUB4C1g8WyUDAAtJ3pCte5X9GPUQFAWIQGnD8AfDdaKX8EAP52TELHsi7EW/qxXQZAet9x1+d/8WwxAKyJtx76W9mmUX47qj7EW/qx5uqUeDVHfad60nUdE5niAOB3QalTjzq2qP7P4lWKeMkMHJDreBteaUv9OiLjmujy/XhjAKBnHk4UAABgaxsuuD9POrXvUdNjVj8AAAAAAADsAhdBhFQk2QNmNMZqQxjpXX8QnPpxOMpo+bZG9mdiv+6NVSt8hRCCwe/cZTH6d5zfVr73uJKifpda/XARfabYxn++4807MwUe3mSPlNUzu6XRrfm+ZhS4dQBKb9IpUSgT24h2628ebXrLyqIN7yspFjxLaXiN8WGks0VhKFoGxOp3gSFT7m+lZa4LwzFyvjt6/kleWC3E78zsYzHUdW3l2OA4fi7xygj9+1EO5ohwuEygURbtB2Virc77DJTBevV01ScY/G4lGZYv1qdVdNhTz7U2ZqUxDhuPqSt2KAQUJgm5LKqEZZAy7n7yhHLf1uqN8d5zoa3/zvldYP4r+V3orLgLYfURGk4Dzn+s/QgTbIz0MTMPu7ij85c8Dy/q588ABZztAGbRGLUSDwaTi5qyfbPxtuqb9E31QPy7979WvAeG/gJrzwOOjSkE3bWec+UFMubMB7P+cs8AeD+gct1D9DQMYUMloqy6JPt/hUHTQ+mtHuzR6kww/H4Q/nZFZxgUzrunP2GgvRhlW0aNRXDoo9bGUHREaqdGZUxWGN9h/fxVNBgWE4Q2wvJ4LWq0TDwUyKLfhfh36cM90pQjVp/+czIsxlv4grHwHKtg0O72r+hN5tlMh3+O96FMmDjAO4zojDrdo18nXPE1RABYffXvOW+mlY3/VQjCO5KzXsFxotOyaBZg5wlpkQq2TCdfx7MY6Hkx6FcxnjOW7XnP75Xo7rS4CYvLY+TYr+r8lw2yf5XMa0+OU2jPeElwhdcLve7gcu+XWr6eZRHEWRmUwJicCP72d7bYAnqPzGY4f6+2wswx+RF23uL7xYEmMG4CvKFfBXIAMH+3sgdlgbZeEzj+OAj6mwvRcA+t7dCv8KIJPbOfAPAGvZ45T8pAvsrkdobg14khTlnOmpDLRsIshCAgNP6+svMZwd/MSfBUwGbl2yAAMHP+zpoDb3T+0+2KpA6Al/FuFVApDBqe2xbfaPy/tc9I+QOYv3vYg1FvxljIbCm78mMQZXEfdSjOirBSZHr/3rfeW0VwAwDvmL/fGhi/Mgv6o3T+qxnSsNDk6tV531nxZ9yXR3AAAMgAeDrQEan/pXzCr+GAa+7Pv60yVCDKZpcVhOV9ec3Yr3ACGAB2nb8r0ju+hLcl+e8FADPuz3OCC+n3KDwXBa9WvK0UzKxwX36kDHEOAEAGYL0MAMceIQjo4OdLJoHHwcDyRbL7xvvycP4A9HiteREm8VcG92WYjH8wP14VHaOP6CewluMtL9PjsEg/vBxocKC5bBDwu4iSlgHCkD6Pa6n42rQy7ssjAwB4KHcIlvO8VwtkpKN98xkA6226IO27Qn+myvJHwURhfEZ22COQwGrw++SCMQfeoDtvvwXgsWL/mrn/M2G1U4z+uyYIoAYrwPc6Q+gCMEKnymZ6XL5kDocX9N81AzBihV5eMMHf7lTeGhwgAwB42YjegiMsrMfhi+bq623AKmcAPJyk1f7Qrum8stl4IQMAvC2ALIvo8bfUARjFr+VT9dtmAELlw/mt9XdH/hYrRGQAAMBShzyqxH1LJcDRtwJegd41QM+HdUYrRxg0CZ/Se28+X4B+AYDenoRN9LgsLuuRdLe3Eb+LDdgnXeOVZlrprYA3GbhqPy/XY6zk36Vxa1OzGrMX1r+8uerk6Pac5swb9p1XuD9/t69l0X6EAb/d6rrezABg5P35sJmwuft8bywvi5UyYB18SVdfYVL/Vl7hluP5OdrCtO+H8PvAJgFAyzlJB33VR34saxNw3in4ugwAAAya53BKY+QSFtSTsAnt5TMAvSDAc6KHScpjPSm+SoHg/AHo3PKyCh37/rTAK4uOU4FeqfgOrQBgFUWldGzH06jIAAAAT5fKl84rKwdAfZq8TOJnZXv7NXUAPAx6MFacNwzyGx0lnD+AQOE75l+YzA9szYAA4DrQxUlJvOmPomWxlbG7wUIGAIA+rStLK/sbDMZv5dX/V+rcL1HAXofcgpMSzhxkr/00rEBWsqy4zjd7pYlAYYwMg5E9CC+U3+sDgBHCsL6nusKgig2T4bOkW9+XB74rwGnoo5WOo2Llfqvyt9C2nBvhazq97JK3FKsVcFAaQAAAAABwzQAAfSdemN8HAAAAAAQAXxAIwPEDAAAAAAAAAAAAE1ett/3s+hdDOKjftaQnbLfUVt5MeuXvn9rKwEKuld/Hh69mJd0mTUU/WLwK2iHR9xhbAv+9a6Tka6Yd/inVKUltVdpR0yfIhSTeLxhL734sT3eDfhSNHhDbY7fxdMbsV2gIrEv57vICmDfPFjTjcRzp4b+f3CCAQFPb3ye6p+EYSelrx8FiHHslubXzLTjP57DI/H7rWHpfnx5Vo6UwAkeLfgThd1YZlx4dlr7+DGTSajLfP5oBaNHDHWN/xIeVeV6UfjHQXcvvag1NMXRwXvQD8fNNYzni+7MWUdz/79GmeQLBoS2zIONH8+NFERajA9Sdc3Re/XvSX0GfrIIACz6t6a88/1YZS+6/0n560/cKTFttlMM/kx0amYzg3AapLz+bRIozol1kAMau/s8N6JcBv/XUu6D8+0j6ZWE7sdJYruL8VwkcNXo3wvkfg9og9eX3hStgy8eMEASMCQCsU/8j6HuuGoOjQwmH7568Ff23ZAA8x/It6NnaYDhmxZn+4Ty3TNv4fYnTr02sUYc5AF8juhJ9aXnqcviljsMLZV8G8PmGsYQ9eE9gORw/L1WkcNikM61oAe+C5wlpvMUwtl9vGcvivHApg9p5m41YejxQCXCcInxTEPF0+l7z+ycasfK9615/utHLh912AHe19sZVo9nd98n92nEsC8PpWB04azmd4KBTYYC+WrW15Xj8Gk1WgDZY3yBPi5oBqRIAnIRAocXDNWjQ1EWQjKnX2Hscolrh7nuYMF9XHEuLjEUxHD/roKgw/ua5pevB//Lj8cYtgJ2CAikNKZ2PY0zGzj4KnboXEvE7cbOx19Dd7e57efk8Hi2TMkBXihM/WmdbnHjafjwQAIyFZZqJqxTJwelx6MVBDpcTaMSBYxcW1amZ7ZRJ/dpxLEddb+6NSRjE56hA1CuA3WI8EADsnT0YtUqyctxpIK+U/X5uUBIUkfzsDIDFimXk6nhkhbYdx1LiDCzlpdnHtshGWThOzzHeYjxwCNDfwIza+6esxrkH4Ho0s5Cmd0W+p/19q+yHtD7EN2UALO6+h0F92mEsuU+M9w5iFqPxtK6VEpQ6o3GaFoH0duOBAGAtw6mh3XNukkNvFJqSFXo8/Arz1AKSszI5rHjpTeJVbgHscvd99u2GVcayDOxjGTCmlk5N0g7G4wJsAewXSPRKb3o4VmuanlsB58CxsDBwMwLMHe6+z85srD6Wo24seFzv47Yx68zBm8cDAcALgoC74wvGzjo40BwRBIwIZLyv8XjTLYvzXybMq13HcgWb5P37GY7z9eOBAOA9yJvxGycFAd4oFhNzkAFeYU9+dgZgx7F8S7XIlfoRXtIPZACAbQKUUVcDVzAau68a35wBWHUsy6Zj+la8bjwQAAAzA4DjBVmAHarHWbT/DRmA1cZyhUebdi7YtFKWYMnxQAAAjMT50iBAGt2Hg/foFPf7FAOz6t338vKx/KYMwAr9KANoIAMAAJ0swLduBYSNeP3WDMDssZydAQjox1f04z9Y1gFYrcjHKiuDVWTAcbJWL+bVsgBPRXnS5nrRK8KhfektDNDdleoYzKwDYDmWHDtxp1smjzlljFbJAIw4DPuW8XAJAGY73kD4d0WeRwYA3NW6F2pFeUZUCdxt5T3SwZUJK/KwgbwseCsCutaV9ij9aOmGNc3R46G1uW8Zj//whi2AwvwXWAOnMkuxm2MoTnRH0fy2MwAzH7x5G2bsnbcKPN0/uwWgZsAZAGAWatsMb70VsNreO9dYf2MGYBRv4VgvQ2TZh4A5t9R4IAAAls0CfPsqaNUKeLgFsA5vI6o4coKSsHA/Rjjbbcfjd6CQdoq46oyGYM6zlubl95+VdTDmKzuO0bngqj98iz4f9H3NXTMAwUE+YSAfkvMaFGcTXqjLLf6tdPxV47HFIUBrp+vhxAExPlsBkTl+kqBkh4zDqjr5n4FTzJ8RrxbOksVUPrQrzQH9+IZAZqfxcAkApJFymTRgwBo4j70OVqn0dbLTkGYBwgSeth/rAePTuvn01lX97Ln1mvH4cZ4ocP7Am1bnb0Zwmt+j7YlVu+XYJyjd5cYT52T+zif1t7mB9jNhsHvfg/P/TngWH/qW1eqb+jhTpmVR+YcFaAAvGo8VbgHgTi2wUxbgzfq60t33sqGMVm4/vEx+KK29UAAAJw58UxDw5tX/KvfyA8a6u3IMRt/bafW8cn+2G4+fyROlbDDpgbHYeSvgzfjmDMDKqfPQ+OwQbIYXjMG248FiqhS7ORlCINFb8MQ08FYPV/x9DvSZJH/uFcBytWeQ8XfNKcytQQEAAADAoACAY58QAACAACgFDAAAFicAgAAAAABgjYQARAAACAAAAEAGAAAABAAAACADAAAAAgAAAJABAACAjV+IAAAAZAAAABkAAACAlTIA3H8BAAAAAAAAAKhG2SMrNZEY6lcIlL6rzH5Sklqt0LGvxyK89Z5sLn//9JE3yrPPpKehL/QppaTLvz9nyy5W/ntWjkvs0fQcZ+Fcs5ovhThvKbTZNkGho129e6At0dP/vreqHWr8rmhlKOSrKOf5bLlx5FMoOt7Dr1C4LvI04KEwJtf9bxYpRI+3DaTGw0LeljoRBHwGJs3SCEw0fY4Pzlorv3gcR7r9t9N4HILD2BYh3eIwbwrjO8FIRyW89vSUOm4eNpgVjAjnute8pPqCXeQm8W0q/BAaLcf8AzkcHq7flf5uFZQBMi0DeW5FsVZGoRjL7sn5n0Z07yv/bCzv4qR3xVmPyySaNR0tDo5LYqN2hvW8HLHAWc3uP9lsVT9/Jq74vZ3g7NfLwkZKXQbyGAiBF3e1EQhjoVn9WzjqEUHFSL0rE+evt00IDvOboqe7O66R8/LtgdJVPm5PdP8svhIuTAXjKObINNuqAYXHiqoQx2CHyH3U6v901BHufK7RlAQBxUEnC3Fua+f3DD2EMwTCSN34VTBZjvaeWRgkoMAwDrX/Vh6MRFhoIgfj31ju7walDlnJzZqepaNu0bVK/YeOLCwCisCYK9y5SNXJwFg5a3XCQ6eCIsA3PeRckXMh/F0rQ6kcpXR2k9uwIOBXMWmD0thYr0hXjdxWXA1YjVl4uczOhXUlOLQRJo45VSfL5jrqqfseGZenv0uCgJXt9qpyc8ePImL/Zuf8BgTIFFhM5wL0DlDqF84VKDIAq0847clw7m9G9p111x6q6y63ePv3OP6Xqpek7COBZjaURXCQ6wj9C0568O1yBfa0X66/D4xiL0MmX6PIC5Wm1dZBIBTDURkzYrGdIuQtaMZNQ39luT38/o501Av/HDfHfXZ4+zj7xOj7eQ0EFAVwujJlFMMh0TTSySE6tbFcze0wQ7aBYaut7G9vj/0633eTm2sAQCkEhLcAfAOJGXft3yL70XKLf/4eibQo3+c6f04AstPd+vu4zsgSlIkyKBvN76Gn0I3kUSA3GX4mDtqsAZr1uMjIu/YIxHhySwJHTXHYGpoeMpl5t946EPDY791drgAgCgC8lK0QP9aR4GrO33olUIzG5a1BAEdukbHq5zjsmhPPN+d1MoOAXe7WB6F90AYDYeKcGiFXYC8btfQY/iy8olwhsucaHooRKkbtcPpNLTsaBo7tKnJrOerz5qhPxar9SrP33yQy0MiSk74MDL0Jk+YqNzOwm1xXtNXc+RyIv6OMpcQu9oJOalDK+c5ywcDviyLNYvxbi2tyM+/al8q/OxiTUXKLTEf9ofuU9tdkET7tZeO+rnC3XvIgS+sBn+LQ/x3lenzhfJ5VOrm8dGyWzgBYO/oySflXyYLsZHxmyy0r/94KOGpnBrJTX1e5W6/JYEm/Vxx1CDULvgfUTIaV3r8iA2BV7awYTmzsqcFIWYCSts8VR38/c3C9/58XG2PPFRe1hDd19bVTgF8wD5eyeV87Hr8dR7vKYJWBv3vL4FPeawDqK3VtFiA3goBWQKDZChgBj4JUnG0Cr7T+G+UKAE38MJRyxwjPqx76jnLASWO6E2+l6jmQOPN08PfLV79bb81DGNDHN8kVAEQBwEqOTGocgkMbwPcEAeUSDEgCgs9NAm4wwK0hsNLdeqvrfRa8avu0as0CANBPolupROnTiB6lgOcLR1eysXvdzrncLnfFH6zGYWW5VfrG7Wg+KrX7GXKLhKDiDCFkJa9VeTDHuPSHvVsaVlyemshrGagDM+Qqkp3A5lrbCE++AuP3K8ptqVLAS6SJQwhLfJgDsNpd+1XbX1Fugbk6/2QHNNsE1zoD2Xn8Rt+t33Glu0vNgtlzFlsTL5Lbj6AT1PReYX52Hdinf3fuC3Us3ya3XqGfViDwFASky+cjs1bdAW+nwZ2rHs69RtvDDkjo7SrX0cEQgoCXyC1UUiTTrtQwVt5jvKLuBTK3VJBTmj0Q6Wtf65smt4ff1xz751/qCv88jiN30uC164O1ICIYp5P/mWuClH2pi9V83J945cphRJp+pFy5fEpS2ZQ+B2wBmMht6hZAMHoSEwGAIDKcGAB0jZPmWWZDRxA8+i4430ANCK6TOxFX/M1qhIqzGBZ79qyxMtpXtw4AHvVhc7mOcGQ9/pc9mzA5AODKbdkAYHQgsGMAQL1rv2IA0FWeihGzeCd7mtyUxv/jsGsn9O+H9orFfFAeih2xYg+KFREpAJycAVhRriMc2RNtyZh4BwCPNBeRm5ftNgkAfhmTEPs+bfm05LRTLelRvK4gN0lJ3k8aPxH7yD0oyHkciCpnzwI7wcF+zDqQt5NcR9uEFWxZT5bDeXNasA6rfol7qfoMAHll4JgBcFHs8m8DgfHbJeXWyW4cB/2+/uMefwjhfBgXypW/x6uFmq2Y3iqho0PazIx6lc6kXQx14GvkKsgA/NXRFffYnZ3zCL9CHbvuNq5FBgCwiVJLzZktHIyFL5QbpQww9zT/1bFbPgTkueIZOfYW/QiL8fMWuWozGbMyL9uvPQ/759ERAHyhkopW8ZMi6NFye6rVHwlBQFTILa8km4VWSV1n5cTr18t10yDgG3xFuX2HIv/wrYL0mT3OV+2MeDMPAAx5W05uF/5aB/qO49+9eNItgME6WJMp6bS6I6+SADWMdKiQ6/9kK7ElI7YAvsCvmK7ouXYSAcC7AwDx/uaXBADHYfPozydYyBMdFdtIIACAXAkBwNT6BAgA5JkRBABzA4CuM0MAMEduD7LTTr7/Tu4PMP6md+snOypydgpy9ZGrMAAYdj3xiwIAjR4Gqfx+DsATAfxswSe3Hv+j899ENrN1oFYWd/c3MlaYWx5l1cPDB/DVw2Ev2CIAmDdRgbXk9nkLgBoI5ON/z/yubCTMjIWjo13FqewsVxVvjo+lAXaBl3kghlHc2Rs61wGA7PhX9hbZ/502xuB1L16/Ya4DAAAAAAAA1+CPcRihdR1GWoNZHbl6tAP+t+K/dcCoefhIWgGtR3+S/C1uW4SR+jNI37S11lecU5aH/K40g+LvUhmRs2xM+l26Anqf+iDZcCyvV4vPHj1r/DInkgUH3nWxR9MP2gk6mL6LgZxIv0bXo10JfbfHPhbHrnyv3nfrNzPKw/8Ojb9bjuHTFVyLMzVP9T1OI5l/goDTof/D3zL4YTrRpxO8376BVAwCEGqmxYI+dZx3pq8N8kbR38FxSWh4j7uF/pUJbXqOT9lIR2qrdPLqeiDd2Fm1a3iMlaBgegBwNWqtE4dSoxeY/3Jpe9OnBEaWjsGbvvcVnyf6xdgQBeMMiTf9FREG0JvlqEac1i/Kv0v1cVaAZemkLVf/HlmFV+JngnEIwn9XCzI8ZRYGj8lIY+ixjeTtnL/B+Vs4KO3Lj57O3zsTQA04ivNc2iUIsEzRtwILLd3M/O8cutmBLgu/TCON+yL/ysJzVe5J/60r1eDcRvhSuWpoPT1i4rXfSXkspQxsU9v3XjCjpR86vwkO4/XkpLMDbasthXALWKyClfNGNx+DA4CAU+hfzT/7bXJmO71DReEL5O92CNDhFsAfsq+6BfD1NmH3+eRFf0d+rfHzYBAKMZLmft8bu/O/0orPehW9w+FR6A8ySwDwVfjtGDWJ0aQ8n+l1DcqD/9EOSLOC8zzPMMvRQH/G6mDYgEfPebLClpv0/ExZaI5HQ1pPafGkpJc359clAPj2FQTucWNVCf23cSZSvZe+HjlK9hZOdqSjDhN4t3pi+4P7GQGLa3h5Y37N8DNocuy0Anob/+Xhw6Wp+f034U36ExR9LBP4shinVcYPWzHAEPxAccG/sZHGHjr4fxNfYRAvlHbKonJEwLIprLcAsAf63fxjDx38FwX9Ysx7WVB2xUCO1O+HSbxbIz/8f0pKPBLpfS2/YcBjIjtdgwL/4B/8+1wv1PxWyheXF84DScW6f0rZr8S7ZL+7dkjuv/10weM9iUhvG36RAcAKDvyDfy0/xWAlOKqfsw/37aJ3K4G7Ym2tfCWr35oztaq+N5tfZACwggP/4L/bzlN73e9NygBYr44pTpH8umNlNVcs+0dcrbNvKk3kXRvASOmXijM9d+fXGrgFAP7B//v5p97g0O5Pl8kyUlW2dOTB8tpf2Zj3J7RS6SvQ253foQEATkGDf/C/ftucCpBhYv+5bz6ERfgrhrIafXK/DOSpdj9emvqu3ec/v5RfZADAP/j/Iv7DZP7LZvK3uIIaJsikdOiHhXm/OtPavvcppGfpnHfnl6YA2MMF/+D/FfyTfyekKzl1Hzr/nUWfyNdTm0HLo0DWHxqsFLpA9lK5jeJd0u7BpC9yzjvyiwwAVqDgf3/+ywB5hIePdqVsxWsx6qdVRT+vAjsr1eZfiXfs+/vyOy0AwB4u+Af/Nk6nDOY7OI6L1yNVFtXyRj+qZUl7B96fVr+Wqe/i7Ex345c38MxrRKQDIgtfg9qRf66RCy97j353/bF25r3rXRKZSFLtx8G4RtdpkzTGDL56tNhXFYmyVh+ga7RTuPqxEO8mmYUH+q1DdFlAb3l+rfErNBi7reB25r8czHvcyAAspz/BKAgILxxL79cyw0v020qHZsrRMvXde2GvV90vv5BfVQbAaqUSJh6C2pl/q8mNDMBa+mNKW7CC4QY0gbkKDYe8LC/roJlwdSzZJpCuotUBuvDAXpP+IryrT9HfSvcmp3m6NL/W+BEa1iBVkkWi1BX597rHjQzAGvoTFP0Lx5hVcVhkHMPGehY27pMX7x5X6DyxG79mAYDWiK1wCnoE/6tO4tVO0d+rz/Uq0n2D/nCcubXj95CXZntkxVsfuwbRK9+gqTnAE/zOxa9iEqw8UXbmn3y/d6M+7XYGY4T+aMZ5lqObvQ/N5ett79Sz7+YvgOnV7l7O75rRruCREo7T+G8PdyL/mvezKYVc5IMqv12g5X/UGYyd9Icr38AZ5wn8a06Lq06ae/bXcExV40qwCZYFabx5N02le4z/bvzuGABQJv4nsg0H46DL5AAAAYzuWpbl4byV9Ycj37CKgXEKAI5D/logAgAh7YkBgGm2YkAAsDy/1vgd1E7PMFvU5J7Bu/Ue81B7dvich9CkKWs87aw/34YAEbjO2V1QO/WeD/6J+BH18Xfjd6sAYHfjsvM9bkoAI1pBD/jO253TXd5lA0fqeQ4AwQPf6a8os9add8mJ+Ax+9w8AONXUYBjGGm3xCnpgmgv6A8D574EIfvfAz4Q2V74G5cXLSv3YfYW2q/68KTjR3BdHMPbdugN8aQbgLcrLqgu/Kd87jNWbjN9ufcFZC+gMACV6Lzyu5/0j/Lmn0E0e/wAAYG3bg3kKIACAEdkqgAEAAAAAAAAAAACsF3HE17WC5DuEwhDU+uCiynlYoQIAAADAM1pvAdzvJwemI5fQPQR0i/L3AAAAAPB14FwD9Kq2dqVbmL/DaWQAAAAAMMwAXFfPxWDlz6VrsXrH6h8AAAAADDIAI0GpGQ8AAAAAgEMG4OqMPVfoxZAuVv0AAAAAYBQAeDvWsBgdAAAAAHg9fiACAAAAAEAGwBOafXus7gEAAADAKQCwPFgHhw0AAAAAC+PHwfl7AKf+AQAAAMAhAMCb6QAAAACADAAAAAAAAG/Gr2KFXZirdWldf6z+AQAAAMApA7ACkIUAAAAAgMUDAO7qfzQ9AAAAAACMAwA4fwAAAAD40gyAt7OG8wcAAACAhQIA63167PsDAAAAwARwSgGPSP1j5Q8AAAAAC2UARu37AwAAAACwUABgCRz6AwAAAIANAgBLhw3nDwAAAAAbZwDgsAEAAABgY/QOAVru1RdlOwg6AAAAAGBAAIBT+gAAAADwUvwMWPl70AMAAAAAwDgA8Dioh8wBAAAAACyEUEpxCwBCgN8HAAAAgB0yALimBwAAAABfgF+C8+/9DQEDAAAAAGyeAQAAAAAA4IsCAJzSBwAAAIAvDACQsgcAAAAAZAAAAAAAAAAAAAAAAHgV/g8PL9165xBvHQAAAABJRU5ErkJggg=="}'),
-  48: /* @__PURE__ */ JSON.parse('{"height":59,"ascent":48,"space":10,"smooth":false,"glyphs":{"32":[0,0,10,0,10,0,0],"33":[11,0,15,36,15,0,-35],"34":[27,0,25,35,25,0,-35],"35":[53,0,31,35,30,-1,-35],"36":[85,0,30,45,30,0,-40],"37":[116,0,40,39,40,0,-37],"38":[157,0,32,37,31,0,-36],"39":[190,0,15,35,15,0,-35],"40":[206,0,17,45,16,0,-38],"41":[224,0,17,45,16,0,-38],"42":[242,0,26,35,26,0,-35],"43":[269,0,31,27,31,0,-27],"44":[301,0,15,15,15,0,-5],"45":[317,0,21,18,21,0,-18],"46":[339,0,15,9,15,0,-8],"47":[355,0,19,43,17,-1,-37],"48":[375,0,31,37,31,0,-36],"49":[407,0,19,35,19,0,-35],"50":[427,0,29,36,29,0,-36],"51":[457,0,30,37,30,0,-36],"52":[0,46,31,35,31,0,-35],"53":[32,46,29,36,29,0,-35],"54":[62,46,30,37,30,0,-36],"55":[93,46,26,35,26,0,-35],"56":[120,46,30,37,30,0,-36],"57":[151,46,30,37,30,0,-36],"58":[182,46,15,26,15,0,-25],"59":[198,46,15,35,15,0,-25],"60":[214,46,31,28,31,0,-28],"61":[246,46,31,23,31,0,-23],"62":[278,46,31,28,31,0,-28],"63":[310,46,25,37,25,0,-36],"64":[336,46,48,46,48,0,-35],"65":[385,46,34,35,34,0,-35],"66":[420,46,30,35,30,0,-35],"67":[451,46,35,37,35,0,-36],"68":[0,93,33,35,33,0,-35],"69":[34,93,28,35,28,0,-35],"70":[63,93,27,35,27,0,-35],"71":[91,93,35,37,35,0,-36],"72":[127,93,34,35,34,0,-35],"73":[162,93,12,35,12,0,-35],"74":[175,93,26,36,26,0,-35],"75":[202,93,32,35,32,0,-35],"76":[235,93,26,35,26,0,-35],"77":[262,93,42,35,42,0,-35],"78":[305,93,34,35,34,0,-35],"79":[340,93,36,37,36,0,-36],"80":[377,93,30,35,30,0,-35],"81":[408,93,36,39,36,0,-36],"82":[445,93,30,35,30,0,-35],"83":[476,93,30,37,30,0,-36],"84":[0,133,31,35,31,0,-35],"85":[32,133,33,36,33,0,-35],"86":[66,133,34,35,34,0,-35],"87":[101,133,49,35,48,0,-35],"88":[151,133,33,35,33,0,-35],"89":[185,133,33,35,33,0,-35],"90":[219,133,30,35,30,0,-35],"91":[250,133,17,45,16,0,-38],"92":[268,133,19,43,17,-1,-37],"93":[288,133,17,45,16,0,-38],"94":[306,133,22,35,22,0,-35],"95":[329,133,24,6,21,-1,0],"96":[354,133,21,37,21,0,-37],"97":[376,133,26,28,26,0,-27],"98":[403,133,29,36,29,0,-35],"99":[433,133,27,28,27,0,-27],"100":[461,133,29,36,29,0,-35],"101":[0,179,27,28,27,0,-27],"102":[28,179,18,37,17,0,-37],"103":[47,179,29,38,29,0,-27],"104":[77,179,29,35,28,0,-35],"105":[107,179,12,37,12,0,-37],"106":[120,179,15,47,12,-3,-37],"107":[136,179,27,35,26,0,-35],"108":[164,179,12,35,12,0,-35],"109":[177,179,42,27,42,0,-27],"110":[220,179,28,27,28,0,-27],"111":[249,179,28,28,28,0,-27],"112":[278,179,29,37,29,0,-27],"113":[308,179,29,37,29,0,-27],"114":[338,179,18,27,18,0,-27],"115":[357,179,25,28,25,0,-27],"116":[383,179,17,34,17,0,-33],"117":[401,179,28,28,28,0,-27],"118":[430,179,27,27,27,0,-27],"119":[458,179,40,27,39,0,-27],"120":[0,227,26,27,26,0,-27],"121":[27,227,27,37,27,0,-27],"122":[55,227,26,27,26,0,-27],"123":[82,227,21,45,21,0,-38],"124":[104,227,16,59,16,0,-47],"125":[121,227,21,45,21,0,-38],"126":[143,227,31,20,31,0,-20],"127":[175,227,24,59,24,0,-47],"128":[200,227,24,59,24,0,-47],"129":[225,227,24,59,24,0,-47],"130":[250,227,24,59,24,0,-47],"131":[275,227,24,59,24,0,-47],"132":[300,227,24,59,24,0,-47],"133":[325,227,24,59,24,0,-47],"134":[350,227,24,59,24,0,-47],"135":[375,227,24,59,24,0,-47],"136":[400,227,24,59,24,0,-47],"137":[425,227,24,59,24,0,-47],"138":[450,227,24,59,24,0,-47],"139":[475,227,24,59,24,0,-47],"140":[0,287,24,59,24,0,-47],"141":[25,287,24,59,24,0,-47],"142":[50,287,24,59,24,0,-47],"143":[75,287,24,59,24,0,-47],"144":[100,287,24,59,24,0,-47],"145":[125,287,24,59,24,0,-47],"146":[150,287,24,59,24,0,-47],"147":[175,287,24,59,24,0,-47],"148":[200,287,24,59,24,0,-47],"149":[225,287,24,59,24,0,-47],"150":[250,287,24,59,24,0,-47],"151":[275,287,24,59,24,0,-47],"152":[300,287,24,59,24,0,-47],"153":[325,287,24,59,24,0,-47],"154":[350,287,24,59,24,0,-47],"155":[375,287,24,59,24,0,-47],"156":[400,287,24,59,24,0,-47],"157":[425,287,24,59,24,0,-47],"158":[450,287,24,59,24,0,-47],"159":[475,287,24,59,24,0,-47],"160":[500,287,10,0,10,0,0],"161":[0,347,15,36,15,0,-27],"162":[16,347,27,35,27,0,-35],"163":[44,347,31,36,31,0,-36],"164":[76,347,35,31,35,0,-30],"165":[112,347,28,35,26,-1,-35],"166":[141,347,15,42,15,0,-35],"167":[157,347,27,44,27,0,-36],"168":[185,347,24,37,24,0,-37],"169":[210,347,42,37,42,0,-36],"170":[253,347,22,35,22,0,-35],"171":[276,347,29,25,29,0,-25],"172":[306,347,26,19,26,0,-19],"173":[333,347,0,0,1,0,0],"174":[334,347,30,36,30,0,-36],"175":[365,347,26,35,26,0,-35],"176":[392,347,20,36,20,0,-36],"177":[413,347,31,28,31,0,-28],"178":[445,347,19,39,19,0,-39],"179":[465,347,20,39,20,0,-39],"180":[486,347,21,37,21,0,-37],"181":[0,392,30,37,30,0,-27],"182":[31,392,28,35,28,0,-35],"183":[60,392,15,20,15,0,-20],"184":[76,392,16,13,16,0,-1],"185":[93,392,14,39,14,0,-39],"186":[108,392,22,35,22,0,-35],"187":[131,392,29,25,29,0,-25],"188":[161,392,41,35,41,0,-35],"189":[203,392,42,35,42,0,-35],"190":[246,392,45,35,45,0,-35],"191":[292,392,25,37,25,0,-27],"192":[318,392,34,46,34,0,-46],"193":[353,392,34,46,34,0,-46],"194":[388,392,34,46,34,0,-46],"195":[423,392,34,45,34,0,-45],"196":[458,392,34,46,34,0,-46],"197":[0,439,34,48,34,0,-48],"198":[35,439,48,35,48,0,-35],"199":[84,439,35,48,35,0,-36],"200":[120,439,28,46,28,0,-46],"201":[149,439,28,46,28,0,-46],"202":[178,439,28,46,28,0,-46],"203":[207,439,28,46,28,0,-46],"204":[236,439,14,46,12,-2,-46],"205":[251,439,14,46,12,0,-46],"206":[266,439,20,46,12,-4,-46],"207":[287,439,18,46,12,-3,-46],"208":[306,439,36,35,33,-3,-35],"209":[343,439,34,45,34,0,-45],"210":[378,439,36,47,36,0,-46],"211":[415,439,36,47,36,0,-46],"212":[452,439,36,47,36,0,-46],"213":[0,488,36,46,36,0,-45],"214":[37,488,36,47,36,0,-46],"215":[74,488,31,27,31,0,-27],"216":[106,488,36,39,36,0,-37],"217":[143,488,33,47,33,0,-46],"218":[177,488,33,47,33,0,-46],"219":[211,488,33,47,33,0,-46],"220":[245,488,33,47,33,0,-46],"221":[279,488,33,46,33,0,-46],"222":[313,488,31,35,31,0,-35],"223":[345,488,30,36,30,0,-36],"224":[376,488,26,38,26,0,-37],"225":[403,488,26,38,26,0,-37],"226":[430,488,26,39,26,0,-38],"227":[457,488,26,37,26,0,-36],"228":[484,488,26,38,26,0,-37],"229":[0,536,26,42,26,0,-41],"230":[27,536,42,28,42,0,-27],"231":[70,536,27,39,27,0,-27],"232":[98,536,27,38,27,0,-37],"233":[126,536,27,38,27,0,-37],"234":[154,536,27,39,27,0,-38],"235":[182,536,27,38,27,0,-37],"236":[210,536,14,37,12,-2,-37],"237":[225,536,13,37,12,0,-37],"238":[239,536,20,38,12,-4,-38],"239":[260,536,19,37,12,-4,-37],"240":[280,536,27,38,27,0,-37],"241":[308,536,28,36,28,0,-36],"242":[337,536,28,38,28,0,-37],"243":[366,536,28,38,28,0,-37],"244":[395,536,28,39,28,0,-38],"245":[424,536,28,37,28,0,-36],"246":[453,536,28,38,28,0,-37],"247":[0,579,31,28,31,0,-28],"248":[32,579,28,30,28,0,-28],"249":[61,579,28,38,28,0,-37],"250":[90,579,28,38,28,0,-37],"251":[119,579,28,39,28,0,-38],"252":[148,579,28,38,28,0,-37],"253":[177,579,27,47,27,0,-37],"254":[205,579,29,45,29,0,-35],"255":[235,579,27,47,27,0,-37],"256":[263,579,34,44,34,0,-44],"257":[298,579,26,36,26,0,-35],"258":[325,579,34,46,34,0,-46],"259":[360,579,26,38,26,0,-37],"260":[387,579,35,45,34,0,-35],"261":[423,579,26,37,26,0,-27],"262":[450,579,35,47,35,0,-46],"263":[0,627,27,38,27,0,-37],"264":[28,627,35,47,35,0,-46],"265":[64,627,27,39,27,0,-38],"266":[92,627,35,47,35,0,-46],"267":[128,627,27,38,27,0,-37],"268":[156,627,35,48,35,0,-47],"269":[192,627,27,39,27,0,-38],"270":[220,627,33,47,33,0,-47],"271":[254,627,36,38,34,0,-37],"272":[291,627,36,35,33,-3,-35],"273":[328,627,30,36,29,0,-35],"274":[359,627,28,44,28,0,-44],"275":[388,627,27,36,27,0,-35],"276":[416,627,28,46,28,0,-46],"277":[445,627,27,38,27,0,-37],"278":[473,627,28,46,28,0,-46],"279":[0,676,27,38,27,0,-37],"280":[28,676,28,45,28,0,-35],"281":[57,676,27,36,27,0,-27],"282":[85,676,28,47,28,0,-47],"283":[114,676,27,39,27,0,-38],"284":[142,676,35,47,35,0,-46],"285":[178,676,29,49,29,0,-38],"286":[208,676,35,47,35,0,-46],"287":[244,676,29,48,29,0,-37],"288":[274,676,35,47,35,0,-46],"289":[310,676,29,48,29,0,-37],"290":[340,676,35,48,35,0,-36],"291":[376,676,29,52,29,0,-41],"292":[406,676,34,46,34,0,-46],"293":[441,676,33,46,28,-4,-46],"294":[0,729,37,35,37,0,-35],"295":[38,729,32,35,28,-3,-35],"296":[71,729,18,45,12,-3,-45],"297":[90,729,18,36,12,-3,-36],"298":[109,729,18,44,12,-3,-44],"299":[128,729,18,35,12,-3,-35],"300":[147,729,18,46,12,-3,-46],"301":[166,729,18,37,12,-3,-37],"302":[185,729,12,45,12,0,-35],"303":[198,729,14,47,12,-2,-37],"304":[213,729,12,46,12,0,-46],"305":[226,729,12,27,12,0,-27],"306":[239,729,38,36,38,0,-35],"307":[278,729,23,47,23,0,-37],"308":[302,729,30,47,26,0,-46],"309":[333,729,20,48,12,-4,-38],"310":[354,729,32,47,32,0,-35],"311":[387,729,27,47,26,0,-35],"312":[415,729,30,27,30,0,-27],"313":[446,729,26,46,26,0,-46],"314":[473,729,13,46,12,0,-46],"315":[0,778,26,47,26,0,-35],"316":[27,778,12,47,12,0,-35],"317":[40,778,26,37,26,0,-37],"318":[67,778,18,37,16,0,-37],"319":[86,778,26,35,26,0,-35],"320":[113,778,20,35,18,0,-35],"321":[134,778,28,35,27,-1,-35],"322":[163,778,15,35,12,-2,-35],"323":[179,778,34,46,34,0,-46],"324":[214,778,28,37,28,0,-37],"325":[243,778,34,47,34,0,-35],"326":[278,778,28,39,28,0,-27],"327":[307,778,34,47,34,0,-47],"328":[342,778,28,38,28,0,-38],"329":[371,778,24,59,24,0,-47],"330":[396,778,34,46,34,0,-35],"331":[431,778,28,37,28,0,-27],"332":[460,778,36,45,36,0,-44],"333":[0,838,28,36,28,0,-35],"334":[29,838,36,47,36,0,-46],"335":[66,838,28,38,28,0,-37],"336":[95,838,36,46,36,0,-45],"337":[132,838,28,37,28,0,-36],"338":[161,838,48,35,48,0,-35],"339":[210,838,46,28,46,0,-27],"340":[257,838,30,46,30,0,-46],"341":[288,838,18,37,18,0,-37],"342":[307,838,30,47,30,0,-35],"343":[338,838,18,39,18,0,-27],"344":[357,838,30,47,30,0,-47],"345":[388,838,20,38,18,0,-38],"346":[409,838,30,47,30,0,-46],"347":[440,838,25,38,25,0,-37],"348":[466,838,30,47,30,0,-46],"349":[0,886,25,39,25,0,-38],"350":[26,886,30,48,30,0,-36],"351":[57,886,25,39,25,0,-27],"352":[83,886,30,48,30,0,-47],"353":[114,886,25,39,25,0,-38],"354":[140,886,31,47,31,0,-35],"355":[172,886,18,45,17,0,-33],"356":[191,886,31,47,31,0,-47],"357":[223,886,20,40,19,0,-39],"358":[244,886,31,35,31,0,-35],"359":[276,886,17,34,17,0,-33],"360":[294,886,33,46,33,0,-45],"361":[328,886,28,37,28,0,-36],"362":[357,886,33,45,33,0,-44],"363":[391,886,28,36,28,0,-35],"364":[420,886,33,47,33,0,-46],"365":[454,886,28,38,28,0,-37],"366":[0,935,33,49,33,0,-48],"367":[34,935,28,42,28,0,-41],"368":[63,935,33,46,33,0,-45],"369":[97,935,28,37,28,0,-36],"370":[126,935,33,45,33,0,-35],"371":[160,935,28,37,28,0,-27],"372":[189,935,49,46,48,0,-46],"373":[239,935,40,38,39,0,-38],"374":[280,935,33,46,33,0,-46],"375":[314,935,27,48,27,0,-38],"376":[342,935,33,46,33,0,-46],"377":[376,935,30,46,30,0,-46],"378":[407,935,26,37,26,0,-37],"379":[434,935,30,46,30,0,-46],"380":[465,935,26,37,26,0,-37],"381":[0,985,30,47,30,0,-47],"382":[31,985,26,38,26,0,-38],"383":[58,985,14,37,12,-1,-37]},"atlas":"data:image/png;base64,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"}')
-};
-var ga = Object.defineProperty, Bt = (t, e, i, a) => {
-  for (var s = void 0, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = o(e, i, s) || s);
-  return s && ga(e, i, s), s;
-};
-const Ct = ha, dt = /* @__PURE__ */ new Map(), mt = (t) => Ct[t]?.height ?? t;
-function Ie(t, e) {
-  const i = Ct[e];
-  if (!i) return 0;
-  const a = [...t];
-  let s = 0;
-  return a.forEach((r, o) => {
-    if (r === " " && i.smooth) {
-      s += i.space;
-      return;
-    }
-    const l = i.glyphs[r.codePointAt(0)];
-    if (!l) {
-      i.smooth && (s += i.space + 1);
-      return;
-    }
-    i.smooth && s === 0 && l[5] < 0 && (s -= l[5]), s += o < a.length - 1 ? l[4] : l[5] + l[2];
-  }), s;
+//#endregion
+//#region src/firmware-text.ts
+var Ze = {
+	13: /*#__PURE__*/ JSON.parse("{\"height\":17,\"ascent\":13,\"space\":4,\"smooth\":true,\"glyphs\":{\"32\":[0,0,0,0,3,0,0],\"33\":[1,0,4,11,4,0,-10],\"34\":[6,0,7,10,7,0,-10],\"35\":[14,0,10,10,8,-1,-10],\"36\":[25,0,8,13,8,0,-11],\"37\":[34,0,11,11,11,0,-10],\"38\":[46,0,9,11,8,0,-10],\"39\":[56,0,4,10,4,0,-10],\"40\":[61,0,5,13,4,0,-11],\"41\":[67,0,4,13,4,0,-11],\"42\":[72,0,7,10,7,0,-10],\"43\":[80,0,8,8,8,0,-8],\"44\":[89,0,4,5,4,0,-2],\"45\":[94,0,6,5,6,0,-5],\"46\":[101,0,4,4,4,0,-3],\"47\":[106,0,6,12,5,-1,-10],\"48\":[113,0,9,11,9,0,-10],\"49\":[123,0,5,10,5,0,-10],\"50\":[129,0,8,10,8,0,-10],\"51\":[138,0,8,11,8,0,-10],\"52\":[147,0,9,10,8,0,-10],\"53\":[157,0,8,11,8,0,-10],\"54\":[166,0,8,11,8,0,-10],\"55\":[175,0,7,10,7,0,-10],\"56\":[183,0,8,11,8,0,-10],\"57\":[192,0,8,11,8,0,-10],\"58\":[201,0,4,9,4,0,-8],\"59\":[206,0,4,11,4,0,-8],\"60\":[211,0,8,8,8,0,-8],\"61\":[220,0,8,7,8,0,-7],\"62\":[229,0,8,8,8,0,-8],\"63\":[238,0,7,11,7,0,-10],\"64\":[246,0,13,13,13,0,-10],\"65\":[260,0,10,10,9,0,-10],\"66\":[271,0,8,10,8,0,-10],\"67\":[280,0,9,11,9,0,-10],\"68\":[290,0,9,10,9,0,-10],\"69\":[300,0,8,10,8,0,-10],\"70\":[309,0,7,10,7,0,-10],\"71\":[317,0,9,11,9,0,-10],\"72\":[327,0,9,10,9,0,-10],\"73\":[337,0,3,10,3,0,-10],\"74\":[341,0,7,11,7,0,-10],\"75\":[349,0,9,10,9,0,-10],\"76\":[359,0,7,10,7,0,-10],\"77\":[367,0,11,10,11,0,-10],\"78\":[379,0,9,10,9,0,-10],\"79\":[389,0,10,11,10,0,-10],\"80\":[400,0,8,10,8,0,-10],\"81\":[409,0,10,11,10,0,-10],\"82\":[420,0,9,10,8,0,-10],\"83\":[430,0,8,11,8,0,-10],\"84\":[439,0,9,10,8,0,-10],\"85\":[449,0,9,11,9,0,-10],\"86\":[459,0,10,10,9,0,-10],\"87\":[470,0,14,10,13,0,-10],\"88\":[485,0,9,10,9,0,-10],\"89\":[495,0,9,10,9,0,-10],\"90\":[0,14,8,10,8,0,-10],\"91\":[9,14,5,13,4,0,-11],\"92\":[15,14,6,12,5,-1,-10],\"93\":[22,14,4,13,4,0,-11],\"94\":[27,14,6,10,6,0,-10],\"95\":[34,14,7,2,6,-1,0],\"96\":[42,14,6,10,6,0,-10],\"97\":[49,14,7,9,7,0,-8],\"98\":[57,14,8,11,8,0,-10],\"99\":[66,14,7,9,7,0,-8],\"100\":[74,14,8,11,8,0,-10],\"101\":[83,14,8,9,7,0,-8],\"102\":[92,14,5,10,5,0,-10],\"103\":[98,14,8,11,8,0,-8],\"104\":[107,14,8,10,8,0,-10],\"105\":[116,14,3,10,3,0,-10],\"106\":[120,14,4,13,3,-1,-10],\"107\":[125,14,8,10,7,0,-10],\"108\":[134,14,3,10,3,0,-10],\"109\":[138,14,11,8,11,0,-8],\"110\":[150,14,8,8,8,0,-8],\"111\":[159,14,8,9,8,0,-8],\"112\":[168,14,8,11,8,0,-8],\"113\":[177,14,8,11,8,0,-8],\"114\":[186,14,5,8,5,0,-8],\"115\":[192,14,7,9,7,0,-8],\"116\":[200,14,5,10,5,0,-9],\"117\":[206,14,8,9,8,0,-8],\"118\":[215,14,8,8,7,0,-8],\"119\":[224,14,11,8,11,0,-8],\"120\":[236,14,7,8,7,0,-8],\"121\":[244,14,8,11,7,0,-8],\"122\":[253,14,7,8,7,0,-8],\"123\":[261,14,6,13,6,0,-11],\"124\":[268,14,4,17,4,0,-13],\"125\":[273,14,6,13,6,0,-11],\"126\":[280,14,8,6,8,0,-6],\"160\":[289,14,0,0,3,0,0],\"161\":[290,14,4,11,4,0,-8],\"162\":[295,14,7,10,7,0,-10],\"163\":[303,14,8,10,8,0,-10],\"164\":[312,14,10,10,10,0,-9],\"165\":[323,14,9,10,7,-1,-10],\"166\":[333,14,4,12,4,0,-10],\"167\":[338,14,7,12,7,0,-10],\"168\":[346,14,7,10,7,0,-10],\"169\":[354,14,11,11,11,0,-10],\"170\":[366,14,6,10,6,0,-10],\"171\":[373,14,8,7,8,0,-7],\"172\":[382,14,7,6,7,0,-6],\"173\":[390,14,0,0,1,0,0],\"174\":[391,14,8,10,8,0,-10],\"175\":[400,14,7,10,7,0,-10],\"176\":[408,14,6,10,6,0,-10],\"177\":[415,14,8,8,8,0,-8],\"178\":[424,14,5,11,5,0,-11],\"179\":[430,14,6,11,5,0,-11],\"180\":[437,14,6,10,6,0,-10],\"181\":[444,14,8,11,8,0,-8],\"182\":[453,14,8,10,8,0,-10],\"183\":[462,14,4,6,4,0,-6],\"184\":[467,14,4,4,4,0,-1],\"185\":[472,14,4,11,4,0,-11],\"186\":[477,14,6,10,6,0,-10],\"187\":[484,14,8,7,8,0,-7],\"188\":[493,14,11,10,11,0,-10],\"189\":[0,32,12,10,11,0,-10],\"190\":[13,32,12,10,12,0,-10],\"191\":[26,32,7,11,7,0,-8],\"192\":[34,32,10,12,9,0,-12],\"193\":[45,32,10,12,9,0,-12],\"194\":[56,32,10,13,9,0,-13],\"195\":[67,32,10,12,9,0,-12],\"196\":[78,32,10,12,9,0,-12],\"197\":[89,32,10,13,9,0,-13],\"198\":[100,32,13,10,13,0,-10],\"199\":[114,32,9,13,9,0,-10],\"200\":[124,32,8,12,8,0,-12],\"201\":[133,32,8,12,8,0,-12],\"202\":[142,32,8,13,8,0,-13],\"203\":[151,32,8,12,8,0,-12],\"204\":[160,32,4,12,3,-1,-12],\"205\":[165,32,4,12,3,0,-12],\"206\":[170,32,6,13,3,-1,-13],\"207\":[177,32,5,12,3,-1,-12],\"208\":[183,32,10,10,9,-1,-10],\"209\":[194,32,9,12,9,0,-12],\"210\":[204,32,10,13,10,0,-12],\"211\":[215,32,10,13,10,0,-12],\"212\":[226,32,10,14,10,0,-13],\"213\":[237,32,10,13,10,0,-12],\"214\":[248,32,10,13,10,0,-12],\"215\":[259,32,8,8,8,0,-8],\"216\":[268,32,10,11,10,0,-10],\"217\":[279,32,9,13,9,0,-12],\"218\":[289,32,9,13,9,0,-12],\"219\":[299,32,9,14,9,0,-13],\"220\":[309,32,9,13,9,0,-12],\"221\":[319,32,9,12,9,0,-12],\"222\":[329,32,8,10,8,0,-10],\"223\":[338,32,8,10,8,0,-10],\"224\":[347,32,7,11,7,0,-10],\"225\":[355,32,7,11,7,0,-10],\"226\":[363,32,7,12,7,0,-11],\"227\":[371,32,7,11,7,0,-10],\"228\":[379,32,7,11,7,0,-10],\"229\":[387,32,7,12,7,0,-11],\"230\":[395,32,12,9,11,0,-8],\"231\":[408,32,7,11,7,0,-8],\"232\":[416,32,8,11,7,0,-10],\"233\":[425,32,8,11,7,0,-10],\"234\":[434,32,8,12,7,0,-11],\"235\":[443,32,8,11,7,0,-10],\"236\":[452,32,4,10,3,-1,-10],\"237\":[457,32,4,10,3,0,-10],\"238\":[462,32,7,11,3,-2,-11],\"239\":[470,32,5,10,3,-1,-10],\"240\":[476,32,8,11,7,0,-10],\"241\":[485,32,8,10,8,0,-10],\"242\":[494,32,8,11,8,0,-10],\"243\":[503,32,8,11,8,0,-10],\"244\":[0,47,8,12,8,0,-11],\"245\":[9,47,8,11,8,0,-10],\"246\":[18,47,8,11,8,0,-10],\"247\":[27,47,8,8,8,0,-8],\"248\":[36,47,8,9,8,0,-8],\"249\":[45,47,8,11,8,0,-10],\"250\":[54,47,8,11,8,0,-10],\"251\":[63,47,8,12,8,0,-11],\"252\":[72,47,8,11,8,0,-10],\"253\":[81,47,8,13,7,0,-10],\"254\":[90,47,8,13,8,0,-10],\"255\":[99,47,8,13,7,0,-10],\"260\":[108,47,10,13,9,0,-10],\"261\":[119,47,7,11,7,0,-8],\"262\":[127,47,9,13,9,0,-12],\"263\":[137,47,7,11,7,0,-10],\"280\":[145,47,8,13,8,0,-10],\"281\":[154,47,8,11,7,0,-8],\"321\":[163,47,9,10,7,-1,-10],\"322\":[173,47,5,10,3,-1,-10],\"323\":[179,47,9,12,9,0,-12],\"324\":[189,47,8,10,8,0,-10],\"346\":[198,47,8,13,8,0,-12],\"347\":[207,47,7,11,7,0,-10],\"377\":[215,47,8,12,8,0,-12],\"378\":[224,47,7,10,7,0,-10],\"379\":[232,47,8,12,8,0,-12],\"380\":[241,47,7,10,7,0,-10],\"8211\":[249,47,7,5,6,0,-5],\"8212\":[257,47,13,5,13,0,-5],\"8226\":[271,47,5,6,5,0,-6],\"8230\":[277,47,10,4,10,0,-3],\"8364\":[288,47,9,11,8,0,-10],\"8592\":[298,47,12,10,12,0,-9],\"8593\":[311,47,12,10,12,0,-10],\"8594\":[324,47,12,10,12,0,-9],\"8595\":[337,47,12,11,12,0,-10],\"10003\":[350,47,11,8,11,0,-8],\"10005\":[362,47,7,17,6,0,-13]},\"atlas\":\"data:image/png;base64,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\"}"),
+	18: /*#__PURE__*/ JSON.parse("{\"height\":23,\"ascent\":18,\"space\":5,\"smooth\":true,\"glyphs\":{\"32\":[0,0,0,0,4,0,0],\"33\":[1,0,6,15,6,0,-14],\"34\":[8,0,9,14,9,0,-14],\"35\":[18,0,13,14,11,-1,-14],\"36\":[32,0,11,17,11,0,-15],\"37\":[44,0,15,15,15,0,-14],\"38\":[60,0,12,15,12,0,-14],\"39\":[73,0,6,14,6,0,-14],\"40\":[80,0,6,17,6,0,-14],\"41\":[87,0,6,17,6,0,-14],\"42\":[94,0,10,14,10,0,-14],\"43\":[105,0,12,10,12,0,-10],\"44\":[118,0,6,7,6,0,-3],\"45\":[125,0,8,7,8,0,-7],\"46\":[134,0,5,4,5,0,-3],\"47\":[140,0,8,16,6,-1,-14],\"48\":[149,0,12,15,12,0,-14],\"49\":[162,0,7,14,7,0,-14],\"50\":[170,0,11,14,11,0,-14],\"51\":[182,0,11,15,11,0,-14],\"52\":[194,0,12,14,12,0,-14],\"53\":[207,0,11,15,11,0,-14],\"54\":[219,0,11,15,11,0,-14],\"55\":[231,0,10,14,10,0,-14],\"56\":[242,0,11,15,11,0,-14],\"57\":[254,0,11,15,11,0,-14],\"58\":[266,0,5,10,5,0,-9],\"59\":[272,0,6,13,6,0,-9],\"60\":[279,0,12,11,12,0,-11],\"61\":[292,0,12,9,12,0,-9],\"62\":[305,0,12,11,12,0,-11],\"63\":[318,0,10,15,10,0,-14],\"64\":[329,0,18,18,18,0,-14],\"65\":[348,0,13,14,13,0,-14],\"66\":[362,0,11,14,11,0,-14],\"67\":[374,0,13,15,13,0,-14],\"68\":[388,0,13,14,12,0,-14],\"69\":[402,0,10,14,10,0,-14],\"70\":[413,0,10,14,10,0,-14],\"71\":[424,0,13,15,13,0,-14],\"72\":[438,0,13,14,13,0,-14],\"73\":[452,0,4,14,4,0,-14],\"74\":[457,0,10,15,10,0,-14],\"75\":[468,0,12,14,12,0,-14],\"76\":[481,0,10,14,10,0,-14],\"77\":[492,0,16,14,16,0,-14],\"78\":[0,19,13,14,13,0,-14],\"79\":[14,19,13,15,13,0,-14],\"80\":[28,19,11,14,11,0,-14],\"81\":[40,19,14,16,14,0,-14],\"82\":[55,19,12,14,11,0,-14],\"83\":[68,19,11,15,11,0,-14],\"84\":[80,19,12,14,11,0,-14],\"85\":[93,19,13,15,13,0,-14],\"86\":[107,19,13,14,13,0,-14],\"87\":[121,19,19,14,18,0,-14],\"88\":[141,19,13,14,12,0,-14],\"89\":[155,19,13,14,12,0,-14],\"90\":[169,19,11,14,11,0,-14],\"91\":[181,19,6,17,6,0,-14],\"92\":[188,19,8,16,6,-1,-14],\"93\":[197,19,6,17,6,0,-14],\"94\":[204,19,8,13,8,0,-13],\"95\":[213,19,10,3,8,-1,0],\"96\":[224,19,8,14,8,0,-14],\"97\":[233,19,10,11,10,0,-10],\"98\":[244,19,11,15,11,0,-14],\"99\":[256,19,10,11,10,0,-10],\"100\":[267,19,11,15,11,0,-14],\"101\":[279,19,10,11,10,0,-10],\"102\":[290,19,7,14,6,0,-14],\"103\":[298,19,11,14,11,0,-10],\"104\":[310,19,11,14,11,0,-14],\"105\":[322,19,4,14,4,0,-14],\"106\":[327,19,5,18,4,-1,-14],\"107\":[333,19,11,14,10,0,-14],\"108\":[345,19,4,14,4,0,-14],\"109\":[350,19,16,10,16,0,-10],\"110\":[367,19,11,10,11,0,-10],\"111\":[379,19,11,11,10,0,-10],\"112\":[391,19,11,14,11,0,-10],\"113\":[403,19,11,14,11,0,-10],\"114\":[415,19,7,10,7,0,-10],\"115\":[423,19,10,11,10,0,-10],\"116\":[434,19,7,14,6,0,-13],\"117\":[442,19,11,11,11,0,-10],\"118\":[454,19,10,10,10,0,-10],\"119\":[465,19,15,10,15,0,-10],\"120\":[481,19,10,10,10,0,-10],\"121\":[492,19,10,14,10,0,-10],\"122\":[0,38,10,10,10,0,-10],\"123\":[11,38,8,17,8,0,-14],\"124\":[20,38,6,23,6,0,-18],\"125\":[27,38,8,17,8,0,-14],\"126\":[36,38,12,8,12,0,-8],\"160\":[49,38,0,0,4,0,0],\"161\":[50,38,6,14,6,0,-10],\"162\":[57,38,10,14,10,0,-14],\"163\":[68,38,12,14,12,0,-14],\"164\":[81,38,13,13,13,0,-12],\"165\":[95,38,11,14,10,-1,-14],\"166\":[107,38,6,17,6,0,-14],\"167\":[114,38,10,17,10,0,-14],\"168\":[125,38,9,14,9,0,-14],\"169\":[135,38,16,15,16,0,-14],\"170\":[152,38,8,13,8,0,-13],\"171\":[161,38,11,10,11,0,-10],\"172\":[173,38,10,8,10,0,-8],\"173\":[184,38,0,0,1,0,0],\"174\":[185,38,11,14,11,0,-14],\"175\":[197,38,10,14,10,0,-14],\"176\":[208,38,8,14,8,0,-14],\"177\":[217,38,12,11,12,0,-11],\"178\":[230,38,7,15,7,0,-15],\"179\":[238,38,8,15,7,0,-15],\"180\":[247,38,8,14,8,0,-14],\"181\":[256,38,11,14,11,0,-10],\"182\":[268,38,10,14,10,0,-14],\"183\":[279,38,5,7,5,0,-7],\"184\":[285,38,6,6,6,0,-1],\"185\":[292,38,5,15,5,0,-15],\"186\":[298,38,8,13,8,0,-13],\"187\":[307,38,11,10,11,0,-10],\"188\":[319,38,16,14,15,0,-14],\"189\":[336,38,16,14,16,0,-14],\"190\":[353,38,17,14,17,0,-14],\"191\":[371,38,10,14,10,0,-10],\"192\":[382,38,13,17,13,0,-17],\"193\":[396,38,13,17,13,0,-17],\"194\":[410,38,13,18,13,0,-18],\"195\":[424,38,13,17,13,0,-17],\"196\":[438,38,13,17,13,0,-17],\"197\":[452,38,13,18,13,0,-18],\"198\":[466,38,18,14,18,0,-14],\"199\":[485,38,13,19,13,0,-14],\"200\":[499,38,10,17,10,0,-17],\"201\":[0,62,10,17,10,0,-17],\"202\":[11,62,10,18,10,0,-18],\"203\":[22,62,10,17,10,0,-17],\"204\":[33,62,5,17,4,-1,-17],\"205\":[39,62,5,17,4,0,-17],\"206\":[45,62,8,18,4,-2,-18],\"207\":[54,62,8,17,4,-2,-17],\"208\":[63,62,14,14,12,-1,-14],\"209\":[78,62,13,17,13,0,-17],\"210\":[92,62,13,18,13,0,-17],\"211\":[106,62,13,18,13,0,-17],\"212\":[120,62,13,19,13,0,-18],\"213\":[134,62,13,18,13,0,-17],\"214\":[148,62,13,18,13,0,-17],\"215\":[162,62,12,10,12,0,-10],\"216\":[175,62,13,15,13,0,-14],\"217\":[189,62,13,18,13,0,-17],\"218\":[203,62,13,18,13,0,-17],\"219\":[217,62,13,19,13,0,-18],\"220\":[231,62,13,18,13,0,-17],\"221\":[245,62,13,17,12,0,-17],\"222\":[259,62,11,14,11,0,-14],\"223\":[271,62,11,14,11,0,-14],\"224\":[283,62,10,15,10,0,-14],\"225\":[294,62,10,15,10,0,-14],\"226\":[305,62,10,15,10,0,-14],\"227\":[316,62,10,15,10,0,-14],\"228\":[327,62,10,15,10,0,-14],\"229\":[338,62,10,17,10,0,-16],\"230\":[349,62,16,11,16,0,-10],\"231\":[366,62,10,15,10,0,-10],\"232\":[377,62,10,15,10,0,-14],\"233\":[388,62,10,15,10,0,-14],\"234\":[399,62,10,15,10,0,-14],\"235\":[410,62,10,15,10,0,-14],\"236\":[421,62,5,14,4,-1,-14],\"237\":[427,62,5,14,4,0,-14],\"238\":[433,62,8,14,4,-2,-14],\"239\":[442,62,8,14,4,-2,-14],\"240\":[451,62,10,15,10,0,-14],\"241\":[462,62,11,14,11,0,-14],\"242\":[474,62,11,15,10,0,-14],\"243\":[486,62,11,15,10,0,-14],\"244\":[498,62,11,15,10,0,-14],\"245\":[0,82,11,15,10,0,-14],\"246\":[12,82,11,15,10,0,-14],\"247\":[24,82,12,11,12,0,-11],\"248\":[37,82,11,12,10,0,-11],\"249\":[49,82,11,15,11,0,-14],\"250\":[61,82,11,15,11,0,-14],\"251\":[73,82,11,15,11,0,-14],\"252\":[85,82,11,15,11,0,-14],\"253\":[97,82,10,18,10,0,-14],\"254\":[108,82,11,18,11,0,-14],\"255\":[120,82,10,18,10,0,-14],\"260\":[131,82,13,18,13,0,-14],\"261\":[145,82,10,14,10,0,-10],\"262\":[156,82,13,18,13,0,-17],\"263\":[170,82,10,15,10,0,-14],\"280\":[181,82,10,18,10,0,-14],\"281\":[192,82,10,14,10,0,-10],\"321\":[203,82,11,14,10,-1,-14],\"322\":[215,82,6,14,4,-1,-14],\"323\":[222,82,13,17,13,0,-17],\"324\":[236,82,11,14,11,0,-14],\"346\":[248,82,11,18,11,0,-17],\"347\":[260,82,10,15,10,0,-14],\"377\":[271,82,11,17,11,0,-17],\"378\":[283,82,10,14,10,0,-14],\"379\":[294,82,11,17,11,0,-17],\"380\":[306,82,10,14,10,0,-14],\"8211\":[317,82,9,7,9,0,-7],\"8212\":[327,82,18,7,18,0,-7],\"8226\":[346,82,7,9,7,0,-9],\"8230\":[354,82,14,4,14,0,-3],\"8364\":[369,82,12,15,12,0,-14],\"8592\":[382,82,17,14,17,0,-13],\"8593\":[400,82,17,14,17,0,-14],\"8594\":[418,82,17,14,17,0,-13],\"8595\":[436,82,17,15,17,0,-14],\"10003\":[454,82,15,11,15,0,-11],\"10005\":[470,82,9,23,9,0,-18]},\"atlas\":\"data:image/png;base64,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\"}"),
+	24: /*#__PURE__*/ JSON.parse("{\"height\":30,\"ascent\":24,\"space\":7,\"smooth\":true,\"glyphs\":{\"32\":[0,0,0,0,5,0,0],\"33\":[1,0,8,19,8,0,-18],\"34\":[10,0,13,18,13,0,-18],\"35\":[24,0,16,18,15,-1,-18],\"36\":[41,0,15,23,15,0,-20],\"37\":[57,0,20,20,20,0,-19],\"38\":[78,0,16,19,15,0,-18],\"39\":[95,0,7,18,7,0,-18],\"40\":[103,0,8,23,8,0,-19],\"41\":[112,0,8,23,8,0,-19],\"42\":[121,0,13,18,13,0,-18],\"43\":[135,0,16,14,16,0,-14],\"44\":[152,0,8,8,8,0,-3],\"45\":[161,0,10,9,10,0,-9],\"46\":[172,0,7,5,7,0,-4],\"47\":[180,0,10,22,9,-1,-19],\"48\":[191,0,16,19,16,0,-18],\"49\":[208,0,10,18,10,0,-18],\"50\":[219,0,14,18,14,0,-18],\"51\":[234,0,15,19,15,0,-18],\"52\":[250,0,15,18,15,0,-18],\"53\":[266,0,15,19,15,0,-18],\"54\":[282,0,15,19,15,0,-18],\"55\":[298,0,13,18,13,0,-18],\"56\":[312,0,15,19,15,0,-18],\"57\":[328,0,15,19,15,0,-18],\"58\":[344,0,7,14,7,0,-13],\"59\":[352,0,8,18,8,0,-13],\"60\":[361,0,16,14,16,0,-14],\"61\":[378,0,16,12,16,0,-12],\"62\":[395,0,16,14,16,0,-14],\"63\":[412,0,13,19,13,0,-18],\"64\":[426,0,24,24,24,0,-18],\"65\":[451,0,17,18,17,0,-18],\"66\":[469,0,15,18,15,0,-18],\"67\":[485,0,17,19,17,0,-18],\"68\":[0,25,17,18,17,0,-18],\"69\":[18,25,14,18,14,0,-18],\"70\":[33,25,13,18,13,0,-18],\"71\":[47,25,17,19,17,0,-18],\"72\":[65,25,17,18,17,0,-18],\"73\":[83,25,6,18,6,0,-18],\"74\":[90,25,13,19,13,0,-18],\"75\":[104,25,16,18,16,0,-18],\"76\":[121,25,13,18,13,0,-18],\"77\":[135,25,21,18,21,0,-18],\"78\":[157,25,17,18,17,0,-18],\"79\":[175,25,18,19,18,0,-18],\"80\":[194,25,15,18,15,0,-18],\"81\":[210,25,18,20,18,0,-18],\"82\":[229,25,15,18,15,0,-18],\"83\":[245,25,15,19,15,0,-18],\"84\":[261,25,15,18,15,0,-18],\"85\":[277,25,17,19,17,0,-18],\"86\":[295,25,17,18,17,0,-18],\"87\":[313,25,25,18,24,0,-18],\"88\":[339,25,17,18,16,0,-18],\"89\":[357,25,17,18,17,0,-18],\"90\":[375,25,15,18,15,0,-18],\"91\":[391,25,8,23,8,0,-19],\"92\":[400,25,10,22,9,-1,-19],\"93\":[411,25,8,23,8,0,-19],\"94\":[420,25,11,18,11,0,-18],\"95\":[432,25,13,3,11,-1,0],\"96\":[446,25,10,19,10,0,-19],\"97\":[457,25,13,15,13,0,-14],\"98\":[471,25,14,19,14,0,-18],\"99\":[486,25,13,15,13,0,-14],\"100\":[0,49,14,19,14,0,-18],\"101\":[15,49,14,15,14,0,-14],\"102\":[30,49,9,19,9,0,-19],\"103\":[40,49,14,20,14,0,-14],\"104\":[55,49,14,18,14,0,-18],\"105\":[70,49,6,19,6,0,-19],\"106\":[77,49,8,24,6,-2,-19],\"107\":[86,49,14,18,13,0,-18],\"108\":[101,49,6,18,6,0,-18],\"109\":[108,49,21,14,21,0,-14],\"110\":[130,49,14,14,14,0,-14],\"111\":[145,49,14,15,14,0,-14],\"112\":[160,49,14,19,14,0,-14],\"113\":[175,49,14,19,14,0,-14],\"114\":[190,49,9,14,9,0,-14],\"115\":[200,49,13,15,13,0,-14],\"116\":[214,49,9,18,9,0,-17],\"117\":[224,49,14,15,14,0,-14],\"118\":[239,49,14,14,13,0,-14],\"119\":[254,49,20,14,20,0,-14],\"120\":[275,49,13,14,13,0,-14],\"121\":[289,49,14,19,13,0,-14],\"122\":[304,49,13,14,13,0,-14],\"123\":[318,49,11,23,11,0,-19],\"124\":[330,49,8,30,8,0,-24],\"125\":[339,49,11,23,11,0,-19],\"126\":[351,49,16,10,16,0,-10],\"160\":[368,49,0,0,5,0,0],\"161\":[369,49,7,19,7,0,-14],\"162\":[377,49,13,18,13,0,-18],\"163\":[391,49,15,18,15,0,-18],\"164\":[407,49,18,16,18,0,-15],\"165\":[426,49,15,18,13,-1,-18],\"166\":[442,49,7,22,7,0,-18],\"167\":[450,49,13,22,13,0,-18],\"168\":[464,49,12,19,12,0,-19],\"169\":[477,49,21,19,21,0,-18],\"170\":[499,49,11,18,11,0,-18],\"171\":[0,80,15,13,15,0,-13],\"172\":[16,80,13,10,13,0,-10],\"173\":[30,80,0,0,1,0,0],\"174\":[31,80,15,18,15,0,-18],\"175\":[47,80,13,18,13,0,-18],\"176\":[61,80,10,18,10,0,-18],\"177\":[72,80,16,14,16,0,-14],\"178\":[89,80,9,20,9,0,-20],\"179\":[99,80,10,20,10,0,-20],\"180\":[110,80,10,19,10,0,-19],\"181\":[121,80,15,19,15,0,-14],\"182\":[137,80,14,18,14,0,-18],\"183\":[152,80,7,10,7,0,-10],\"184\":[160,80,8,7,8,0,-1],\"185\":[169,80,7,20,7,0,-20],\"186\":[177,80,11,18,11,0,-18],\"187\":[189,80,15,13,15,0,-13],\"188\":[205,80,21,18,20,0,-18],\"189\":[227,80,21,18,21,0,-18],\"190\":[249,80,23,18,22,0,-18],\"191\":[273,80,13,19,13,0,-14],\"192\":[287,80,17,23,17,0,-23],\"193\":[305,80,17,23,17,0,-23],\"194\":[323,80,17,23,17,0,-23],\"195\":[341,80,17,22,17,0,-22],\"196\":[359,80,17,23,17,0,-23],\"197\":[377,80,17,24,17,0,-24],\"198\":[395,80,24,18,24,0,-18],\"199\":[420,80,17,24,17,0,-18],\"200\":[438,80,14,23,14,0,-23],\"201\":[453,80,14,23,14,0,-23],\"202\":[468,80,14,23,14,0,-23],\"203\":[483,80,14,23,14,0,-23],\"204\":[498,80,7,23,6,-1,-23],\"205\":[0,105,7,23,6,0,-23],\"206\":[8,105,10,23,6,-2,-23],\"207\":[19,105,10,23,6,-2,-23],\"208\":[30,105,19,18,17,-2,-18],\"209\":[50,105,17,22,17,0,-22],\"210\":[68,105,18,24,18,0,-23],\"211\":[87,105,18,24,18,0,-23],\"212\":[106,105,18,24,18,0,-23],\"213\":[125,105,18,23,18,0,-22],\"214\":[144,105,18,24,18,0,-23],\"215\":[163,105,16,14,16,0,-14],\"216\":[180,105,18,20,18,0,-19],\"217\":[199,105,17,24,17,0,-23],\"218\":[217,105,17,24,17,0,-23],\"219\":[235,105,17,24,17,0,-23],\"220\":[253,105,17,24,17,0,-23],\"221\":[271,105,17,23,17,0,-23],\"222\":[289,105,15,18,15,0,-18],\"223\":[305,105,15,18,15,0,-18],\"224\":[321,105,13,20,13,0,-19],\"225\":[335,105,13,20,13,0,-19],\"226\":[349,105,13,20,13,0,-19],\"227\":[363,105,13,19,13,0,-18],\"228\":[377,105,13,20,13,0,-19],\"229\":[391,105,13,22,13,0,-21],\"230\":[405,105,21,15,21,0,-14],\"231\":[427,105,13,20,13,0,-14],\"232\":[441,105,14,20,14,0,-19],\"233\":[456,105,14,20,14,0,-19],\"234\":[471,105,14,20,14,0,-19],\"235\":[486,105,14,20,14,0,-19],\"236\":[501,105,7,19,6,-1,-19],\"237\":[0,130,7,19,6,0,-19],\"238\":[8,130,10,19,6,-2,-19],\"239\":[19,130,10,19,6,-2,-19],\"240\":[30,130,14,20,14,0,-19],\"241\":[45,130,14,18,14,0,-18],\"242\":[60,130,14,20,14,0,-19],\"243\":[75,130,14,20,14,0,-19],\"244\":[90,130,14,20,14,0,-19],\"245\":[105,130,14,19,14,0,-18],\"246\":[120,130,14,20,14,0,-19],\"247\":[135,130,16,14,16,0,-14],\"248\":[152,130,14,15,14,0,-14],\"249\":[167,130,14,20,14,0,-19],\"250\":[182,130,14,20,14,0,-19],\"251\":[197,130,14,20,14,0,-19],\"252\":[212,130,14,20,14,0,-19],\"253\":[227,130,14,24,13,0,-19],\"254\":[242,130,14,23,14,0,-18],\"255\":[257,130,14,24,13,0,-19],\"260\":[272,130,18,23,17,0,-18],\"261\":[291,130,13,19,13,0,-14],\"262\":[305,130,17,24,17,0,-23],\"263\":[323,130,13,20,13,0,-19],\"280\":[337,130,14,23,14,0,-18],\"281\":[352,130,14,19,14,0,-14],\"321\":[367,130,15,18,13,-1,-18],\"322\":[383,130,8,18,6,-1,-18],\"323\":[392,130,17,23,17,0,-23],\"324\":[410,130,14,19,14,0,-19],\"346\":[425,130,15,24,15,0,-23],\"347\":[441,130,13,20,13,0,-19],\"377\":[455,130,15,23,15,0,-23],\"378\":[471,130,13,19,13,0,-19],\"379\":[485,130,15,23,15,0,-23],\"380\":[0,155,13,19,13,0,-19],\"8211\":[14,155,12,9,12,0,-9],\"8212\":[27,155,24,9,24,0,-9],\"8226\":[52,155,10,11,10,0,-11],\"8230\":[63,155,18,5,18,0,-4],\"8364\":[82,155,16,19,16,0,-18],\"8592\":[99,155,22,18,22,0,-17],\"8593\":[122,155,22,18,22,0,-18],\"8594\":[145,155,22,18,22,0,-17],\"8595\":[168,155,22,19,22,0,-18],\"10003\":[191,155,20,15,20,0,-15],\"10005\":[212,155,12,30,12,0,-24]},\"atlas\":\"data:image/png;base64,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\"}"),
+	36: /*#__PURE__*/ JSON.parse("{\"height\":44,\"ascent\":36,\"space\":7,\"smooth\":false,\"glyphs\":{\"32\":[0,0,7,0,7,0,0],\"33\":[8,0,11,28,11,0,-27],\"34\":[20,0,19,27,19,0,-27],\"35\":[40,0,24,27,22,-1,-27],\"36\":[65,0,22,34,22,0,-30],\"37\":[88,0,30,29,30,0,-28],\"38\":[119,0,24,28,23,0,-27],\"39\":[144,0,11,27,11,0,-27],\"40\":[156,0,12,33,12,0,-28],\"41\":[169,0,12,33,12,0,-28],\"42\":[182,0,19,27,19,0,-27],\"43\":[202,0,23,20,23,0,-20],\"44\":[226,0,12,12,12,0,-5],\"45\":[239,0,16,13,16,0,-13],\"46\":[256,0,11,7,11,0,-6],\"47\":[268,0,14,32,13,-1,-28],\"48\":[283,0,24,28,24,0,-27],\"49\":[308,0,14,27,14,0,-27],\"50\":[323,0,22,27,22,0,-27],\"51\":[346,0,23,28,23,0,-27],\"52\":[370,0,23,27,23,0,-27],\"53\":[394,0,22,28,22,0,-27],\"54\":[417,0,23,28,23,0,-27],\"55\":[441,0,20,27,20,0,-27],\"56\":[462,0,23,28,23,0,-27],\"57\":[486,0,23,28,23,0,-27],\"58\":[0,35,11,20,11,0,-19],\"59\":[12,35,11,26,11,0,-19],\"60\":[24,35,23,21,23,0,-21],\"61\":[48,35,23,17,23,0,-17],\"62\":[72,35,23,21,23,0,-21],\"63\":[96,35,19,28,19,0,-27],\"64\":[116,35,36,35,36,0,-27],\"65\":[153,35,26,27,26,0,-27],\"66\":[180,35,23,27,23,0,-27],\"67\":[204,35,26,28,26,0,-27],\"68\":[231,35,25,27,25,0,-27],\"69\":[257,35,21,27,21,0,-27],\"70\":[279,35,20,27,20,0,-27],\"71\":[300,35,26,28,26,0,-27],\"72\":[327,35,26,27,26,0,-27],\"73\":[354,35,9,27,9,0,-27],\"74\":[364,35,19,28,19,0,-27],\"75\":[384,35,24,27,24,0,-27],\"76\":[409,35,19,27,19,0,-27],\"77\":[429,35,32,27,32,0,-27],\"78\":[462,35,25,27,25,0,-27],\"79\":[0,71,27,28,27,0,-27],\"80\":[28,71,22,27,22,0,-27],\"81\":[51,71,27,30,27,0,-27],\"82\":[79,71,23,27,22,0,-27],\"83\":[103,71,22,28,22,0,-27],\"84\":[126,71,23,27,23,0,-27],\"85\":[150,71,25,28,25,0,-27],\"86\":[176,71,26,27,26,0,-27],\"87\":[203,71,37,27,36,0,-27],\"88\":[241,71,25,27,25,0,-27],\"89\":[267,71,25,27,25,0,-27],\"90\":[293,71,23,27,23,0,-27],\"91\":[317,71,12,33,12,0,-28],\"92\":[330,71,14,32,13,-1,-28],\"93\":[345,71,12,33,12,0,-28],\"94\":[358,71,16,26,16,0,-26],\"95\":[375,71,18,5,16,-1,0],\"96\":[394,71,16,28,16,0,-28],\"97\":[411,71,20,21,20,0,-20],\"98\":[432,71,22,28,22,0,-27],\"99\":[455,71,20,21,20,0,-20],\"100\":[476,71,22,28,22,0,-27],\"101\":[0,105,20,21,20,0,-20],\"102\":[21,105,14,28,13,0,-28],\"103\":[36,105,22,28,22,0,-20],\"104\":[59,105,21,27,21,0,-27],\"105\":[81,105,9,28,9,0,-28],\"106\":[91,105,11,36,9,-2,-28],\"107\":[103,105,21,27,20,0,-27],\"108\":[125,105,9,27,9,0,-27],\"109\":[135,105,32,20,32,0,-20],\"110\":[168,105,21,20,21,0,-20],\"111\":[190,105,21,21,21,0,-20],\"112\":[212,105,22,28,22,0,-20],\"113\":[235,105,22,28,22,0,-20],\"114\":[258,105,14,20,14,0,-20],\"115\":[273,105,19,21,19,0,-20],\"116\":[293,105,13,26,13,0,-25],\"117\":[307,105,21,21,21,0,-20],\"118\":[329,105,20,20,20,0,-20],\"119\":[350,105,30,20,29,0,-20],\"120\":[381,105,20,20,19,0,-20],\"121\":[402,105,20,28,20,0,-20],\"122\":[423,105,19,20,19,0,-20],\"123\":[443,105,16,33,16,0,-28],\"124\":[460,105,12,44,12,0,-35],\"125\":[473,105,16,33,16,0,-28],\"126\":[0,150,23,15,23,0,-15],\"127\":[24,150,18,44,18,0,-35],\"128\":[43,150,18,44,18,0,-35],\"129\":[62,150,18,44,18,0,-35],\"130\":[81,150,18,44,18,0,-35],\"131\":[100,150,18,44,18,0,-35],\"132\":[119,150,18,44,18,0,-35],\"133\":[138,150,18,44,18,0,-35],\"134\":[157,150,18,44,18,0,-35],\"135\":[176,150,18,44,18,0,-35],\"136\":[195,150,18,44,18,0,-35],\"137\":[214,150,18,44,18,0,-35],\"138\":[233,150,18,44,18,0,-35],\"139\":[252,150,18,44,18,0,-35],\"140\":[271,150,18,44,18,0,-35],\"141\":[290,150,18,44,18,0,-35],\"142\":[309,150,18,44,18,0,-35],\"143\":[328,150,18,44,18,0,-35],\"144\":[347,150,18,44,18,0,-35],\"145\":[366,150,18,44,18,0,-35],\"146\":[385,150,18,44,18,0,-35],\"147\":[404,150,18,44,18,0,-35],\"148\":[423,150,18,44,18,0,-35],\"149\":[442,150,18,44,18,0,-35],\"150\":[461,150,18,44,18,0,-35],\"151\":[480,150,18,44,18,0,-35],\"152\":[0,195,18,44,18,0,-35],\"153\":[19,195,18,44,18,0,-35],\"154\":[38,195,18,44,18,0,-35],\"155\":[57,195,18,44,18,0,-35],\"156\":[76,195,18,44,18,0,-35],\"157\":[95,195,18,44,18,0,-35],\"158\":[114,195,18,44,18,0,-35],\"159\":[133,195,18,44,18,0,-35],\"160\":[152,195,7,0,7,0,0],\"161\":[160,195,11,27,11,0,-20],\"162\":[172,195,20,27,20,0,-27],\"163\":[193,195,23,27,23,0,-27],\"164\":[217,195,26,24,26,0,-23],\"165\":[244,195,21,27,19,-1,-27],\"166\":[266,195,11,32,11,0,-27],\"167\":[278,195,20,33,20,0,-27],\"168\":[299,195,18,28,18,0,-28],\"169\":[318,195,32,28,32,0,-27],\"170\":[351,195,16,26,16,0,-26],\"171\":[368,195,22,19,22,0,-19],\"172\":[391,195,20,15,20,0,-15],\"173\":[412,195,0,0,1,0,0],\"174\":[413,195,23,27,23,0,-27],\"175\":[437,195,19,27,19,0,-27],\"176\":[457,195,15,27,15,0,-27],\"177\":[473,195,23,21,23,0,-21],\"178\":[497,195,14,29,14,0,-29],\"179\":[0,240,15,29,15,0,-29],\"180\":[16,240,16,28,16,0,-28],\"181\":[33,240,23,28,23,0,-20],\"182\":[57,240,21,27,21,0,-27],\"183\":[79,240,11,15,11,0,-15],\"184\":[91,240,12,10,12,0,-1],\"185\":[104,240,10,29,10,0,-29],\"186\":[115,240,16,26,16,0,-26],\"187\":[132,240,22,19,22,0,-19],\"188\":[155,240,31,27,30,0,-27],\"189\":[187,240,32,27,32,0,-27],\"190\":[220,240,34,27,34,0,-27],\"191\":[255,240,19,28,19,0,-20],\"192\":[275,240,26,35,26,0,-35],\"193\":[302,240,26,35,26,0,-35],\"194\":[329,240,26,35,26,0,-35],\"195\":[356,240,26,34,26,0,-34],\"196\":[383,240,26,35,26,0,-35],\"197\":[410,240,26,36,26,0,-36],\"198\":[437,240,36,27,36,0,-27],\"199\":[474,240,26,36,26,0,-27],\"200\":[0,277,21,35,21,0,-35],\"201\":[22,277,21,35,21,0,-35],\"202\":[44,277,21,35,21,0,-35],\"203\":[66,277,21,35,21,0,-35],\"204\":[88,277,10,35,9,-1,-35],\"205\":[99,277,10,35,9,0,-35],\"206\":[110,277,15,35,9,-3,-35],\"207\":[126,277,15,35,9,-3,-35],\"208\":[142,277,27,27,25,-2,-27],\"209\":[170,277,25,34,25,0,-34],\"210\":[196,277,27,36,27,0,-35],\"211\":[224,277,27,36,27,0,-35],\"212\":[252,277,27,36,27,0,-35],\"213\":[280,277,27,35,27,0,-34],\"214\":[308,277,27,36,27,0,-35],\"215\":[336,277,23,20,23,0,-20],\"216\":[360,277,27,30,27,0,-28],\"217\":[388,277,25,36,25,0,-35],\"218\":[414,277,25,36,25,0,-35],\"219\":[440,277,25,36,25,0,-35],\"220\":[466,277,25,36,25,0,-35],\"221\":[0,314,25,35,25,0,-35],\"222\":[26,314,23,27,23,0,-27],\"223\":[50,314,23,27,23,0,-27],\"224\":[74,314,20,29,20,0,-28],\"225\":[95,314,20,29,20,0,-28],\"226\":[116,314,20,29,20,0,-28],\"227\":[137,314,20,28,20,0,-27],\"228\":[158,314,20,29,20,0,-28],\"229\":[179,314,20,32,20,0,-31],\"230\":[200,314,32,21,32,0,-20],\"231\":[233,314,20,29,20,0,-20],\"232\":[254,314,20,29,20,0,-28],\"233\":[275,314,20,29,20,0,-28],\"234\":[296,314,20,29,20,0,-28],\"235\":[317,314,20,29,20,0,-28],\"236\":[338,314,11,28,9,-2,-28],\"237\":[350,314,10,28,9,0,-28],\"238\":[361,314,15,28,9,-3,-28],\"239\":[377,314,14,28,9,-3,-28],\"240\":[392,314,20,29,20,0,-28],\"241\":[413,314,21,27,21,0,-27],\"242\":[435,314,21,29,21,0,-28],\"243\":[457,314,21,29,21,0,-28],\"244\":[479,314,21,29,21,0,-28],\"245\":[0,350,21,28,21,0,-27],\"246\":[22,350,21,29,21,0,-28],\"247\":[44,350,23,21,23,0,-21],\"248\":[68,350,21,23,21,0,-21],\"249\":[90,350,21,29,21,0,-28],\"250\":[112,350,21,29,21,0,-28],\"251\":[134,350,21,29,21,0,-28],\"252\":[156,350,21,29,21,0,-28],\"253\":[178,350,20,36,20,0,-28],\"254\":[199,350,22,35,22,0,-27],\"255\":[222,350,20,36,20,0,-28],\"256\":[243,350,26,34,26,0,-34],\"257\":[270,350,20,28,20,0,-27],\"258\":[291,350,26,35,26,0,-35],\"259\":[318,350,20,29,20,0,-28],\"260\":[339,350,26,35,26,0,-27],\"261\":[366,350,20,28,20,0,-20],\"262\":[387,350,26,36,26,0,-35],\"263\":[414,350,20,29,20,0,-28],\"264\":[435,350,26,36,26,0,-35],\"265\":[462,350,20,29,20,0,-28],\"266\":[483,350,26,36,26,0,-35],\"267\":[0,387,20,29,20,0,-28],\"268\":[21,387,26,36,26,0,-35],\"269\":[48,387,20,29,20,0,-28],\"270\":[69,387,25,35,25,0,-35],\"271\":[95,387,27,29,25,0,-28],\"272\":[123,387,27,27,25,-2,-27],\"273\":[151,387,23,28,22,0,-27],\"274\":[175,387,21,34,21,0,-34],\"275\":[197,387,20,28,20,0,-27],\"276\":[218,387,21,35,21,0,-35],\"277\":[240,387,20,29,20,0,-28],\"278\":[261,387,21,35,21,0,-35],\"279\":[283,387,20,29,20,0,-28],\"280\":[304,387,21,35,21,0,-27],\"281\":[326,387,20,27,20,0,-20],\"282\":[347,387,21,35,21,0,-35],\"283\":[369,387,20,29,20,0,-28],\"284\":[390,387,26,36,26,0,-35],\"285\":[417,387,22,36,22,0,-28],\"286\":[440,387,26,36,26,0,-35],\"287\":[467,387,22,36,22,0,-28],\"288\":[0,424,26,36,26,0,-35],\"289\":[27,424,22,36,22,0,-28],\"290\":[50,424,26,36,26,0,-27],\"291\":[77,424,22,39,22,0,-31],\"292\":[100,424,26,35,26,0,-35],\"293\":[127,424,24,35,21,-3,-35],\"294\":[152,424,28,27,28,0,-27],\"295\":[181,424,24,27,21,-3,-27],\"296\":[206,424,13,34,9,-2,-34],\"297\":[220,424,13,27,9,-2,-27],\"298\":[234,424,13,34,9,-2,-34],\"299\":[248,424,13,27,9,-2,-27],\"300\":[262,424,13,35,9,-2,-35],\"301\":[276,424,14,28,9,-3,-28],\"302\":[291,424,9,35,9,0,-27],\"303\":[301,424,10,36,9,-1,-28],\"304\":[312,424,9,35,9,0,-35],\"305\":[322,424,9,20,9,0,-20],\"306\":[332,424,28,28,28,0,-27],\"307\":[361,424,17,36,17,0,-28],\"308\":[379,424,23,36,19,0,-35],\"309\":[403,424,15,36,9,-3,-28],\"310\":[419,424,24,36,24,0,-27],\"311\":[444,424,21,36,20,0,-27],\"312\":[466,424,23,20,23,0,-20],\"313\":[490,424,19,35,19,0,-35],\"314\":[0,464,10,35,9,0,-35],\"315\":[11,464,19,36,19,0,-27],\"316\":[31,464,9,36,9,0,-27],\"317\":[41,464,19,28,19,0,-28],\"318\":[61,464,14,28,12,0,-28],\"319\":[76,464,20,27,20,0,-27],\"320\":[97,464,15,27,14,0,-27],\"321\":[113,464,21,27,20,-1,-27],\"322\":[135,464,11,27,9,-1,-27],\"323\":[147,464,25,35,25,0,-35],\"324\":[173,464,21,28,21,0,-28],\"325\":[195,464,25,36,25,0,-27],\"326\":[221,464,21,29,21,0,-20],\"327\":[243,464,25,35,25,0,-35],\"328\":[269,464,21,28,21,0,-28],\"329\":[291,464,18,44,18,0,-35],\"330\":[310,464,25,35,25,0,-27],\"331\":[336,464,21,28,21,0,-20],\"332\":[358,464,27,35,27,0,-34],\"333\":[386,464,21,28,21,0,-27],\"334\":[408,464,27,36,27,0,-35],\"335\":[436,464,21,29,21,0,-28],\"336\":[458,464,27,35,27,0,-34],\"337\":[486,464,21,28,21,0,-27],\"338\":[0,509,36,27,36,0,-27],\"339\":[37,509,34,21,34,0,-20],\"340\":[72,509,23,35,22,0,-35],\"341\":[96,509,14,28,14,0,-28],\"342\":[111,509,23,36,22,0,-27],\"343\":[135,509,14,29,14,0,-20],\"344\":[150,509,23,35,22,0,-35],\"345\":[174,509,15,28,14,0,-28],\"346\":[190,509,22,36,22,0,-35],\"347\":[213,509,19,29,19,0,-28],\"348\":[233,509,22,36,22,0,-35],\"349\":[256,509,19,29,19,0,-28],\"350\":[276,509,22,36,22,0,-27],\"351\":[299,509,19,29,19,0,-20],\"352\":[319,509,22,36,22,0,-35],\"353\":[342,509,19,29,19,0,-28],\"354\":[362,509,23,36,23,0,-27],\"355\":[386,509,13,34,13,0,-25],\"356\":[400,509,23,35,23,0,-35],\"357\":[424,509,15,30,14,0,-29],\"358\":[440,509,23,27,23,0,-27],\"359\":[464,509,13,26,13,0,-25],\"360\":[478,509,25,35,25,0,-34],\"361\":[0,546,21,28,21,0,-27],\"362\":[22,546,25,35,25,0,-34],\"363\":[48,546,21,28,21,0,-27],\"364\":[70,546,25,36,25,0,-35],\"365\":[96,546,21,29,21,0,-28],\"366\":[118,546,25,37,25,0,-36],\"367\":[144,546,21,32,21,0,-31],\"368\":[166,546,25,35,25,0,-34],\"369\":[192,546,21,28,21,0,-27],\"370\":[214,546,25,35,25,0,-27],\"371\":[240,546,21,28,21,0,-20],\"372\":[262,546,37,35,36,0,-35],\"373\":[300,546,30,28,29,0,-28],\"374\":[331,546,25,35,25,0,-35],\"375\":[357,546,20,36,20,0,-28],\"376\":[378,546,25,35,25,0,-35],\"377\":[404,546,23,35,23,0,-35],\"378\":[428,546,19,28,19,0,-28],\"379\":[448,546,23,35,23,0,-35],\"380\":[472,546,19,28,19,0,-28],\"381\":[0,584,23,35,23,0,-35],\"382\":[24,584,19,28,19,0,-28],\"383\":[44,584,11,28,9,-1,-28]},\"atlas\":\"data:image/png;base64,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\"}"),
+	48: /*#__PURE__*/ JSON.parse("{\"height\":59,\"ascent\":48,\"space\":10,\"smooth\":false,\"glyphs\":{\"32\":[0,0,10,0,10,0,0],\"33\":[11,0,15,36,15,0,-35],\"34\":[27,0,25,35,25,0,-35],\"35\":[53,0,31,35,30,-1,-35],\"36\":[85,0,30,45,30,0,-40],\"37\":[116,0,40,39,40,0,-37],\"38\":[157,0,32,37,31,0,-36],\"39\":[190,0,15,35,15,0,-35],\"40\":[206,0,17,45,16,0,-38],\"41\":[224,0,17,45,16,0,-38],\"42\":[242,0,26,35,26,0,-35],\"43\":[269,0,31,27,31,0,-27],\"44\":[301,0,15,15,15,0,-5],\"45\":[317,0,21,18,21,0,-18],\"46\":[339,0,15,9,15,0,-8],\"47\":[355,0,19,43,17,-1,-37],\"48\":[375,0,31,37,31,0,-36],\"49\":[407,0,19,35,19,0,-35],\"50\":[427,0,29,36,29,0,-36],\"51\":[457,0,30,37,30,0,-36],\"52\":[0,46,31,35,31,0,-35],\"53\":[32,46,29,36,29,0,-35],\"54\":[62,46,30,37,30,0,-36],\"55\":[93,46,26,35,26,0,-35],\"56\":[120,46,30,37,30,0,-36],\"57\":[151,46,30,37,30,0,-36],\"58\":[182,46,15,26,15,0,-25],\"59\":[198,46,15,35,15,0,-25],\"60\":[214,46,31,28,31,0,-28],\"61\":[246,46,31,23,31,0,-23],\"62\":[278,46,31,28,31,0,-28],\"63\":[310,46,25,37,25,0,-36],\"64\":[336,46,48,46,48,0,-35],\"65\":[385,46,34,35,34,0,-35],\"66\":[420,46,30,35,30,0,-35],\"67\":[451,46,35,37,35,0,-36],\"68\":[0,93,33,35,33,0,-35],\"69\":[34,93,28,35,28,0,-35],\"70\":[63,93,27,35,27,0,-35],\"71\":[91,93,35,37,35,0,-36],\"72\":[127,93,34,35,34,0,-35],\"73\":[162,93,12,35,12,0,-35],\"74\":[175,93,26,36,26,0,-35],\"75\":[202,93,32,35,32,0,-35],\"76\":[235,93,26,35,26,0,-35],\"77\":[262,93,42,35,42,0,-35],\"78\":[305,93,34,35,34,0,-35],\"79\":[340,93,36,37,36,0,-36],\"80\":[377,93,30,35,30,0,-35],\"81\":[408,93,36,39,36,0,-36],\"82\":[445,93,30,35,30,0,-35],\"83\":[476,93,30,37,30,0,-36],\"84\":[0,133,31,35,31,0,-35],\"85\":[32,133,33,36,33,0,-35],\"86\":[66,133,34,35,34,0,-35],\"87\":[101,133,49,35,48,0,-35],\"88\":[151,133,33,35,33,0,-35],\"89\":[185,133,33,35,33,0,-35],\"90\":[219,133,30,35,30,0,-35],\"91\":[250,133,17,45,16,0,-38],\"92\":[268,133,19,43,17,-1,-37],\"93\":[288,133,17,45,16,0,-38],\"94\":[306,133,22,35,22,0,-35],\"95\":[329,133,24,6,21,-1,0],\"96\":[354,133,21,37,21,0,-37],\"97\":[376,133,26,28,26,0,-27],\"98\":[403,133,29,36,29,0,-35],\"99\":[433,133,27,28,27,0,-27],\"100\":[461,133,29,36,29,0,-35],\"101\":[0,179,27,28,27,0,-27],\"102\":[28,179,18,37,17,0,-37],\"103\":[47,179,29,38,29,0,-27],\"104\":[77,179,29,35,28,0,-35],\"105\":[107,179,12,37,12,0,-37],\"106\":[120,179,15,47,12,-3,-37],\"107\":[136,179,27,35,26,0,-35],\"108\":[164,179,12,35,12,0,-35],\"109\":[177,179,42,27,42,0,-27],\"110\":[220,179,28,27,28,0,-27],\"111\":[249,179,28,28,28,0,-27],\"112\":[278,179,29,37,29,0,-27],\"113\":[308,179,29,37,29,0,-27],\"114\":[338,179,18,27,18,0,-27],\"115\":[357,179,25,28,25,0,-27],\"116\":[383,179,17,34,17,0,-33],\"117\":[401,179,28,28,28,0,-27],\"118\":[430,179,27,27,27,0,-27],\"119\":[458,179,40,27,39,0,-27],\"120\":[0,227,26,27,26,0,-27],\"121\":[27,227,27,37,27,0,-27],\"122\":[55,227,26,27,26,0,-27],\"123\":[82,227,21,45,21,0,-38],\"124\":[104,227,16,59,16,0,-47],\"125\":[121,227,21,45,21,0,-38],\"126\":[143,227,31,20,31,0,-20],\"127\":[175,227,24,59,24,0,-47],\"128\":[200,227,24,59,24,0,-47],\"129\":[225,227,24,59,24,0,-47],\"130\":[250,227,24,59,24,0,-47],\"131\":[275,227,24,59,24,0,-47],\"132\":[300,227,24,59,24,0,-47],\"133\":[325,227,24,59,24,0,-47],\"134\":[350,227,24,59,24,0,-47],\"135\":[375,227,24,59,24,0,-47],\"136\":[400,227,24,59,24,0,-47],\"137\":[425,227,24,59,24,0,-47],\"138\":[450,227,24,59,24,0,-47],\"139\":[475,227,24,59,24,0,-47],\"140\":[0,287,24,59,24,0,-47],\"141\":[25,287,24,59,24,0,-47],\"142\":[50,287,24,59,24,0,-47],\"143\":[75,287,24,59,24,0,-47],\"144\":[100,287,24,59,24,0,-47],\"145\":[125,287,24,59,24,0,-47],\"146\":[150,287,24,59,24,0,-47],\"147\":[175,287,24,59,24,0,-47],\"148\":[200,287,24,59,24,0,-47],\"149\":[225,287,24,59,24,0,-47],\"150\":[250,287,24,59,24,0,-47],\"151\":[275,287,24,59,24,0,-47],\"152\":[300,287,24,59,24,0,-47],\"153\":[325,287,24,59,24,0,-47],\"154\":[350,287,24,59,24,0,-47],\"155\":[375,287,24,59,24,0,-47],\"156\":[400,287,24,59,24,0,-47],\"157\":[425,287,24,59,24,0,-47],\"158\":[450,287,24,59,24,0,-47],\"159\":[475,287,24,59,24,0,-47],\"160\":[500,287,10,0,10,0,0],\"161\":[0,347,15,36,15,0,-27],\"162\":[16,347,27,35,27,0,-35],\"163\":[44,347,31,36,31,0,-36],\"164\":[76,347,35,31,35,0,-30],\"165\":[112,347,28,35,26,-1,-35],\"166\":[141,347,15,42,15,0,-35],\"167\":[157,347,27,44,27,0,-36],\"168\":[185,347,24,37,24,0,-37],\"169\":[210,347,42,37,42,0,-36],\"170\":[253,347,22,35,22,0,-35],\"171\":[276,347,29,25,29,0,-25],\"172\":[306,347,26,19,26,0,-19],\"173\":[333,347,0,0,1,0,0],\"174\":[334,347,30,36,30,0,-36],\"175\":[365,347,26,35,26,0,-35],\"176\":[392,347,20,36,20,0,-36],\"177\":[413,347,31,28,31,0,-28],\"178\":[445,347,19,39,19,0,-39],\"179\":[465,347,20,39,20,0,-39],\"180\":[486,347,21,37,21,0,-37],\"181\":[0,392,30,37,30,0,-27],\"182\":[31,392,28,35,28,0,-35],\"183\":[60,392,15,20,15,0,-20],\"184\":[76,392,16,13,16,0,-1],\"185\":[93,392,14,39,14,0,-39],\"186\":[108,392,22,35,22,0,-35],\"187\":[131,392,29,25,29,0,-25],\"188\":[161,392,41,35,41,0,-35],\"189\":[203,392,42,35,42,0,-35],\"190\":[246,392,45,35,45,0,-35],\"191\":[292,392,25,37,25,0,-27],\"192\":[318,392,34,46,34,0,-46],\"193\":[353,392,34,46,34,0,-46],\"194\":[388,392,34,46,34,0,-46],\"195\":[423,392,34,45,34,0,-45],\"196\":[458,392,34,46,34,0,-46],\"197\":[0,439,34,48,34,0,-48],\"198\":[35,439,48,35,48,0,-35],\"199\":[84,439,35,48,35,0,-36],\"200\":[120,439,28,46,28,0,-46],\"201\":[149,439,28,46,28,0,-46],\"202\":[178,439,28,46,28,0,-46],\"203\":[207,439,28,46,28,0,-46],\"204\":[236,439,14,46,12,-2,-46],\"205\":[251,439,14,46,12,0,-46],\"206\":[266,439,20,46,12,-4,-46],\"207\":[287,439,18,46,12,-3,-46],\"208\":[306,439,36,35,33,-3,-35],\"209\":[343,439,34,45,34,0,-45],\"210\":[378,439,36,47,36,0,-46],\"211\":[415,439,36,47,36,0,-46],\"212\":[452,439,36,47,36,0,-46],\"213\":[0,488,36,46,36,0,-45],\"214\":[37,488,36,47,36,0,-46],\"215\":[74,488,31,27,31,0,-27],\"216\":[106,488,36,39,36,0,-37],\"217\":[143,488,33,47,33,0,-46],\"218\":[177,488,33,47,33,0,-46],\"219\":[211,488,33,47,33,0,-46],\"220\":[245,488,33,47,33,0,-46],\"221\":[279,488,33,46,33,0,-46],\"222\":[313,488,31,35,31,0,-35],\"223\":[345,488,30,36,30,0,-36],\"224\":[376,488,26,38,26,0,-37],\"225\":[403,488,26,38,26,0,-37],\"226\":[430,488,26,39,26,0,-38],\"227\":[457,488,26,37,26,0,-36],\"228\":[484,488,26,38,26,0,-37],\"229\":[0,536,26,42,26,0,-41],\"230\":[27,536,42,28,42,0,-27],\"231\":[70,536,27,39,27,0,-27],\"232\":[98,536,27,38,27,0,-37],\"233\":[126,536,27,38,27,0,-37],\"234\":[154,536,27,39,27,0,-38],\"235\":[182,536,27,38,27,0,-37],\"236\":[210,536,14,37,12,-2,-37],\"237\":[225,536,13,37,12,0,-37],\"238\":[239,536,20,38,12,-4,-38],\"239\":[260,536,19,37,12,-4,-37],\"240\":[280,536,27,38,27,0,-37],\"241\":[308,536,28,36,28,0,-36],\"242\":[337,536,28,38,28,0,-37],\"243\":[366,536,28,38,28,0,-37],\"244\":[395,536,28,39,28,0,-38],\"245\":[424,536,28,37,28,0,-36],\"246\":[453,536,28,38,28,0,-37],\"247\":[0,579,31,28,31,0,-28],\"248\":[32,579,28,30,28,0,-28],\"249\":[61,579,28,38,28,0,-37],\"250\":[90,579,28,38,28,0,-37],\"251\":[119,579,28,39,28,0,-38],\"252\":[148,579,28,38,28,0,-37],\"253\":[177,579,27,47,27,0,-37],\"254\":[205,579,29,45,29,0,-35],\"255\":[235,579,27,47,27,0,-37],\"256\":[263,579,34,44,34,0,-44],\"257\":[298,579,26,36,26,0,-35],\"258\":[325,579,34,46,34,0,-46],\"259\":[360,579,26,38,26,0,-37],\"260\":[387,579,35,45,34,0,-35],\"261\":[423,579,26,37,26,0,-27],\"262\":[450,579,35,47,35,0,-46],\"263\":[0,627,27,38,27,0,-37],\"264\":[28,627,35,47,35,0,-46],\"265\":[64,627,27,39,27,0,-38],\"266\":[92,627,35,47,35,0,-46],\"267\":[128,627,27,38,27,0,-37],\"268\":[156,627,35,48,35,0,-47],\"269\":[192,627,27,39,27,0,-38],\"270\":[220,627,33,47,33,0,-47],\"271\":[254,627,36,38,34,0,-37],\"272\":[291,627,36,35,33,-3,-35],\"273\":[328,627,30,36,29,0,-35],\"274\":[359,627,28,44,28,0,-44],\"275\":[388,627,27,36,27,0,-35],\"276\":[416,627,28,46,28,0,-46],\"277\":[445,627,27,38,27,0,-37],\"278\":[473,627,28,46,28,0,-46],\"279\":[0,676,27,38,27,0,-37],\"280\":[28,676,28,45,28,0,-35],\"281\":[57,676,27,36,27,0,-27],\"282\":[85,676,28,47,28,0,-47],\"283\":[114,676,27,39,27,0,-38],\"284\":[142,676,35,47,35,0,-46],\"285\":[178,676,29,49,29,0,-38],\"286\":[208,676,35,47,35,0,-46],\"287\":[244,676,29,48,29,0,-37],\"288\":[274,676,35,47,35,0,-46],\"289\":[310,676,29,48,29,0,-37],\"290\":[340,676,35,48,35,0,-36],\"291\":[376,676,29,52,29,0,-41],\"292\":[406,676,34,46,34,0,-46],\"293\":[441,676,33,46,28,-4,-46],\"294\":[0,729,37,35,37,0,-35],\"295\":[38,729,32,35,28,-3,-35],\"296\":[71,729,18,45,12,-3,-45],\"297\":[90,729,18,36,12,-3,-36],\"298\":[109,729,18,44,12,-3,-44],\"299\":[128,729,18,35,12,-3,-35],\"300\":[147,729,18,46,12,-3,-46],\"301\":[166,729,18,37,12,-3,-37],\"302\":[185,729,12,45,12,0,-35],\"303\":[198,729,14,47,12,-2,-37],\"304\":[213,729,12,46,12,0,-46],\"305\":[226,729,12,27,12,0,-27],\"306\":[239,729,38,36,38,0,-35],\"307\":[278,729,23,47,23,0,-37],\"308\":[302,729,30,47,26,0,-46],\"309\":[333,729,20,48,12,-4,-38],\"310\":[354,729,32,47,32,0,-35],\"311\":[387,729,27,47,26,0,-35],\"312\":[415,729,30,27,30,0,-27],\"313\":[446,729,26,46,26,0,-46],\"314\":[473,729,13,46,12,0,-46],\"315\":[0,778,26,47,26,0,-35],\"316\":[27,778,12,47,12,0,-35],\"317\":[40,778,26,37,26,0,-37],\"318\":[67,778,18,37,16,0,-37],\"319\":[86,778,26,35,26,0,-35],\"320\":[113,778,20,35,18,0,-35],\"321\":[134,778,28,35,27,-1,-35],\"322\":[163,778,15,35,12,-2,-35],\"323\":[179,778,34,46,34,0,-46],\"324\":[214,778,28,37,28,0,-37],\"325\":[243,778,34,47,34,0,-35],\"326\":[278,778,28,39,28,0,-27],\"327\":[307,778,34,47,34,0,-47],\"328\":[342,778,28,38,28,0,-38],\"329\":[371,778,24,59,24,0,-47],\"330\":[396,778,34,46,34,0,-35],\"331\":[431,778,28,37,28,0,-27],\"332\":[460,778,36,45,36,0,-44],\"333\":[0,838,28,36,28,0,-35],\"334\":[29,838,36,47,36,0,-46],\"335\":[66,838,28,38,28,0,-37],\"336\":[95,838,36,46,36,0,-45],\"337\":[132,838,28,37,28,0,-36],\"338\":[161,838,48,35,48,0,-35],\"339\":[210,838,46,28,46,0,-27],\"340\":[257,838,30,46,30,0,-46],\"341\":[288,838,18,37,18,0,-37],\"342\":[307,838,30,47,30,0,-35],\"343\":[338,838,18,39,18,0,-27],\"344\":[357,838,30,47,30,0,-47],\"345\":[388,838,20,38,18,0,-38],\"346\":[409,838,30,47,30,0,-46],\"347\":[440,838,25,38,25,0,-37],\"348\":[466,838,30,47,30,0,-46],\"349\":[0,886,25,39,25,0,-38],\"350\":[26,886,30,48,30,0,-36],\"351\":[57,886,25,39,25,0,-27],\"352\":[83,886,30,48,30,0,-47],\"353\":[114,886,25,39,25,0,-38],\"354\":[140,886,31,47,31,0,-35],\"355\":[172,886,18,45,17,0,-33],\"356\":[191,886,31,47,31,0,-47],\"357\":[223,886,20,40,19,0,-39],\"358\":[244,886,31,35,31,0,-35],\"359\":[276,886,17,34,17,0,-33],\"360\":[294,886,33,46,33,0,-45],\"361\":[328,886,28,37,28,0,-36],\"362\":[357,886,33,45,33,0,-44],\"363\":[391,886,28,36,28,0,-35],\"364\":[420,886,33,47,33,0,-46],\"365\":[454,886,28,38,28,0,-37],\"366\":[0,935,33,49,33,0,-48],\"367\":[34,935,28,42,28,0,-41],\"368\":[63,935,33,46,33,0,-45],\"369\":[97,935,28,37,28,0,-36],\"370\":[126,935,33,45,33,0,-35],\"371\":[160,935,28,37,28,0,-27],\"372\":[189,935,49,46,48,0,-46],\"373\":[239,935,40,38,39,0,-38],\"374\":[280,935,33,46,33,0,-46],\"375\":[314,935,27,48,27,0,-38],\"376\":[342,935,33,46,33,0,-46],\"377\":[376,935,30,46,30,0,-46],\"378\":[407,935,26,37,26,0,-37],\"379\":[434,935,30,46,30,0,-46],\"380\":[465,935,26,37,26,0,-37],\"381\":[0,985,30,47,30,0,-47],\"382\":[31,985,26,38,26,0,-38],\"383\":[58,985,14,37,12,-1,-37]},\"atlas\":\"data:image/png;base64,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\"}")
+}, Qe = /* @__PURE__ */ new Map(), $e = (e) => Ze[e]?.height ?? e;
+function et(e, t) {
+	let n = Ze[t];
+	if (!n) return 0;
+	let r = [...e], i = 0;
+	return r.forEach((e, t) => {
+		if (e === " " && n.smooth) {
+			i += n.space;
+			return;
+		}
+		let a = n.glyphs[e.codePointAt(0)];
+		if (!a) {
+			n.smooth && (i += n.space + 1);
+			return;
+		}
+		n.smooth && i === 0 && a[5] < 0 && (i -= a[5]), i += t < r.length - 1 ? a[4] : a[5] + a[2];
+	}), i;
 }
-const kt = class kt extends C {
-  constructor() {
-    super(...arguments), this.text = "", this.size = 13, this.color = "#d3d3d3", this.generation = 0;
-  }
-  render() {
-    return d`<canvas aria-hidden="true" width=${Math.max(1, Ie(this.text, this.size))} height=${mt(this.size)}></canvas>`;
-  }
-  updated() {
-    this.paint();
-  }
-  async paint() {
-    const e = ++this.generation, i = Ct[this.size];
-    if (!i) return;
-    dt.has(this.size) || dt.set(this.size, new Promise((l, n) => {
-      const h = new Image();
-      h.onload = () => l(h), h.onerror = n, h.src = i.atlas;
-    }));
-    const a = await dt.get(this.size);
-    if (e !== this.generation || !this.isConnected) return;
-    const s = this.shadowRoot.querySelector("canvas"), r = s.getContext("2d");
-    r.clearRect(0, 0, s.width, s.height);
-    let o = 0;
-    for (const l of this.text) {
-      if (l === " " && i.smooth) {
-        o += i.space;
-        continue;
-      }
-      const n = i.glyphs[l.codePointAt(0)];
-      if (!n) {
-        i.smooth && (o += i.space + 1);
-        continue;
-      }
-      const [h, u, A, m, f, b, P] = n;
-      i.smooth && o === 0 && b < 0 && (o -= b), A && m && r.drawImage(a, h, u, A, m, o + b, i.ascent + P, A, m), o += f;
-    }
-    r.globalCompositeOperation = "source-in", r.fillStyle = this.color, r.fillRect(0, 0, s.width, s.height), r.globalCompositeOperation = "source-over";
-  }
+var tt = class extends I {
+	constructor(...e) {
+		super(...e), this.text = "", this.size = 13, this.color = "#d3d3d3", this.generation = 0;
+	}
+	static {
+		this.styles = o`:host {display:block; pointer-events:none} canvas {display:block; max-width:none; image-rendering:pixelated}`;
+	}
+	render() {
+		return D`<canvas aria-hidden="true" width=${Math.max(1, et(this.text, this.size))} height=${$e(this.size)}></canvas>`;
+	}
+	updated() {
+		this.paint();
+	}
+	async paint() {
+		let e = ++this.generation, t = Ze[this.size];
+		if (!t) return;
+		Qe.has(this.size) || Qe.set(this.size, new Promise((e, n) => {
+			let r = new Image();
+			r.onload = () => e(r), r.onerror = n, r.src = t.atlas;
+		}));
+		let n = await Qe.get(this.size);
+		if (e !== this.generation || !this.isConnected) return;
+		let r = this.shadowRoot.querySelector("canvas"), i = r.getContext("2d");
+		i.clearRect(0, 0, r.width, r.height);
+		let a = 0;
+		for (let e of this.text) {
+			if (e === " " && t.smooth) {
+				a += t.space;
+				continue;
+			}
+			let r = t.glyphs[e.codePointAt(0)];
+			if (!r) {
+				t.smooth && (a += t.space + 1);
+				continue;
+			}
+			let [o, s, c, l, u, d, f] = r;
+			t.smooth && a === 0 && d < 0 && (a -= d), c && l && i.drawImage(n, o, s, c, l, a + d, t.ascent + f, c, l), a += u;
+		}
+		i.globalCompositeOperation = "source-in", i.fillStyle = this.color, i.fillRect(0, 0, r.width, r.height), i.globalCompositeOperation = "source-over";
+	}
 };
-kt.styles = z`:host {display:block; pointer-events:none} canvas {display:block; max-width:none; image-rendering:pixelated}`;
-let we = kt;
-Bt([
-  g()
-], we.prototype, "text");
-Bt([
-  g({ type: Number })
-], we.prototype, "size");
-Bt([
-  g()
-], we.prototype, "color");
-customElements.define("mini-display-firmware-text", we);
-const ua = z`
+B([R()], tt.prototype, "text", void 0), B([R({ type: Number })], tt.prototype, "size", void 0), B([R()], tt.prototype, "color", void 0), customElements.define("mini-display-firmware-text", tt);
+//#endregion
+//#region src/preview-styles.ts
+var nt = o`
   .free-layout .group,
   .free-layout .row {
     display: contents;
@@ -1435,772 +1501,667 @@ const ua = z`
       box-shadow: none;
     }
   }
-`;
-class ma {
-  valueFontSize(e, i, a, s) {
-    const r = [18, 24, 36, 48], o = r.map(mt), l = e.valueStyle?.fontSize ?? "auto";
-    let n = l === "small" ? 0 : l === "medium" ? 1 : l === "large" ? 2 : l === "xlarge" || s >= 58 ? 3 : s >= 42 ? 2 : s >= 28 ? 1 : 0;
-    if ((e.valueStyle?.textFlow ?? "default") !== "default")
-      return r[l === "auto" ? Math.min(n, 1) : n];
-    for (; n > 0 && !(o[n] <= s && Ie(i, r[n]) <= a - 6); )
-      n -= 1;
-    return r[n];
-  }
-  fontLineHeight(e) {
-    return mt(e);
-  }
-  titleFontSize(e, i, a, s, r) {
-    const o = e.titleStyle?.fontSize ?? "auto", l = e.titleStyle?.fontFamily ?? "sans", n = ["default", "sans", "sans-bold"].includes(l);
-    if (o !== "auto")
-      return { small: n ? 13 : 18, medium: 24, large: 36, xlarge: 48 }[o];
-    if ((e.titleStyle?.textFlow ?? "default") !== "default")
-      return n ? 13 : 24;
-    const h = r >= 48 ? 24 : r >= 24 ? 18 : 13, u = [48, 36, 24, 18, 13].filter(
-      (A) => A <= h && (A !== 13 || n)
-    );
-    for (const A of u)
-      if (!(this.fontLineHeight(A) > s) && Ie(i, A) <= a - 6)
-        return A;
-    return n ? 13 : 18;
-  }
-  freeFontSize(e, i, a, s) {
-    const r = ["default", "sans", "sans-bold"].includes(
-      i?.fontFamily ?? "default"
-    );
-    return [48, 36, 24, 18, ...r ? [13] : []].find(
-      (o) => this.fontLineHeight(o) <= s && Ie(e, o) <= a - 8
-    ) ?? (r ? 13 : 18);
-  }
-  textEffectCss(e) {
-    const i = e?.textEffect ?? "none";
-    if (i === "none") return "";
-    const a = e?.effectColor ?? "background", s = L[a] ?? a, r = Math.max(
-      1,
-      Math.min(3, Math.round(e?.effectThickness ?? 1))
-    ), o = [];
-    if (i === "outline")
-      for (let l = 1; l <= r; l += 1)
-        for (const [n, h] of [
-          [-l, 0],
-          [l, 0],
-          [0, -l],
-          [0, l],
-          [-l, -l],
-          [l, -l],
-          [-l, l],
-          [l, l]
-        ])
-          o.push(`${n}px ${h}px 0 ${s}`);
-    else {
-      const l = Math.max(-6, Math.min(6, e?.effectOffsetX ?? 2)), n = Math.max(-6, Math.min(6, e?.effectOffsetY ?? 2)), h = r - 1;
-      for (let u = -h; u <= h; u += 1)
-        for (let A = -h; A <= h; A += 1)
-          o.push(`${l + u}px ${n + A}px 0 ${s}`);
-    }
-    return `text-shadow:${o.join(",")}`;
-  }
-  textFlowCss(e, i) {
-    return e?.textFlow === "overflow" ? "white-space:pre;overflow:visible;max-width:none;flex-shrink:0;text-overflow:clip" : e?.textFlow === "wrap" ? `white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden;max-width:100%;max-height:min(100%,${6 * this.fontLineHeight(i)}px);line-height:${this.fontLineHeight(i)}px;text-overflow:clip` : "";
-  }
-}
-class fa {
-  constructor(e) {
-    this.host = e, this.down = (i) => {
-      this.pointerDown(i), this.host.requestUpdate();
-    }, this.move = (i) => {
-      !this.freeDrag && !this.pointerCandidate || (this.pointerMove(i), this.host.requestUpdate());
-    }, this.up = (i) => {
-      !this.freeDrag && !this.pointerCandidate || (this.pointerUp(i), this.host.requestUpdate());
-    }, this.cancel = (i) => {
-      !this.freeDrag && !this.pointerCandidate || (this.pointerCancel(i), this.host.requestUpdate());
-    }, this.dragTarget = "", this.dragPoint = { x: 0, y: 0 }, this.suppressClickUntil = 0, this.preventClickAfterDrag = (i) => {
-      Date.now() >= this.suppressClickUntil || (i.preventDefault(), i.stopImmediatePropagation());
-    }, this.pointerDown = (i) => {
-      if (!this.interactive) return;
-      const a = this.dashboard?.pages[this.page];
-      if (a?.layout === "free") {
-        const y = i.composedPath().filter((W) => W instanceof HTMLElement), j = y.find((W) => W.classList.contains("card"));
-        if (!j || i.pointerType === "mouse" && i.button !== 0)
-          return;
-        const se = Number(j.dataset.row), Ae = Number(j.dataset.card), K = a.rows[se]?.cards[Ae];
-        if (!K?.frame) return;
-        const pe = y.find((W) => W.dataset.part)?.dataset.part ?? "card", Be = Xe(K, pe);
-        i.preventDefault(), this.freeDrag = {
-          row: se,
-          card: Ae,
-          part: pe,
-          pointerId: i.pointerId,
-          startX: i.clientX,
-          startY: i.clientY,
-          resize: y.some(
-            (W) => W.classList.contains("resize-handle")
-          ),
-          moved: !1,
-          start: { ...Be },
-          frame: { ...Be }
-        };
-        return;
-      }
-      const s = i.composedPath().filter((y) => y instanceof HTMLElement), r = s.find(
-        (y) => y.matches?.(".card-label,.value,.page-title span")
-      );
-      if (!r) return;
-      if (r.matches(".page-title span")) {
-        this.startPointer(i, {
-          kind: "page-title",
-          label: r.textContent?.trim() || "Page title"
-        });
-        return;
-      }
-      const o = s.find((y) => y.classList?.contains("card")), l = s.find((y) => y.classList?.contains("group"));
-      if (!o || !l) return;
-      const n = Array.from(
-        this.shadowRoot?.querySelectorAll(".group") ?? []
-      ), h = Array.from(
-        l.querySelectorAll(".card")
-      ), u = n.indexOf(l), A = h.indexOf(o), m = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
-      if (!m || u < 0 || A < 0) return;
-      const f = m.rows.map((y, j) => {
-        const se = Ye(this.hass, y.visibility), Ae = y.cards.map((K, pe) => ({
-          cardIndex: pe,
-          hidden: !se || !Ye(this.hass, K.visibility, K)
-        })).filter(({ hidden: K }) => this.showHidden || !K);
-        return { rowIndex: j, cards: Ae };
-      }).filter(({ cards: y }) => y.length > 0), b = f[u]?.rowIndex, P = f[u]?.cards[A]?.cardIndex;
-      b === void 0 || P === void 0 || this.startPointer(
-        i,
-        {
-          kind: r.classList.contains("card-label") ? "title" : "value",
-          row: b,
-          card: P,
-          label: r.getAttribute("aria-label") || r.textContent?.trim() || (r.classList.contains("card-label") ? "Title" : "Value")
-        },
-        o
-      );
-    }, this.pointerMove = (i) => {
-      if (this.freeDrag?.pointerId === i.pointerId) {
-        const A = this.freeDrag, m = this.shadowRoot.querySelector(".screen").getBoundingClientRect(), f = (i.clientX - A.startX) * 100 / m.width, b = (i.clientY - A.startY) * 100 / m.height;
-        if (!A.moved && Math.hypot(i.clientX - A.startX, i.clientY - A.startY) < 4)
-          return;
-        i.preventDefault();
-        const P = (j) => Math.round(j * 2) / 2, y = A.resize ? {
-          ...A.start,
-          width: Math.min(
-            100 - A.start.x,
-            Math.max(2, P(A.start.width + f))
-          ),
-          height: Math.min(
-            100 - A.start.y,
-            Math.max(2, P(A.start.height + b))
-          )
-        } : {
-          ...A.start,
-          x: Math.min(100 - A.start.width, Math.max(0, P(A.start.x + f))),
-          y: Math.min(
-            100 - A.start.height,
-            Math.max(0, P(A.start.y + b))
-          )
-        };
-        this.freeDrag = { ...A, moved: !0, frame: y };
-        return;
-      }
-      const a = this.pointerCandidate;
-      if (!a || a.pointerId !== i.pointerId) return;
-      const s = Math.hypot(
-        i.clientX - a.startX,
-        i.clientY - a.startY
-      );
-      if (!this.dragging && s < 5) return;
-      i.preventDefault(), this.dragging || (this.dragging = {
-        kind: a.kind,
-        row: a.row,
-        card: a.card,
-        label: a.label
-      }), this.dragPoint = { x: i.clientX, y: i.clientY };
-      const r = this.shadowRoot?.querySelector(".screen");
-      if (!r) return;
-      const o = r.getBoundingClientRect();
-      if (i.clientX < o.left || i.clientX > o.right || i.clientY < o.top || i.clientY > o.bottom) {
-        this.dragTarget = "";
-        return;
-      }
-      if (a.kind === "page-title") {
-        const A = [
-          { target: "top", value: i.clientY - o.top },
-          { target: "right", value: o.right - i.clientX },
-          { target: "bottom", value: o.bottom - i.clientY },
-          { target: "left", value: i.clientX - o.left }
-        ];
-        this.dragTarget = A.reduce(
-          (m, f) => f.value < m.value ? f : m
-        ).target;
-        return;
-      }
-      const l = a.cardElement;
-      if (!l) return;
-      const n = l.getBoundingClientRect();
-      if (i.clientX < n.left || i.clientX > n.right || i.clientY < n.top || i.clientY > n.bottom) {
-        this.dragTarget = "";
-        return;
-      }
-      const h = ["left", "center", "right"][Math.min(2, Math.floor((i.clientX - n.left) / (n.width / 3)))], u = ["top", "middle", "bottom"][Math.min(2, Math.floor((i.clientY - n.top) / (n.height / 3)))];
-      this.dragTarget = `${h}-${u}`;
-    }, this.pointerUp = (i) => {
-      if (this.freeDrag?.pointerId === i.pointerId) {
-        const s = this.freeDrag;
-        this.freeDrag = void 0, this.suppressClickUntil = Date.now() + 350, this.emit(
-          s.moved ? "preview-frame" : "preview-select",
-          s.moved ? { row: s.row, card: s.card, part: s.part, frame: s.frame } : { row: s.row, card: s.card, kind: s.part }
-        );
-        return;
-      }
-      const a = this.pointerCandidate;
-      if (!(!a || a.pointerId !== i.pointerId)) {
-        if (this.dragging) {
-          if (i.preventDefault(), i.stopPropagation(), a.kind === "page-title" && ["top", "right", "bottom", "left"].includes(this.dragTarget))
-            this.emit("preview-position", {
-              kind: "page-title",
-              position: this.dragTarget
-            });
-          else {
-            const [s, r] = this.dragTarget.split("-");
-            ["left", "center", "right"].includes(s) && ["top", "middle", "bottom"].includes(r) && this.emit("preview-position", {
-              kind: a.kind,
-              row: a.row,
-              card: a.card,
-              horizontalAlign: s,
-              verticalAlign: r
-            });
-          }
-          this.suppressClickUntil = Date.now() + 350;
-        } else
-          this.emit("preview-select", {
-            kind: a.kind,
-            row: a.row,
-            card: a.card
-          }), this.suppressClickUntil = Date.now() + 100;
-        this.stopDrag();
-      }
-    }, this.pointerCancel = (i) => {
-      this.freeDrag?.pointerId === i.pointerId && (this.freeDrag = void 0), this.pointerCandidate?.pointerId === i.pointerId && this.stopDrag();
-    }, e.addController(this);
-  }
-  get dashboard() {
-    return this.host.dashboard;
-  }
-  get hass() {
-    return this.host.hass;
-  }
-  get page() {
-    return this.host.page;
-  }
-  get autoPage() {
-    return this.host.autoPage;
-  }
-  get autoRotate() {
-    return this.host.autoRotate;
-  }
-  get interactive() {
-    return this.host.interactive;
-  }
-  get showHidden() {
-    return this.host.showHidden;
-  }
-  get shadowRoot() {
-    return this.host.shadowRoot;
-  }
-  emit(e, i) {
-    this.host.emit(e, i);
-  }
-  hostConnected() {
-    this.host.addEventListener("pointerdown", this.down), this.host.addEventListener("click", this.preventClickAfterDrag, !0), window.addEventListener("pointermove", this.move, { passive: !1 }), window.addEventListener("pointerup", this.up, !0), window.addEventListener("pointercancel", this.cancel, !0);
-  }
-  hostDisconnected() {
-    this.host.removeEventListener("pointerdown", this.down), this.host.removeEventListener("click", this.preventClickAfterDrag, !0), window.removeEventListener("pointermove", this.move), window.removeEventListener("pointerup", this.up, !0), window.removeEventListener("pointercancel", this.cancel, !0), this.freeDrag = void 0, this.stopDrag();
-  }
-  clickSelect(e, i) {
-    e.stopPropagation(), !(Date.now() < this.suppressClickUntil) && this.emit("preview-select", i);
-  }
-  startPointer(e, i, a) {
-    !this.interactive || e.pointerType === "mouse" && e.button !== 0 || (e.preventDefault(), e.stopPropagation(), this.pointerCandidate = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      ...i,
-      cardElement: a
-    });
-  }
-  startDrag(e, i) {
-    e.preventDefault();
-  }
-  stopDrag() {
-    this.pointerCandidate = void 0, this.dragging = void 0, this.dragTarget = "";
-  }
-  positionGrid(e, i) {
-    if (!this.dragging || this.dragging.kind === "page-title" || this.dragging.row !== e || this.dragging.card !== i)
-      return null;
-    const a = ["left", "center", "right"];
-    return d`<div class="drop-grid" aria-label="Choose text position">
-      ${["top", "middle", "bottom"].flatMap(
-      (r) => a.map((o) => {
-        const l = `${o}-${r}`;
-        return d`<div
-            class="drop-cell ${this.dragTarget === l ? "active" : ""}"
+`, rt = class {
+	valueFontSize(e, t, n, r) {
+		let i = [
+			18,
+			24,
+			36,
+			48
+		], a = i.map($e), o = e.valueStyle?.fontSize ?? "auto", s = o === "small" ? 0 : o === "medium" ? 1 : o === "large" ? 2 : o === "xlarge" || r >= 58 ? 3 : r >= 42 ? 2 : +(r >= 28);
+		if ((e.valueStyle?.textFlow ?? "default") !== "default") return i[o === "auto" ? Math.min(s, 1) : s];
+		for (; s > 0 && !(a[s] <= r && et(t, i[s]) <= n - 6);) --s;
+		return i[s];
+	}
+	fontLineHeight(e) {
+		return $e(e);
+	}
+	titleFontSize(e, t, n, r, i) {
+		let a = e.titleStyle?.fontSize ?? "auto", o = e.titleStyle?.fontFamily ?? "sans", s = [
+			"default",
+			"sans",
+			"sans-bold"
+		].includes(o);
+		if (a !== "auto") return {
+			small: s ? 13 : 18,
+			medium: 24,
+			large: 36,
+			xlarge: 48
+		}[a];
+		if ((e.titleStyle?.textFlow ?? "default") !== "default") return s ? 13 : 24;
+		let c = i >= 48 ? 24 : i >= 24 ? 18 : 13, l = [
+			48,
+			36,
+			24,
+			18,
+			13
+		].filter((e) => e <= c && (e !== 13 || s));
+		for (let e of l) if (!(this.fontLineHeight(e) > r) && et(t, e) <= n - 6) return e;
+		return s ? 13 : 18;
+	}
+	freeFontSize(e, t, n, r) {
+		let i = [
+			"default",
+			"sans",
+			"sans-bold"
+		].includes(t?.fontFamily ?? "default");
+		return [
+			48,
+			36,
+			24,
+			18,
+			...i ? [13] : []
+		].find((t) => this.fontLineHeight(t) <= r && et(e, t) <= n - 8) ?? (i ? 13 : 18);
+	}
+	textEffectCss(e) {
+		let t = e?.textEffect ?? "none";
+		if (t === "none") return "";
+		let n = e?.effectColor ?? "background", r = V[n] ?? n, i = Math.max(1, Math.min(3, Math.round(e?.effectThickness ?? 1))), a = [];
+		if (t === "outline") for (let e = 1; e <= i; e += 1) for (let [t, n] of [
+			[-e, 0],
+			[e, 0],
+			[0, -e],
+			[0, e],
+			[-e, -e],
+			[e, -e],
+			[-e, e],
+			[e, e]
+		]) a.push(`${t}px ${n}px 0 ${r}`);
+		else {
+			let t = Math.max(-6, Math.min(6, e?.effectOffsetX ?? 2)), n = Math.max(-6, Math.min(6, e?.effectOffsetY ?? 2)), o = i - 1;
+			for (let e = -o; e <= o; e += 1) for (let i = -o; i <= o; i += 1) a.push(`${t + e}px ${n + i}px 0 ${r}`);
+		}
+		return `text-shadow:${a.join(",")}`;
+	}
+	textFlowCss(e, t) {
+		return e?.textFlow === "overflow" ? "white-space:pre;overflow:visible;max-width:none;flex-shrink:0;text-overflow:clip" : e?.textFlow === "wrap" ? `white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden;max-width:100%;max-height:min(100%,${6 * this.fontLineHeight(t)}px);line-height:${this.fontLineHeight(t)}px;text-overflow:clip` : "";
+	}
+}, it = class {
+	constructor(e) {
+		this.host = e, this.down = (e) => {
+			this.pointerDown(e), this.host.requestUpdate();
+		}, this.move = (e) => {
+			(this.freeDrag || this.pointerCandidate) && (this.pointerMove(e), this.host.requestUpdate());
+		}, this.up = (e) => {
+			(this.freeDrag || this.pointerCandidate) && (this.pointerUp(e), this.host.requestUpdate());
+		}, this.cancel = (e) => {
+			(this.freeDrag || this.pointerCandidate) && (this.pointerCancel(e), this.host.requestUpdate());
+		}, this.dragTarget = "", this.dragPoint = {
+			x: 0,
+			y: 0
+		}, this.suppressClickUntil = 0, this.preventClickAfterDrag = (e) => {
+			Date.now() >= this.suppressClickUntil || (e.preventDefault(), e.stopImmediatePropagation());
+		}, this.pointerDown = (e) => {
+			if (!this.interactive) return;
+			let t = this.dashboard?.pages[this.page];
+			if (t?.layout === "free") {
+				let n = e.composedPath().filter((e) => e instanceof HTMLElement), r = n.find((e) => e.classList.contains("card"));
+				if (!r || e.pointerType === "mouse" && e.button !== 0) return;
+				let i = Number(r.dataset.row), a = Number(r.dataset.card), o = t.rows[i]?.cards[a];
+				if (!o?.frame) return;
+				let s = n.find((e) => e.dataset.part)?.dataset.part ?? "card", c = Ve(o, s);
+				e.preventDefault(), this.freeDrag = {
+					row: i,
+					card: a,
+					part: s,
+					pointerId: e.pointerId,
+					startX: e.clientX,
+					startY: e.clientY,
+					resize: n.some((e) => e.classList.contains("resize-handle")),
+					moved: !1,
+					start: { ...c },
+					frame: { ...c }
+				};
+				return;
+			}
+			let n = e.composedPath().filter((e) => e instanceof HTMLElement), r = n.find((e) => e.matches?.(".card-label,.value,.page-title span"));
+			if (!r) return;
+			if (r.matches(".page-title span")) {
+				this.startPointer(e, {
+					kind: "page-title",
+					label: r.textContent?.trim() || "Page title"
+				});
+				return;
+			}
+			let i = n.find((e) => e.classList?.contains("card")), a = n.find((e) => e.classList?.contains("group"));
+			if (!i || !a) return;
+			let o = Array.from(this.shadowRoot?.querySelectorAll(".group") ?? []), s = Array.from(a.querySelectorAll(".card")), c = o.indexOf(a), l = s.indexOf(i), u = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page];
+			if (!u || c < 0 || l < 0) return;
+			let d = u.rows.map((e, t) => {
+				let n = Xe(this.hass, e.visibility);
+				return {
+					rowIndex: t,
+					cards: e.cards.map((e, t) => ({
+						cardIndex: t,
+						hidden: !n || !Xe(this.hass, e.visibility, e)
+					})).filter(({ hidden: e }) => this.showHidden || !e)
+				};
+			}).filter(({ cards: e }) => e.length > 0), f = d[c]?.rowIndex, p = d[c]?.cards[l]?.cardIndex;
+			f !== void 0 && p !== void 0 && this.startPointer(e, {
+				kind: r.classList.contains("card-label") ? "title" : "value",
+				row: f,
+				card: p,
+				label: r.getAttribute("aria-label") || r.textContent?.trim() || (r.classList.contains("card-label") ? "Title" : "Value")
+			}, i);
+		}, this.pointerMove = (e) => {
+			if (this.freeDrag?.pointerId === e.pointerId) {
+				let t = this.freeDrag, n = this.shadowRoot.querySelector(".screen").getBoundingClientRect(), r = (e.clientX - t.startX) * 100 / n.width, i = (e.clientY - t.startY) * 100 / n.height;
+				if (!t.moved && Math.hypot(e.clientX - t.startX, e.clientY - t.startY) < 4) return;
+				e.preventDefault();
+				let a = (e) => Math.round(e * 2) / 2, o = t.resize ? {
+					...t.start,
+					width: Math.min(100 - t.start.x, Math.max(2, a(t.start.width + r))),
+					height: Math.min(100 - t.start.y, Math.max(2, a(t.start.height + i)))
+				} : {
+					...t.start,
+					x: Math.min(100 - t.start.width, Math.max(0, a(t.start.x + r))),
+					y: Math.min(100 - t.start.height, Math.max(0, a(t.start.y + i)))
+				};
+				this.freeDrag = {
+					...t,
+					moved: !0,
+					frame: o
+				};
+				return;
+			}
+			let t = this.pointerCandidate;
+			if (!t || t.pointerId !== e.pointerId) return;
+			let n = Math.hypot(e.clientX - t.startX, e.clientY - t.startY);
+			if (!this.dragging && n < 5) return;
+			e.preventDefault(), this.dragging ||= {
+				kind: t.kind,
+				row: t.row,
+				card: t.card,
+				label: t.label
+			}, this.dragPoint = {
+				x: e.clientX,
+				y: e.clientY
+			};
+			let r = this.shadowRoot?.querySelector(".screen");
+			if (!r) return;
+			let i = r.getBoundingClientRect();
+			if (e.clientX < i.left || e.clientX > i.right || e.clientY < i.top || e.clientY > i.bottom) {
+				this.dragTarget = "";
+				return;
+			}
+			if (t.kind === "page-title") {
+				let t = [
+					{
+						target: "top",
+						value: e.clientY - i.top
+					},
+					{
+						target: "right",
+						value: i.right - e.clientX
+					},
+					{
+						target: "bottom",
+						value: i.bottom - e.clientY
+					},
+					{
+						target: "left",
+						value: e.clientX - i.left
+					}
+				];
+				this.dragTarget = t.reduce((e, t) => t.value < e.value ? t : e).target;
+				return;
+			}
+			let a = t.cardElement;
+			if (!a) return;
+			let o = a.getBoundingClientRect();
+			if (e.clientX < o.left || e.clientX > o.right || e.clientY < o.top || e.clientY > o.bottom) {
+				this.dragTarget = "";
+				return;
+			}
+			let s = [
+				"left",
+				"center",
+				"right"
+			][Math.min(2, Math.floor((e.clientX - o.left) / (o.width / 3)))], c = [
+				"top",
+				"middle",
+				"bottom"
+			][Math.min(2, Math.floor((e.clientY - o.top) / (o.height / 3)))];
+			this.dragTarget = `${s}-${c}`;
+		}, this.pointerUp = (e) => {
+			if (this.freeDrag?.pointerId === e.pointerId) {
+				let e = this.freeDrag;
+				this.freeDrag = void 0, this.suppressClickUntil = Date.now() + 350, this.emit(e.moved ? "preview-frame" : "preview-select", e.moved ? {
+					row: e.row,
+					card: e.card,
+					part: e.part,
+					frame: e.frame
+				} : {
+					row: e.row,
+					card: e.card,
+					kind: e.part
+				});
+				return;
+			}
+			let t = this.pointerCandidate;
+			if (t && t.pointerId === e.pointerId) {
+				if (this.dragging) {
+					if (e.preventDefault(), e.stopPropagation(), t.kind === "page-title" && [
+						"top",
+						"right",
+						"bottom",
+						"left"
+					].includes(this.dragTarget)) this.emit("preview-position", {
+						kind: "page-title",
+						position: this.dragTarget
+					});
+					else {
+						let [e, n] = this.dragTarget.split("-");
+						[
+							"left",
+							"center",
+							"right"
+						].includes(e) && [
+							"top",
+							"middle",
+							"bottom"
+						].includes(n) && this.emit("preview-position", {
+							kind: t.kind,
+							row: t.row,
+							card: t.card,
+							horizontalAlign: e,
+							verticalAlign: n
+						});
+					}
+					this.suppressClickUntil = Date.now() + 350;
+				} else this.emit("preview-select", {
+					kind: t.kind,
+					row: t.row,
+					card: t.card
+				}), this.suppressClickUntil = Date.now() + 100;
+				this.stopDrag();
+			}
+		}, this.pointerCancel = (e) => {
+			this.freeDrag?.pointerId === e.pointerId && (this.freeDrag = void 0), this.pointerCandidate?.pointerId === e.pointerId && this.stopDrag();
+		}, e.addController(this);
+	}
+	get dashboard() {
+		return this.host.dashboard;
+	}
+	get hass() {
+		return this.host.hass;
+	}
+	get page() {
+		return this.host.page;
+	}
+	get autoPage() {
+		return this.host.autoPage;
+	}
+	get autoRotate() {
+		return this.host.autoRotate;
+	}
+	get interactive() {
+		return this.host.interactive;
+	}
+	get showHidden() {
+		return this.host.showHidden;
+	}
+	get shadowRoot() {
+		return this.host.shadowRoot;
+	}
+	emit(e, t) {
+		this.host.emit(e, t);
+	}
+	hostConnected() {
+		this.host.addEventListener("pointerdown", this.down), this.host.addEventListener("click", this.preventClickAfterDrag, !0), window.addEventListener("pointermove", this.move, { passive: !1 }), window.addEventListener("pointerup", this.up, !0), window.addEventListener("pointercancel", this.cancel, !0);
+	}
+	hostDisconnected() {
+		this.host.removeEventListener("pointerdown", this.down), this.host.removeEventListener("click", this.preventClickAfterDrag, !0), window.removeEventListener("pointermove", this.move), window.removeEventListener("pointerup", this.up, !0), window.removeEventListener("pointercancel", this.cancel, !0), this.freeDrag = void 0, this.stopDrag();
+	}
+	clickSelect(e, t) {
+		e.stopPropagation(), !(Date.now() < this.suppressClickUntil) && this.emit("preview-select", t);
+	}
+	startPointer(e, t, n) {
+		!this.interactive || e.pointerType === "mouse" && e.button !== 0 || (e.preventDefault(), e.stopPropagation(), this.pointerCandidate = {
+			pointerId: e.pointerId,
+			startX: e.clientX,
+			startY: e.clientY,
+			...t,
+			cardElement: n
+		});
+	}
+	startDrag(e, t) {
+		e.preventDefault();
+	}
+	stopDrag() {
+		this.pointerCandidate = void 0, this.dragging = void 0, this.dragTarget = "";
+	}
+	positionGrid(e, t) {
+		if (!this.dragging || this.dragging.kind === "page-title" || this.dragging.row !== e || this.dragging.card !== t) return null;
+		let n = [
+			"left",
+			"center",
+			"right"
+		];
+		return D`<div class="drop-grid" aria-label="Choose text position">
+      ${[
+			"top",
+			"middle",
+			"bottom"
+		].flatMap((e) => n.map((t) => {
+			let n = `${t}-${e}`;
+			return D`<div
+            class="drop-cell ${this.dragTarget === n ? "active" : ""}"
           ></div>`;
-      })
-    )}
+		}))}
     </div>`;
-  }
-  pageDropzones() {
-    const e = this.dragging ? d`<div
+	}
+	pageDropzones() {
+		let e = this.dragging ? D`<div
           class="drag-ghost"
           style=${`left:${this.dragPoint.x}px;top:${this.dragPoint.y}px`}
         >
           ${this.dragging.label}
         </div>` : null;
-    if (this.dragging?.kind !== "page-title") return e;
-    const i = ["top", "right", "bottom", "left"], a = {
-      top: "mdi:arrow-up",
-      right: "mdi:arrow-right",
-      bottom: "mdi:arrow-down",
-      left: "mdi:arrow-left"
-    };
-    return d`${e}
+		if (this.dragging?.kind !== "page-title") return e;
+		let t = [
+			"top",
+			"right",
+			"bottom",
+			"left"
+		], n = {
+			top: "mdi:arrow-up",
+			right: "mdi:arrow-right",
+			bottom: "mdi:arrow-down",
+			left: "mdi:arrow-left"
+		};
+		return D`${e}
       <div class="page-dropzones">
-        ${i.map((s) => d`<div class="page-dropzone ${s} ${this.dragTarget === s ? "active" : ""}"><ha-icon icon=${a[s]}></ha-icon></div>`)}
+        ${t.map((e) => D`<div class="page-dropzone ${e} ${this.dragTarget === e ? "active" : ""}"><ha-icon icon=${n[e]}></ha-icon></div>`)}
       </div>`;
-  }
-}
-var va = Object.defineProperty, N = (t, e, i, a) => {
-  for (var s = void 0, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = o(e, i, s) || s);
-  return s && va(e, i, s), s;
-};
-const zt = class zt extends C {
-  constructor() {
-    super(...arguments), this.assets = [], this.page = 0, this.autoRotate = !1, this.width = 240, this.height = 240, this.displayId = "", this.interactive = !1, this.showHidden = !1, this.now = /* @__PURE__ */ new Date(), this.autoPage = 0, this.pageShownAt = Date.now(), this.historySeries = [], this.historyPending = !1, this.historyFetched = 0, this.interaction = new fa(this), this.typography = new ma();
-  }
-  connectedCallback() {
-    super.connectedCallback(), this.clockTimer = window.setInterval(() => {
-      this.now = /* @__PURE__ */ new Date(), Date.now() - this.historyFetched > 3e4 && this.fetchData();
-      const e = this.dashboard?.pages ?? [], i = (e[this.autoPage]?.durationSeconds ?? 10) * 1e3;
-      this.autoRotate && e.length > 1 && Date.now() - this.pageShownAt >= i && (this.autoPage = (this.autoPage + 1) % e.length, this.pageShownAt = Date.now());
-    }, 1e3);
-  }
-  disconnectedCallback() {
-    window.clearInterval(this.clockTimer), super.disconnectedCallback();
-  }
-  emit(e, i) {
-    this.dispatchEvent(
-      new CustomEvent(e, {
-        detail: {
-          displayId: this.displayId,
-          page: this.autoRotate ? this.autoPage : this.page,
-          ...i
-        },
-        bubbles: !0,
-        composed: !0
-      })
-    );
-  }
-  cardValue(e) {
-    if (e.type === "image" || e.type === "chart" || e.type === "weather") return "";
-    if (e.type === "clock")
-      return this.now.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: e.showSeconds ? "2-digit" : void 0,
-        hour12: e.format === "12h"
-      });
-    const i = e.source ? this.hass?.states[e.source]?.state ?? "—" : e.text ?? "—";
-    if (e.type === "status")
-      return ["on", "true", "1", "open", "home"].includes(i.toLowerCase()) ? e.onText ?? "On" : e.offText ?? "Off";
-    const a = ta(e, i);
-    return `${a.value}${!a.mapped && e.unit ? ` ${e.unit}` : ""}`;
-  }
-  imageUrl(e) {
-    return this.assets.find((i) => i.id === e)?.preview ?? "";
-  }
-  async fetchData() {
-    if (!(!this.hass || !this.displayId || this.historyPending) && (this.historyFetched = Date.now(), !!this.dashboard?.pages.some((e) => e.rows.some((i) => i.cards.some((a) => a.graph))))) {
-      this.historyPending = !0;
-      try {
-        const e = await this.hass.callWS({ type: "mini_display/data", config_entry_id: this.displayId });
-        this.isConnected && (this.historySeries = e.series);
-      } catch {
-      } finally {
-        this.historyPending = !1;
-      }
-    }
-  }
-  render() {
-    const e = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page], i = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
-    if (!e)
-      return d`<div class="screen-frame" style=${i}>
+	}
+}, W = class extends I {
+	constructor(...e) {
+		super(...e), this.assets = [], this.page = 0, this.autoRotate = !1, this.width = 240, this.height = 240, this.displayId = "", this.interactive = !1, this.showHidden = !1, this.now = /* @__PURE__ */ new Date(), this.autoPage = 0, this.pageShownAt = Date.now(), this.historySeries = [], this.historyPending = !1, this.historyFetched = 0, this.interaction = new it(this), this.typography = new rt();
+	}
+	static {
+		this.styles = nt;
+	}
+	connectedCallback() {
+		super.connectedCallback(), this.clockTimer = window.setInterval(() => {
+			this.now = /* @__PURE__ */ new Date(), Date.now() - this.historyFetched > 3e4 && this.fetchData();
+			let e = this.dashboard?.pages ?? [], t = (e[this.autoPage]?.durationSeconds ?? 10) * 1e3;
+			this.autoRotate && e.length > 1 && Date.now() - this.pageShownAt >= t && (this.autoPage = (this.autoPage + 1) % e.length, this.pageShownAt = Date.now());
+		}, 1e3);
+	}
+	disconnectedCallback() {
+		window.clearInterval(this.clockTimer), super.disconnectedCallback();
+	}
+	emit(e, t) {
+		this.dispatchEvent(new CustomEvent(e, {
+			detail: {
+				displayId: this.displayId,
+				page: this.autoRotate ? this.autoPage : this.page,
+				...t
+			},
+			bubbles: !0,
+			composed: !0
+		}));
+	}
+	cardValue(e) {
+		if (e.type === "image" || e.type === "chart" || e.type === "weather") return "";
+		if (e.type === "clock") return this.now.toLocaleTimeString([], {
+			hour: "2-digit",
+			minute: "2-digit",
+			second: e.showSeconds ? "2-digit" : void 0,
+			hour12: e.format === "12h"
+		});
+		let t = e.source ? this.hass?.states[e.source]?.state ?? "—" : e.text ?? "—";
+		if (e.type === "status") return [
+			"on",
+			"true",
+			"1",
+			"open",
+			"home"
+		].includes(t.toLowerCase()) ? e.onText ?? "On" : e.offText ?? "Off";
+		let n = ze(e, t);
+		return `${n.value}${!n.mapped && e.unit ? ` ${e.unit}` : ""}`;
+	}
+	imageUrl(e) {
+		return this.assets.find((t) => t.id === e)?.preview ?? "";
+	}
+	async fetchData() {
+		if (this.hass && this.displayId && !this.historyPending && (this.historyFetched = Date.now(), this.dashboard?.pages.some((e) => e.rows.some((e) => e.cards.some((e) => e.graph))))) {
+			this.historyPending = !0;
+			try {
+				let e = await this.hass.callWS({
+					type: "mini_display/data",
+					config_entry_id: this.displayId
+				});
+				this.isConnected && (this.historySeries = e.series);
+			} catch {} finally {
+				this.historyPending = !1;
+			}
+		}
+	}
+	render() {
+		let e = this.dashboard?.pages[this.autoRotate ? this.autoPage : this.page], t = `aspect-ratio:${Math.max(1, this.width)}/${Math.max(1, this.height)}`;
+		if (!e) return D`<div class="screen-frame" style=${t}>
         <div class="screen loading" aria-label="Loading display preview"></div>
       </div>`;
-    const a = e.layout === "free", s = e.rows.map((B, O) => {
-      const Ce = Ye(this.hass, B.visibility), _ = B.cards.map((Z, p) => ({
-        card: Z,
-        cardIndex: p,
-        hidden: !Ce || !Ye(this.hass, Z.visibility, Z)
-      })).filter(({ hidden: Z }) => this.showHidden || !Z);
-      return { row: B, rowIndex: O, hidden: !Ce, cards: _ };
-    }).filter(({ cards: B }) => B.length > 0);
-    if (s.length === 0 && !a)
-      return d`<div class="screen-frame" style=${i}>
+		let n = e.layout === "free", r = e.rows.map((e, t) => {
+			let n = Xe(this.hass, e.visibility), r = e.cards.map((e, t) => ({
+				card: e,
+				cardIndex: t,
+				hidden: !n || !Xe(this.hass, e.visibility, e)
+			})).filter(({ hidden: e }) => this.showHidden || !e);
+			return {
+				row: e,
+				rowIndex: t,
+				hidden: !n,
+				cards: r
+			};
+		}).filter(({ cards: e }) => e.length > 0);
+		if (r.length === 0 && !n) return D`<div class="screen-frame" style=${t}>
         <div class="screen">
           <div class="card"><div class="value">No visible content</div></div>
         </div>
       </div>`;
-    const r = !a && !!(e.title && e.showTitle !== !1), o = e.titlePosition ?? "top", l = e.style?.background ?? "", n = (L[l] ?? l) || "#000000", h = e.titleStyle?.background ?? "", u = e.titleStyle?.foreground ?? "", A = (L[h] ?? h) || n, m = (L[u] ?? u) || "#ffffff", f = e.titleStyle?.fontSize ?? "small", b = {
-      small: 25,
-      medium: 32,
-      large: 46,
-      xlarge: 61,
-      auto: 25
-    }[f], P = {
-      small: 18,
-      medium: 24,
-      large: 36,
-      xlarge: 48,
-      auto: 18
-    }[f], y = r && (o === "top" || o === "bottom") ? b : 0, j = r && (o === "left" || o === "right") ? b : 0, se = this.width - 12 - j, Ae = this.height - 12 - y - 4 * Math.max(0, s.length - 1), K = s.reduce((B, O) => B + (O.row.weight ?? 1), 0) || 1, pe = r ? o === "top" ? `top:${b + 6}px;right:6px;bottom:6px;left:6px` : o === "bottom" ? `top:6px;right:6px;bottom:${b + 6}px;left:6px` : o === "left" ? `top:6px;right:6px;bottom:6px;left:${b + 6}px` : `top:6px;right:${b + 6}px;bottom:6px;left:6px` : "inset:6px", Be = this.imageUrl(e.backgroundImage), W = `${o === "top" || o === "bottom" ? `height:${b}px` : `width:${b}px`};background:${A};color:${m};font-size:${P}px`;
-    return d`<div class="screen-frame" style=${i}>
+		let i = !n && !!(e.title && e.showTitle !== !1), a = e.titlePosition ?? "top", o = e.style?.background ?? "", s = (V[o] ?? o) || "#000000", c = e.titleStyle?.background ?? "", l = e.titleStyle?.foreground ?? "", u = (V[c] ?? c) || s, d = (V[l] ?? l) || "#ffffff", f = e.titleStyle?.fontSize ?? "small", p = {
+			small: 25,
+			medium: 32,
+			large: 46,
+			xlarge: 61,
+			auto: 25
+		}[f], ee = {
+			small: 18,
+			medium: 24,
+			large: 36,
+			xlarge: 48,
+			auto: 18
+		}[f], m = i && (a === "top" || a === "bottom") ? p : 0, h = i && (a === "left" || a === "right") ? p : 0, te = this.width - 12 - h, ne = this.height - 12 - m - 4 * Math.max(0, r.length - 1), g = r.reduce((e, t) => e + (t.row.weight ?? 1), 0) || 1, _ = i ? a === "top" ? `top:${p + 6}px;right:6px;bottom:6px;left:6px` : a === "bottom" ? `top:6px;right:6px;bottom:${p + 6}px;left:6px` : a === "left" ? `top:6px;right:6px;bottom:6px;left:${p + 6}px` : `top:6px;right:${p + 6}px;bottom:6px;left:6px` : "inset:6px", v = this.imageUrl(e.backgroundImage), re = `${a === "top" || a === "bottom" ? `height:${p}px` : `width:${p}px`};background:${u};color:${d};font-size:${ee}px`;
+		return D`<div class="screen-frame" style=${t}>
       <div
         class="screen"
-        style=${`background-color:${n};${Be ? `background-image:url(${Be});background-size:cover;background-position:center` : ""}`}
+        style=${`background-color:${s};${v ? `background-image:url(${v});background-size:cover;background-position:center` : ""}`}
       >
-        ${r ? d`<div
-                class="page-title ${o} ${this.interactive ? "interactive" : ""}"
-                style=${W}
-                @click=${(B) => {
-      B.stopPropagation(), this.emit("preview-select", { kind: "page-title" });
-    }}
+        ${i ? D`<div
+                class="page-title ${a} ${this.interactive ? "interactive" : ""}"
+                style=${re}
+                @click=${(e) => {
+			e.stopPropagation(), this.emit("preview-select", { kind: "page-title" });
+		}}
               >
                 <span
                   .draggable=${this.interactive}
-                  @dragstart=${(B) => this.interaction.startDrag(B, { kind: "page-title" })}
+                  @dragstart=${(e) => this.interaction.startDrag(e, { kind: "page-title" })}
                   @dragend=${() => this.interaction.stopDrag()}
                   >${e.title}</span
                 >
               </div>` : null}${this.interaction.pageDropzones()}
-        <div class="page-content ${a ? "free-layout" : ""}" style=${a ? "inset:0" : pe}>
-          ${s.map(({ row: B, rowIndex: O, hidden: Ce, cards: _ }) => {
-      const Z = Ae * (B.weight ?? 1) / K;
-      return Z - (B.title && B.showTitle !== !1 && Z >= 24 ? 17 : 0), (se - 4 * Math.max(0, _.length - 1)) / _.length, d`<div
-              class="group ${Ce ? "hidden-item" : ""}"
-              style="flex:${B.weight ?? 1}"
+        <div class="page-content ${n ? "free-layout" : ""}" style=${n ? "inset:0" : _}>
+          ${r.map(({ row: t, rowIndex: r, hidden: i, cards: a }) => {
+			let o = ne * (t.weight ?? 1) / g;
+			return o - (t.title && t.showTitle !== !1 && o >= 24 ? 17 : 0), (te - 4 * Math.max(0, a.length - 1)) / a.length, D`<div
+              class="group ${i ? "hidden-item" : ""}"
+              style="flex:${t.weight ?? 1}"
             >
-              ${B.title && B.showTitle !== !1 ? d`<div
+              ${t.title && t.showTitle !== !1 ? D`<div
                       class="title ${this.interactive ? "interactive" : ""}"
-                      @click=${(p) => {
-        p.stopPropagation(), this.emit("preview-select", {
-          kind: "row",
-          row: O
-        });
-      }}
+                      @click=${(e) => {
+				e.stopPropagation(), this.emit("preview-select", {
+					kind: "row",
+					row: r
+				});
+			}}
                     >
-                      ${B.title}
+                      ${t.title}
                     </div>` : null}
               <div
                 class="row"
-                style="grid-template-columns:repeat(${_.length},minmax(0,1fr))"
+                style="grid-template-columns:repeat(${a.length},minmax(0,1fr))"
               >
-                ${_.map(({ card: p, cardIndex: q, hidden: bi }) => {
-        const Ve = this.interaction.freeDrag?.row === O && this.interaction.freeDrag.card === q, k = Ve && this.interaction.freeDrag.part === "card" ? this.interaction.freeDrag.frame : p.frame, $e = (x) => Ve && this.interaction.freeDrag.part === x ? this.interaction.freeDrag.frame : Xe(p, x), Ot = $e("title"), jt = $e("value"), It = (x) => {
-          const V = $e(x);
-          return `left:${(V.x - (k?.x ?? 0)) * this.width / 100}px;top:${(V.y - (k?.y ?? 0)) * this.height / 100}px;width:${V.width * this.width / 100}px;height:${V.height * this.height / 100}px;`;
-        }, Pe = a ? (k?.width ?? 50) * this.width / 100 : (se - 4 * Math.max(0, _.length - 1)) / _.length, _e = a ? (k?.height ?? 25) * this.height / 100 : Z - (B.title && B.showTitle !== !1 && Z >= 24 ? 17 : 0), Et = p.source ? this.hass?.states[p.source]?.state ?? "—" : p.text ?? "—", Nt = Number(Et), et = p.minimum ?? 0, Gt = p.maximum ?? 100, Qt = Number.isFinite(Nt) && Gt > et ? Math.max(
-          0,
-          Math.min(100, (Nt - et) / (Gt - et) * 100)
-        ) : 0, yi = "sans-serif", Me = this.cardValue(p), Ht = !!(p.title && p.showTitle !== !1 && (a || _e >= 28)), J = p.titleStyle?.verticalAlign ?? "top", tt = Ht && (J === "top" || J === "bottom"), wi = p.progress === "bar" ? 14 : 5, re = _e - (p.progress === "bar" ? 9 : 0), St = this.typography.valueFontSize(
-          p,
-          Me,
-          Pe,
-          Math.max(1, re - 17)
-        ), it = (p.titleStyle?.fontSize ?? "auto") !== "auto" ? re : Math.max(
-          1,
-          Math.min(
-            re / 2,
-            re - this.typography.fontLineHeight(St)
-          )
-        ), he = a ? this.typography.freeFontSize(p.title ?? "", p.titleStyle, Ot.width * this.width / 100, Ot.height * this.height / 100) : Ht ? this.typography.titleFontSize(
-          p,
-          p.title ?? "",
-          Pe - 10,
-          tt ? it : re,
-          St
-        ) : 13, ge = tt && p.titleStyle?.textFlow === "wrap" ? it : tt ? Math.min(
-          it,
-          this.typography.fontLineHeight(he)
-        ) : 0, xi = p.progress === "ring" ? Math.min(
-          22,
-          Math.max(12, (re - ge) / 4)
-        ) : re - ge, at = a ? this.typography.freeFontSize(Me, p.valueStyle, jt.width * this.width / 100, jt.height * this.height / 100) : this.typography.valueFontSize(
-          p,
-          Me,
-          Pe,
-          xi
-        ), Tt = ia(p, Et), Rt = Tt?.background ?? p.style?.background ?? "", Zt = Tt?.foreground ?? p.style?.foreground ?? "", Ut = (L[Rt] ?? Rt) || "#20242d", st = p.backgroundMode ?? (p.transparentBackground ? "transparent" : p.backgroundImage ? "image" : "color"), Lt = this.imageUrl(
-          p.type === "image" ? p.image : st === "image" ? p.backgroundImage : void 0
-        ), Ft = L[p.style?.accent ?? ""] ?? p.style?.accent ?? "#42a5f5", Xt = (L[Zt] ?? Zt) || "white", Di = {
-          left: "flex-start",
-          center: "center",
-          right: "flex-end"
-        }[p.valueStyle?.horizontalAlign ?? "center"], Bi = {
-          top: "flex-start",
-          middle: "center",
-          bottom: "flex-end"
-        }[p.valueStyle?.verticalAlign ?? "middle"], Ci = p.valueStyle?.horizontalAlign ?? "center", Pi = {
-          left: "flex-start",
-          center: "center",
-          right: "flex-end"
-        }[p.titleStyle?.horizontalAlign ?? "left"], Mi = {
-          top: "flex-start",
-          middle: "center",
-          bottom: "flex-end"
-        }[J], ki = 5 + (J === "top" ? ge : 0), zi = wi + (J === "bottom" ? ge : 0), rt = a ? It("value") : `top:${ki}px;right:5px;bottom:${zi}px;left:5px`, Oi = a ? It("title") : J === "top" ? `top:0;right:4px;height:${ge}px;left:4px` : J === "bottom" ? `right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;height:${ge}px;left:4px` : `top:0;right:4px;bottom:${p.progress === "bar" ? 9 : 0}px;left:4px`, ot = p.title ? Math.max(
-          0,
-          Ie(p.title, he) - (Pe - 10)
-        ) : 0, Re = !a && (p.titleStyle?.textFlow ?? "default") === "default" && ot > 0 && (J === "top" || J === "bottom"), Yt = d`<div
+                ${a.map(({ card: s, cardIndex: c, hidden: l }) => {
+				let u = this.interaction.freeDrag?.row === r && this.interaction.freeDrag.card === c, d = u && this.interaction.freeDrag.part === "card" ? this.interaction.freeDrag.frame : s.frame, f = (e) => u && this.interaction.freeDrag.part === e ? this.interaction.freeDrag.frame : Ve(s, e), p = f("title"), ee = f("value"), m = (e) => {
+					let t = f(e);
+					return `left:${(t.x - (d?.x ?? 0)) * this.width / 100}px;top:${(t.y - (d?.y ?? 0)) * this.height / 100}px;width:${t.width * this.width / 100}px;height:${t.height * this.height / 100}px;`;
+				}, h = n ? (d?.width ?? 50) * this.width / 100 : (te - 4 * Math.max(0, a.length - 1)) / a.length, ne = n ? (d?.height ?? 25) * this.height / 100 : o - (t.title && t.showTitle !== !1 && o >= 24 ? 17 : 0), g = s.source ? this.hass?.states[s.source]?.state ?? "—" : s.text ?? "—", _ = Number(g), v = s.minimum ?? 0, re = s.maximum ?? 100, y = Number.isFinite(_) && re > v ? Math.max(0, Math.min(100, (_ - v) / (re - v) * 100)) : 0, b = this.cardValue(s), ie = !!(s.title && s.showTitle !== !1 && (n || ne >= 28)), x = s.titleStyle?.verticalAlign ?? "top", ae = ie && (x === "top" || x === "bottom"), oe = s.progress === "bar" ? 14 : 5, S = ne - (s.progress === "bar" ? 9 : 0), se = this.typography.valueFontSize(s, b, h, Math.max(1, S - 17)), ce = (s.titleStyle?.fontSize ?? "auto") === "auto" ? Math.max(1, Math.min(S / 2, S - this.typography.fontLineHeight(se))) : S, C = n ? this.typography.freeFontSize(s.title ?? "", s.titleStyle, p.width * this.width / 100, p.height * this.height / 100) : ie ? this.typography.titleFontSize(s, s.title ?? "", h - 10, ae ? ce : S, se) : 13, w = ae && s.titleStyle?.textFlow === "wrap" ? ce : ae ? Math.min(ce, this.typography.fontLineHeight(C)) : 0, le = s.progress === "ring" ? Math.min(22, Math.max(12, (S - w) / 4)) : S - w, ue = n ? this.typography.freeFontSize(b, s.valueStyle, ee.width * this.width / 100, ee.height * this.height / 100) : this.typography.valueFontSize(s, b, h, le), de = Be(s, g), fe = de?.background ?? s.style?.background ?? "", T = de?.foreground ?? s.style?.foreground ?? "", pe = (V[fe] ?? fe) || "#20242d", me = s.backgroundMode ?? (s.transparentBackground ? "transparent" : s.backgroundImage ? "image" : "color"), E = this.imageUrl(s.type === "image" ? s.image : me === "image" ? s.backgroundImage : void 0), he = V[s.style?.accent ?? ""] ?? s.style?.accent ?? "#42a5f5", ge = (V[T] ?? T) || "white", _e = {
+					left: "flex-start",
+					center: "center",
+					right: "flex-end"
+				}[s.valueStyle?.horizontalAlign ?? "center"], ve = {
+					top: "flex-start",
+					middle: "center",
+					bottom: "flex-end"
+				}[s.valueStyle?.verticalAlign ?? "middle"], O = s.valueStyle?.horizontalAlign ?? "center", k = {
+					left: "flex-start",
+					center: "center",
+					right: "flex-end"
+				}[s.titleStyle?.horizontalAlign ?? "left"], ye = {
+					top: "flex-start",
+					middle: "center",
+					bottom: "flex-end"
+				}[x], j = 5 + (x === "top" ? w : 0), be = oe + (x === "bottom" ? w : 0), xe = n ? m("value") : `top:${j}px;right:5px;bottom:${be}px;left:5px`, Se = n ? m("title") : x === "top" ? `top:0;right:4px;height:${w}px;left:4px` : x === "bottom" ? `right:4px;bottom:${s.progress === "bar" ? 9 : 0}px;height:${w}px;left:4px` : `top:0;right:4px;bottom:${s.progress === "bar" ? 9 : 0}px;left:4px`, M = s.title ? Math.max(0, et(s.title, C) - (h - 10)) : 0, N = !n && (s.titleStyle?.textFlow ?? "default") === "default" && M > 0 && (x === "top" || x === "bottom"), P = D`<div
                     class="value"
                     .draggable=${this.interactive}
-                    style=${`font-family:${yi};font-size:${at}px;font-weight:700;${this.typography.textEffectCss(p.valueStyle)};${this.typography.textFlowCss(p.valueStyle, at)}`}
-                    @click=${(x) => {
-          x.stopPropagation(), this.emit("preview-select", {
-            kind: "value",
-            row: O,
-            card: q
-          });
-        }}
-                    @dragstart=${(x) => this.interaction.startDrag(x, { kind: "value", row: O, card: q })}
+                    style=${`font-family:sans-serif;font-size:${ue}px;font-weight:700;${this.typography.textEffectCss(s.valueStyle)};${this.typography.textFlowCss(s.valueStyle, ue)}`}
+                    @click=${(e) => {
+					e.stopPropagation(), this.emit("preview-select", {
+						kind: "value",
+						row: r,
+						card: c
+					});
+				}}
+                    @dragstart=${(e) => this.interaction.startDrag(e, {
+					kind: "value",
+					row: r,
+					card: c
+				})}
                     @dragend=${() => this.interaction.stopDrag()}
                   >
-                    ${a && ["default", "sans", "sans-bold"].includes(p.valueStyle?.fontFamily ?? "default") && p.valueStyle?.textFlow !== "wrap" && (!p.valueStyle?.textEffect || p.valueStyle.textEffect === "none") ? d`<mini-display-firmware-text .text=${Me} .size=${at} .color=${Xt}></mini-display-firmware-text>` : Me}
-                  </div>`, Kt = a && (e.transparentCards || st === "transparent") && !p.graph && p.type !== "image";
-        return d`<div
-                    class="card ${Kt ? "text-only-frame" : ""} ${p.valueStyle?.textFlow === "overflow" || p.titleStyle?.textFlow === "overflow" ? "flow-overflow" : ""} ${Ve ? "moving" : ""} ${p.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${bi && !Ce ? "hidden-item" : ""}"
-                    data-row=${O} data-card=${q}
-                    tabindex=${a && this.interactive ? 0 : -1}
-                    aria-label=${p.title || p.text || p.source || "Item"}
-                    @keydown=${(x) => {
-          if (!a || !k || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(x.key)) return;
-          x.preventDefault();
-          const V = x.shiftKey ? 5 : 0.5;
-          this.emit("preview-frame", { row: O, card: q, frame: { ...k, x: Math.max(0, Math.min(100 - k.width, k.x + (x.key === "ArrowLeft" ? -V : x.key === "ArrowRight" ? V : 0))), y: Math.max(0, Math.min(100 - k.height, k.y + (x.key === "ArrowUp" ? -V : x.key === "ArrowDown" ? V : 0))) } });
-        }}
-                    style=${`${a && k ? `left:${k.x}%;top:${k.y}%;width:${k.width}%;height:${k.height}%;` : ""}${e.transparentCards || st === "transparent" ? "background:transparent" : `background-color:${Ut}`};${!e.transparentCards && Lt ? `background-image:url(${Lt});background-size:${p.imageFit === "contain" ? "contain" : p.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${Xt}`}
-                    @click=${(x) => {
-          x.stopPropagation(), this.emit("preview-select", {
-            kind: "card",
-            row: O,
-            card: q
-          });
-        }}
+                    ${n && [
+					"default",
+					"sans",
+					"sans-bold"
+				].includes(s.valueStyle?.fontFamily ?? "default") && s.valueStyle?.textFlow !== "wrap" && (!s.valueStyle?.textEffect || s.valueStyle.textEffect === "none") ? D`<mini-display-firmware-text .text=${b} .size=${ue} .color=${ge}></mini-display-firmware-text>` : b}
+                  </div>`, F = n && (e.transparentCards || me === "transparent") && !s.graph && s.type !== "image";
+				return D`<div
+                    class="card ${F ? "text-only-frame" : ""} ${s.valueStyle?.textFlow === "overflow" || s.titleStyle?.textFlow === "overflow" ? "flow-overflow" : ""} ${u ? "moving" : ""} ${s.type === "image" ? "image-card" : ""} ${this.interactive ? "interactive" : ""} ${l && !i ? "hidden-item" : ""}"
+                    data-row=${r} data-card=${c}
+                    tabindex=${n && this.interactive ? 0 : -1}
+                    aria-label=${s.title || s.text || s.source || "Item"}
+                    @keydown=${(e) => {
+					if (!n || !d || ![
+						"ArrowLeft",
+						"ArrowRight",
+						"ArrowUp",
+						"ArrowDown"
+					].includes(e.key)) return;
+					e.preventDefault();
+					let t = e.shiftKey ? 5 : .5;
+					this.emit("preview-frame", {
+						row: r,
+						card: c,
+						frame: {
+							...d,
+							x: Math.max(0, Math.min(100 - d.width, d.x + (e.key === "ArrowLeft" ? -t : e.key === "ArrowRight" ? t : 0))),
+							y: Math.max(0, Math.min(100 - d.height, d.y + (e.key === "ArrowUp" ? -t : e.key === "ArrowDown" ? t : 0)))
+						}
+					});
+				}}
+                    style=${`${n && d ? `left:${d.x}%;top:${d.y}%;width:${d.width}%;height:${d.height}%;` : ""}${e.transparentCards || me === "transparent" ? "background:transparent" : `background-color:${pe}`};${!e.transparentCards && E ? `background-image:url(${E});background-size:${s.imageFit === "contain" ? "contain" : s.imageFit === "stretch" ? "100% 100%" : "cover"};background-position:center;background-repeat:no-repeat;` : ""}color:${ge}`}
+                    @click=${(e) => {
+					e.stopPropagation(), this.emit("preview-select", {
+						kind: "card",
+						row: r,
+						card: c
+					});
+				}}
                   >
-                    ${p.graph ? d`<mini-display-graph-preview .graph=${p.graph} .source=${p.source ?? ""} .series=${this.historySeries} .width=${Pe} .height=${_e}></mini-display-graph-preview>` : c}
-                    ${a && this.interactive && !Kt ? d`<button class="resize-handle" aria-label="Resize item" @click=${(x) => x.stopPropagation()}></button>` : c}
-                    ${p.title && p.showTitle !== !1 ? d`<small
-                            data-part=${a ? "title" : c}
-                            style=${`${Oi};overflow:${p.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${Mi};justify-content:${Re ? "flex-start" : Pi};text-align:${Re ? "left" : p.titleStyle?.horizontalAlign ?? "left"};font-size:${he}px;line-height:${this.typography.fontLineHeight(he)}px`}
+                    ${s.graph ? D`<mini-display-graph-preview .graph=${s.graph} .source=${s.source ?? ""} .series=${this.historySeries} .width=${h} .height=${ne}></mini-display-graph-preview>` : A}
+                    ${n && this.interactive && !F ? D`<button class="resize-handle" aria-label="Resize item" @click=${(e) => e.stopPropagation()}></button>` : A}
+                    ${s.title && s.showTitle !== !1 ? D`<small
+                            data-part=${n ? "title" : A}
+                            style=${`${Se};overflow:${s.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${ye};justify-content:${N ? "flex-start" : k};text-align:${N ? "left" : s.titleStyle?.horizontalAlign ?? "left"};font-size:${C}px;line-height:${this.typography.fontLineHeight(C)}px`}
                             ><span
-                              class="card-label ${Re ? "marquee" : ""}"
-                              aria-label=${p.title ?? ""}
-                              style=${`${Re ? `--marquee-distance:-${ot}px;--marquee-duration:${Math.max(3, 1.7 + ot * 0.035)}s;` : ""}${this.typography.textEffectCss(p.titleStyle)};${this.typography.textFlowCss(p.titleStyle, he)}`}
+                              class="card-label ${N ? "marquee" : ""}"
+                              aria-label=${s.title ?? ""}
+                              style=${`${N ? `--marquee-distance:-${M}px;--marquee-duration:${Math.max(3, 1.7 + M * .035)}s;` : ""}${this.typography.textEffectCss(s.titleStyle)};${this.typography.textFlowCss(s.titleStyle, C)}`}
                               .draggable=${this.interactive}
-                              @click=${(x) => {
-          x.stopPropagation(), this.emit("preview-select", {
-            kind: "title",
-            row: O,
-            card: q
-          });
-        }}
-                              @dragstart=${(x) => this.interaction.startDrag(x, { kind: "title", row: O, card: q })}
+                              @click=${(e) => {
+					e.stopPropagation(), this.emit("preview-select", {
+						kind: "title",
+						row: r,
+						card: c
+					});
+				}}
+                              @dragstart=${(e) => this.interaction.startDrag(e, {
+					kind: "title",
+					row: r,
+					card: c
+				})}
                               @dragend=${() => this.interaction.stopDrag()}
-                              >${["default", "sans", "sans-bold"].includes(p.titleStyle?.fontFamily ?? "default") && p.titleStyle?.textFlow !== "wrap" && (!p.titleStyle?.textEffect || p.titleStyle.textEffect === "none") ? d`<mini-display-firmware-text .text=${p.title ?? ""} .size=${he} .color=${L[p.titleStyle?.foreground ?? ""] ?? p.titleStyle?.foreground ?? "#d3d3d3"}></mini-display-firmware-text>` : p.title}</span
-                            >${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize title"></button>` : c}</small
-                          >` : null}${p.type === "weather" ? d`<div class="value-wrap" data-part=${a ? "value" : c} style=${rt}><mini-display-weather-preview style="position:absolute;inset:0" .hass=${this.hass} .card=${p} .signature=${JSON.stringify([p.source, p.weather])}></mini-display-weather-preview>${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize value"></button>` : c}</div>` : p.type === "image" || p.type === "chart" ? c : p.progress === "ring" ? d`<div class="ring-stack" data-part=${a ? "value" : c} style=${rt}>
+                              >${[
+					"default",
+					"sans",
+					"sans-bold"
+				].includes(s.titleStyle?.fontFamily ?? "default") && s.titleStyle?.textFlow !== "wrap" && (!s.titleStyle?.textEffect || s.titleStyle.textEffect === "none") ? D`<mini-display-firmware-text .text=${s.title ?? ""} .size=${C} .color=${V[s.titleStyle?.foreground ?? ""] ?? s.titleStyle?.foreground ?? "#d3d3d3"}></mini-display-firmware-text>` : s.title}</span
+                            >${n && this.interactive ? D`<button class="resize-handle" aria-label="Resize title"></button>` : A}</small
+                          >` : null}${s.type === "weather" ? D`<div class="value-wrap" data-part=${n ? "value" : A} style=${xe}><mini-display-weather-preview style="position:absolute;inset:0" .hass=${this.hass} .card=${s} .signature=${JSON.stringify([s.source, s.weather])}></mini-display-weather-preview>${n && this.interactive ? D`<button class="resize-handle" aria-label="Resize value"></button>` : A}</div>` : s.type === "image" || s.type === "chart" ? A : s.progress === "ring" ? D`<div class="ring-stack" data-part=${n ? "value" : A} style=${xe}>
                               <div
                                 class="ring"
-                                style=${`background:conic-gradient(${Ft} ${Qt}%,#3d424e 0);--ring-bg:${Ut}`}
+                                style=${`background:conic-gradient(${he} ${y}%,#3d424e 0);--ring-bg:${pe}`}
                               ></div>
-                              ${Yt}
-                              ${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize value"></button>` : c}
-                            </div>` : d`<div
+                              ${P}
+                              ${n && this.interactive ? D`<button class="resize-handle" aria-label="Resize value"></button>` : A}
+                            </div>` : D`<div
                               class="value-wrap"
-                              data-part=${a ? "value" : c}
-                              style=${`${rt};align-items:${Bi};justify-content:${Di};text-align:${Ci}`}
+                              data-part=${n ? "value" : A}
+                              style=${`${xe};align-items:${ve};justify-content:${_e};text-align:${O}`}
                             >
-                              ${Yt}
-                              ${a && this.interactive ? d`<button class="resize-handle" aria-label="Resize value"></button>` : c}
-                            </div>`}${this.interaction.positionGrid(O, q)}${p.type !== "image" && p.progress === "bar" ? d`<div class="bar"><i style=${`width:${Qt}%;background:${Ft}`}></i></div>` : null}
+                              ${P}
+                              ${n && this.interactive ? D`<button class="resize-handle" aria-label="Resize value"></button>` : A}
+                            </div>`}${this.interaction.positionGrid(r, c)}${s.type !== "image" && s.progress === "bar" ? D`<div class="bar"><i style=${`width:${y}%;background:${he}`}></i></div>` : null}
                   </div>`;
-      })}
+			})}
               </div>
             </div>`;
-    })}
+		})}
         </div>
       </div>
     </div>`;
-  }
+	}
 };
-zt.styles = ua;
-let M = zt;
-N([
-  g({ attribute: !1 })
-], M.prototype, "dashboard");
-N([
-  g({ attribute: !1 })
-], M.prototype, "hass");
-N([
-  g({ attribute: !1 })
-], M.prototype, "assets");
-N([
-  g({ type: Number })
-], M.prototype, "page");
-N([
-  g({ type: Boolean })
-], M.prototype, "autoRotate");
-N([
-  g({ type: Number })
-], M.prototype, "width");
-N([
-  g({ type: Number })
-], M.prototype, "height");
-N([
-  g()
-], M.prototype, "displayId");
-N([
-  g({ type: Boolean })
-], M.prototype, "interactive");
-N([
-  g({ type: Boolean })
-], M.prototype, "showHidden");
-N([
-  v()
-], M.prototype, "now");
-N([
-  v()
-], M.prototype, "autoPage");
-N([
-  v()
-], M.prototype, "historySeries");
-customElements.get("mini-display-preview") || customElements.define("mini-display-preview", M);
-var ba = Object.defineProperty, ya = Object.getOwnPropertyDescriptor, T = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? ya(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && ba(e, i, s), s;
-};
-const ze = (t, e, i) => {
-  t.dispatchEvent(
-    new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
-  );
-};
-let I = class extends C {
-  constructor() {
-    super(...arguments), this.displays = [], this.dashboards = {}, this.pages = {}, this.dirtyDisplays = /* @__PURE__ */ new Set(), this.assets = {}, this.selectedDisplayId = "", this.selectedSceneId = "", this.selectedSceneName = "", this.showHidden = !1;
-  }
-  render() {
-    return d`
-      ${this.displays.map((t) => this.renderDisplay(t))}
-      <div class="preview-footer">
-        <label class="show-hidden"
-          ><input
-            type="checkbox"
-            .checked=${this.showHidden}
-            @change=${(t) => this.showHidden = t.target.checked}
-          />Show hidden cards</label
-        >
-      </div>
-    `;
-  }
-  renderDisplay(t) {
-    const e = this.dashboards[t.config_entry_id], i = Math.min(
-      this.pages[t.config_entry_id] ?? 0,
-      Math.max(0, (e?.pages.length ?? 1) - 1)
-    ), a = t.preview_scene_id === this.selectedSceneId, s = t.active_scene_id === this.selectedSceneId, r = !!e;
-    return d`
-      <ha-card
-        class=${t.config_entry_id === this.selectedDisplayId ? "selected" : ""}
-        @click=${() => ze(this, "display-selected", t.config_entry_id)}
-      >
-        <header>
-          <div>
-            <strong>${t.title}</strong
-            ><small>Active: ${t.active_scene_name ?? "Unknown"}</small>
-          </div>
-          <button
-            class="icon ${a ? "active" : ""}"
-            title=${a ? "Stop temporary preview" : e ? "Show temporarily for 5 minutes" : "Add a layout first"}
-            aria-label=${a ? "Stop temporary preview" : "Show temporary preview"}
-            ?disabled=${!a && !r}
-            @click=${(o) => {
-      o.stopPropagation(), ze(this, "preview-toggle", t);
-    }}
-          >
-            <ha-icon
-              icon=${a ? "mdi:eye" : "mdi:eye-off-outline"}
-            ></ha-icon>
-          </button>
-        </header>
-        ${e ? d`
-                <mini-display-preview
-                  .dashboard=${e}
-                  .hass=${this.hass}
-                  .assets=${this.assets[t.config_entry_id] ?? []}
-                  .page=${i}
-                  .width=${t.width}
-                  .height=${t.height}
-                  .displayId=${t.config_entry_id}
-                  .interactive=${!0}
-                  .showHidden=${this.showHidden}
-                  @click=${(o) => o.stopPropagation()}
-                ></mini-display-preview>
-                ${e.pages.length > 1 ? d`
-                  <nav>
-                    <button
-                      class="icon"
-                      aria-label="Previous page"
-                      @click=${(o) => {
-      o.stopPropagation(), ze(this, "preview-page", {
-        displayId: t.config_entry_id,
-        delta: -1
-      });
-    }}
-                    >
-                      <ha-icon icon="mdi:chevron-left"></ha-icon>
-                    </button>
-                    <span>${i + 1} / ${e.pages.length}</span>
-                    <button
-                      class="icon"
-                      aria-label="Next page"
-                      @click=${(o) => {
-      o.stopPropagation(), ze(this, "preview-page", {
-        displayId: t.config_entry_id,
-        delta: 1
-      });
-    }}
-                    >
-                      <ha-icon icon="mdi:chevron-right"></ha-icon>
-                    </button>
-                  </nav>
-                ` : c}
-              ` : d`<ha-alert alert-type="info"
-                >No layout in this scene.</ha-alert
-              >`}
-        ${!s && e ? d`<ha-button
-                .disabled=${this.dirtyDisplays.has(t.config_entry_id)}
-                @click=${(o) => {
-      o.stopPropagation(), ze(this, "scene-activate", t);
-    }}
-                >Activate ${this.selectedSceneName}</ha-button
-              >` : c}
-      </ha-card>
-    `;
-  }
-};
-I.styles = z`
+B([R({ attribute: !1 })], W.prototype, "dashboard", void 0), B([R({ attribute: !1 })], W.prototype, "hass", void 0), B([R({ attribute: !1 })], W.prototype, "assets", void 0), B([R({ type: Number })], W.prototype, "page", void 0), B([R({ type: Boolean })], W.prototype, "autoRotate", void 0), B([R({ type: Number })], W.prototype, "width", void 0), B([R({ type: Number })], W.prototype, "height", void 0), B([R()], W.prototype, "displayId", void 0), B([R({ type: Boolean })], W.prototype, "interactive", void 0), B([R({ type: Boolean })], W.prototype, "showHidden", void 0), B([z()], W.prototype, "now", void 0), B([z()], W.prototype, "autoPage", void 0), B([z()], W.prototype, "historySeries", void 0), customElements.get("mini-display-preview") || customElements.define("mini-display-preview", W);
+//#endregion
+//#region src/preview-list.ts
+var at = (e, t, n) => {
+	e.dispatchEvent(new CustomEvent(t, {
+		detail: n,
+		bubbles: !0,
+		composed: !0
+	}));
+}, G = class extends I {
+	constructor(...e) {
+		super(...e), this.displays = [], this.dashboards = {}, this.pages = {}, this.dirtyDisplays = /* @__PURE__ */ new Set(), this.assets = {}, this.selectedDisplayId = "", this.selectedSceneId = "", this.selectedSceneName = "", this.showHidden = !1;
+	}
+	static {
+		this.styles = o`
     :host {
       display: grid;
       gap: 12px;
@@ -2311,208 +2272,123 @@ I.styles = z`
       }
     }
   `;
-T([
-  g({ attribute: !1 })
-], I.prototype, "hass", 2);
-T([
-  g({ attribute: !1 })
-], I.prototype, "displays", 2);
-T([
-  g({ attribute: !1 })
-], I.prototype, "dashboards", 2);
-T([
-  g({ attribute: !1 })
-], I.prototype, "pages", 2);
-T([
-  g({ attribute: !1 })
-], I.prototype, "dirtyDisplays", 2);
-T([
-  g({ attribute: !1 })
-], I.prototype, "assets", 2);
-T([
-  g()
-], I.prototype, "selectedDisplayId", 2);
-T([
-  g()
-], I.prototype, "selectedSceneId", 2);
-T([
-  g()
-], I.prototype, "selectedSceneName", 2);
-T([
-  v()
-], I.prototype, "showHidden", 2);
-I = T([
-  H("mini-display-preview-list")
-], I);
-var wa = Object.defineProperty, xa = Object.getOwnPropertyDescriptor, $ = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? xa(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && wa(e, i, s), s;
-};
-const G = (t, e, i) => {
-  t.dispatchEvent(
-    new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 })
-  );
-};
-let S = class extends C {
-  constructor() {
-    super(...arguments), this.displays = [], this.scenes = [], this.selectedDisplayId = "", this.selectedSceneId = "", this.section = "scenes", this.imageCount = 0, this.form = null, this.sceneName = "", this.closeActionMenusOnOutsideClick = (t) => {
-      const e = t.composedPath();
-      this.renderRoot.querySelectorAll("details.action-menu[open]").forEach((i) => {
-        e.includes(i) || (i.open = !1);
-      });
-    };
-  }
-  connectedCallback() {
-    super.connectedCallback(), window.addEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    );
-  }
-  disconnectedCallback() {
-    window.removeEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    ), super.disconnectedCallback();
-  }
-  actionMenuToggled(t) {
-    const e = t.currentTarget;
-    e.open && this.renderRoot.querySelectorAll("details.action-menu[open]").forEach((i) => {
-      i !== e && (i.open = !1);
-    });
-  }
-  closeActionMenu(t) {
-    const e = t.composedPath().find(
-      (a) => a instanceof HTMLButtonElement
-    );
-    if (!e || e.disabled) return;
-    const i = t.currentTarget.closest("details");
-    i && (i.open = !1);
-  }
-  actionMenuKeydown(t) {
-    if (t.key !== "Escape") return;
-    const e = t.currentTarget.closest("details");
-    e && (e.open = !1, e.querySelector("summary")?.focus(), t.preventDefault(), t.stopPropagation());
-  }
-  render() {
-    const t = this.displays.find(
-      (e) => e.config_entry_id === this.selectedDisplayId
-    );
-    return d`
-      <ha-card>
-        <header><h2>Display</h2></header>
-        <div class="picker">
-          <label>
-            Display
-            <select
-              .value=${this.selectedDisplayId}
-              @change=${(e) => G(this, "display-selected", e.target.value)}
-            >
-              ${this.displays.map((e) => d`<option value=${e.config_entry_id}>${e.title}</option>`)}
-            </select>
-          </label>
-          <span class="status ${t?.available ? "online" : ""}"
-            ><i></i>${t?.available ? "Online" : "Offline"}</span
-          >
-        </div>
-        <div class="navigation">
-          <button
-            class="nav-item ${this.section === "images" ? "active" : ""}"
-            @click=${() => G(this, "images-selected")}
-          >
-            <ha-icon icon="mdi:image-multiple-outline"></ha-icon>
-            <span>Images (${this.imageCount})</span>
-          </button>
-        </div>
+	}
+	render() {
+		return D`
+      ${this.displays.map((e) => this.renderDisplay(e))}
+      <div class="preview-footer">
+        <label class="show-hidden"
+          ><input
+            type="checkbox"
+            .checked=${this.showHidden}
+            @change=${(e) => this.showHidden = e.target.checked}
+          />Show hidden cards</label
+        >
+      </div>
+    `;
+	}
+	renderDisplay(e) {
+		let t = this.dashboards[e.config_entry_id], n = Math.min(this.pages[e.config_entry_id] ?? 0, Math.max(0, (t?.pages.length ?? 1) - 1)), r = e.preview_scene_id === this.selectedSceneId, i = e.active_scene_id === this.selectedSceneId, a = !!t;
+		return D`
+      <ha-card
+        class=${e.config_entry_id === this.selectedDisplayId ? "selected" : ""}
+        @click=${() => at(this, "display-selected", e.config_entry_id)}
+      >
         <header>
-          <h2>Scenes</h2>
+          <div>
+            <strong>${e.title}</strong
+            ><small>Active: ${e.active_scene_name ?? "Unknown"}</small>
+          </div>
           <button
-            class="icon"
-            title="Add scene"
-            aria-label="Add scene"
-            @click=${() => G(this, "scene-create")}
+            class="icon ${r ? "active" : ""}"
+            title=${r ? "Stop temporary preview" : t ? "Show temporarily for 5 minutes" : "Add a layout first"}
+            aria-label=${r ? "Stop temporary preview" : "Show temporary preview"}
+            ?disabled=${!r && !a}
+            @click=${(t) => {
+			t.stopPropagation(), at(this, "preview-toggle", e);
+		}}
           >
-            <ha-icon icon="mdi:plus"></ha-icon>
+            <ha-icon
+              icon=${r ? "mdi:eye" : "mdi:eye-off-outline"}
+            ></ha-icon>
           </button>
         </header>
-        <div class="list">
-          ${this.scenes.map(
-      (e) => d`
-              <div
-                class="row ${this.section === "scenes" && e.id === this.selectedSceneId ? "active" : ""}"
-              >
-                <button
-                  class="scene"
-                  @click=${() => G(this, "scene-selected", e.id)}
-                >
-                  <ha-icon icon="mdi:layers-outline"></ha-icon>
-                  <span>${e.name}</span>
-                  ${e.is_default ? d`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : c}
-                </button>
-                ${e.id === this.selectedSceneId ? d`
-                        <details
-                          class="action-menu"
-                          @toggle=${this.actionMenuToggled}
-                          @keydown=${this.actionMenuKeydown}
-                        >
-                          <summary
-                            aria-label="Scene actions"
-                            aria-haspopup="menu"
-                          >
-                            <ha-icon icon="mdi:dots-vertical"></ha-icon>
-                          </summary>
-                          <div
-                            class="menu"
-                            role="menu"
-                            @click=${this.closeActionMenu}
-                          >
-                            <button @click=${() => G(this, "scene-rename")}>
-                              Rename
-                            </button>
-                            <button
-                              @click=${() => G(this, "scene-duplicate")}
-                            >
-                              Duplicate
-                            </button>
-                            ${e.is_default ? c : d`<button @click=${() => G(this, "scene-default")}>Set as default</button>`}
-                            ${e.is_default ? c : d`<button class="danger" @click=${() => G(this, "scene-delete")}>Delete</button>`}
-                          </div>
-                        </details>
-                      ` : c}
-              </div>
-            `
-    )}
-        </div>
-        ${this.form ? d`
-                <div class="form">
-                  <strong>Rename scene</strong>
-                  <ha-textfield
-                    label="Scene name"
-                    .value=${this.sceneName}
-                    @input=${(e) => G(this, "scene-name", e.target.value)}
-                    @keydown=${(e) => {
-      e.key === "Enter" && G(this, "scene-save");
-    }}
-                  ></ha-textfield>
-                  <div class="actions">
-                    <ha-button @click=${() => G(this, "scene-cancel")}
-                      >Cancel</ha-button
+        ${t ? D`
+                <mini-display-preview
+                  .dashboard=${t}
+                  .hass=${this.hass}
+                  .assets=${this.assets[e.config_entry_id] ?? []}
+                  .page=${n}
+                  .width=${e.width}
+                  .height=${e.height}
+                  .displayId=${e.config_entry_id}
+                  .interactive=${!0}
+                  .showHidden=${this.showHidden}
+                  @click=${(e) => e.stopPropagation()}
+                ></mini-display-preview>
+                ${t.pages.length > 1 ? D`
+                  <nav>
+                    <button
+                      class="icon"
+                      aria-label="Previous page"
+                      @click=${(t) => {
+			t.stopPropagation(), at(this, "preview-page", {
+				displayId: e.config_entry_id,
+				delta: -1
+			});
+		}}
                     >
-                    <ha-button
-                      .disabled=${!this.sceneName.trim()}
-                      @click=${() => G(this, "scene-save")}
-                      >Save</ha-button
+                      <ha-icon icon="mdi:chevron-left"></ha-icon>
+                    </button>
+                    <span>${n + 1} / ${t.pages.length}</span>
+                    <button
+                      class="icon"
+                      aria-label="Next page"
+                      @click=${(t) => {
+			t.stopPropagation(), at(this, "preview-page", {
+				displayId: e.config_entry_id,
+				delta: 1
+			});
+		}}
                     >
-                  </div>
-                </div>
-              ` : c}
+                      <ha-icon icon="mdi:chevron-right"></ha-icon>
+                    </button>
+                  </nav>
+                ` : A}
+              ` : D`<ha-alert alert-type="info"
+                >No layout in this scene.</ha-alert
+              >`}
+        ${!i && t ? D`<ha-button
+                .disabled=${this.dirtyDisplays.has(e.config_entry_id)}
+                @click=${(t) => {
+			t.stopPropagation(), at(this, "scene-activate", e);
+		}}
+                >Activate ${this.selectedSceneName}</ha-button
+              >` : A}
       </ha-card>
     `;
-  }
+	}
 };
-S.styles = z`
+B([R({ attribute: !1 })], G.prototype, "hass", void 0), B([R({ attribute: !1 })], G.prototype, "displays", void 0), B([R({ attribute: !1 })], G.prototype, "dashboards", void 0), B([R({ attribute: !1 })], G.prototype, "pages", void 0), B([R({ attribute: !1 })], G.prototype, "dirtyDisplays", void 0), B([R({ attribute: !1 })], G.prototype, "assets", void 0), B([R()], G.prototype, "selectedDisplayId", void 0), B([R()], G.prototype, "selectedSceneId", void 0), B([R()], G.prototype, "selectedSceneName", void 0), B([z()], G.prototype, "showHidden", void 0), G = B([L("mini-display-preview-list")], G);
+//#endregion
+//#region src/scene-sidebar.ts
+var K = (e, t, n) => {
+	e.dispatchEvent(new CustomEvent(t, {
+		detail: n,
+		bubbles: !0,
+		composed: !0
+	}));
+}, q = class extends I {
+	constructor(...e) {
+		super(...e), this.displays = [], this.scenes = [], this.selectedDisplayId = "", this.selectedSceneId = "", this.section = "scenes", this.imageCount = 0, this.form = null, this.sceneName = "", this.closeActionMenusOnOutsideClick = (e) => {
+			let t = e.composedPath();
+			this.renderRoot.querySelectorAll("details.action-menu[open]").forEach((e) => {
+				t.includes(e) || (e.open = !1);
+			});
+		};
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
       font-family: var(--ha-font-family-body, Roboto, sans-serif);
@@ -2713,314 +2589,257 @@ S.styles = z`
       line-height: 1.4;
     }
   `;
-$([
-  g({ attribute: !1 })
-], S.prototype, "displays", 2);
-$([
-  g({ attribute: !1 })
-], S.prototype, "scenes", 2);
-$([
-  g()
-], S.prototype, "selectedDisplayId", 2);
-$([
-  g()
-], S.prototype, "selectedSceneId", 2);
-$([
-  g()
-], S.prototype, "section", 2);
-$([
-  g({ type: Number })
-], S.prototype, "imageCount", 2);
-$([
-  g()
-], S.prototype, "form", 2);
-$([
-  g()
-], S.prototype, "sceneName", 2);
-S = $([
-  H("mini-display-scene-sidebar")
-], S);
-const me = { ATTRIBUTE: 1, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4 }, Da = (t) => (...e) => ({ _$litDirective$: t, values: e });
-class Ba {
-  constructor(e) {
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AT(e, i, a) {
-    this._$Ct = e, this._$AM = i, this._$Ci = a;
-  }
-  _$AS(e, i) {
-    return this.update(e, i);
-  }
-  update(e, i) {
-    return this.render(...i);
-  }
-}
-const Ca = (t) => t.strings === void 0, Pa = {}, Ma = (t, e = Pa) => t._$AH = e;
-const fe = Da(class extends Ba {
-  constructor(t) {
-    if (super(t), t.type !== me.PROPERTY && t.type !== me.ATTRIBUTE && t.type !== me.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
-    if (!Ca(t)) throw Error("`live` bindings can only contain a single expression");
-  }
-  render(t) {
-    return t;
-  }
-  update(t, [e]) {
-    if (e === F || e === c) return e;
-    const i = t.element, a = t.name;
-    if (t.type === me.PROPERTY) {
-      if (e === i[a]) return F;
-    } else if (t.type === me.BOOLEAN_ATTRIBUTE) {
-      if (!!e === i.hasAttribute(a)) return F;
-    } else if (t.type === me.ATTRIBUTE && i.getAttribute(a) === e + "") return F;
-    return Ma(t), e;
-  }
-});
-var ka = Object.defineProperty, za = Object.getOwnPropertyDescriptor, ae = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? za(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && ka(e, i, s), s;
+	}
+	connectedCallback() {
+		super.connectedCallback(), window.addEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0);
+	}
+	disconnectedCallback() {
+		window.removeEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0), super.disconnectedCallback();
+	}
+	actionMenuToggled(e) {
+		let t = e.currentTarget;
+		t.open && this.renderRoot.querySelectorAll("details.action-menu[open]").forEach((e) => {
+			e !== t && (e.open = !1);
+		});
+	}
+	closeActionMenu(e) {
+		let t = e.composedPath().find((e) => e instanceof HTMLButtonElement);
+		if (!t || t.disabled) return;
+		let n = e.currentTarget.closest("details");
+		n && (n.open = !1);
+	}
+	actionMenuKeydown(e) {
+		if (e.key !== "Escape") return;
+		let t = e.currentTarget.closest("details");
+		t && (t.open = !1, t.querySelector("summary")?.focus(), e.preventDefault(), e.stopPropagation());
+	}
+	render() {
+		let e = this.displays.find((e) => e.config_entry_id === this.selectedDisplayId);
+		return D`
+      <ha-card>
+        <header><h2>Display</h2></header>
+        <div class="picker">
+          <label>
+            Display
+            <select
+              .value=${this.selectedDisplayId}
+              @change=${(e) => K(this, "display-selected", e.target.value)}
+            >
+              ${this.displays.map((e) => D`<option value=${e.config_entry_id}>${e.title}</option>`)}
+            </select>
+          </label>
+          <span class="status ${e?.available ? "online" : ""}"
+            ><i></i>${e?.available ? "Online" : "Offline"}</span
+          >
+        </div>
+        <div class="navigation">
+          <button
+            class="nav-item ${this.section === "images" ? "active" : ""}"
+            @click=${() => K(this, "images-selected")}
+          >
+            <ha-icon icon="mdi:image-multiple-outline"></ha-icon>
+            <span>Images (${this.imageCount})</span>
+          </button>
+        </div>
+        <header>
+          <h2>Scenes</h2>
+          <button
+            class="icon"
+            title="Add scene"
+            aria-label="Add scene"
+            @click=${() => K(this, "scene-create")}
+          >
+            <ha-icon icon="mdi:plus"></ha-icon>
+          </button>
+        </header>
+        <div class="list">
+          ${this.scenes.map((e) => D`
+              <div
+                class="row ${this.section === "scenes" && e.id === this.selectedSceneId ? "active" : ""}"
+              >
+                <button
+                  class="scene"
+                  @click=${() => K(this, "scene-selected", e.id)}
+                >
+                  <ha-icon icon="mdi:layers-outline"></ha-icon>
+                  <span>${e.name}</span>
+                  ${e.is_default ? D`<ha-icon class="default" icon="mdi:star" title="Default scene"></ha-icon>` : A}
+                </button>
+                ${e.id === this.selectedSceneId ? D`
+                        <details
+                          class="action-menu"
+                          @toggle=${this.actionMenuToggled}
+                          @keydown=${this.actionMenuKeydown}
+                        >
+                          <summary
+                            aria-label="Scene actions"
+                            aria-haspopup="menu"
+                          >
+                            <ha-icon icon="mdi:dots-vertical"></ha-icon>
+                          </summary>
+                          <div
+                            class="menu"
+                            role="menu"
+                            @click=${this.closeActionMenu}
+                          >
+                            <button @click=${() => K(this, "scene-rename")}>
+                              Rename
+                            </button>
+                            <button
+                              @click=${() => K(this, "scene-duplicate")}
+                            >
+                              Duplicate
+                            </button>
+                            ${e.is_default ? A : D`<button @click=${() => K(this, "scene-default")}>Set as default</button>`}
+                            ${e.is_default ? A : D`<button class="danger" @click=${() => K(this, "scene-delete")}>Delete</button>`}
+                          </div>
+                        </details>
+                      ` : A}
+              </div>
+            `)}
+        </div>
+        ${this.form ? D`
+                <div class="form">
+                  <strong>Rename scene</strong>
+                  <ha-textfield
+                    label="Scene name"
+                    .value=${this.sceneName}
+                    @input=${(e) => K(this, "scene-name", e.target.value)}
+                    @keydown=${(e) => {
+			e.key === "Enter" && K(this, "scene-save");
+		}}
+                  ></ha-textfield>
+                  <div class="actions">
+                    <ha-button @click=${() => K(this, "scene-cancel")}
+                      >Cancel</ha-button
+                    >
+                    <ha-button
+                      .disabled=${!this.sceneName.trim()}
+                      @click=${() => K(this, "scene-save")}
+                      >Save</ha-button
+                    >
+                  </div>
+                </div>
+              ` : A}
+      </ha-card>
+    `;
+	}
 };
-const oi = {
-  range: "is in number range",
-  number_equals: "equals",
-  number_not_equals: "does not equal",
-  greater_than: "is greater than",
-  greater_than_or_equal: "is greater than or equal to",
-  less_than: "is less than",
-  less_than_or_equal: "is less than or equal to",
-  equals: "equals",
-  not_equals: "does not equal",
-  starts_with: "starts with",
-  ends_with: "ends with",
-  contains: "contains",
-  available: "is available",
-  unavailable: "is unavailable"
-}, Ke = [
-  "number_equals",
-  "number_not_equals",
-  "greater_than",
-  "greater_than_or_equal",
-  "less_than",
-  "less_than_or_equal",
-  "range"
-], ct = new Set(Ke.filter((t) => t !== "range")), At = ["equals", "not_equals", "starts_with", "ends_with", "contains"], Oe = ["available", "unavailable"], pt = (t) => Ke.includes(t), ni = () => ({
-  rules: [{ id: "rule_a", source: "entity", entity: "", operator: "equals", match: "" }],
-  expression: { type: "group", operator: "and", children: [{ type: "rule", ruleId: "rule_a" }] }
-}), li = ["#039be5", "#8e24aa", "#fb8c00", "#43a047", "#e53935", "#00897b", "#d81b60", "#3949ab", "#f9a825", "#00acc1", "#f4511e", "#7cb342"], U = (t) => t.replace("rule_", "").toUpperCase(), di = (t) => li[Math.max(0, t.charCodeAt(t.length - 1) - 97) % li.length], ht = (t, e, i) => {
-  t.dispatchEvent(new CustomEvent(e, { detail: i, bubbles: !0, composed: !0 }));
-};
-let X = class extends C {
-  constructor() {
-    super(...arguments), this.targetName = "", this.targetKind = "card", this.draft = ni(), this.advanced = !1, this.draftInitialized = !1;
-  }
-  connectedCallback() {
-    super.connectedCallback(), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
-  }
-  willUpdate() {
-    this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? ni()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
-  }
-  disconnectedCallback() {
-    this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
-  }
-  render() {
-    const t = this.validationError;
-    return d`
-      <ha-card role="dialog" aria-modal="true" aria-labelledby="visibility-title" @click=${(e) => e.stopPropagation()}>
-        <header><h2 id="visibility-title">${this.targetName} visibility</h2></header>
-        <main>
-          <div class="mode-switch" role="tablist" aria-label="Visibility editor mode"><button class=${this.advanced ? "" : "active"} role="tab" aria-selected=${!this.advanced} @click=${() => this.advanced = !1}>Simple</button><button class=${this.advanced ? "active" : ""} role="tab" aria-selected=${this.advanced} @click=${() => this.advanced = !0}>Advanced</button></div>
-          <p>${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}</p>
-          ${!this.advanced && this.draft.rules.length > 1 ? d`<label>Match<select .value=${fe(this.draft.expression.operator)} @change=${(e) => this.updateGroup([], { operator: e.target.value })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : c}
-          ${!this.advanced && this.hasAdvancedLogic ? d`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : c}
-          <section><div class="section-head"><h3>Conditions</h3><ha-button .disabled=${this.draft.rules.length >= 12} @click=${this.addRule}>Add condition</ha-button></div><div class="rule-list">${this.draft.rules.map((e, i) => this.renderRule(e, i))}</div></section>
-          ${this.advanced ? d`<section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div></section>` : c}
-          ${t ? d`<p class="error" role="alert">${t}</p>` : c}
-        </main>
-        <footer class="actions"><ha-button @click=${() => ht(this, "visibility-clear")}>Always visible</ha-button><div class="right"><ha-button @click=${() => ht(this, "visibility-cancel")}>Cancel</ha-button><ha-button .disabled=${!!t} @click=${this.save}>Save</ha-button></div></footer>
-      </ha-card>`;
-  }
-  get canUseCardValue() {
-    return this.targetKind === "card" && !!(this.card?.source || this.card?.type === "text" && this.card.text !== void 0);
-  }
-  renderRule(t, e) {
-    const i = t.source === "entity", a = At.includes(t.operator), s = ct.has(t.operator);
-    return d`<article class="rule">
-      <div class="rule-head">
-        <span class="rule-marker" style=${`background:${di(t.id)}`}>${U(t.id)}</span>
-        <label>Value source<select .value=${fe(t.source)} @change=${(r) => this.changeSource(e, r.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
-        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${U(t.id)}`} @click=${() => this.removeRule(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
-      </div>
-      <div class="rule-fields">
-        <label>Comparison<select .value=${fe(t.operator)} @change=${(r) => this.changeOperator(e, r.target.value)}>${this.operatorOptions(t).map((r) => d`<option value=${r}>${oi[r]}</option>`)}</select></label>
-        ${i ? d`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: t.entity ?? "" }} .schema=${[{ name: "entity", required: !0, selector: { entity: this.entitySelector(t) } }]} .computeLabel=${() => "Entity"} @value-changed=${(r) => this.updateRule(e, { entity: r.detail.value.entity })}></ha-form>${this.currentValue(t)}</div>` : d`<div class="entity-source">${this.currentValue(t)}</div>`}
-        ${t.operator === "range" ? d`<div class="range">${this.numberField("From", t.minimum, (r) => this.updateRule(e, { minimum: r }))}${this.numberField("To", t.maximum, (r) => this.updateRule(e, { maximum: r }))}</div>` : s ? this.numberField("Value", t.value, (r) => this.updateRule(e, { value: r })) : a ? this.matchField(t, e) : c}
-      </div>
-    </article>`;
-  }
-  numberField(t, e, i) {
-    return d`<label>${t}<input type="number" .value=${e === void 0 ? "" : String(e)} @input=${(a) => {
-      const s = a.target.value;
-      i(s === "" ? void 0 : Number(s));
-    }}></label>`;
-  }
-  renderGroup(t, e) {
-    return d`<div class="group ${e.length ? "nested" : ""}">
-      <div class="group-head"><label>Group logic<select .value=${fe(t.operator)} @change=${(i) => this.updateGroup(e, { operator: i.target.value })}><option value="and">All must match (AND)</option><option value="or">Any may match (OR)</option></select></label><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(i) => this.updateGroup(e, { negate: i.target.checked })}>Invert result</label></div>
-      ${t.children.map((i, a) => this.renderExpression(i, [...e, a], a, t.children.length))}
-      <div class="group-actions"><ha-button @click=${() => this.addRuleReference(e)}>Add condition</ha-button><ha-button .disabled=${e.length >= 3} @click=${() => this.addGroup(e)}>Add group</ha-button></div>
-    </div>`;
-  }
-  renderExpression(t, e, i, a) {
-    return t.type === "group" ? d`<div class="logic-child"><span class="logic-index">${i + 1}</span>${this.renderGroup(t, e)}${this.moveButtons(e, i, a)}<button class="icon danger" ?disabled=${a === 1} aria-label="Remove group" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>` : d`<div class="logic-child"><span class="logic-index">${i + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${di(t.ruleId)}`}>${U(t.ruleId)}</span><label>Condition<select .value=${fe(t.ruleId)} @change=${(s) => this.updateExpression(e, { ...t, ruleId: s.target.value })}>${this.draft.rules.map((s) => d`<option value=${s.id}>Condition ${U(s.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${t.negate === !0} @change=${(s) => this.updateExpression(e, { ...t, negate: s.target.checked })}>Invert condition</label></div>${this.moveButtons(e, i, a)}<button class="icon danger" ?disabled=${a === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(e)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
-  }
-  moveButtons(t, e, i) {
-    return d`<div class="move"><button class="icon" ?disabled=${e === 0} aria-label="Move up" @click=${() => this.moveExpression(t, -1)}><ha-icon icon="mdi:chevron-up"></ha-icon></button><button class="icon" ?disabled=${e === i - 1} aria-label="Move down" @click=${() => this.moveExpression(t, 1)}><ha-icon icon="mdi:chevron-down"></ha-icon></button></div>`;
-  }
-  updateRule(t, e) {
-    this.draft = { ...this.draft, rules: this.draft.rules.map((i, a) => a === t ? { ...i, ...e } : i) };
-  }
-  changeSource(t, e) {
-    const i = this.draft.rules[t];
-    if (e === "card" && this.card?.type === "number" && ![...Ke, ...Oe].includes(i.operator)) {
-      this.changeOperator(t, "range"), this.updateRule(t, { source: e });
-      return;
-    }
-    if (e === "card" && this.card?.type !== "number" && pt(i.operator)) {
-      this.changeOperator(t, "equals"), this.updateRule(t, { source: e });
-      return;
-    }
-    this.updateRule(t, { source: e });
-  }
-  operatorOptions(t) {
-    return t.source !== "card" ? Object.keys(oi) : this.card?.type === "number" ? [...Ke, ...Oe] : [...At, ...Oe];
-  }
-  entitySelector(t) {
-    if (["available", "unavailable"].includes(t.operator)) return {};
-    const e = pt(t.operator);
-    return { include_entities: Object.entries(this.hass?.states ?? {}).filter(([a, s]) => a === t.entity || this.isNumericState(a, s) === e).map(([a]) => a) };
-  }
-  isNumericState(t, e) {
-    if (["number", "input_number", "counter"].includes(t.split(".", 1)[0]) || e.attributes?.unit_of_measurement !== void 0) return !0;
-    const i = e.state.trim();
-    return i !== "" && !["unknown", "unavailable"].includes(i) && Number.isFinite(Number(i));
-  }
-  sourceState(t) {
-    const e = t.source === "card" ? this.card?.source : t.entity;
-    return e ? this.hass?.states[e] : void 0;
-  }
-  currentValue(t) {
-    if (t.source === "entity" && !t.entity) return d`<div class="current-value">Select an entity to see its current value.</div>`;
-    if (t.source === "card" && this.card?.type === "text" && !this.card.source)
-      return d`<div class="current-value"><span>Current value: </span><strong>${this.card.text ?? ""}</strong></div>`;
-    const e = t.source === "card" ? this.card?.source : t.entity, i = e ? this.hass?.states[e] : void 0;
-    if (!i) return d`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
-    const a = typeof i.attributes?.unit_of_measurement == "string" ? ` ${i.attributes.unit_of_measurement}` : "", s = ["unknown", "unavailable"].includes(i.state);
-    return d`<div class="current-value ${s ? "unavailable" : ""}"><span>Current value: </span><strong>${i.state}${a}</strong></div>`;
-  }
-  knownValues(t) {
-    if (!["equals", "not_equals"].includes(t.operator)) return [];
-    if (t.source === "card" && this.card?.type === "status") return ["on", "off"];
-    const e = t.source === "card" ? this.card?.source : t.entity, a = this.sourceState(t)?.attributes?.options;
-    if (Array.isArray(a)) return [...new Set(a.map(String))];
-    const s = e?.split(".", 1)[0];
-    return s && ["binary_sensor", "switch", "input_boolean", "light", "fan", "lock", "cover"].includes(s) ? ["on", "off"] : [];
-  }
-  matchField(t, e) {
-    const i = this.knownValues(t);
-    if (i.length) {
-      const s = t.match && !i.includes(t.match) ? [t.match, ...i] : i;
-      return d`<label>Value<select .value=${fe(t.match ?? "")} @change=${(r) => this.updateRule(e, { match: r.target.value })}><option value="" disabled>Select value</option>${s.map((r) => d`<option value=${r}>${r}</option>`)}</select></label>`;
-    }
-    const a = this.sourceState(t)?.state;
-    return d`<label>Value<input maxlength="64" placeholder=${a ? `Current: ${a}` : "Value"} .value=${t.match ?? ""} @input=${(s) => this.updateRule(e, { match: s.target.value })}></label>`;
-  }
-  changeOperator(t, e) {
-    const i = this.draft.rules[t], a = { id: i.id, source: i.source, entity: i.entity, operator: e };
-    e === "range" ? (a.minimum = i.minimum, a.maximum = i.maximum) : ct.has(e) ? a.value = i.value : Oe.includes(e) || (a.match = i.match ?? "");
-    const s = a.entity ? this.hass?.states[a.entity] : void 0;
-    a.source === "entity" && a.entity && s && !Oe.includes(e) && this.isNumericState(a.entity, s) !== pt(e) && delete a.entity, this.draft = { ...this.draft, rules: this.draft.rules.map((r, o) => o === t ? a : r) };
-  }
-  addRule() {
-    const t = new Set(this.draft.rules.map((s) => s.id));
-    let e = 97;
-    for (; t.has(`rule_${String.fromCharCode(e)}`); ) e += 1;
-    const i = this.canUseCardValue && this.card?.type === "number", a = { id: `rule_${String.fromCharCode(e)}`, source: this.canUseCardValue ? "card" : "entity", entity: "", operator: i ? "range" : "equals", ...i ? {} : { match: "" } };
-    this.draft = { rules: [...this.draft.rules, a], expression: { ...this.draft.expression, children: [...this.draft.expression.children, { type: "rule", ruleId: a.id }] } };
-  }
-  removeRule(t) {
-    if (this.draft.rules.length === 1) return;
-    const e = this.draft.rules[t].id, i = this.draft.rules.filter((r, o) => o !== t), a = i[0].id, s = (r) => r.type === "rule" ? r.ruleId === e ? { ...r, ruleId: a } : r : { ...r, children: r.children.map(s) };
-    this.draft = { rules: i, expression: s(this.draft.expression) };
-  }
-  groupAt(t, e) {
-    let i = t;
-    for (const a of e) {
-      const s = i.children[a];
-      if (!s || s.type !== "group") throw new Error("Invalid visibility group path");
-      i = s;
-    }
-    return i;
-  }
-  parentAt(t, e) {
-    return this.groupAt(t, e.slice(0, -1));
-  }
-  mutateExpression(t) {
-    const e = structuredClone(this.draft.expression);
-    t(e), this.draft = { ...this.draft, expression: e };
-  }
-  updateGroup(t, e) {
-    this.mutateExpression((i) => Object.assign(this.groupAt(i, t), e));
-  }
-  updateExpression(t, e) {
-    this.mutateExpression((i) => {
-      this.parentAt(i, t).children[t.at(-1)] = e;
-    });
-  }
-  addRuleReference(t) {
-    this.mutateExpression((e) => this.groupAt(e, t).children.push({ type: "rule", ruleId: this.draft.rules[0].id }));
-  }
-  addGroup(t) {
-    this.mutateExpression((e) => this.groupAt(e, t).children.push({ type: "group", operator: "and", children: [{ type: "rule", ruleId: this.draft.rules[0].id }] }));
-  }
-  removeExpression(t) {
-    this.mutateExpression((e) => {
-      const i = this.parentAt(e, t);
-      i.children.length > 1 && i.children.splice(t.at(-1), 1);
-    });
-  }
-  moveExpression(t, e) {
-    this.mutateExpression((i) => {
-      const a = this.parentAt(i, t), s = t.at(-1), r = s + e;
-      r < 0 || r >= a.children.length || ([a.children[s], a.children[r]] = [a.children[r], a.children[s]]);
-    });
-  }
-  get hasAdvancedLogic() {
-    const t = (e) => e.negate === !0 || e.type === "group" && e.children.some((i) => i.type === "group" || t(i));
-    return t(this.draft.expression);
-  }
-  get validationError() {
-    for (const t of this.draft.rules) {
-      if (t.source === "card" && !this.canUseCardValue) return "This item has no card value to test.";
-      if (t.source === "entity" && !t.entity?.trim()) return `Condition ${U(t.id)} needs an entity.`;
-      if (t.operator === "range") {
-        if (t.minimum === void 0 && t.maximum === void 0) return `Condition ${U(t.id)} needs a lower or upper limit.`;
-        if (t.minimum !== void 0 && !Number.isFinite(t.minimum) || t.maximum !== void 0 && !Number.isFinite(t.maximum)) return `Condition ${U(t.id)} needs valid number limits.`;
-        if (t.minimum !== void 0 && t.maximum !== void 0 && t.minimum > t.maximum) return `Condition ${U(t.id)} has an invalid range.`;
-      }
-      if (ct.has(t.operator) && !Number.isFinite(t.value)) return `Condition ${U(t.id)} needs a numeric value.`;
-      if (At.includes(t.operator) && !t.match?.length) return `Condition ${U(t.id)} needs a value.`;
-    }
-  }
-  save() {
-    if (this.validationError) return;
-    const t = structuredClone(this.draft);
-    for (const e of t.rules) e.entity !== void 0 && (e.entity = e.entity.trim());
-    ht(this, "visibility-save", t);
-  }
-};
-X.styles = z`
+B([R({ attribute: !1 })], q.prototype, "displays", void 0), B([R({ attribute: !1 })], q.prototype, "scenes", void 0), B([R()], q.prototype, "selectedDisplayId", void 0), B([R()], q.prototype, "selectedSceneId", void 0), B([R()], q.prototype, "section", void 0), B([R({ type: Number })], q.prototype, "imageCount", void 0), B([R()], q.prototype, "form", void 0), B([R()], q.prototype, "sceneName", void 0), q = B([L("mini-display-scene-sidebar")], q);
+//#endregion
+//#region node_modules/lit-html/directive.js
+var ot = {
+	ATTRIBUTE: 1,
+	CHILD: 2,
+	PROPERTY: 3,
+	BOOLEAN_ATTRIBUTE: 4,
+	EVENT: 5,
+	ELEMENT: 6
+}, st = (e) => (...t) => ({
+	_$litDirective$: e,
+	values: t
+}), ct = class {
+	constructor(e) {}
+	get _$AU() {
+		return this._$AM._$AU;
+	}
+	_$AT(e, t, n) {
+		this._$Ct = e, this._$AM = t, this._$Ci = n;
+	}
+	_$AS(e, t) {
+		return this.update(e, t);
+	}
+	update(e, t) {
+		return this.render(...t);
+	}
+}, { I: lt } = De, ut = (e) => e.strings === void 0, dt = {}, ft = (e, t = dt) => e._$AH = t, pt = st(class extends ct {
+	constructor(e) {
+		if (super(e), e.type !== ot.PROPERTY && e.type !== ot.ATTRIBUTE && e.type !== ot.BOOLEAN_ATTRIBUTE) throw Error("The `live` directive is not allowed on child or event bindings");
+		if (!ut(e)) throw Error("`live` bindings can only contain a single expression");
+	}
+	render(e) {
+		return e;
+	}
+	update(e, [t]) {
+		if (t === k || t === A) return t;
+		let n = e.element, r = e.name;
+		if (e.type === ot.PROPERTY) {
+			if (t === n[r]) return k;
+		} else if (e.type === ot.BOOLEAN_ATTRIBUTE) {
+			if (!!t === n.hasAttribute(r)) return k;
+		} else if (e.type === ot.ATTRIBUTE && n.getAttribute(r) === t + "") return k;
+		return ft(e), t;
+	}
+}), mt = {
+	range: "is in number range",
+	number_equals: "equals",
+	number_not_equals: "does not equal",
+	greater_than: "is greater than",
+	greater_than_or_equal: "is greater than or equal to",
+	less_than: "is less than",
+	less_than_or_equal: "is less than or equal to",
+	equals: "equals",
+	not_equals: "does not equal",
+	starts_with: "starts with",
+	ends_with: "ends with",
+	contains: "contains",
+	available: "is available",
+	unavailable: "is unavailable"
+}, ht = [
+	"number_equals",
+	"number_not_equals",
+	"greater_than",
+	"greater_than_or_equal",
+	"less_than",
+	"less_than_or_equal",
+	"range"
+], gt = new Set(ht.filter((e) => e !== "range")), _t = [
+	"equals",
+	"not_equals",
+	"starts_with",
+	"ends_with",
+	"contains"
+], vt = ["available", "unavailable"], yt = (e) => ht.includes(e), bt = () => ({
+	rules: [{
+		id: "rule_a",
+		source: "entity",
+		entity: "",
+		operator: "equals",
+		match: ""
+	}],
+	expression: {
+		type: "group",
+		operator: "and",
+		children: [{
+			type: "rule",
+			ruleId: "rule_a"
+		}]
+	}
+}), xt = [
+	"#039be5",
+	"#8e24aa",
+	"#fb8c00",
+	"#43a047",
+	"#e53935",
+	"#00897b",
+	"#d81b60",
+	"#3949ab",
+	"#f9a825",
+	"#00acc1",
+	"#f4511e",
+	"#7cb342"
+], J = (e) => e.replace("rule_", "").toUpperCase(), St = (e) => xt[Math.max(0, e.charCodeAt(e.length - 1) - 97) % xt.length], Ct = (e, t, n) => {
+	e.dispatchEvent(new CustomEvent(t, {
+		detail: n,
+		bubbles: !0,
+		composed: !0
+	}));
+}, Y = class extends I {
+	constructor(...e) {
+		super(...e), this.targetName = "", this.targetKind = "card", this.draft = bt(), this.advanced = !1, this.draftInitialized = !1;
+	}
+	static {
+		this.styles = o`
     :host{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;font-family:var(--ha-font-family-body,Roboto,sans-serif);background:rgba(0,0,0,.48)}
     ha-card{width:min(760px,100%);max-height:min(880px,calc(100vh - 32px));overflow:auto}header{padding:16px;border-bottom:1px solid var(--divider-color)}
     h2,h3{margin:0;font-weight:500}h2{font-size:20px}h3{font-size:16px}main{display:grid;gap:20px;padding:16px}section{display:grid;gap:10px}
@@ -3039,160 +2858,353 @@ X.styles = z`
     .actions{display:flex;justify-content:space-between;gap:8px;padding:12px 16px;border-top:1px solid var(--divider-color)}.right{display:flex;gap:8px}
     @media(max-width:700px){.rule-head,.rule-fields{grid-template-columns:1fr}.rule-head .icon{justify-self:end}.logic-child{grid-template-columns:28px minmax(0,1fr) 40px}.move{grid-column:2}.group.nested{margin-left:8px}.actions{align-items:stretch;flex-direction:column}.right{justify-content:flex-end}}
   `;
-ae([
-  g({ attribute: !1 })
-], X.prototype, "hass", 2);
-ae([
-  g()
-], X.prototype, "targetName", 2);
-ae([
-  g()
-], X.prototype, "targetKind", 2);
-ae([
-  g({ attribute: !1 })
-], X.prototype, "card", 2);
-ae([
-  g({ attribute: !1 })
-], X.prototype, "value", 2);
-ae([
-  v()
-], X.prototype, "draft", 2);
-ae([
-  v()
-], X.prototype, "advanced", 2);
-X = ae([
-  H("mini-display-visibility-dialog")
-], X);
-var Oa = Object.defineProperty, ja = Object.getOwnPropertyDescriptor, R = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? ja(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Oa(e, i, s), s;
-};
-const Ia = (t) => {
-  let e = "";
-  for (let i = 0; i < t.length; i += 32768)
-    e += String.fromCharCode(...t.subarray(i, i + 32768));
-  return btoa(e);
-}, Ea = (t) => {
-  let e = 0xcbf29ce484222325n;
-  for (const i of t)
-    e ^= BigInt(i), e = BigInt.asUintN(64, e * 0x100000001b3n);
-  return e.toString(16).padStart(16, "0");
-}, Na = async (t, e, i) => {
-  const a = await createImageBitmap(t), s = Math.min(
-    1,
-    e / a.width,
-    i / a.height
-  ), r = Math.max(1, Math.round(a.width * s)), o = Math.max(1, Math.round(a.height * s)), l = document.createElement("canvas");
-  l.width = r, l.height = o;
-  const n = l.getContext("2d", { alpha: !1 });
-  if (!n) throw new Error("This browser cannot optimize images");
-  n.fillStyle = "#000", n.fillRect(0, 0, r, o), n.imageSmoothingEnabled = !0, n.imageSmoothingQuality = "high", n.drawImage(a, 0, 0, r, o), a.close();
-  const h = n.getImageData(0, 0, r, o).data, u = new Uint8Array(8 + r * o * 2);
-  u.set([77, 68, 73, 49], 0), u[4] = r & 255, u[5] = r >> 8, u[6] = o & 255, u[7] = o >> 8;
-  const A = new DataView(u.buffer);
-  for (let m = 0, f = 8; m < h.length; m += 4, f += 2) {
-    const b = (h[m] & 248) << 8 | (h[m + 1] & 252) << 3 | h[m + 2] >> 3;
-    A.setUint16(f, b, !0);
-  }
-  return {
-    id: Ea(u),
-    name: t.name,
-    width: r,
-    height: o,
-    bytes: u.length,
-    data: Ia(u),
-    preview: l.toDataURL("image/webp", 0.82)
-  };
-};
-let E = class extends C {
-  constructor() {
-    super(...arguments), this.assets = [], this.displayId = "", this.label = "Image", this.value = "", this.uploadOnly = !1, this.maximumWidth = 240, this.maximumHeight = 240, this.busy = !1, this.error = "", this.upload = async (t) => {
-      const e = t.target, i = e.files?.[0];
-      if (!(!i || !this.hass || !this.displayId)) {
-        this.busy = !0, this.error = "";
-        try {
-          const a = await Na(
-            i,
-            Math.max(1, this.maximumWidth),
-            Math.max(1, this.maximumHeight)
-          );
-          await this.hass.callWS({
-            type: "mini_display/asset/upload",
-            config_entry_id: this.displayId,
-            asset_id: a.id,
-            name: a.name,
-            width: a.width,
-            height: a.height,
-            data: a.data,
-            preview: a.preview
-          }), this.dispatchEvent(
-            new CustomEvent("asset-uploaded", {
-              detail: a,
-              bubbles: !0,
-              composed: !0
-            })
-          ), this.uploadOnly || this.select(a.id);
-        } catch (a) {
-          this.error = a instanceof Error ? a.message : String(a);
-        } finally {
-          this.busy = !1, e.value = "";
-        }
-      }
-    };
-  }
-  render() {
-    const t = this.assets.find((e) => e.id === this.value);
-    return d`<div class="field">
-      <span class="label">${this.label}</span>
-      <div class="picker">
-        ${t?.preview ? d`<img class="thumb" src=${t.preview} alt="" />` : d`<div class="thumb empty"><ha-icon icon="mdi:image-outline"></ha-icon></div>`}
-        <div>
-          ${this.uploadOnly ? d`<strong>Add a new image</strong><br /><small
-                    >Optimized for this display before upload</small
-                  >` : d`<select
-                    .value=${this.value}
-                    ?disabled=${this.busy}
-                    @change=${(e) => this.select(e.target.value)}
-                  >
-                    <option value="">No image</option>
-                    ${this.assets.map((e) => d`<option value=${e.id}>${e.name} · ${e.width}×${e.height}</option>`)}</select
-                  >${t ? d`<small>${Math.ceil(t.bytes / 1024)} KB on display</small>` : c}`}
-        </div>
-        <div class="actions">
-          ${t && !this.uploadOnly ? d`<button
-                  class="detach"
-                  title="Detach image"
-                  aria-label="Detach image"
-                  ?disabled=${this.busy}
-                  @click=${() => this.select("")}
-                >
-                  <ha-icon icon="mdi:image-remove-outline"></ha-icon>
-                </button>` : c}
-          <label class="upload" title="Upload image"
-            ><ha-icon icon=${this.busy ? "mdi:loading" : "mdi:upload"}></ha-icon
-            ><input
-              type="file"
-              accept="image/*"
-              ?disabled=${this.busy}
-              @change=${this.upload}
-          /></label>
-        </div>
+	}
+	connectedCallback() {
+		super.connectedCallback(), this.valueRefreshTimer = window.setInterval(() => this.requestUpdate(), 3e3);
+	}
+	willUpdate() {
+		this.draftInitialized || (this.draftInitialized = !0, this.draft = structuredClone(this.value ?? bt()), !this.value && this.canUseCardValue && (this.draft.rules[0].source = "card", this.card?.type === "number" && (this.draft.rules[0].operator = "range")));
+	}
+	disconnectedCallback() {
+		this.valueRefreshTimer !== void 0 && window.clearInterval(this.valueRefreshTimer), this.valueRefreshTimer = void 0, super.disconnectedCallback();
+	}
+	render() {
+		let e = this.validationError;
+		return D`
+      <ha-card role="dialog" aria-modal="true" aria-labelledby="visibility-title" @click=${(e) => e.stopPropagation()}>
+        <header><h2 id="visibility-title">${this.targetName} visibility</h2></header>
+        <main>
+          <div class="mode-switch" role="tablist" aria-label="Visibility editor mode"><button class=${this.advanced ? "" : "active"} role="tab" aria-selected=${!this.advanced} @click=${() => this.advanced = !1}>Simple</button><button class=${this.advanced ? "active" : ""} role="tab" aria-selected=${this.advanced} @click=${() => this.advanced = !0}>Advanced</button></div>
+          <p>${this.advanced ? "Name reusable conditions, then combine them in a nested logic tree." : "Show this item when the selected conditions match."}</p>
+          ${!this.advanced && this.draft.rules.length > 1 ? D`<label>Match<select .value=${pt(this.draft.expression.operator)} @change=${(e) => this.updateGroup([], { operator: e.target.value })}><option value="and">All conditions</option><option value="or">Any condition</option></select></label>` : A}
+          ${!this.advanced && this.hasAdvancedLogic ? D`<p class="error">Nested or inverted logic is active. Use Advanced mode to edit it.</p>` : A}
+          <section><div class="section-head"><h3>Conditions</h3><ha-button .disabled=${this.draft.rules.length >= 12} @click=${this.addRule}>Add condition</ha-button></div><div class="rule-list">${this.draft.rules.map((e, t) => this.renderRule(e, t))}</div></section>
+          ${this.advanced ? D`<section><div class="section-head"><h3>Logic</h3></div><div class="logic">${this.renderGroup(this.draft.expression, [])}</div></section>` : A}
+          ${e ? D`<p class="error" role="alert">${e}</p>` : A}
+        </main>
+        <footer class="actions"><ha-button @click=${() => Ct(this, "visibility-clear")}>Always visible</ha-button><div class="right"><ha-button @click=${() => Ct(this, "visibility-cancel")}>Cancel</ha-button><ha-button .disabled=${!!e} @click=${this.save}>Save</ha-button></div></footer>
+      </ha-card>`;
+	}
+	get canUseCardValue() {
+		return this.targetKind === "card" && !!(this.card?.source || this.card?.type === "text" && this.card.text !== void 0);
+	}
+	renderRule(e, t) {
+		let n = e.source === "entity", r = _t.includes(e.operator), i = gt.has(e.operator);
+		return D`<article class="rule">
+      <div class="rule-head">
+        <span class="rule-marker" style=${`background:${St(e.id)}`}>${J(e.id)}</span>
+        <label>Value source<select .value=${pt(e.source)} @change=${(e) => this.changeSource(t, e.target.value)}><option value="card" ?disabled=${!this.canUseCardValue}>This card</option><option value="entity">Another entity</option></select></label>
+        <button class="icon danger" ?disabled=${this.draft.rules.length === 1} aria-label=${`Remove condition ${J(e.id)}`} @click=${() => this.removeRule(t)}><ha-icon icon="mdi:delete-outline"></ha-icon></button>
       </div>
-      ${this.error ? d`<div class="error" role="alert">${this.error}</div>` : c}
+      <div class="rule-fields">
+        <label>Comparison<select .value=${pt(e.operator)} @change=${(e) => this.changeOperator(t, e.target.value)}>${this.operatorOptions(e).map((e) => D`<option value=${e}>${mt[e]}</option>`)}</select></label>
+        ${n ? D`<div class="entity-source"><ha-form .hass=${this.hass} .data=${{ entity: e.entity ?? "" }} .schema=${[{
+			name: "entity",
+			required: !0,
+			selector: { entity: this.entitySelector(e) }
+		}]} .computeLabel=${() => "Entity"} @value-changed=${(e) => this.updateRule(t, { entity: e.detail.value.entity })}></ha-form>${this.currentValue(e)}</div>` : D`<div class="entity-source">${this.currentValue(e)}</div>`}
+        ${e.operator === "range" ? D`<div class="range">${this.numberField("From", e.minimum, (e) => this.updateRule(t, { minimum: e }))}${this.numberField("To", e.maximum, (e) => this.updateRule(t, { maximum: e }))}</div>` : i ? this.numberField("Value", e.value, (e) => this.updateRule(t, { value: e })) : r ? this.matchField(e, t) : A}
+      </div>
+    </article>`;
+	}
+	numberField(e, t, n) {
+		return D`<label>${e}<input type="number" .value=${t === void 0 ? "" : String(t)} @input=${(e) => {
+			let t = e.target.value;
+			n(t === "" ? void 0 : Number(t));
+		}}></label>`;
+	}
+	renderGroup(e, t) {
+		return D`<div class="group ${t.length ? "nested" : ""}">
+      <div class="group-head"><label>Group logic<select .value=${pt(e.operator)} @change=${(e) => this.updateGroup(t, { operator: e.target.value })}><option value="and">All must match (AND)</option><option value="or">Any may match (OR)</option></select></label><label class="invert"><input type="checkbox" .checked=${e.negate === !0} @change=${(e) => this.updateGroup(t, { negate: e.target.checked })}>Invert result</label></div>
+      ${e.children.map((n, r) => this.renderExpression(n, [...t, r], r, e.children.length))}
+      <div class="group-actions"><ha-button @click=${() => this.addRuleReference(t)}>Add condition</ha-button><ha-button .disabled=${t.length >= 3} @click=${() => this.addGroup(t)}>Add group</ha-button></div>
     </div>`;
-  }
-  select(t) {
-    this.dispatchEvent(
-      new CustomEvent("image-changed", {
-        detail: t,
-        bubbles: !0,
-        composed: !0
-      })
-    );
-  }
+	}
+	renderExpression(e, t, n, r) {
+		return e.type === "group" ? D`<div class="logic-child"><span class="logic-index">${n + 1}</span>${this.renderGroup(e, t)}${this.moveButtons(t, n, r)}<button class="icon danger" ?disabled=${r === 1} aria-label="Remove group" @click=${() => this.removeExpression(t)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>` : D`<div class="logic-child"><span class="logic-index">${n + 1}</span><div><div class="rule-reference"><span class="rule-marker" style=${`background:${St(e.ruleId)}`}>${J(e.ruleId)}</span><label>Condition<select .value=${pt(e.ruleId)} @change=${(n) => this.updateExpression(t, {
+			...e,
+			ruleId: n.target.value
+		})}>${this.draft.rules.map((e) => D`<option value=${e.id}>Condition ${J(e.id)}</option>`)}</select></label></div><label class="invert"><input type="checkbox" .checked=${e.negate === !0} @change=${(n) => this.updateExpression(t, {
+			...e,
+			negate: n.target.checked
+		})}>Invert condition</label></div>${this.moveButtons(t, n, r)}<button class="icon danger" ?disabled=${r === 1} aria-label="Remove condition from logic" @click=${() => this.removeExpression(t)}><ha-icon icon="mdi:delete-outline"></ha-icon></button></div>`;
+	}
+	moveButtons(e, t, n) {
+		return D`<div class="move"><button class="icon" ?disabled=${t === 0} aria-label="Move up" @click=${() => this.moveExpression(e, -1)}><ha-icon icon="mdi:chevron-up"></ha-icon></button><button class="icon" ?disabled=${t === n - 1} aria-label="Move down" @click=${() => this.moveExpression(e, 1)}><ha-icon icon="mdi:chevron-down"></ha-icon></button></div>`;
+	}
+	updateRule(e, t) {
+		this.draft = {
+			...this.draft,
+			rules: this.draft.rules.map((n, r) => r === e ? {
+				...n,
+				...t
+			} : n)
+		};
+	}
+	changeSource(e, t) {
+		let n = this.draft.rules[e];
+		if (t === "card" && this.card?.type === "number" && ![...ht, ...vt].includes(n.operator)) {
+			this.changeOperator(e, "range"), this.updateRule(e, { source: t });
+			return;
+		}
+		if (t === "card" && this.card?.type !== "number" && yt(n.operator)) {
+			this.changeOperator(e, "equals"), this.updateRule(e, { source: t });
+			return;
+		}
+		this.updateRule(e, { source: t });
+	}
+	operatorOptions(e) {
+		return e.source === "card" ? this.card?.type === "number" ? [...ht, ...vt] : [..._t, ...vt] : Object.keys(mt);
+	}
+	entitySelector(e) {
+		if (["available", "unavailable"].includes(e.operator)) return {};
+		let t = yt(e.operator);
+		return { include_entities: Object.entries(this.hass?.states ?? {}).filter(([n, r]) => n === e.entity || this.isNumericState(n, r) === t).map(([e]) => e) };
+	}
+	isNumericState(e, t) {
+		if ([
+			"number",
+			"input_number",
+			"counter"
+		].includes(e.split(".", 1)[0]) || t.attributes?.unit_of_measurement !== void 0) return !0;
+		let n = t.state.trim();
+		return n !== "" && !["unknown", "unavailable"].includes(n) && Number.isFinite(Number(n));
+	}
+	sourceState(e) {
+		let t = e.source === "card" ? this.card?.source : e.entity;
+		return t ? this.hass?.states[t] : void 0;
+	}
+	currentValue(e) {
+		if (e.source === "entity" && !e.entity) return D`<div class="current-value">Select an entity to see its current value.</div>`;
+		if (e.source === "card" && this.card?.type === "text" && !this.card.source) return D`<div class="current-value"><span>Current value: </span><strong>${this.card.text ?? ""}</strong></div>`;
+		let t = e.source === "card" ? this.card?.source : e.entity, n = t ? this.hass?.states[t] : void 0;
+		if (!n) return D`<div class="current-value unavailable"><span>Current value: </span><strong>not available</strong></div>`;
+		let r = typeof n.attributes?.unit_of_measurement == "string" ? ` ${n.attributes.unit_of_measurement}` : "";
+		return D`<div class="current-value ${["unknown", "unavailable"].includes(n.state) ? "unavailable" : ""}"><span>Current value: </span><strong>${n.state}${r}</strong></div>`;
+	}
+	knownValues(e) {
+		if (!["equals", "not_equals"].includes(e.operator)) return [];
+		if (e.source === "card" && this.card?.type === "status") return ["on", "off"];
+		let t = e.source === "card" ? this.card?.source : e.entity, n = this.sourceState(e)?.attributes?.options;
+		if (Array.isArray(n)) return [...new Set(n.map(String))];
+		let r = t?.split(".", 1)[0];
+		return r && [
+			"binary_sensor",
+			"switch",
+			"input_boolean",
+			"light",
+			"fan",
+			"lock",
+			"cover"
+		].includes(r) ? ["on", "off"] : [];
+	}
+	matchField(e, t) {
+		let n = this.knownValues(e);
+		if (n.length) {
+			let r = e.match && !n.includes(e.match) ? [e.match, ...n] : n;
+			return D`<label>Value<select .value=${pt(e.match ?? "")} @change=${(e) => this.updateRule(t, { match: e.target.value })}><option value="" disabled>Select value</option>${r.map((e) => D`<option value=${e}>${e}</option>`)}</select></label>`;
+		}
+		let r = this.sourceState(e)?.state;
+		return D`<label>Value<input maxlength="64" placeholder=${r ? `Current: ${r}` : "Value"} .value=${e.match ?? ""} @input=${(e) => this.updateRule(t, { match: e.target.value })}></label>`;
+	}
+	changeOperator(e, t) {
+		let n = this.draft.rules[e], r = {
+			id: n.id,
+			source: n.source,
+			entity: n.entity,
+			operator: t
+		};
+		t === "range" ? (r.minimum = n.minimum, r.maximum = n.maximum) : gt.has(t) ? r.value = n.value : vt.includes(t) || (r.match = n.match ?? "");
+		let i = r.entity ? this.hass?.states[r.entity] : void 0;
+		r.source === "entity" && r.entity && i && !vt.includes(t) && this.isNumericState(r.entity, i) !== yt(t) && delete r.entity, this.draft = {
+			...this.draft,
+			rules: this.draft.rules.map((t, n) => n === e ? r : t)
+		};
+	}
+	addRule() {
+		let e = new Set(this.draft.rules.map((e) => e.id)), t = 97;
+		for (; e.has(`rule_${String.fromCharCode(t)}`);) t += 1;
+		let n = this.canUseCardValue && this.card?.type === "number", r = {
+			id: `rule_${String.fromCharCode(t)}`,
+			source: this.canUseCardValue ? "card" : "entity",
+			entity: "",
+			operator: n ? "range" : "equals",
+			...n ? {} : { match: "" }
+		};
+		this.draft = {
+			rules: [...this.draft.rules, r],
+			expression: {
+				...this.draft.expression,
+				children: [...this.draft.expression.children, {
+					type: "rule",
+					ruleId: r.id
+				}]
+			}
+		};
+	}
+	removeRule(e) {
+		if (this.draft.rules.length === 1) return;
+		let t = this.draft.rules[e].id, n = this.draft.rules.filter((t, n) => n !== e), r = n[0].id, i = (e) => e.type === "rule" ? e.ruleId === t ? {
+			...e,
+			ruleId: r
+		} : e : {
+			...e,
+			children: e.children.map(i)
+		};
+		this.draft = {
+			rules: n,
+			expression: i(this.draft.expression)
+		};
+	}
+	groupAt(e, t) {
+		let n = e;
+		for (let e of t) {
+			let t = n.children[e];
+			if (!t || t.type !== "group") throw Error("Invalid visibility group path");
+			n = t;
+		}
+		return n;
+	}
+	parentAt(e, t) {
+		return this.groupAt(e, t.slice(0, -1));
+	}
+	mutateExpression(e) {
+		let t = structuredClone(this.draft.expression);
+		e(t), this.draft = {
+			...this.draft,
+			expression: t
+		};
+	}
+	updateGroup(e, t) {
+		this.mutateExpression((n) => Object.assign(this.groupAt(n, e), t));
+	}
+	updateExpression(e, t) {
+		this.mutateExpression((n) => {
+			this.parentAt(n, e).children[e.at(-1)] = t;
+		});
+	}
+	addRuleReference(e) {
+		this.mutateExpression((t) => this.groupAt(t, e).children.push({
+			type: "rule",
+			ruleId: this.draft.rules[0].id
+		}));
+	}
+	addGroup(e) {
+		this.mutateExpression((t) => this.groupAt(t, e).children.push({
+			type: "group",
+			operator: "and",
+			children: [{
+				type: "rule",
+				ruleId: this.draft.rules[0].id
+			}]
+		}));
+	}
+	removeExpression(e) {
+		this.mutateExpression((t) => {
+			let n = this.parentAt(t, e);
+			n.children.length > 1 && n.children.splice(e.at(-1), 1);
+		});
+	}
+	moveExpression(e, t) {
+		this.mutateExpression((n) => {
+			let r = this.parentAt(n, e), i = e.at(-1), a = i + t;
+			a < 0 || a >= r.children.length || ([r.children[i], r.children[a]] = [r.children[a], r.children[i]]);
+		});
+	}
+	get hasAdvancedLogic() {
+		let e = (t) => t.negate === !0 || t.type === "group" && t.children.some((t) => t.type === "group" || e(t));
+		return e(this.draft.expression);
+	}
+	get validationError() {
+		for (let e of this.draft.rules) {
+			if (e.source === "card" && !this.canUseCardValue) return "This item has no card value to test.";
+			if (e.source === "entity" && !e.entity?.trim()) return `Condition ${J(e.id)} needs an entity.`;
+			if (e.operator === "range") {
+				if (e.minimum === void 0 && e.maximum === void 0) return `Condition ${J(e.id)} needs a lower or upper limit.`;
+				if (e.minimum !== void 0 && !Number.isFinite(e.minimum) || e.maximum !== void 0 && !Number.isFinite(e.maximum)) return `Condition ${J(e.id)} needs valid number limits.`;
+				if (e.minimum !== void 0 && e.maximum !== void 0 && e.minimum > e.maximum) return `Condition ${J(e.id)} has an invalid range.`;
+			}
+			if (gt.has(e.operator) && !Number.isFinite(e.value)) return `Condition ${J(e.id)} needs a numeric value.`;
+			if (_t.includes(e.operator) && !e.match?.length) return `Condition ${J(e.id)} needs a value.`;
+		}
+	}
+	save() {
+		if (this.validationError) return;
+		let e = structuredClone(this.draft);
+		for (let t of e.rules) t.entity !== void 0 && (t.entity = t.entity.trim());
+		Ct(this, "visibility-save", e);
+	}
 };
-E.styles = z`
+B([R({ attribute: !1 })], Y.prototype, "hass", void 0), B([R()], Y.prototype, "targetName", void 0), B([R()], Y.prototype, "targetKind", void 0), B([R({ attribute: !1 })], Y.prototype, "card", void 0), B([R({ attribute: !1 })], Y.prototype, "value", void 0), B([z()], Y.prototype, "draft", void 0), B([z()], Y.prototype, "advanced", void 0), Y = B([L("mini-display-visibility-dialog")], Y);
+//#endregion
+//#region src/image-field.ts
+var wt = (e) => {
+	let t = "";
+	for (let n = 0; n < e.length; n += 32768) t += String.fromCharCode(...e.subarray(n, n + 32768));
+	return btoa(t);
+}, Tt = (e) => {
+	let t = 14695981039346656037n;
+	for (let n of e) t ^= BigInt(n), t = BigInt.asUintN(64, t * 1099511628211n);
+	return t.toString(16).padStart(16, "0");
+}, Et = async (e, t, n) => {
+	let r = await createImageBitmap(e), i = Math.min(1, t / r.width, n / r.height), a = Math.max(1, Math.round(r.width * i)), o = Math.max(1, Math.round(r.height * i)), s = document.createElement("canvas");
+	s.width = a, s.height = o;
+	let c = s.getContext("2d", { alpha: !1 });
+	if (!c) throw Error("This browser cannot optimize images");
+	c.fillStyle = "#000", c.fillRect(0, 0, a, o), c.imageSmoothingEnabled = !0, c.imageSmoothingQuality = "high", c.drawImage(r, 0, 0, a, o), r.close();
+	let l = c.getImageData(0, 0, a, o).data, u = new Uint8Array(8 + a * o * 2);
+	u.set([
+		77,
+		68,
+		73,
+		49
+	], 0), u[4] = a & 255, u[5] = a >> 8, u[6] = o & 255, u[7] = o >> 8;
+	let d = new DataView(u.buffer);
+	for (let e = 0, t = 8; e < l.length; e += 4, t += 2) {
+		let n = (l[e] & 248) << 8 | (l[e + 1] & 252) << 3 | l[e + 2] >> 3;
+		d.setUint16(t, n, !0);
+	}
+	return {
+		id: Tt(u),
+		name: e.name,
+		width: a,
+		height: o,
+		bytes: u.length,
+		data: wt(u),
+		preview: s.toDataURL("image/webp", .82)
+	};
+}, X = class extends I {
+	constructor(...e) {
+		super(...e), this.assets = [], this.displayId = "", this.label = "Image", this.value = "", this.uploadOnly = !1, this.maximumWidth = 240, this.maximumHeight = 240, this.busy = !1, this.error = "", this.upload = async (e) => {
+			let t = e.target, n = t.files?.[0];
+			if (n && this.hass && this.displayId) {
+				this.busy = !0, this.error = "";
+				try {
+					let e = await Et(n, Math.max(1, this.maximumWidth), Math.max(1, this.maximumHeight));
+					await this.hass.callWS({
+						type: "mini_display/asset/upload",
+						config_entry_id: this.displayId,
+						asset_id: e.id,
+						name: e.name,
+						width: e.width,
+						height: e.height,
+						data: e.data,
+						preview: e.preview
+					}), this.dispatchEvent(new CustomEvent("asset-uploaded", {
+						detail: e,
+						bubbles: !0,
+						composed: !0
+					})), this.uploadOnly || this.select(e.id);
+				} catch (e) {
+					this.error = e instanceof Error ? e.message : String(e);
+				} finally {
+					this.busy = !1, t.value = "";
+				}
+			}
+		};
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
     }
@@ -3281,170 +3293,65 @@ E.styles = z`
       color: var(--secondary-text-color);
     }
   `;
-R([
-  g({ attribute: !1 })
-], E.prototype, "hass", 2);
-R([
-  g({ attribute: !1 })
-], E.prototype, "assets", 2);
-R([
-  g()
-], E.prototype, "displayId", 2);
-R([
-  g()
-], E.prototype, "label", 2);
-R([
-  g()
-], E.prototype, "value", 2);
-R([
-  g({ type: Boolean })
-], E.prototype, "uploadOnly", 2);
-R([
-  g({ type: Number })
-], E.prototype, "maximumWidth", 2);
-R([
-  g({ type: Number })
-], E.prototype, "maximumHeight", 2);
-R([
-  v()
-], E.prototype, "busy", 2);
-R([
-  v()
-], E.prototype, "error", 2);
-E = R([
-  H("mini-display-image-field")
-], E);
-var Ga = Object.defineProperty, Qa = Object.getOwnPropertyDescriptor, Y = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Qa(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Ga(e, i, s), s;
-};
-let Q = class extends C {
-  constructor() {
-    super(...arguments), this.assets = [], this.displayId = "", this.displayName = "", this.maximumWidth = 240, this.maximumHeight = 240, this.busy = !1, this.error = "";
-  }
-  render() {
-    return d`
-      <ha-card>
-        <header>
-          <div>
-            <h2>Images</h2>
-            <p>
-              ${this.displayName} · ${this.assets.length}
-              ${this.assets.length === 1 ? "image" : "images"}
-            </p>
-          </div>
-        </header>
-        <div class="uploader">
-          <mini-display-image-field
-            .hass=${this.hass}
-            .assets=${this.assets}
-            .displayId=${this.displayId}
-            label="Add image"
-            .maximumWidth=${this.maximumWidth}
-            .maximumHeight=${this.maximumHeight}
-            .uploadOnly=${!0}
-            @asset-uploaded=${(t) => this.dispatchEvent(
-      new CustomEvent("asset-uploaded", {
-        detail: t.detail,
-        bubbles: !0,
-        composed: !0
-      })
-    )}
-          ></mini-display-image-field>
-        </div>
-        ${this.error ? d`<div class="error" role="alert">${this.error}</div>` : c}
-        ${this.assets.length ? d`<div class="grid">
-                ${this.assets.map((t) => this.renderAsset(t))}
-              </div>` : d`<div class="empty">
-                <ha-icon icon="mdi:image-multiple-outline"></ha-icon>
-                <h2>No images</h2>
-                <p>Add an image here or directly from an image field.</p>
-              </div>`}
-      </ha-card>
-      ${this.pendingDelete ? d`<div
-              class="backdrop"
-              @click=${() => this.pendingDelete = void 0}
-            >
-              <ha-card
-                class="dialog"
-                role="dialog"
-                aria-modal="true"
-                @click=${(t) => t.stopPropagation()}
-              >
-                <h2>Delete image?</h2>
-                <p>
-                  <strong>${this.pendingDelete.name}</strong> will be removed
-                  from Home Assistant and the display.
-                </p>
-                <div class="dialog-actions">
-                  <ha-button @click=${() => this.pendingDelete = void 0}
-                    >Cancel</ha-button
-                  >
-                  <ha-button
-                    class="danger"
-                    @click=${() => {
-      this.deletePending();
-    }}
-                    >Delete</ha-button
-                  >
-                </div>
-              </ha-card>
-            </div>` : c}
-    `;
-  }
-  renderAsset(t) {
-    const e = t.used_by ?? [];
-    return d`<article class="asset">
-      <div class="preview">
-        ${t.preview ? d`<img src=${t.preview} alt=${t.name} />` : d`<ha-icon icon="mdi:image-outline"></ha-icon>`}
-      </div>
-      <div class="details">
+	}
+	render() {
+		let e = this.assets.find((e) => e.id === this.value);
+		return D`<div class="field">
+      <span class="label">${this.label}</span>
+      <div class="picker">
+        ${e?.preview ? D`<img class="thumb" src=${e.preview} alt="" />` : D`<div class="thumb empty"><ha-icon icon="mdi:image-outline"></ha-icon></div>`}
         <div>
-          <div class="name" title=${t.name}>${t.name}</div>
-          <div class="meta">
-            ${t.width}×${t.height} · ${Math.ceil(t.bytes / 1024)} KB
-          </div>
-          <div class="meta ${e.length ? "used" : ""}">
-            ${e.length ? `Used in ${e.join(", ")}` : "Not used"}
-          </div>
+          ${this.uploadOnly ? D`<strong>Add a new image</strong><br /><small
+                    >Optimized for this display before upload</small
+                  >` : D`<select
+                    .value=${this.value}
+                    ?disabled=${this.busy}
+                    @change=${(e) => this.select(e.target.value)}
+                  >
+                    <option value="">No image</option>
+                    ${this.assets.map((e) => D`<option value=${e.id}>${e.name} · ${e.width}×${e.height}</option>`)}</select
+                  >${e ? D`<small>${Math.ceil(e.bytes / 1024)} KB on display</small>` : A}`}
         </div>
-        <button
-          title=${e.length ? "Detach this image before deleting it" : "Delete image"}
-          aria-label="Delete image"
-          ?disabled=${e.length > 0 || this.busy}
-          @click=${() => this.pendingDelete = t}
-        >
-          <ha-icon icon="mdi:delete-outline"></ha-icon>
-        </button>
+        <div class="actions">
+          ${e && !this.uploadOnly ? D`<button
+                  class="detach"
+                  title="Detach image"
+                  aria-label="Detach image"
+                  ?disabled=${this.busy}
+                  @click=${() => this.select("")}
+                >
+                  <ha-icon icon="mdi:image-remove-outline"></ha-icon>
+                </button>` : A}
+          <label class="upload" title="Upload image"
+            ><ha-icon icon=${this.busy ? "mdi:loading" : "mdi:upload"}></ha-icon
+            ><input
+              type="file"
+              accept="image/*"
+              ?disabled=${this.busy}
+              @change=${this.upload}
+          /></label>
+        </div>
       </div>
-    </article>`;
-  }
-  async deletePending() {
-    const t = this.pendingDelete;
-    if (!(!t || !this.hass || !this.displayId)) {
-      this.busy = !0, this.error = "";
-      try {
-        await this.hass.callWS({
-          type: "mini_display/asset/delete",
-          config_entry_id: this.displayId,
-          asset_id: t.id
-        }), this.dispatchEvent(
-          new CustomEvent("asset-deleted", {
-            detail: t.id,
-            bubbles: !0,
-            composed: !0
-          })
-        ), this.pendingDelete = void 0;
-      } catch (e) {
-        this.error = e instanceof Error ? e.message : String(e);
-      } finally {
-        this.busy = !1;
-      }
-    }
-  }
+      ${this.error ? D`<div class="error" role="alert">${this.error}</div>` : A}
+    </div>`;
+	}
+	select(e) {
+		this.dispatchEvent(new CustomEvent("image-changed", {
+			detail: e,
+			bubbles: !0,
+			composed: !0
+		}));
+	}
 };
-Q.styles = z`
+B([R({ attribute: !1 })], X.prototype, "hass", void 0), B([R({ attribute: !1 })], X.prototype, "assets", void 0), B([R()], X.prototype, "displayId", void 0), B([R()], X.prototype, "label", void 0), B([R()], X.prototype, "value", void 0), B([R({ type: Boolean })], X.prototype, "uploadOnly", void 0), B([R({ type: Number })], X.prototype, "maximumWidth", void 0), B([R({ type: Number })], X.prototype, "maximumHeight", void 0), B([z()], X.prototype, "busy", void 0), B([z()], X.prototype, "error", void 0), X = B([L("mini-display-image-field")], X);
+//#endregion
+//#region src/image-manager.ts
+var Z = class extends I {
+	constructor(...e) {
+		super(...e), this.assets = [], this.displayId = "", this.displayName = "", this.maximumWidth = 240, this.maximumHeight = 240, this.busy = !1, this.error = "";
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
       min-width: 0;
@@ -3625,77 +3532,155 @@ Q.styles = z`
       --mdc-theme-primary: var(--error-color);
     }
   `;
-Y([
-  g({ attribute: !1 })
-], Q.prototype, "hass", 2);
-Y([
-  g({ attribute: !1 })
-], Q.prototype, "assets", 2);
-Y([
-  g()
-], Q.prototype, "displayId", 2);
-Y([
-  g()
-], Q.prototype, "displayName", 2);
-Y([
-  g({ type: Number })
-], Q.prototype, "maximumWidth", 2);
-Y([
-  g({ type: Number })
-], Q.prototype, "maximumHeight", 2);
-Y([
-  v()
-], Q.prototype, "busy", 2);
-Y([
-  v()
-], Q.prototype, "error", 2);
-Y([
-  v()
-], Q.prototype, "pendingDelete", 2);
-Q = Y([
-  H("mini-display-image-manager")
-], Q);
-var Ha = Object.defineProperty, Sa = Object.getOwnPropertyDescriptor, De = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Sa(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Ha(e, i, s), s;
-};
-const gt = [
-  { label: "s", name: "Seconds", scale: 1 },
-  { label: "min", name: "Minutes", scale: 60 },
-  { label: "h", name: "Hours", scale: 3600 },
-  { label: "d", name: "Days", scale: 86400 }
-];
-let ie = class extends C {
-  constructor() {
-    super(...arguments), this.seconds = 300, this.min = 30, this.max = 86400, this.label = "Bucket duration";
-  }
-  willUpdate(t) {
-    this.unit === void 0 && (this.unit = [...gt].reverse().find((e) => this.seconds >= e.scale && this.seconds % e.scale === 0)?.scale ?? 1);
-  }
-  render() {
-    const t = this.unit ?? 1;
-    return d`<label for="duration">${this.label}</label><div class="field">
-      <input id="duration" type="number" inputmode="decimal" step="any"
-        min=${this.min / t} max=${this.max / t}
-        aria-label=${`${this.label} (${gt.find((e) => e.scale === t)?.name})`}
-        .value=${String(Number((this.seconds / t).toFixed(8)))}
-        @change=${(e) => {
-      const i = e.target;
-      if (!i.value || !i.reportValidity()) return;
-      const a = Math.round(i.valueAsNumber * t);
-      !Number.isFinite(a) || a < this.min || a > this.max || this.dispatchEvent(new CustomEvent("duration-changed", { detail: a, bubbles: !0, composed: !0 }));
-    }}>
-      <div class="units" role="radiogroup" aria-label="Time unit">
-        ${gt.map((e) => d`<label title=${e.name}><input type="radio" name="unit" aria-label=${e.name}
-          .checked=${t === e.scale} @change=${() => {
-      this.unit = e.scale;
-    }}>${e.label}</label>`)}
+	}
+	render() {
+		return D`
+      <ha-card>
+        <header>
+          <div>
+            <h2>Images</h2>
+            <p>
+              ${this.displayName} · ${this.assets.length}
+              ${this.assets.length === 1 ? "image" : "images"}
+            </p>
+          </div>
+        </header>
+        <div class="uploader">
+          <mini-display-image-field
+            .hass=${this.hass}
+            .assets=${this.assets}
+            .displayId=${this.displayId}
+            label="Add image"
+            .maximumWidth=${this.maximumWidth}
+            .maximumHeight=${this.maximumHeight}
+            .uploadOnly=${!0}
+            @asset-uploaded=${(e) => this.dispatchEvent(new CustomEvent("asset-uploaded", {
+			detail: e.detail,
+			bubbles: !0,
+			composed: !0
+		}))}
+          ></mini-display-image-field>
+        </div>
+        ${this.error ? D`<div class="error" role="alert">${this.error}</div>` : A}
+        ${this.assets.length ? D`<div class="grid">
+                ${this.assets.map((e) => this.renderAsset(e))}
+              </div>` : D`<div class="empty">
+                <ha-icon icon="mdi:image-multiple-outline"></ha-icon>
+                <h2>No images</h2>
+                <p>Add an image here or directly from an image field.</p>
+              </div>`}
+      </ha-card>
+      ${this.pendingDelete ? D`<div
+              class="backdrop"
+              @click=${() => this.pendingDelete = void 0}
+            >
+              <ha-card
+                class="dialog"
+                role="dialog"
+                aria-modal="true"
+                @click=${(e) => e.stopPropagation()}
+              >
+                <h2>Delete image?</h2>
+                <p>
+                  <strong>${this.pendingDelete.name}</strong> will be removed
+                  from Home Assistant and the display.
+                </p>
+                <div class="dialog-actions">
+                  <ha-button @click=${() => this.pendingDelete = void 0}
+                    >Cancel</ha-button
+                  >
+                  <ha-button
+                    class="danger"
+                    @click=${() => void this.deletePending()}
+                    >Delete</ha-button
+                  >
+                </div>
+              </ha-card>
+            </div>` : A}
+    `;
+	}
+	renderAsset(e) {
+		let t = e.used_by ?? [];
+		return D`<article class="asset">
+      <div class="preview">
+        ${e.preview ? D`<img src=${e.preview} alt=${e.name} />` : D`<ha-icon icon="mdi:image-outline"></ha-icon>`}
       </div>
-    </div>`;
-  }
+      <div class="details">
+        <div>
+          <div class="name" title=${e.name}>${e.name}</div>
+          <div class="meta">
+            ${e.width}×${e.height} · ${Math.ceil(e.bytes / 1024)} KB
+          </div>
+          <div class="meta ${t.length ? "used" : ""}">
+            ${t.length ? `Used in ${t.join(", ")}` : "Not used"}
+          </div>
+        </div>
+        <button
+          title=${t.length ? "Detach this image before deleting it" : "Delete image"}
+          aria-label="Delete image"
+          ?disabled=${t.length > 0 || this.busy}
+          @click=${() => this.pendingDelete = e}
+        >
+          <ha-icon icon="mdi:delete-outline"></ha-icon>
+        </button>
+      </div>
+    </article>`;
+	}
+	async deletePending() {
+		let e = this.pendingDelete;
+		if (e && this.hass && this.displayId) {
+			this.busy = !0, this.error = "";
+			try {
+				await this.hass.callWS({
+					type: "mini_display/asset/delete",
+					config_entry_id: this.displayId,
+					asset_id: e.id
+				}), this.dispatchEvent(new CustomEvent("asset-deleted", {
+					detail: e.id,
+					bubbles: !0,
+					composed: !0
+				})), this.pendingDelete = void 0;
+			} catch (e) {
+				this.error = e instanceof Error ? e.message : String(e);
+			} finally {
+				this.busy = !1;
+			}
+		}
+	}
 };
-ie.styles = z`
+B([R({ attribute: !1 })], Z.prototype, "hass", void 0), B([R({ attribute: !1 })], Z.prototype, "assets", void 0), B([R()], Z.prototype, "displayId", void 0), B([R()], Z.prototype, "displayName", void 0), B([R({ type: Number })], Z.prototype, "maximumWidth", void 0), B([R({ type: Number })], Z.prototype, "maximumHeight", void 0), B([z()], Z.prototype, "busy", void 0), B([z()], Z.prototype, "error", void 0), B([z()], Z.prototype, "pendingDelete", void 0), Z = B([L("mini-display-image-manager")], Z);
+//#endregion
+//#region src/duration-field.ts
+var Dt = [
+	{
+		label: "s",
+		name: "Seconds",
+		scale: 1
+	},
+	{
+		label: "min",
+		name: "Minutes",
+		scale: 60
+	},
+	{
+		label: "h",
+		name: "Hours",
+		scale: 3600
+	},
+	{
+		label: "d",
+		name: "Days",
+		scale: 86400
+	}
+], Q = class extends I {
+	constructor(...e) {
+		super(...e), this.seconds = 300, this.min = 30, this.max = 86400, this.label = "Bucket duration";
+	}
+	willUpdate(e) {
+		this.unit === void 0 && (this.unit = [...Dt].reverse().find((e) => this.seconds >= e.scale && this.seconds % e.scale === 0)?.scale ?? 1);
+	}
+	static {
+		this.styles = o`
     :host { display:block; min-width:0; font:inherit; color:var(--primary-text-color); }
     * { box-sizing:border-box; }
     label { display:block; margin-bottom:6px; font-size:14px; }
@@ -3709,72 +3694,39 @@ ie.styles = z`
     .units label:hover:not(:has(:checked)) { background:var(--secondary-background-color); }
     .units label:has(:focus-visible) { outline:2px solid var(--primary-color); outline-offset:2px; }
   `;
-De([
-  g({ type: Number })
-], ie.prototype, "seconds", 2);
-De([
-  g({ type: Number })
-], ie.prototype, "min", 2);
-De([
-  g({ type: Number })
-], ie.prototype, "max", 2);
-De([
-  g()
-], ie.prototype, "label", 2);
-De([
-  v()
-], ie.prototype, "unit", 2);
-ie = De([
-  H("mini-display-duration-field")
-], ie);
-var Ta = Object.defineProperty, Ra = Object.getOwnPropertyDescriptor, Pt = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Ra(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Ta(e, i, s), s;
+	}
+	render() {
+		let e = this.unit ?? 1;
+		return D`<label for="duration">${this.label}</label><div class="field">
+      <input id="duration" type="number" inputmode="decimal" step="any"
+        min=${this.min / e} max=${this.max / e}
+        aria-label=${`${this.label} (${Dt.find((t) => t.scale === e)?.name})`}
+        .value=${String(Number((this.seconds / e).toFixed(8)))}
+        @change=${(t) => {
+			let n = t.target;
+			if (!n.value || !n.reportValidity()) return;
+			let r = Math.round(n.valueAsNumber * e);
+			!Number.isFinite(r) || r < this.min || r > this.max || this.dispatchEvent(new CustomEvent("duration-changed", {
+				detail: r,
+				bubbles: !0,
+				composed: !0
+			}));
+		}}>
+      <div class="units" role="radiogroup" aria-label="Time unit">
+        ${Dt.map((t) => D`<label title=${t.name}><input type="radio" name="unit" aria-label=${t.name}
+          .checked=${e === t.scale} @change=${() => {
+			this.unit = t.scale;
+		}}>${t.label}</label>`)}
+      </div>
+    </div>`;
+	}
 };
-let Qe = class extends C {
-  patchGraph(t) {
-    this.dispatchEvent(new CustomEvent("graph-changed", { detail: { ...this.card.graph, ...t }, bubbles: !0, composed: !0 }));
-  }
-  numeric(t, e, i, a, s) {
-    return d`<label>${t}<input type="number" min=${a} max=${s} .value=${i === void 0 ? "" : String(i)} placeholder="Auto" @change=${(r) => {
-      const o = r.target.value;
-      this.patchGraph({ [e]: o === "" ? void 0 : Math.min(s, Math.max(a, Number(o))) });
-    }}></label>`;
-  }
-  select(t, e, i, a) {
-    return d`<label>${t}<select aria-label=${t} @change=${(s) => this.patchGraph({ [e]: s.target.value })}>${a.map(([s, r]) => d`<option value=${s} .selected=${i === s}>${r}</option>`)}</select></label>`;
-  }
-  render() {
-    const t = this.card.graph;
-    return d`
-      ${this.card.type !== "chart" ? d`<label class="check"><input type="checkbox" .checked=${!!t} @change=${(e) => this.dispatchEvent(new CustomEvent("graph-changed", { detail: e.target.checked ? mi() : void 0, bubbles: !0, composed: !0 }))}>Background chart</label>` : c}
-      ${t ? d`
-        ${this.card.type === "number" || this.card.type === "chart" ? d`<label class="check"><input type="checkbox" .checked=${!t.source} @change=${(e) => this.patchGraph({ source: e.target.checked ? void 0 : this.card.source || "" })}>Use this card’s entity</label>` : c}
-        <ha-form .hass=${this.hass} .data=${{ entity: t.source ?? this.card.source ?? "" }}
-          .schema=${[{ name: "entity", selector: { entity: { domain: ["sensor", "number", "input_number", "counter"] } } }]}
-          .computeLabel=${() => "Chart entity"} @value-changed=${(e) => this.patchGraph({ source: e.detail.value.entity })}></ha-form>
-        <div class="grid">
-          <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
-            ${[["bar", "Columns"], ["line", "Line"]].map(([e, i]) => d`<button type="button" aria-pressed=${(t.type ?? "bar") === e} @click=${() => this.patchGraph({ type: e })}>${i}</button>`)}
-          </div></div>
-          ${this.select("Aggregation", "aggregation", t.aggregation ?? "mean", [["mean", "Average"], ["min", "Minimum"], ["max", "Maximum"], ["last", "Last value"]])}
-          ${this.numeric("Points", "points", t.points ?? 48, 2, 120)}
-          <mini-display-duration-field .seconds=${t.intervalSeconds ?? 300}
-            @duration-changed=${(e) => this.patchGraph({ intervalSeconds: e.detail })}></mini-display-duration-field>
-          <mini-display-color-field label="Color" .value=${t.color ?? "accent"} @color-changed=${(e) => this.patchGraph({ color: e.detail || "accent" })}></mini-display-color-field>
-          ${this.numeric("Opacity (%)", "opacity", t.opacity ?? 50, 0, 100)}
-        </div>
-        <label class="check"><input type="checkbox" .checked=${t.showValues ?? !1} @change=${(e) => this.patchGraph({ showValues: e.target.checked })}>Show values</label>
-        ${t.showValues ? d`<div class="grid">${this.numeric("Label every N points", "labelEvery", t.labelEvery ?? 6, 1, 120)}${this.numeric("Decimal places", "decimals", t.decimals ?? 1, 0, 3)}</div>` : c}
-        <div class="grid">
-          ${this.select("Scale", "scale", t.scale ?? (t.type === "line" ? "fit" : "zero"), [["zero", "Include zero"], ["fit", "Fit to data"]])}
-        </div>
-        <details><summary>Custom scale limits</summary><div class="grid">${this.numeric("Minimum", "minimum", t.minimum, -1e12, 1e12)}${this.numeric("Maximum", "maximum", t.maximum, -1e12, 1e12)}</div></details>
-      ` : c}`;
-  }
-};
-Qe.styles = z`
+B([R({ type: Number })], Q.prototype, "seconds", void 0), B([R({ type: Number })], Q.prototype, "min", void 0), B([R({ type: Number })], Q.prototype, "max", void 0), B([R()], Q.prototype, "label", void 0), B([z()], Q.prototype, "unit", void 0), Q = B([L("mini-display-duration-field")], Q);
+//#endregion
+//#region src/graph-editor.ts
+var Ot = class extends I {
+	static {
+		this.styles = o`
     :host { display:block; color:var(--primary-text-color); font:inherit; }
     * { box-sizing:border-box; } .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
     label { display:grid; gap:6px; font-size:14px; } label.check { display:flex; align-items:center; }
@@ -3787,162 +3739,81 @@ Qe.styles = z`
     button:focus-visible { outline:2px solid var(--primary-color); outline-offset:2px; }
     @media(max-width:450px) { .grid { grid-template-columns:1fr; } }
   `;
-Pt([
-  g({ attribute: !1 })
-], Qe.prototype, "card", 2);
-Pt([
-  g({ attribute: !1 })
-], Qe.prototype, "hass", 2);
-Qe = Pt([
-  H("mini-display-graph-editor")
-], Qe);
-var Za = Object.defineProperty, Ua = Object.getOwnPropertyDescriptor, vi = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Ua(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Za(e, i, s), s;
+	}
+	patchGraph(e) {
+		this.dispatchEvent(new CustomEvent("graph-changed", {
+			detail: {
+				...this.card.graph,
+				...e
+			},
+			bubbles: !0,
+			composed: !0
+		}));
+	}
+	numeric(e, t, n, r, i) {
+		return D`<label>${e}<input type="number" min=${r} max=${i} .value=${n === void 0 ? "" : String(n)} placeholder="Auto" @change=${(e) => {
+			let n = e.target.value;
+			this.patchGraph({ [t]: n === "" ? void 0 : Math.min(i, Math.max(r, Number(n))) });
+		}}></label>`;
+	}
+	select(e, t, n, r) {
+		return D`<label>${e}<select aria-label=${e} @change=${(e) => this.patchGraph({ [t]: e.target.value })}>${r.map(([e, t]) => D`<option value=${e} .selected=${n === e}>${t}</option>`)}</select></label>`;
+	}
+	render() {
+		let e = this.card.graph;
+		return D`
+      ${this.card.type === "chart" ? A : D`<label class="check"><input type="checkbox" .checked=${!!e} @change=${(e) => this.dispatchEvent(new CustomEvent("graph-changed", {
+			detail: e.target.checked ? Fe() : void 0,
+			bubbles: !0,
+			composed: !0
+		}))}>Background chart</label>`}
+      ${e ? D`
+        ${this.card.type === "number" || this.card.type === "chart" ? D`<label class="check"><input type="checkbox" .checked=${!e.source} @change=${(e) => this.patchGraph({ source: e.target.checked ? void 0 : this.card.source || "" })}>Use this card’s entity</label>` : A}
+        <ha-form .hass=${this.hass} .data=${{ entity: e.source ?? this.card.source ?? "" }}
+          .schema=${[{
+			name: "entity",
+			selector: { entity: { domain: [
+				"sensor",
+				"number",
+				"input_number",
+				"counter"
+			] } }
+		}]}
+          .computeLabel=${() => "Chart entity"} @value-changed=${(e) => this.patchGraph({ source: e.detail.value.entity })}></ha-form>
+        <div class="grid">
+          <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
+            ${[["bar", "Columns"], ["line", "Line"]].map(([t, n]) => D`<button type="button" aria-pressed=${(e.type ?? "bar") === t} @click=${() => this.patchGraph({ type: t })}>${n}</button>`)}
+          </div></div>
+          ${this.select("Aggregation", "aggregation", e.aggregation ?? "mean", [
+			["mean", "Average"],
+			["min", "Minimum"],
+			["max", "Maximum"],
+			["last", "Last value"]
+		])}
+          ${this.numeric("Points", "points", e.points ?? 48, 2, 120)}
+          <mini-display-duration-field .seconds=${e.intervalSeconds ?? 300}
+            @duration-changed=${(e) => this.patchGraph({ intervalSeconds: e.detail })}></mini-display-duration-field>
+          <mini-display-color-field label="Color" .value=${e.color ?? "accent"} @color-changed=${(e) => this.patchGraph({ color: e.detail || "accent" })}></mini-display-color-field>
+          ${this.numeric("Opacity (%)", "opacity", e.opacity ?? 50, 0, 100)}
+        </div>
+        <label class="check"><input type="checkbox" .checked=${e.showValues ?? !1} @change=${(e) => this.patchGraph({ showValues: e.target.checked })}>Show values</label>
+        ${e.showValues ? D`<div class="grid">${this.numeric("Label every N points", "labelEvery", e.labelEvery ?? 6, 1, 120)}${this.numeric("Decimal places", "decimals", e.decimals ?? 1, 0, 3)}</div>` : A}
+        <div class="grid">
+          ${this.select("Scale", "scale", e.scale ?? (e.type === "line" ? "fit" : "zero"), [["zero", "Include zero"], ["fit", "Fit to data"]])}
+        </div>
+        <details><summary>Custom scale limits</summary><div class="grid">${this.numeric("Minimum", "minimum", e.minimum, -0xe8d4a51000, 0xe8d4a51000)}${this.numeric("Maximum", "maximum", e.maximum, -0xe8d4a51000, 0xe8d4a51000)}</div></details>
+      ` : A}`;
+	}
 };
-let We = class extends C {
-  constructor() {
-    super(...arguments), this.settings = {};
-  }
-  patch(t) {
-    this.dispatchEvent(
-      new CustomEvent("weather-changed", {
-        detail: { ...this.settings, ...t },
-        bubbles: !0,
-        composed: !0
-      })
-    );
-  }
-  choice(t, e, i, a) {
-    return d`<label
-      >${t}<select
-        aria-label=${t}
-        @change=${(s) => this.patch({ [e]: s.target.value })}
-      >
-        ${i.map(([s, r]) => d`<option value=${s} ?selected=${(this.settings[e] ?? a) === s}>${r}</option>`)}
-      </select></label
-    >`;
-  }
-  number(t, e, i, a, s) {
-    return d`<label
-      >${t}<input
-        type="number"
-        min=${a}
-        max=${s}
-        step="1"
-        .value=${String(this.settings[e] ?? i)}
-        @change=${(r) => {
-      const o = r.target;
-      o.reportValidity() && this.patch({ [e]: Number(o.value) });
-    }}
-    /></label>`;
-  }
-  render() {
-    const t = this.settings, e = t.fields ?? ["icon", "condition", "temperature"];
-    return d`<div class="grid">
-        <label
-          >Weather data<select
-            aria-label="Weather data"
-            @change=${(i) => {
-      const a = i.target.value;
-      this.patch({
-        period: a,
-        ...a === "current" ? { offset: 0, count: 1 } : {}
-      });
-    }}
-          >
-            ${[
-      ["current", "Current weather"],
-      ["daily", "Daily forecast"],
-      ["hourly", "Hourly forecast"],
-      ["twice_daily", "Day / night forecast"]
-    ].map(
-      ([i, a]) => d`<option
-                  value=${i}
-                  ?selected=${(t.period ?? "current") === i}
-                >
-                  ${a}
-                </option>`
-    )}
-          </select></label
-        >
-        ${this.choice(
-      "Arrangement",
-      "layout",
-      [
-        ["vertical", "Icon above text"],
-        ["horizontal", "Icon beside text"],
-        ["compact", "Compact"]
-      ],
-      "vertical"
-    )}
-        ${(t.period ?? "current") !== "current" ? d` ${this.number(t.period === "daily" ? "Start day (0 today, 1 tomorrow)" : t.period === "hourly" ? "Hour offset (0 first available)" : "Period offset (0 current)", "offset", 0, 0, 14)}
-            ${this.number("Number of forecasts", "count", 1, 1, 5)}
-            ${this.number(t.period === "hourly" ? "Step (hours)" : "Step", "step", 1, 1, 24)}` : c}
-        ${this.choice(
-      "Icons",
-      "iconStyle",
-      [
-        ["color", "Weather colors"],
-        ["mono", "Use text color"]
-      ],
-      "color"
-    )}
-        ${this.choice(
-      "Descriptions",
-      "language",
-      [
-        ["en", "English"],
-        ["pl", "Polski"]
-      ],
-      "en"
-    )}
-      </div>
-      <div class="presets" aria-label="Weather presets">
-        <button @click=${() => this.patch({ fields: ["icon"] })}>
-          Icon only
-        </button>
-        <button
-          @click=${() => this.patch({ fields: ["condition", "temperature"] })}
-        >
-          Text only
-        </button>
-        <button @click=${() => this.patch({ fields: ["icon", "temperature"] })}>
-          Icon + temperature
-        </button>
-        <button
-          @click=${() => this.patch({ fields: ["label", "icon", "condition", "temperature", "low"] })}
-        >
-          Forecast
-        </button>
-      </div>
-      <div class="fields">
-        ${[
-      ["icon", "Icon"],
-      ["condition", "Description"],
-      ["temperature", "Temperature / high"],
-      ["low", "Low temperature"],
-      ["label", "Time / date"],
-      ["humidity", "Humidity"],
-      ["precipitation", "Rain probability"],
-      ["wind", "Wind speed"]
-    ].map(
-      ([i, a]) => d`<label>
-          <input
-            type="checkbox"
-            .checked=${e.includes(i)}
-            @change=${(s) => {
-        const o = s.target.checked ? [...e, i] : e.filter((l) => l !== i);
-        o.length ? this.patch({ fields: o }) : s.target.checked = !0;
-      }}
-          />${a}</label
-        >`
-    )}
-      </div>`;
-  }
-};
-We.styles = z`
+B([R({ attribute: !1 })], Ot.prototype, "card", void 0), B([R({ attribute: !1 })], Ot.prototype, "hass", void 0), Ot = B([L("mini-display-graph-editor")], Ot);
+//#endregion
+//#region src/weather-editor.ts
+var kt = class extends I {
+	constructor(...e) {
+		super(...e), this.settings = {};
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
       font: inherit;
@@ -4000,1931 +3871,158 @@ We.styles = z`
       outline: 2px solid var(--primary-color);
     }
   `;
-vi([
-  g({ attribute: !1 })
-], We.prototype, "settings", 2);
-We = vi([
-  H("mini-display-weather-editor")
-], We);
-var La = Object.defineProperty, Fa = Object.getOwnPropertyDescriptor, D = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Fa(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && La(e, i, s), s;
-};
-let w = class extends C {
-  constructor() {
-    super(...arguments), this.displays = [], this.scenes = [], this.dashboards = {}, this.assets = {}, this.savedDashboards = {}, this.selectedDisplayId = "", this.selectedSceneId = "", this.section = "scenes", this.pageIndex = 0, this.cardSection = "content", this.previewPages = {}, this.syncState = "idle", this.syncMessage = "", this.loaded = !1, this.sceneForm = null, this.sceneName = "", this.dirtyDisplays = /* @__PURE__ */ new Set(), this.previewsStarted = /* @__PURE__ */ new Set(), this.previewTimers = /* @__PURE__ */ new Map(), this.previewUpdates = /* @__PURE__ */ new Map(), this.previewSentAt = /* @__PURE__ */ new Map(), this.allowNavigation = !1, this.closeActionMenusOnOutsideClick = (t) => {
-      const e = t.composedPath();
-      this.renderRoot.querySelectorAll("details.menu[open]").forEach((i) => {
-        e.includes(i) || (i.open = !1);
-      });
-    }, this.beforeUnload = (t) => {
-      this.stopPanelPreviews(), !(!this.dirtyDisplays.size || this.allowNavigation) && (t.preventDefault(), t.returnValue = "");
-    }, this.interceptNavigation = (t) => {
-      if (!this.dirtyDisplays.size || this.allowNavigation || t.defaultPrevented || t.button !== 0)
-        return;
-      const e = t.composedPath().find(
-        (a) => a instanceof HTMLAnchorElement
-      );
-      if (!e?.href || e.target === "_blank" || e.hasAttribute("download"))
-        return;
-      const i = new URL(e.href, window.location.href);
-      i.pathname === window.location.pathname && i.search === window.location.search && i.hash === window.location.hash || (t.preventDefault(), t.stopImmediatePropagation(), this.confirmation = { kind: "leave", href: i.href });
-    };
-  }
-  updated(t) {
-    t.has("hass") && !this.loaded && this.load();
-  }
-  connectedCallback() {
-    super.connectedCallback(), window.addEventListener("beforeunload", this.beforeUnload), window.addEventListener("click", this.interceptNavigation, !0), window.addEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    );
-  }
-  disconnectedCallback() {
-    this.stopPanelPreviews(), window.removeEventListener("beforeunload", this.beforeUnload), window.removeEventListener("click", this.interceptNavigation, !0), window.removeEventListener(
-      "pointerdown",
-      this.closeActionMenusOnOutsideClick,
-      !0
-    ), super.disconnectedCallback();
-  }
-  actionMenuToggled(t) {
-    const e = t.currentTarget;
-    e.open && this.renderRoot.querySelectorAll("details.menu[open]").forEach((i) => {
-      i !== e && (i.open = !1);
-    });
-  }
-  closeActionMenu(t) {
-    const e = t.composedPath().find(
-      (a) => a instanceof HTMLButtonElement
-    );
-    if (!e || e.disabled) return;
-    const i = t.currentTarget.closest("details");
-    i && (i.open = !1);
-  }
-  actionMenuKeydown(t) {
-    if (t.key !== "Escape") return;
-    const e = t.currentTarget.closest("details");
-    e && (e.open = !1, e.querySelector("summary")?.focus(), t.preventDefault(), t.stopPropagation());
-  }
-  stopPanelPreviews() {
-    for (const e of this.previewTimers.values()) window.clearTimeout(e);
-    if (this.previewTimers.clear(), !this.hass) return;
-    const t = new Set(this.previewsStarted);
-    for (const e of this.displays)
-      e.preview_scene_id && t.add(e.config_entry_id);
-    for (const e of t)
-      (this.previewUpdates.get(e) ?? Promise.resolve()).then(() => this.hass.callWS({
-        type: "mini_display/scene/preview/stop",
-        config_entry_id: e
-      }));
-    this.previewsStarted.clear();
-  }
-  get selectedDisplay() {
-    return this.displays.find(
-      (t) => t.config_entry_id === this.selectedDisplayId
-    );
-  }
-  get selectedScene() {
-    return this.scenes.find((t) => t.id === this.selectedSceneId);
-  }
-  get dashboard() {
-    return this.dashboards[this.selectedDisplayId];
-  }
-  errorMessage(t) {
-    if (typeof t == "string") return t;
-    if (t instanceof Error) return t.message;
-    if (t && typeof t == "object") {
-      const e = t;
-      if (typeof e.message == "string")
-        return typeof e.code == "string" ? `${e.message} (${e.code})` : e.message;
-      try {
-        return JSON.stringify(t);
-      } catch {
-        return "Unknown error";
-      }
-    }
-    return String(t);
-  }
-  retryableSaveError(t) {
-    if (!t || typeof t != "object") return !1;
-    const e = t;
-    if (e.code === "display_unavailable") return !0;
-    if (typeof e.message != "string") return !1;
-    const i = e.message.toLowerCase();
-    return i.includes("did not respond") || i.includes("timeout");
-  }
-  async saveDashboardWithRetry(t) {
-    if (!this.hass) return;
-    const e = [0, 300, 800];
-    for (let i = 0; i < e.length; i += 1) {
-      e[i] && (this.syncMessage = `Retrying save (${i + 1}/${e.length})`, await new Promise(
-        (a) => window.setTimeout(a, e[i])
-      ));
-      try {
-        await this.hass.callWS(t);
-        return;
-      } catch (a) {
-        if (i === e.length - 1 || !this.retryableSaveError(a))
-          throw a;
-      }
-    }
-  }
-  async load(t) {
-    if (this.hass) {
-      this.loaded = !0;
-      try {
-        const [e, i] = await Promise.all([
-          this.hass.callWS({ type: "mini_display/displays" }),
-          this.hass.callWS({ type: "mini_display/scenes" })
-        ]);
-        this.displays = e, this.scenes = i, e.some(
-          (r) => r.config_entry_id === this.selectedDisplayId
-        ) || (this.selectedDisplayId = e[0]?.config_entry_id ?? "");
-        const a = this.selectedDisplay?.active_scene_id ?? i[0]?.id ?? "", s = t ?? this.selectedSceneId;
-        this.selectedSceneId = i.some((r) => r.id === s) ? s : a, await Promise.all([this.loadSceneDashboards(), this.loadAssets()]), this.syncState = "idle", this.syncMessage = "";
-      } catch (e) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(e);
-      }
-    }
-  }
-  async loadAssets() {
-    if (!this.hass) return;
-    const t = await Promise.all(
-      this.displays.map(
-        async (e) => [
-          e.config_entry_id,
-          await this.hass.callWS({
-            type: "mini_display/assets",
-            config_entry_id: e.config_entry_id,
-            include_data: !1
-          })
-        ]
-      )
-    );
-    this.assets = Object.fromEntries(t);
-  }
-  imageField(t, e, i) {
-    return d`<mini-display-image-field
-      .hass=${this.hass}
-      .assets=${this.assets[this.selectedDisplayId] ?? []}
-      .displayId=${this.selectedDisplayId}
-      .label=${t}
-      .value=${e ?? ""}
-      .maximumWidth=${this.selectedDisplay?.width ?? 240}
-      .maximumHeight=${this.selectedDisplay?.height ?? 240}
-      @image-changed=${(a) => i(a.detail)}
-      @asset-uploaded=${(a) => {
-      const s = this.assets[this.selectedDisplayId] ?? [];
-      this.assets = {
-        ...this.assets,
-        [this.selectedDisplayId]: [
-          ...s.filter((r) => r.id !== a.detail.id),
-          a.detail
-        ]
-      };
-    }}
-    ></mini-display-image-field>`;
-  }
-  async loadSceneDashboards() {
-    if (!this.hass || !this.selectedSceneId) {
-      this.dashboards = {};
-      return;
-    }
-    const t = await Promise.all(
-      this.displays.map(async (e) => {
-        const i = await this.hass.callWS({
-          type: "mini_display/dashboard/get",
-          config_entry_id: e.config_entry_id,
-          scene_id: this.selectedSceneId
-        });
-        return [e.config_entry_id, i];
-      })
-    );
-    this.dashboards = Object.fromEntries(t), this.savedDashboards = structuredClone(this.dashboards), this.dirtyDisplays = /* @__PURE__ */ new Set(), this.previewPages = Object.fromEntries(
-      this.displays.map((e) => [e.config_entry_id, 0])
-    ), this.pageIndex = 0, this.selected = { row: 0, card: 0 };
-  }
-  async selectScene(t) {
-    this.section = "scenes", t !== this.selectedSceneId && (this.dirtyDisplays.size && !window.confirm("Discard unsaved changes and switch scene?") || (this.stopPanelPreviews(), this.displays = this.displays.map((e) => ({
-      ...e,
-      preview_scene_id: null
-    })), this.selectedSceneId = t, this.syncState = "idle", this.syncMessage = "", await this.loadSceneDashboards()));
-  }
-  selectDisplay(t) {
-    this.selectedDisplayId = t, this.pageIndex = this.previewPages[t] ?? 0, this.selected = { row: 0, card: 0 };
-  }
-  changed() {
-    this.changedDisplay(this.selectedDisplayId);
-  }
-  changedDisplay(t) {
-    const e = this.dashboards[t];
-    e && (this.dashboards = {
-      ...this.dashboards,
-      [t]: structuredClone(e)
-    }, this.dirtyDisplays = new Set(this.dirtyDisplays).add(t), this.syncState = "idle", this.syncMessage = "Unsaved changes", this.schedulePreviewUpdate(t));
-  }
-  schedulePreviewUpdate(t) {
-    window.clearTimeout(this.previewTimers.get(t)), this.previewsStarted.has(t) && this.previewTimers.set(t, window.setTimeout(() => {
-      if (this.previewTimers.delete(t), !this.previewsStarted.has(t) || !this.hass) return;
-      if (this.previewUpdates.has(t)) {
-        this.previewUpdates.get(t).then(() => this.schedulePreviewUpdate(t));
-        return;
-      }
-      this.previewSentAt.set(t, Date.now());
-      const e = this.dashboards[t], i = this.previewPages[t] ?? 0, a = this.hass.callWS({
-        type: "mini_display/scene/preview/start",
-        config_entry_id: t,
-        scene_id: this.selectedSceneId,
-        page_id: e?.pages[i]?.id,
-        dashboard: e,
-        update: !0
-      }).then(() => {
-      }, (s) => {
-        this.syncState = "error", this.syncMessage = this.errorMessage(s);
-      }).finally(() => this.previewUpdates.delete(t));
-      this.previewUpdates.set(t, a);
-    }, Math.max(0, 1e3 - (Date.now() - (this.previewSentAt.get(t) ?? 0)))));
-  }
-  async save() {
-    if (!(!this.hass || !this.dashboard || !this.selectedDisplayId || !this.selectedSceneId))
-      try {
-        this.syncState = "syncing", this.syncMessage = "Saving", await this.saveDashboardWithRetry({
-          type: "mini_display/dashboard/set",
-          config_entry_id: this.selectedDisplayId,
-          scene_id: this.selectedSceneId,
-          dashboard: this.dashboard
-        }), this.savedDashboards = {
-          ...this.savedDashboards,
-          [this.selectedDisplayId]: structuredClone(this.dashboard)
-        };
-        const t = new Set(this.dirtyDisplays);
-        t.delete(this.selectedDisplayId), this.dirtyDisplays = t, this.syncState = "success", this.syncMessage = "Saved";
-      } catch (t) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(t);
-      }
-  }
-  async showPage(t) {
-    await this.stopPreviewFor(this.selectedDisplayId), this.pageIndex = t, this.previewPages = {
-      ...this.previewPages,
-      [this.selectedDisplayId]: t
-    }, this.selected = { row: 0, card: 0 };
-  }
-  discard() {
-    this.stopPreviewFor(this.selectedDisplayId);
-    const t = this.savedDashboards[this.selectedDisplayId];
-    if (t === void 0) return;
-    this.dashboards = {
-      ...this.dashboards,
-      [this.selectedDisplayId]: t ? structuredClone(t) : null
-    };
-    const e = new Set(this.dirtyDisplays);
-    e.delete(this.selectedDisplayId), this.dirtyDisplays = e, this.pageIndex = 0, this.previewPages = { ...this.previewPages, [this.selectedDisplayId]: 0 }, this.selected = { row: 0, card: 0 }, this.syncState = "idle", this.syncMessage = "Changes discarded";
-  }
-  async stopPreviewFor(t) {
-    window.clearTimeout(this.previewTimers.get(t)), this.previewTimers.delete(t), this.previewsStarted.delete(t);
-    const e = this.displays.find(
-      (i) => i.config_entry_id === t
-    );
-    if (!(!this.hass || !e?.preview_scene_id))
-      try {
-        await this.previewUpdates.get(t), await this.hass.callWS({
-          type: "mini_display/scene/preview/stop",
-          config_entry_id: t
-        }), this.previewsStarted.delete(t), this.displays = this.displays.map(
-          (i) => i.config_entry_id === t ? { ...i, preview_scene_id: null } : i
-        );
-      } catch (i) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(i);
-      }
-  }
-  async activateScene(t) {
-    if (this.hass)
-      try {
-        await this.hass.callWS({
-          type: "mini_display/scene/activate",
-          config_entry_id: t.config_entry_id,
-          scene_id: this.selectedSceneId
-        }), this.previewsStarted.delete(t.config_entry_id), this.displays = this.displays.map(
-          (e) => e.config_entry_id === t.config_entry_id ? {
-            ...e,
-            active_scene_id: this.selectedSceneId,
-            active_scene_name: this.selectedScene?.name ?? null,
-            preview_scene_id: null
-          } : e
-        ), this.syncState = "success", this.syncMessage = "Scene activated";
-      } catch (e) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(e);
-      }
-  }
-  async togglePreview(t) {
-    if (!this.hass) return;
-    const e = t.preview_scene_id === this.selectedSceneId;
-    try {
-      if (e)
-        await this.stopPreviewFor(t.config_entry_id);
-      else {
-        const i = this.dashboards[t.config_entry_id], a = this.previewPages[t.config_entry_id] ?? 0;
-        await this.hass.callWS({
-          type: "mini_display/scene/preview/start",
-          config_entry_id: t.config_entry_id,
-          scene_id: this.selectedSceneId,
-          page_id: i?.pages[a]?.id,
-          dashboard: i
-        }), this.previewsStarted.add(t.config_entry_id);
-      }
-      this.displays = this.displays.map(
-        (i) => i.config_entry_id === t.config_entry_id ? {
-          ...i,
-          preview_scene_id: e ? null : this.selectedSceneId
-        } : i
-      ), this.syncState = "success", this.syncMessage = e ? "Preview stopped" : "Preview shown for 5 minutes";
-    } catch (i) {
-      this.syncState = "error", this.syncMessage = this.errorMessage(i);
-    }
-  }
-  async createScene() {
-    if (!this.hass || this.dirtyDisplays.size && !window.confirm("Discard unsaved changes and create a scene?"))
-      return;
-    const t = new Set(
-      this.scenes.map((a) => a.name.toLocaleLowerCase())
-    );
-    let e = "New scene", i = 1;
-    for (; t.has(e.toLocaleLowerCase()); )
-      e = `New scene (${i++})`;
-    try {
-      this.section = "scenes";
-      const a = await this.hass.callWS({
-        type: "mini_display/scene/create",
-        name: e
-      });
-      await this.load(a.id), this.syncState = "success", this.syncMessage = "Scene created";
-    } catch (a) {
-      this.syncState = "error", this.syncMessage = this.errorMessage(a);
-    }
-  }
-  openRenameScene() {
-    this.sceneForm = "rename", this.sceneName = this.selectedScene?.name ?? "";
-  }
-  async saveSceneForm() {
-    const t = this.sceneName.trim();
-    if (!(!this.hass || !t))
-      try {
-        this.sceneForm === "rename" && this.selectedSceneId && (await this.hass.callWS({
-          type: "mini_display/scene/rename",
-          scene_id: this.selectedSceneId,
-          name: t
-        }), this.sceneForm = null, await this.load(this.selectedSceneId));
-      } catch (e) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(e);
-      }
-  }
-  async deleteScene() {
-    if (!(!this.hass || this.selectedScene?.is_default || !window.confirm(`Delete scene "${this.selectedScene?.name}"?`)))
-      try {
-        await this.hass.callWS({
-          type: "mini_display/scene/delete",
-          scene_id: this.selectedSceneId
-        }), await this.load(this.scenes.find((t) => t.is_default)?.id);
-      } catch (t) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(t);
-      }
-  }
-  async duplicateScene() {
-    if (!(!this.hass || !this.selectedSceneId))
-      try {
-        const t = await this.hass.callWS({
-          type: "mini_display/scene/duplicate",
-          source_scene_id: this.selectedSceneId
-        });
-        await this.load(t.id), this.syncState = "success", this.syncMessage = "Scene duplicated";
-      } catch (t) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(t);
-      }
-  }
-  async setDefaultScene() {
-    if (!(!this.hass || !this.selectedSceneId || this.selectedScene?.is_default))
-      try {
-        await this.hass.callWS({
-          type: "mini_display/scene/default",
-          scene_id: this.selectedSceneId
-        }), await this.load(this.selectedSceneId), this.syncState = "success", this.syncMessage = "Default scene changed";
-      } catch (t) {
-        this.syncState = "error", this.syncMessage = this.errorMessage(t);
-      }
-  }
-  createLayout() {
-    !this.selectedDisplayId || this.dashboard || (this.dashboards = {
-      ...this.dashboards,
-      [this.selectedDisplayId]: ea()
-    }, this.pageIndex = 0, this.previewPages = { ...this.previewPages, [this.selectedDisplayId]: 0 }, this.selected = { row: 0, card: 0 }, this.dirtyDisplays = new Set(this.dirtyDisplays).add(
-      this.selectedDisplayId
-    ), this.syncState = "idle", this.syncMessage = "Unsaved changes");
-  }
-  deletePage() {
-    if (!this.dashboard || this.dashboard.pages.length <= 1) return;
-    const t = this.dashboard.pages[this.pageIndex];
-    window.confirm(`Delete page "${t.title || t.id}"?`) && (this.dashboard.pages.splice(this.pageIndex, 1), this.pageIndex = Math.min(this.pageIndex, this.dashboard.pages.length - 1), this.previewPages = {
-      ...this.previewPages,
-      [this.selectedDisplayId]: this.pageIndex
-    }, this.selected = { row: 0, card: 0 }, this.changed());
-  }
-  visibilityObject() {
-    if (!this.visibilityTarget || !this.dashboard) return;
-    const t = this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row];
-    if (t)
-      return this.visibilityTarget.kind === "row" ? t : t.cards[this.visibilityTarget.card ?? -1];
-  }
-  openVisibility(t, e, i) {
-    this.visibilityTarget = { kind: t, row: e, card: i };
-  }
-  saveVisibility(t) {
-    const e = this.visibilityObject();
-    e && (e.visibility = t, this.visibilityTarget = void 0, this.changed());
-  }
-  clearVisibility() {
-    const t = this.visibilityObject();
-    t && delete t.visibility, this.visibilityTarget = void 0, this.changed();
-  }
-  requestDeleteRow(t) {
-    this.confirmation = { kind: "delete-row", row: t };
-  }
-  closeConfirmation() {
-    this.confirmation = void 0;
-  }
-  async confirmAction() {
-    const t = this.confirmation;
-    if (this.confirmation = void 0, !t) return;
-    if (t.kind === "delete-row") {
-      const i = this.dashboard?.pages[this.pageIndex];
-      if (!i || i.rows.length <= 1 || !i.rows[t.row])
-        return;
-      i.rows.splice(t.row, 1), this.selected = void 0, this.changed();
-      return;
-    }
-    this.allowNavigation = !0, this.stopPanelPreviews();
-    const e = new URL(t.href);
-    e.origin === window.location.origin ? (history.pushState(
-      null,
-      "",
-      `${e.pathname}${e.search}${e.hash}`
-    ), window.dispatchEvent(new Event("location-changed"))) : window.location.assign(e.href);
-  }
-  async previewPage(t, e) {
-    await this.stopPreviewFor(t);
-    const i = this.dashboards[t];
-    if (!i) return;
-    const s = ((this.previewPages[t] ?? 0) + e + i.pages.length) % i.pages.length;
-    this.previewPages = { ...this.previewPages, [t]: s }, t === this.selectedDisplayId && (this.pageIndex = s, this.selected = { row: 0, card: 0 });
-  }
-  async openFromPreview(t) {
-    this.selectedDisplayId = t.displayId, this.pageIndex = t.page, this.previewPages = {
-      ...this.previewPages,
-      [t.displayId]: t.page
-    }, this.selected = t.row !== void 0 && t.card !== void 0 ? { row: t.row, card: t.card } : void 0, await this.updateComplete;
-    let e = null;
-    if (t.kind === "page-title") {
-      const i = this.shadowRoot?.querySelector(".page-settings");
-      i && (i.open = !0);
-      const a = this.shadowRoot?.querySelector(".page-appearance");
-      a && (a.open = !0), e = a ?? i ?? null;
-    } else if (t.row !== void 0 && (e = this.shadowRoot?.querySelectorAll(".row-panel")[t.row] ?? null, t.card !== void 0)) {
-      const i = e?.querySelector(".card-settings") ?? null;
-      if (t.kind === "title" || t.kind === "value") {
-        const a = i?.querySelector(".style");
-        a && (a.open = !0), e = a ?? i ?? e;
-      } else
-        e = i ?? e;
-    }
-    e?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-  updateFromPreview(t) {
-    const e = this.dashboards[t.displayId]?.pages[t.page];
-    if (e) {
-      if (t.kind === "page-title" && t.position)
-        e.titlePosition = t.position;
-      else if (t.row !== void 0 && t.card !== void 0 && t.horizontalAlign && t.verticalAlign) {
-        const i = e.rows[t.row]?.cards[t.card];
-        if (!i) return;
-        const a = t.kind === "title" ? "titleStyle" : "valueStyle";
-        i[a] = {
-          ...i[a] ?? {},
-          horizontalAlign: t.horizontalAlign,
-          verticalAlign: t.verticalAlign
-        };
-      }
-      this.changedDisplay(t.displayId);
-    }
-  }
-  field(t, e, i, a = "text") {
-    return d`<label class="field"
-      >${t}<input
-        type=${a}
-        .value=${String(e ?? "")}
-        @input=${(s) => i(s.target.value)}
-    /></label>`;
-  }
-  select(t, e, i, a) {
-    return d`<label class="field"
-      >${t}<select
-        @change=${(s) => a(s.target.value)}
+	}
+	patch(e) {
+		this.dispatchEvent(new CustomEvent("weather-changed", {
+			detail: {
+				...this.settings,
+				...e
+			},
+			bubbles: !0,
+			composed: !0
+		}));
+	}
+	choice(e, t, n, r) {
+		return D`<label
+      >${e}<select
+        aria-label=${e}
+        @change=${(e) => this.patch({ [t]: e.target.value })}
       >
-        ${i.map((s) => d`<option value=${s} ?selected=${s === e}>${s}</option>`)}
+        ${n.map(([e, n]) => D`<option value=${e} ?selected=${(this.settings[t] ?? r) === e}>${n}</option>`)}
       </select></label
     >`;
-  }
-  numberField(t, e, i, a, s, r) {
-    return d`<label class="field"
-      >${t}<input
+	}
+	number(e, t, n, r, i) {
+		return D`<label
+      >${e}<input
         type="number"
-        min=${a}
-        max=${s}
+        min=${r}
+        max=${i}
         step="1"
-        .value=${String(e ?? i)}
-        @change=${(o) => {
-      const l = o.target, n = Number(l.value), h = Math.max(
-        a,
-        Math.min(s, Number.isFinite(n) ? n : i)
-      );
-      l.value = String(h), r(h);
-    }}
+        .value=${String(this.settings[t] ?? n)}
+        @change=${(e) => {
+			let n = e.target;
+			n.reportValidity() && this.patch({ [t]: Number(n.value) });
+		}}
     /></label>`;
-  }
-  fontSelect(t, e, i) {
-    const a = this.selectedDisplay, s = e === "font1" || e === "font2" ? e : "default", r = new Map(
-      (a?.fonts ?? []).map((h) => [h.id, h])
-    ), o = a?.default_font, n = [
-      { value: "default", label: `Default · ${o && o !== "builtin" && r.get(o)?.installed ? r.get(o)?.name || (o === "font1" ? "Font 1" : "Font 2") : "Inter Tight Bold"}` },
-      ...["font1", "font2"].map((h, u) => {
-        const A = r.get(h);
-        return {
-          value: h,
-          label: `Font ${u + 1} · ${A?.installed ? A.name || "Installed" : "Empty"}`
-        };
-      })
-    ];
-    return d`<label class="field"
-      >${t}<select
-        @change=${(h) => i(
-      h.target.value
-    )}
-      >
-        ${n.map(
-      (h) => d`<option
-              value=${h.value}
-              ?selected=${h.value === s}
-            >
-              ${h.label}
-            </option>`
-    )}
-      </select></label
-    >`;
-  }
-  checkbox(t, e, i, a = !1, s = "") {
-    return d`<label class="check" title=${s}
-      ><input
-        type="checkbox"
-        .checked=${e}
-        ?disabled=${a}
-        @change=${(r) => i(r.target.checked)}
-      />${t}</label
-    >`;
-  }
-  segmented(t, e, i, a, s = !1) {
-    return d`<div class="segmented-field">
-      <span>${t}</span>
-      <div class="segmented" role="radiogroup" aria-label=${t}>
-        ${i.map((r) => d`<button class="segment ${r.value === e ? "active" : ""}" role="radio" aria-checked=${r.value === e} title=${r.label} ?disabled=${s} @click=${() => {
-      s || a(r.value);
-    }}>${r.icon ? d`<ha-icon icon=${r.icon}></ha-icon>` : c}<span>${r.label}</span></button>`)}
-      </div>
-    </div>`;
-  }
-  textPosition(t, e, i = "center", a = "middle") {
-    const s = e.horizontalAlign ?? i, r = e.verticalAlign ?? a, o = [
-      { horizontal: "left", vertical: "top", label: "Top left" },
-      { horizontal: "center", vertical: "top", label: "Top center" },
-      { horizontal: "right", vertical: "top", label: "Top right" },
-      { horizontal: "left", vertical: "middle", label: "Middle left" },
-      { horizontal: "center", vertical: "middle", label: "Center" },
-      { horizontal: "right", vertical: "middle", label: "Middle right" },
-      { horizontal: "left", vertical: "bottom", label: "Bottom left" },
-      { horizontal: "center", vertical: "bottom", label: "Bottom center" },
-      { horizontal: "right", vertical: "bottom", label: "Bottom right" }
-    ], l = o.find(
-      (n) => n.horizontal === s && n.vertical === r
-    );
-    return d`<details class="position-field">
-      <summary>${t} · ${l.label}</summary>
-      <div class="position-grid" role="radiogroup" aria-label=${t}>
-        ${o.map((n) => {
-      const h = n.horizontal === s && n.vertical === r;
-      return d`<button
-            class="position-button ${h ? "active" : ""}"
-            role="radio"
-            aria-checked=${h}
-            aria-label=${n.label}
-            title=${n.label}
-            @click=${() => {
-        e.horizontalAlign = n.horizontal, e.verticalAlign = n.vertical, this.changed();
-      }}
+	}
+	render() {
+		let e = this.settings, t = e.fields ?? [
+			"icon",
+			"condition",
+			"temperature"
+		];
+		return D`<div class="grid">
+        <label
+          >Weather data<select
+            aria-label="Weather data"
+            @change=${(e) => {
+			let t = e.target.value;
+			this.patch({
+				period: t,
+				...t === "current" ? {
+					offset: 0,
+					count: 1
+				} : {}
+			});
+		}}
           >
-            <span class="position-dot"></span>
-          </button>`;
-    })}
-      </div>
-    </details>`;
-  }
-  textEffectEditor(t, e) {
-    const i = e.textEffect ?? "none";
-    return d`<details class="position-field effect-field">
-      <summary>${t} · ${i === "shadow" ? "Shadow" : i === "outline" ? "Outline" : "None"}</summary>
-      <div class="grid effect-grid">
-        ${this.select(
-      "Effect",
-      i,
-      ["none", "shadow", "outline"],
-      (s) => {
-        e.textEffect = s, this.changed();
-      }
-    )}
-        ${i !== "none" ? d`<mini-display-color-field
-                  label="Effect color"
-                  .value=${e.effectColor ?? "background"}
-                  @color-changed=${(s) => {
-      e.effectColor = s.detail || "background", this.changed();
-    }}
-                ></mini-display-color-field>
-                ${this.numberField(
-      "Thickness",
-      e.effectThickness,
-      1,
-      1,
-      3,
-      (s) => {
-        e.effectThickness = s, this.changed();
-      }
-    )}
-                ${i === "shadow" ? d`${this.numberField(
-      "Horizontal offset",
-      e.effectOffsetX,
-      2,
-      -6,
-      6,
-      (s) => {
-        e.effectOffsetX = s, this.changed();
-      }
-    )}${this.numberField(
-      "Vertical offset",
-      e.effectOffsetY,
-      2,
-      -6,
-      6,
-      (s) => {
-        e.effectOffsetY = s, this.changed();
-      }
-    )}` : c}` : c}
-      </div>
-    </details>`;
-  }
-  entity(t) {
-    const e = {
-      weather: ["weather"],
-      number: ["sensor", "number", "input_number", "counter"],
-      chart: ["sensor", "number", "input_number", "counter"],
-      status: [
-        "binary_sensor",
-        "switch",
-        "input_boolean",
-        "lock",
-        "cover",
-        "person",
-        "device_tracker"
-      ],
-      text: ["sensor", "text", "input_text", "select", "input_select"],
-      clock: [],
-      image: []
-    };
-    return d`<ha-form
-      .hass=${this.hass}
-      .data=${{ entity: t.source ?? "" }}
-      .schema=${[{ name: "entity", required: t.type !== "text", selector: { entity: { domain: e[t.type] } } }]}
-      .computeLabel=${() => t.type === "number" ? "Numeric entity" : t.type === "status" ? "State entity" : "Text entity (optional)"}
-      @value-changed=${(i) => {
-      t.source = i.detail.value.entity, this.changed();
-    }}
-    ></ha-form>`;
-  }
-  menu(t) {
-    return d`<details
-      class="menu"
-      @toggle=${this.actionMenuToggled}
-      @keydown=${this.actionMenuKeydown}
-    >
-      <summary aria-label="More actions" aria-haspopup="menu">
-        <ha-icon icon="mdi:dots-vertical"></ha-icon>
-      </summary>
-      <div class="menu-popover" role="menu" @click=${this.closeActionMenu}>
-        ${t}
-      </div>
-    </details>`;
-  }
-  cardName(t) {
-    return t.title?.trim() || `${t.type[0].toUpperCase()}${t.type.slice(1)} card`;
-  }
-  appearanceEditor(t) {
-    const e = this.dashboard?.pages[this.pageIndex]?.layout === "free", i = this.dashboard?.pages[this.pageIndex]?.transparentCards === !0, a = t.style ??= {}, s = t.valueStyle ??= {}, r = t.titleStyle ??= {}, o = i ? "transparent" : t.backgroundMode ?? (t.transparentBackground ? "transparent" : t.backgroundImage ? "image" : "color"), l = !!(t.title?.trim() && t.showTitle !== !1);
-    return d`<div class="grid appearance-grid">
-      <section class="appearance-section">
-        <header><ha-icon icon="mdi:card-outline"></ha-icon>Card</header>
-        ${this.segmented(
-      "Background",
-      o,
-      [
-        { value: "color", label: "Color", icon: "mdi:palette" },
-        { value: "transparent", label: "Page", icon: "mdi:checkerboard" },
-        { value: "image", label: "Image", icon: "mdi:image-outline" }
-      ],
-      (n) => {
-        t.backgroundMode = n, t.transparentBackground = n === "transparent", this.changed();
-      },
-      i
-    )}
-        ${o === "image" ? this.imageField(
-      "Card background image",
-      t.backgroundImage,
-      (n) => {
-        t.backgroundImage = n || void 0, this.changed();
-      }
-    ) : c}
-        ${o === "color" ? d`<mini-display-color-field
-                label="Background color"
-                .value=${a.background ?? ""}
-                @color-changed=${(n) => {
-      a.background = n.detail || void 0, this.changed();
-    }}
-              ></mini-display-color-field>` : c}
-        <mini-display-color-field
-          label="Accent"
-          .value=${a.accent ?? ""}
-          @color-changed=${(n) => {
-      a.accent = n.detail || void 0, this.changed();
-    }}
-        ></mini-display-color-field>
-      </section>
-      ${t.type !== "image" ? d`<section class="appearance-section">
-              <header><ha-icon icon="mdi:format-text"></ha-icon>Value</header>
-              <mini-display-color-field
-                label="Text color"
-                .value=${a.foreground ?? ""}
-                @color-changed=${(n) => {
-      a.foreground = n.detail || void 0, this.changed();
-    }}
-              ></mini-display-color-field>
-              ${this.fontSelect("Font", s.fontFamily, (n) => {
-      s.fontFamily = n, this.changed();
-    })}
-              ${e ? c : this.select(
-      "Font size",
-      s.fontSize ?? "auto",
-      ["auto", "small", "medium", "large", "xlarge"],
-      (n) => {
-        s.fontSize = n, this.changed();
-      }
-    )}
-              ${e ? c : this.textPosition("Position", s)}
-              ${this.select("Text flow", s.textFlow ?? "default", ["default", "overflow", "wrap"], (n) => {
-      s.textFlow = n, this.changed();
-    })}
-              ${this.textEffectEditor("Effect", s)}
-            </section>` : c}
-      ${l ? d`<section class="appearance-section">
-              <header><ha-icon icon="mdi:format-title"></ha-icon>Title</header>
-              <mini-display-color-field
-                label="Text color"
-                .value=${r.foreground ?? ""}
-                @color-changed=${(n) => {
-      r.foreground = n.detail || void 0, this.changed();
-    }}
-              ></mini-display-color-field>
-              ${this.fontSelect("Font", r.fontFamily, (n) => {
-      r.fontFamily = n, this.changed();
-    })}
-              ${e ? c : this.select(
-      "Font size",
-      r.fontSize ?? "auto",
-      ["auto", "small", "medium", "large", "xlarge"],
-      (n) => {
-        r.fontSize = n, this.changed();
-      }
-    )}
-              ${e ? c : this.textPosition("Position", r, "left", "top")}
-              ${this.select("Text flow", r.textFlow ?? "default", ["default", "overflow", "wrap"], (n) => {
-      r.textFlow = n, this.changed();
-    })}
-              ${this.textEffectEditor("Effect", r)}
-            </section>` : c}
-    </div>`;
-  }
-  transitionEditor(t) {
-    const e = t.transition ?? { type: "none" }, i = (n) => {
-      t.transition = n, this.changed();
-    }, a = (n) => i({ ...e, ...n }), s = [
-      { type: "none", label: "None", icon: "mdi:cancel" },
-      { type: "random", label: "Random", icon: "mdi:shuffle-variant" },
-      { type: "slide", label: "Slide", icon: "mdi:arrow-right-bold" },
-      {
-        type: "bounce",
-        label: "Bounce",
-        icon: "mdi:arrow-up-bold-circle-outline"
-      },
-      { type: "fade", label: "Fade", icon: "mdi:brightness-6" },
-      { type: "wipe", label: "Wipe", icon: "mdi:transition-masked" },
-      { type: "dissolve", label: "Dissolve", icon: "mdi:dots-grid" },
-      { type: "curtain", label: "Curtain", icon: "mdi:curtains" },
-      { type: "blinds", label: "Blinds", icon: "mdi:blinds-horizontal" },
-      { type: "mosaic", label: "Mosaic", icon: "mdi:view-grid-plus" },
-      { type: "doors", label: "Doors", icon: "mdi:door-sliding" },
-      { type: "spiral", label: "Spiral", icon: "mdi:reload" }
-    ], r = (n) => n === "none" ? { type: n } : n === "random" ? { type: n, speed: "normal" } : ["dissolve", "mosaic", "spiral"].includes(n) ? { type: n, speed: "normal", tileSize: "medium" } : n === "fade" ? { type: n, speed: "normal", intensity: "strong" } : n === "bounce" ? {
-      type: n,
-      direction: "left",
-      speed: "normal",
-      intensity: "subtle"
-    } : ["curtain", "blinds"].includes(n) ? { type: n, direction: "left", speed: "normal" } : { type: n, direction: "left", speed: "normal" }, o = [
-      { value: "left", label: "Left", icon: "mdi:arrow-left" },
-      { value: "right", label: "Right", icon: "mdi:arrow-right" },
-      { value: "up", label: "Up", icon: "mdi:arrow-up" },
-      { value: "down", label: "Down", icon: "mdi:arrow-down" }
-    ], l = [
-      { value: "slow", label: "Slow" },
-      { value: "normal", label: "Normal" },
-      { value: "fast", label: "Fast" }
-    ];
-    return d`<details class="transition-settings">
-      <summary class="transition-summary">
-        Transition to next page ·
-        ${s.find((n) => n.type === e.type)?.label ?? "None"}
-      </summary>
-      <div class="effect-grid">
-        ${s.map((n) => d`<button class="effect ${e.type === n.type ? "active" : ""}" aria-pressed=${n.type === e.type} @click=${() => i(r(n.type))}><ha-icon icon=${n.icon}></ha-icon><span>${n.label}</span></button>`)}
-      </div>
-      ${e.type !== "none" ? d`<div class="transition-options">
-              ${["slide", "bounce", "wipe", "curtain", "blinds"].includes(e.type) ? this.segmented("Direction", e.direction ?? "left", o, (n) => a({ direction: n })) : c}${this.segmented("Speed", e.speed ?? "normal", l, (n) => a({ speed: n }))}${["bounce", "fade"].includes(e.type) ? this.segmented(
-      "Intensity",
-      e.intensity ?? "subtle",
-      [
-        { value: "subtle", label: "Subtle" },
-        { value: "strong", label: "Strong" }
-      ],
-      (n) => a({ intensity: n })
-    ) : c}${["dissolve", "mosaic", "spiral"].includes(e.type) ? this.segmented(
-      "Tile size",
-      e.tileSize ?? "medium",
-      [
-        { value: "small", label: "Small" },
-        { value: "medium", label: "Medium" },
-        { value: "large", label: "Large" }
-      ],
-      (n) => a({ tileSize: n })
-    ) : c}
-            </div>` : c}
-    </details>`;
-  }
-  dragMapping(t, e, i) {
-    this.draggedMapping = { kind: t, index: e }, i.dataTransfer?.setData("text/plain", `${t}:${e}`), i.dataTransfer && (i.dataTransfer.effectAllowed = "move"), this.requestUpdate();
-  }
-  dropMapping(t, e, i, a) {
-    a.preventDefault();
-    const s = this.draggedMapping;
-    if (this.draggedMapping = void 0, !s || s.kind !== e || s.index === i) {
-      this.requestUpdate();
-      return;
-    }
-    const r = e === "value" ? t.valueMappings : t.colorMappings;
-    if (!r) return;
-    const [o] = r.splice(s.index, 1);
-    r.splice(i, 0, o), this.changed();
-  }
-  dragHandle(t, e) {
-    return d`<span
-      class="drag-handle"
-      draggable="true"
-      title="Drag to reorder"
-      aria-label="Drag to reorder"
-      @dragstart=${(i) => this.dragMapping(t, e, i)}
-      @dragend=${() => {
-      this.draggedMapping = void 0, this.requestUpdate();
-    }}
-      ><ha-icon icon="mdi:drag-vertical"></ha-icon
-    ></span>`;
-  }
-  dragCard(t, e, i) {
-    this.draggedCard = { row: t, index: e }, i.dataTransfer?.setData("text/plain", `card:${t}:${e}`), i.dataTransfer && (i.dataTransfer.effectAllowed = "move"), this.requestUpdate();
-  }
-  dropCard(t, e, i) {
-    i.preventDefault();
-    const a = this.draggedCard;
-    if (this.draggedCard = void 0, !a || a.row !== t || a.index === e) {
-      this.requestUpdate();
-      return;
-    }
-    const s = this.dashboard?.pages[this.pageIndex]?.rows[t]?.cards;
-    if (!s) return;
-    const [r] = s.splice(a.index, 1);
-    s.splice(e, 0, r), this.selected = { row: t, card: e }, this.changed();
-  }
-  valueMappingsEditor(t) {
-    if (t.type !== "number" && t.type !== "text") return c;
-    const e = t.valueMappings ?? [], i = (s, r, o) => {
-      const l = e[s];
-      o.trim() === "" ? delete l[r] : l[r] = Number(o), this.changed();
-    }, a = (s) => {
-      e.splice(s, 1), e.length || delete t.valueMappings, this.changed();
-    };
-    return d`<details class="mappings">
-      <summary>
-        Value mappings${e.length ? ` (${e.length})` : ""}
-      </summary>
-      <div class="mapping-list">
-        <p class="mapping-copy">
-          Rules are checked from top to bottom. The first match wins.
-        </p>
-        ${e.map(
-      (s, r) => t.type === "number" ? d`
-                <div
-                  class="mapping-rule ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === r ? "dragging" : ""}"
-                  @dragover=${(o) => o.preventDefault()}
-                  @drop=${(o) => this.dropMapping(t, "value", r, o)}
+            ${[
+			["current", "Current weather"],
+			["daily", "Daily forecast"],
+			["hourly", "Hourly forecast"],
+			["twice_daily", "Day / night forecast"]
+		].map(([t, n]) => D`<option
+                  value=${t}
+                  ?selected=${(e.period ?? "current") === t}
                 >
-                  ${this.dragHandle("value", r)}
-                  ${this.field("From", s.minimum, (o) => i(r, "minimum", o), "number")}
-                  ${this.field("To", s.maximum, (o) => i(r, "maximum", o), "number")}
-                  ${this.field("Display as", s.value, (o) => {
-        s.value = o, this.changed();
-      })}
-                  <button
-                    class="icon-button danger"
-                    title="Delete mapping"
-                    aria-label="Delete mapping"
-                    @click=${() => a(r)}
-                  >
-                    <ha-icon icon="mdi:delete-outline"></ha-icon>
-                  </button>
-                </div>
-              ` : d`
-                <div
-                  class="mapping-rule text ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === r ? "dragging" : ""}"
-                  @dragover=${(o) => o.preventDefault()}
-                  @drop=${(o) => this.dropMapping(t, "value", r, o)}
-                >
-                  ${this.dragHandle("value", r)}
-                  ${this.select(
-        "Match",
-        s.operator,
-        ["equals", "starts_with", "ends_with", "contains"],
-        (o) => {
-          s.operator = o, this.changed();
-        }
-      )}
-                  ${this.field(
-        "Text",
-        s.match,
-        (o) => {
-          s.match = o, this.changed();
-        }
-      )}
-                  ${this.field("Display as", s.value, (o) => {
-        s.value = o, this.changed();
-      })}
-                  <button
-                    class="icon-button danger"
-                    title="Delete mapping"
-                    aria-label="Delete mapping"
-                    @click=${() => a(r)}
-                  >
-                    <ha-icon icon="mdi:delete-outline"></ha-icon>
-                  </button>
-                </div>
-              `
-    )}
-        ${e.length < 12 ? d`<button
-                class="add-button"
-                @click=${() => {
-      const s = t.type === "number" ? { minimum: 0, maximum: 100, value: "" } : { operator: "equals", match: "", value: "" };
-      t.valueMappings = [...e, s], this.changed();
-    }}
-              >
-                Add mapping
-              </button>` : c}
+                  ${n}
+                </option>`)}
+          </select></label
+        >
+        ${this.choice("Arrangement", "layout", [
+			["vertical", "Icon above text"],
+			["horizontal", "Icon beside text"],
+			["compact", "Compact"]
+		], "vertical")}
+        ${(e.period ?? "current") === "current" ? A : D` ${this.number(e.period === "daily" ? "Start day (0 today, 1 tomorrow)" : e.period === "hourly" ? "Hour offset (0 first available)" : "Period offset (0 current)", "offset", 0, 0, 14)}
+            ${this.number("Number of forecasts", "count", 1, 1, 5)}
+            ${this.number(e.period === "hourly" ? "Step (hours)" : "Step", "step", 1, 1, 24)}`}
+        ${this.choice("Icons", "iconStyle", [["color", "Weather colors"], ["mono", "Use text color"]], "color")}
+        ${this.choice("Descriptions", "language", [["en", "English"], ["pl", "Polski"]], "en")}
       </div>
-    </details>`;
-  }
-  colorMappingsEditor(t) {
-    if (t.type !== "number" && t.type !== "text") return c;
-    const e = this.dashboard?.pages[this.pageIndex]?.transparentCards === !0, i = t.colorMappings ?? [], a = (o, l, n) => {
-      const h = i[o];
-      n.trim() === "" ? delete h[l] : h[l] = Number(n), this.changed();
-    }, s = (o, l, n) => {
-      n ? o[l] = n : delete o[l], this.changed();
-    }, r = (o) => {
-      i.splice(o, 1), i.length || delete t.colorMappings, this.changed();
-    };
-    return d`<details class="mappings">
-      <summary>
-        Color mappings${i.length ? ` (${i.length})` : ""}
-      </summary>
-      <div class="mapping-list">
-        <p class="mapping-copy">
-          The first matching rule sets the card colors.
-        </p>
-        ${i.map(
-      (o, l) => t.type === "number" ? d`
-                <div
-                  class="mapping-rule colors ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === l ? "dragging" : ""}"
-                  @dragover=${(n) => n.preventDefault()}
-                  @drop=${(n) => this.dropMapping(t, "color", l, n)}
-                >
-                  ${this.dragHandle("color", l)}
-                  ${this.field("From", o.minimum, (n) => a(l, "minimum", n), "number")}
-                  ${this.field("To", o.maximum, (n) => a(l, "maximum", n), "number")}
-                  <mini-display-color-field
-                    label="Background"
-                    .disabled=${e}
-                    .value=${o.background ?? ""}
-                    @color-changed=${(n) => s(o, "background", n.detail)}
-                  ></mini-display-color-field>
-                  <mini-display-color-field
-                    label="Text color"
-                    .value=${o.foreground ?? ""}
-                    @color-changed=${(n) => s(o, "foreground", n.detail)}
-                  ></mini-display-color-field>
-                  <button
-                    class="icon-button danger"
-                    title="Delete color mapping"
-                    aria-label="Delete color mapping"
-                    @click=${() => r(l)}
-                  >
-                    <ha-icon icon="mdi:delete-outline"></ha-icon>
-                  </button>
-                </div>
-              ` : d`
-                <div
-                  class="mapping-rule colors text ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === l ? "dragging" : ""}"
-                  @dragover=${(n) => n.preventDefault()}
-                  @drop=${(n) => this.dropMapping(t, "color", l, n)}
-                >
-                  ${this.dragHandle("color", l)}
-                  ${this.select(
-        "Match",
-        o.operator,
-        ["equals", "starts_with", "ends_with", "contains"],
-        (n) => {
-          o.operator = n, this.changed();
-        }
-      )}
-                  ${this.field(
-        "Text",
-        o.match,
-        (n) => {
-          o.match = n, this.changed();
-        }
-      )}
-                  <mini-display-color-field
-                    label="Background"
-                    .disabled=${e}
-                    .value=${o.background ?? ""}
-                    @color-changed=${(n) => s(o, "background", n.detail)}
-                  ></mini-display-color-field>
-                  <mini-display-color-field
-                    label="Text color"
-                    .value=${o.foreground ?? ""}
-                    @color-changed=${(n) => s(o, "foreground", n.detail)}
-                  ></mini-display-color-field>
-                  <button
-                    class="icon-button danger"
-                    title="Delete color mapping"
-                    aria-label="Delete color mapping"
-                    @click=${() => r(l)}
-                  >
-                    <ha-icon icon="mdi:delete-outline"></ha-icon>
-                  </button>
-                </div>
-              `
-    )}
-        ${i.length < 12 ? d`<button
-                class="add-button"
-                @click=${() => {
-      const o = t.type === "number" ? { minimum: 0, maximum: 100 } : { operator: "equals", match: "" };
-      t.colorMappings = [...i, o], this.changed();
-    }}
-              >
-                Add color mapping
-              </button>` : c}
+      <div class="presets" aria-label="Weather presets">
+        <button @click=${() => this.patch({ fields: ["icon"] })}>
+          Icon only
+        </button>
+        <button
+          @click=${() => this.patch({ fields: ["condition", "temperature"] })}
+        >
+          Text only
+        </button>
+        <button @click=${() => this.patch({ fields: ["icon", "temperature"] })}>
+          Icon + temperature
+        </button>
+        <button
+          @click=${() => this.patch({ fields: [
+			"label",
+			"icon",
+			"condition",
+			"temperature",
+			"low"
+		] })}
+        >
+          Forecast
+        </button>
       </div>
-    </details>`;
-  }
-  cardSettings(t, e, i) {
-    const a = this.dashboard.pages[this.pageIndex].rows[e].cards, s = {
-      number: "Displays a numeric value with an optional unit and progress visualization.",
-      text: "Displays text from an entity or the static text below.",
-      status: "Maps a state entity to two readable labels.",
-      clock: "Displays local time without using an entity.",
-      image: "Displays an optimized image without an entity.",
-      chart: "Displays recorded values as a chart.",
-      weather: "Current conditions and forecasts from Home Assistant."
-    }, r = (t.visibility ? 1 : 0) + (t.valueMappings?.length ?? 0) + (t.colorMappings?.length ?? 0), o = (l) => {
-      const { frame: n, titleFrame: h, valueFrame: u } = t;
-      Object.keys(t).forEach(
-        (A) => delete t[A]
-      ), Object.assign(t, Ue(l)), n && (t.frame = n), h && (t.titleFrame = h), u && (t.valueFrame = u), this.changed();
-    };
-    return d`<section class="card-settings">
-      <div class="card-head">
-        <div class="card-title">
-          <strong>${this.cardName(t)}</strong
-          >${t.title?.trim() && t.showTitle === !1 ? d`<span class="condition-mark"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Title hidden</span>` : c}${t.visibility ? d`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
-        </div>
-        ${this.menu(
-      d`<button
-              @click=${() => {
-        a.splice(i + 1, 0, structuredClone(t)), this.selected = { row: e, card: i + 1 }, this.changed();
-      }}
-            >
-              Duplicate</button
-            ><button
-              class="danger"
-              ?disabled=${a.length === 1 && this.dashboard.pages[this.pageIndex].layout !== "free"}
-              @click=${() => {
-        (a.length > 1 || this.dashboard.pages[this.pageIndex].layout === "free") && (a.splice(i, 1), this.selected = void 0, this.changed());
-      }}
-            >
-              Delete
-            </button>`
-    )}
-      </div>
-      <nav class="card-section-tabs" aria-label="Card settings sections">
+      <div class="fields">
         ${[
-      ["content", "Content", "mdi:text-box-outline"],
-      ["appearance", "Appearance", "mdi:palette-outline"],
-      ["rules", "Rules", "mdi:source-branch"]
-    ].map(
-      ([l, n, h]) => d`<button
-              class="card-section-tab ${this.cardSection === l ? "active" : ""}"
-              role="tab"
-              aria-selected=${this.cardSection === l}
-              @click=${() => this.cardSection = l}
-            >
-              <ha-icon icon=${h}></ha-icon><span>${n}</span>${l === "rules" && r ? d`<span class="section-count">${r}</span>` : c}
-            </button>`
-    )}
-      </nav>
-      <div class="card-pane" role="tabpanel">
-        ${this.cardSection === "content" ? d`
-                <section class="settings-group">
-                  <div class="settings-heading">
-                    <ha-icon icon="mdi:card-text-outline"></ha-icon>
-                    <div>
-                      <strong>Card</strong><small>${s[t.type]}</small>
-                    </div>
-                  </div>
-                  ${this.segmented(
-      "Card type",
-      t.type,
-      [
-        { value: "number", label: "Number", icon: "mdi:numeric" },
-        { value: "text", label: "Text", icon: "mdi:format-text" },
-        { value: "chart", label: "Chart", icon: "mdi:chart-bar" },
-        { value: "weather", label: "Weather", icon: "mdi:weather-partly-cloudy" },
-        {
-          value: "status",
-          label: "Status",
-          icon: "mdi:toggle-switch-outline"
-        },
-        {
-          value: "clock",
-          label: "Clock",
-          icon: "mdi:clock-outline"
-        },
-        {
-          value: "image",
-          label: "Image",
-          icon: "mdi:image-outline"
-        }
-      ],
-      o
-    )}
-                  <div class="grid compact-grid">
-                    ${this.field("Title", t.title, (l) => {
-      t.title = l, this.changed();
-    })}
-                    <div class="inline-option">
-                      ${this.checkbox(
-      "Show title on display",
-      t.showTitle !== !1,
-      (l) => {
-        this.dashboard?.pages[this.pageIndex]?.layout === "free" && lt(t), t.showTitle = l, this.changed();
-      },
-      !t.title?.trim()
-    )}
-                    </div>
-                  </div>
-                </section>
-                ${t.type === "image" ? d`<section class="settings-group">
-                        <div class="settings-heading">
-                          <ha-icon icon="mdi:image-outline"></ha-icon>
-                          <div>
-                            <strong>Image</strong
-                            ><small>Displayed without an entity value</small>
-                          </div>
-                        </div>
-                        ${this.imageField("Image", t.image, (l) => {
-      t.image = l, this.changed();
-    })}
-                        ${this.segmented(
-      "Fit",
-      t.imageFit ?? "cover",
-      [
-        {
-          value: "cover",
-          label: "Cover",
-          icon: "mdi:image-size-select-actual"
-        },
-        {
-          value: "contain",
-          label: "Contain",
-          icon: "mdi:image-size-select-large"
-        },
-        {
-          value: "stretch",
-          label: "Stretch",
-          icon: "mdi:fit-to-screen-outline"
-        }
-      ],
-      (l) => {
-        t.imageFit = l, this.changed();
-      }
-    )}
-                      </section>` : c}
-                ${["number", "status", "text", "chart", "weather"].includes(t.type) ? d`<section class="settings-group">
-                        <div class="settings-heading">
-                          <ha-icon icon="mdi:database-outline"></ha-icon>
-                          <div>
-                            <strong>Data</strong
-                            ><small>Value shown by this card</small>
-                          </div>
-                        </div>
-                        <div class="grid">
-                          ${this.entity(t)}
-                          ${t.type === "weather" ? d`<mini-display-weather-editor style="grid-column:1/-1" .settings=${t.weather ?? {}}
-                            @weather-changed=${(l) => {
-      t.weather = l.detail, this.changed();
-    }}></mini-display-weather-editor>` : c}
-                          ${t.type === "number" ? d`${this.field(
-      "Unit",
-      t.unit,
-      (l) => {
-        t.unit = l, this.changed();
-      }
-    )}${this.select(
-      "Progress",
-      t.progress ?? "none",
-      ["none", "bar", "ring"],
-      (l) => {
-        t.progress = l, this.changed();
-      }
-    )}${t.progress && t.progress !== "none" ? d`${this.field(
-      "Minimum",
-      t.minimum,
-      (l) => {
-        t.minimum = Number(l), this.changed();
-      },
-      "number"
-    )}${this.field(
-      "Maximum",
-      t.maximum,
-      (l) => {
-        t.maximum = Number(l), this.changed();
-      },
-      "number"
-    )}` : c}` : c}
-                          ${t.type === "text" ? d`${this.field(
-      "Static text",
-      t.text,
-      (l) => {
-        t.text = l, this.changed();
-      }
-    )}${this.field("Unit", t.unit, (l) => {
-      t.unit = l, this.changed();
-    })}` : c}
-                          ${t.type === "status" ? d`${this.field(
-      "On text",
-      t.onText,
-      (l) => {
-        t.onText = l, this.changed();
-      }
-    )}${this.field(
-      "Off text",
-      t.offText,
-      (l) => {
-        t.offText = l, this.changed();
-      }
-    )}` : c}
-                        </div>
-                      </section>` : c}
-                <section class="settings-group"><mini-display-graph-editor .card=${t} .hass=${this.hass}
-                  @graph-changed=${(l) => {
-      t.graph = l.detail, this.changed();
-    }}
-                ></mini-display-graph-editor></section>
-              ` : this.cardSection === "appearance" ? d`<section class="settings-group">
-                  <div class="settings-heading">
-                    <ha-icon icon="mdi:palette-outline"></ha-icon>
-                    <div>
-                      <strong>Appearance</strong
-                      ><small>Colors, typography and placement</small>
-                    </div>
-                  </div>
-                  ${this.appearanceEditor(t)}
-                </section>` : d`
-                  <section class="settings-group">
-                    <div class="setting-action">
-                      <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
-                      <div>
-                        <strong>Visibility</strong>
-                        <small
-                          >${t.visibility ? "Shown when configured conditions match" : "Always visible"}</small
-                        >
-                      </div>
-                      <ha-button
-                        @click=${() => this.openVisibility("card", e, i)}
-                        >${t.visibility ? "Edit" : "Configure"}</ha-button
-                      >
-                    </div>
-                  </section>
-                  <section class="settings-group rule-groups">
-                    <div class="settings-heading">
-                      <ha-icon icon="mdi:swap-horizontal"></ha-icon>
-                      <div>
-                        <strong>Mappings</strong
-                        ><small
-                          >Transform values and colors in rule order</small
-                        >
-                      </div>
-                    </div>
-                    ${this.valueMappingsEditor(t)}${this.colorMappingsEditor(t)}
-                  </section>
-                `}
-      </div>
-    </section>`;
-  }
-  rowEditor(t, e) {
-    const i = this.dashboard.pages[this.pageIndex];
-    return d`<section class="row-panel">
-      <div class="row-head">
-        <div class="row-title">
-          ${this.editingRowTitle === e ? d`<input
-                  class="row-title-input"
-                  aria-label="Row title"
-                  autofocus
-                  .value=${t.title ?? ""}
-                  placeholder=${`Row ${e + 1}`}
-                  @input=${(a) => {
-      t.title = a.target.value, this.changed();
-    }}
-                  @blur=${() => this.editingRowTitle = void 0}
-                  @keydown=${(a) => {
-      (a.key === "Enter" || a.key === "Escape") && a.currentTarget.blur();
-    }}
-                />` : d`<strong
-                    >${t.title?.trim() || `Row ${e + 1}`}</strong
-                  ><button
-                    class="inline-icon-button"
-                    aria-label="Edit row title"
-                    title="Edit row title"
-                    @click=${() => this.editingRowTitle = e}
-                  >
-                    <ha-icon icon="mdi:pencil-outline"></ha-icon>
-                  </button>`}<small
-            >${t.cards.length}
-            ${t.cards.length === 1 ? "card" : "cards"}</small
-          >${t.visibility ? d`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : c}
-        </div>
-        ${this.menu(
-      d`<button @click=${() => this.openVisibility("row", e)}>
-              Visibility</button
-            ><button
-              @click=${() => {
-        i.rows.splice(e + 1, 0, structuredClone(t)), this.changed();
-      }}
-            >
-              Duplicate</button
-            ><button
-              class="danger"
-              ?disabled=${i.rows.length === 1}
-              @click=${() => {
-        i.rows.length > 1 && this.requestDeleteRow(e);
-      }}
-            >
-              Delete
-            </button>`
-    )}
-      </div>
-      ${t.title?.trim() ? this.fontSelect(
-      "Row title font",
-      t.titleStyle?.fontFamily,
-      (a) => {
-        t.titleStyle = {
-          ...t.titleStyle ?? {},
-          fontFamily: a
-        }, this.changed();
-      }
-    ) : c}
-      <nav class="card-tabs" aria-label=${`Cards in row ${e + 1}`}>
-        ${t.cards.map((a, s) => {
-      const r = this.selected?.row === e && this.selected?.card === s;
-      return d`<button
-            draggable="true"
-            class="tab ${r ? "active" : ""} ${this.draggedCard?.row === e && this.draggedCard.index === s ? "dragging" : ""}"
-            aria-label=${this.cardName(a)}
-            aria-expanded=${r}
-            @dragstart=${(o) => this.dragCard(e, s, o)}
-            @dragover=${(o) => o.preventDefault()}
-            @drop=${(o) => this.dropCard(e, s, o)}
-            @dragend=${() => {
-        this.draggedCard = void 0, this.requestUpdate();
-      }}
-            @click=${() => this.selected = r ? void 0 : { row: e, card: s }}
-          >
-            ${this.cardName(a)}
-          </button>`;
-    })}${t.cards.length < 3 ? d`<button
-                class="icon-button"
-                title="Add card"
-                aria-label="Add card"
-                @click=${() => {
-      t.cards.push(Ue()), this.selected = { row: e, card: t.cards.length - 1 }, this.changed();
-    }}
-              >
-                <ha-icon icon="mdi:plus"></ha-icon>
-              </button>` : c}
-      </nav>
-      ${this.selected?.row === e ? this.cardSettings(t.cards[this.selected.card], e, this.selected.card) : c}
-    </section>`;
-  }
-  setLayout(t) {
-    const e = this.dashboard.pages[this.pageIndex];
-    if (t === "free")
-      e.rows.forEach((i, a) => i.cards.forEach((s, r) => {
-        s.frame ??= { x: r * 100 / i.cards.length, y: a * 100 / e.rows.length, width: 100 / i.cards.length, height: 100 / e.rows.length };
-      }));
-    else {
-      const i = e.rows.flatMap((a) => a.cards);
-      e.rows = [];
-      for (let a = 0; a < i.length; a += 3) e.rows.push({ weight: 1, gap: "small", cards: i.slice(a, a + 3) });
-      e.rows.length || (e.rows = [ut()]);
-    }
-    e.layout = t, this.selected = void 0, this.changed();
-  }
-  freeEditor(t) {
-    const e = t.rows.flatMap((r, o) => r.cards.map((l, n) => ({ card: l, ri: o, ci: n }))), i = this.selected && t.rows[this.selected.row]?.cards[this.selected.card], a = (r) => {
-      if (e.length >= 18) {
-        this.syncState = "error", this.syncMessage = "This display supports up to 18 items per page";
-        return;
-      }
-      const o = Ue(r);
-      o.frame = { x: 5, y: 5, width: 50, height: 30 }, o.backgroundMode = "transparent", t.rows[0].cards.push(o), this.selected = { row: 0, card: t.rows[0].cards.length - 1 }, this.changed();
-    }, s = (r) => {
-      if (!i) return;
-      const o = e.map((h) => h.card), l = o.indexOf(i), n = l + r;
-      n < 0 || n >= o.length || (o.splice(n, 0, o.splice(l, 1)[0]), t.rows = [{ cards: o }], this.selected = { row: 0, card: n }, this.changed());
-    };
-    return d`<section class="row-panel">
-      <nav class="tabs" aria-label="Add item">${["number", "text", "image", "chart", "weather", "clock", "status"].map((r) => d`<button class="tab" @click=${() => a(r)}><ha-icon icon="mdi:plus"></ha-icon>${r}</button>`)}</nav>
-      <nav class="card-tabs" aria-label="Items">${e.map(({ card: r, ri: o, ci: l }) => d`<button class="tab ${this.selected?.row === o && this.selected.card === l ? "active" : ""}" @click=${() => this.selected = { row: o, card: l }}>${this.cardName(r)}</button>`)}</nav>
-      ${i?.frame ? d`<div class="grid compact-grid">${["x", "y", "width", "height"].map((r) => this.numberField(r.toUpperCase() + " (%)", i.frame[r], 0, r === "x" || r === "y" ? 0 : 2, 100, (o) => {
-      lt(i);
-      const l = i.frame;
-      l[r] = o, l.x = Math.min(l.x, 100 - l.width), l.y = Math.min(l.y, 100 - l.height), this.changed();
-    }))}</div><div class="tabs"><button class="tab" @click=${() => s(-1)}>Send backward</button><button class="tab" @click=${() => s(1)}>Bring forward</button></div>` : c}
-      ${i && this.selected ? this.cardSettings(i, this.selected.row, this.selected.card) : c}
-    </section>`;
-  }
-  renderEditor() {
-    const t = this.dashboard, e = t?.pages[this.pageIndex], i = this.dirtyDisplays.has(this.selectedDisplayId), a = t?.pages.filter((o) => o.enabled !== !1).length ?? 0, s = e?.style ?? {}, r = e?.titleStyle ?? {};
-    return d`
-      <ha-card class="editor-card">
-        <div class="editor-heading">
-          <div class="editor-title">
-            <strong>${this.selectedDisplay?.title}</strong
-            ><small>${this.selectedScene?.name}</small>
-          </div>
-          <div class="save-area">
-            <div
-              class="sync ${this.syncState}"
-              role=${this.syncState === "error" ? "alert" : "status"}
-              aria-live="polite"
-            >
-              <i></i><span>${this.syncMessage}</span>
-            </div>
-            <div class="save-actions">
-              <ha-button .disabled=${!i} @click=${this.discard}
-                >Discard</ha-button
-              ><ha-button
-                .disabled=${!i || this.syncState === "syncing"}
-                @click=${() => {
-      this.save();
-    }}
-                >Save</ha-button
-              >
-            </div>
-          </div>
-        </div>
-        ${e && t ? d`
-                <div class="editor-content">
-                  <nav class="tabs" aria-label="Dashboard pages">
-                    ${t.pages.map(
-      (o, l) => d`
-                        <button
-                          class="tab ${l === this.pageIndex ? "active" : ""} ${o.enabled === !1 ? "inactive" : ""}"
-                          aria-pressed=${l === this.pageIndex}
-                          @click=${() => {
-        this.showPage(l);
-      }}
-                        >
-                          ${o.enabled === !1 ? d`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : c}${o.title || o.id}
-                        </button>
-                      `
-    )}
-                    <button
-                      class="icon-button"
-                      aria-label="Add page"
-                      title="Add page"
-                      @click=${() => {
-      t.pages.push(
-        fi(t.pages.length + 1)
-      ), this.pageIndex = t.pages.length - 1, this.previewPages = {
-        ...this.previewPages,
-        [this.selectedDisplayId]: this.pageIndex
-      }, this.selected = { row: 0, card: 0 }, this.changed();
-    }}
-                    >
-                      <ha-icon icon="mdi:plus"></ha-icon>
-                    </button>
-                  </nav>
-                  <details class="page-settings">
-                    <summary class="page-summary">
-                      <span class="page-summary-copy"
-                        ><span>Page settings</span
-                        ><small
-                          >${e.durationSeconds ?? 10}s ·
-                          ${e.enabled === !1 ? "Disabled" : "Enabled"}${e.showTitle === !1 ? " · title hidden" : ""}</small
-                        ></span
-                      ><button
-                        class="icon-button danger"
-                        aria-label="Delete page"
-                        title="Delete page"
-                        ?disabled=${t.pages.length <= 1}
-                        @click=${(o) => {
-      o.preventDefault(), o.stopPropagation(), this.deletePage();
-    }}
-                      >
-                        <ha-icon icon="mdi:delete-outline"></ha-icon>
-                      </button>
-                    </summary>
-                    <div class="page-settings-grid">
-                      ${this.field("Page title", e.title, (o) => {
-      e.title = o, this.changed();
-    })}
-                      ${this.field(
-      "Duration (seconds)",
-      e.durationSeconds,
-      (o) => {
-        e.durationSeconds = Number(o), this.changed();
-      },
-      "number"
-    )}
-                      <div class="page-options">
-                        ${this.checkbox(
-      "Enabled",
-      e.enabled !== !1,
-      (o) => {
-        e.enabled = o, this.changed();
-      },
-      e.enabled !== !1 && a <= 1,
-      "At least one page must stay enabled"
-    )}
-                        ${this.checkbox(
-      "Show title",
-      e.showTitle !== !1,
-      (o) => {
-        e.showTitle = o, this.changed();
-      }
-    )}
-                      </div>
-                      ${e.showTitle !== !1 ? d`<div class="page-title-position">
-                              ${this.segmented(
-      "Title position",
-      e.titlePosition ?? "top",
-      [
-        {
-          value: "top",
-          label: "Top",
-          icon: "mdi:format-vertical-align-top"
-        },
-        {
-          value: "right",
-          label: "Right",
-          icon: "mdi:format-horizontal-align-right"
-        },
-        {
-          value: "bottom",
-          label: "Bottom",
-          icon: "mdi:format-vertical-align-bottom"
-        },
-        {
-          value: "left",
-          label: "Left",
-          icon: "mdi:format-horizontal-align-left"
-        }
-      ],
-      (o) => {
-        e.titlePosition = o, this.changed();
-      }
-    )}
-                            </div>` : c}
-                      <details class="page-appearance">
-                        <summary>Page appearance</summary>
-                        <div class="page-appearance-grid">
-                          <mini-display-color-field
-                            label="Page background"
-                            .value=${s.background ?? ""}
-                            @color-changed=${(o) => {
-      e.style = {
-        ...e.style ?? {},
-        background: o.detail || void 0
-      }, this.changed();
-    }}
-                          ></mini-display-color-field>
-                          ${this.imageField(
-      "Page background image",
-      e.backgroundImage,
-      (o) => {
-        e.backgroundImage = o || void 0, this.changed();
-      }
-    )}
-                          <div class="inline-option">
-                            ${this.checkbox(
-      "Transparent card backgrounds",
-      e.transparentCards === !0,
-      (o) => {
-        e.transparentCards = o, this.changed();
-      },
-      !1,
-      "Keeps each card background setting but does not render it on this page"
-    )}
-                          </div>
-                          ${e.showTitle !== !1 ? d`
-                                  <mini-display-color-field
-                                    label="Title background"
-                                    .value=${r.background ?? ""}
-                                    @color-changed=${(o) => {
-      e.titleStyle = {
-        ...e.titleStyle ?? {},
-        background: o.detail || void 0
-      }, this.changed();
-    }}
-                                  ></mini-display-color-field>
-                                  <mini-display-color-field
-                                    label="Title text"
-                                    .value=${r.foreground ?? ""}
-                                    @color-changed=${(o) => {
-      e.titleStyle = {
-        ...e.titleStyle ?? {},
-        foreground: o.detail || void 0
-      }, this.changed();
-    }}
-                                  ></mini-display-color-field>
-                                  ${this.fontSelect(
-      "Title font",
-      r.fontFamily,
-      (o) => {
-        e.titleStyle = {
-          ...e.titleStyle ?? {},
-          fontFamily: o
-        }, this.changed();
-      }
-    )}
-                                  ${this.select(
-      "Title font size",
-      r.fontSize ?? "small",
-      ["small", "medium", "large", "xlarge"],
-      (o) => {
-        e.titleStyle = {
-          ...e.titleStyle ?? {},
-          fontSize: o
-        }, this.changed();
-      }
-    )}
-                                ` : c}
-                        </div>
-                      </details>
-                      <details class="advanced-settings">
-                        <summary>Advanced</summary>
-                        <div class="advanced-settings-content">
-                          ${this.field("Page ID", e.id, (o) => {
-      e.id = o, this.changed();
-    })}
-                        </div>
-                      </details>
-                    </div>
-                  </details>
-                  ${this.transitionEditor(e)}
-                  ${this.segmented("Layout", e.layout ?? "rows", [{ value: "rows", label: "Rows", icon: "mdi:view-agenda-outline" }, { value: "free", label: "Free layout", icon: "mdi:vector-square" }], (o) => this.setLayout(o))}
-                  <div class="rows">
-                    ${e.layout === "free" ? this.freeEditor(e) : e.rows.map((o, l) => this.rowEditor(o, l))}
-                  </div>
-                  ${e.layout !== "free" && e.rows.length < 6 ? d`<button
-                          class="add-button"
-                          @click=${() => {
-      e.rows.push(ut()), this.changed();
-    }}
-                        >
-                          Add row
-                        </button>` : c}
-                </div>
-              ` : d`<div class="loading">
-                <p>No layout configured for this display.</p>
-                <ha-button @click=${this.createLayout}>Create layout</ha-button>
-              </div>`}
-      </ha-card>
-    `;
-  }
-  render() {
-    if (!this.loaded) return d`<div class="loading">Loading displays…</div>`;
-    if (this.displays.length === 0)
-      return d`<ha-card class="empty"
-        ><ha-icon icon="mdi:monitor-off"></ha-icon>
-        <h2>No Mini Displays yet</h2>
-        <p>
-          Add a Mini Display integration first. Configured displays will appear
-          here automatically.
-        </p>
-        <ha-button
-          @click=${() => {
-        history.pushState(null, "", "/config/integrations"), window.dispatchEvent(new Event("location-changed"));
-      }}
-          ><ha-icon icon="mdi:plus"></ha-icon>Add integration</ha-button
-        ></ha-card
-      >`;
-    const t = this.visibilityObject()?.visibility, e = this.visibilityTarget?.kind === "row" ? "Row" : "Card", i = this.visibilityTarget?.kind === "card" ? this.visibilityObject() : void 0;
-    return d`
-      <div class="layout">
-        <mini-display-scene-sidebar
-          .displays=${this.displays}
-          .scenes=${this.scenes}
-          .selectedDisplayId=${this.selectedDisplayId}
-          .selectedSceneId=${this.selectedSceneId}
-          .section=${this.section}
-          .imageCount=${this.assets[this.selectedDisplayId]?.length ?? 0}
-          .form=${this.sceneForm}
-          .sceneName=${this.sceneName}
-          @display-selected=${(a) => this.selectDisplay(a.detail)}
-          @scene-selected=${(a) => {
-      this.selectScene(a.detail);
-    }}
-          @images-selected=${() => this.section = "images"}
-          @scene-create=${() => {
-      this.createScene();
-    }}
-          @scene-rename=${this.openRenameScene}
-          @scene-duplicate=${() => {
-      this.duplicateScene();
-    }}
-          @scene-default=${() => {
-      this.setDefaultScene();
-    }}
-          @scene-delete=${() => {
-      this.deleteScene();
-    }}
-          @scene-name=${(a) => this.sceneName = a.detail}
-          @scene-cancel=${() => this.sceneForm = null}
-          @scene-save=${() => {
-      this.saveSceneForm();
-    }}
-        ></mini-display-scene-sidebar>
-
-        ${this.section === "images" ? d`<mini-display-image-manager
-                class="images-view"
-                .hass=${this.hass}
-                .assets=${this.assets[this.selectedDisplayId] ?? []}
-                .displayId=${this.selectedDisplayId}
-                .displayName=${this.selectedDisplay?.title ?? "Display"}
-                .maximumWidth=${this.selectedDisplay?.width ?? 240}
-                .maximumHeight=${this.selectedDisplay?.height ?? 240}
-                @asset-uploaded=${(a) => {
-      const s = this.assets[this.selectedDisplayId] ?? [];
-      this.assets = {
-        ...this.assets,
-        [this.selectedDisplayId]: [
-          ...s.filter((r) => r.id !== a.detail.id),
-          a.detail
-        ]
-      };
-    }}
-                @asset-deleted=${(a) => {
-      this.assets = {
-        ...this.assets,
-        [this.selectedDisplayId]: (this.assets[this.selectedDisplayId] ?? []).filter((s) => s.id !== a.detail)
-      };
-    }}
-              ></mini-display-image-manager>` : d`${this.renderEditor()}
-
-                <mini-display-preview-list
-                  .hass=${this.hass}
-                  .displays=${this.displays}
-                  .dashboards=${this.dashboards}
-                  .pages=${this.previewPages}
-                  .dirtyDisplays=${this.dirtyDisplays}
-                  .selectedDisplayId=${this.selectedDisplayId}
-                  .selectedSceneId=${this.selectedSceneId}
-                  .selectedSceneName=${this.selectedScene?.name ?? ""}
-                  .assets=${this.assets}
-                  @preview-frame=${(a) => {
-      const s = a.detail, r = this.dashboards[s.displayId]?.pages[s.page]?.rows[s.row]?.cards[s.card];
-      r && (lt(r), s.part === "title" ? r.titleFrame = s.frame : s.part === "value" ? r.valueFrame = s.frame : r.frame = s.frame, this.selectedDisplayId = s.displayId, this.pageIndex = s.page, this.selected = { row: s.row, card: s.card }, this.changed());
-    }}
-                  @display-selected=${(a) => this.selectDisplay(a.detail)}
-                  @preview-toggle=${(a) => {
-      this.togglePreview(a.detail);
-    }}
-                  @preview-page=${(a) => this.previewPage(a.detail.displayId, a.detail.delta)}
-                  @preview-select=${(a) => {
-      this.openFromPreview(a.detail);
-    }}
-                  @preview-position=${(a) => {
-      this.updateFromPreview(a.detail);
-    }}
-                  @scene-activate=${(a) => {
-      this.activateScene(a.detail);
-    }}
-                ></mini-display-preview-list>`}
-      </div>
-
-      ${this.visibilityTarget ? d`
-              <mini-display-visibility-dialog
-                .hass=${this.hass}
-                .targetName=${e}
-                .targetKind=${this.visibilityTarget.kind}
-                .card=${i}
-                .value=${t}
-                @visibility-save=${(a) => this.saveVisibility(a.detail)}
-                @visibility-clear=${this.clearVisibility}
-                @visibility-cancel=${() => this.visibilityTarget = void 0}
-              ></mini-display-visibility-dialog>
-            ` : c}
-      ${this.confirmation ? d`
-              <div class="modal-backdrop" @click=${this.closeConfirmation}>
-                <ha-card
-                  class="confirm-modal"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="confirm-title"
-                  @click=${(a) => a.stopPropagation()}
-                >
-                  <div class="confirm-heading">
-                    <ha-icon
-                      icon=${this.confirmation.kind === "delete-row" ? "mdi:delete-alert-outline" : "mdi:content-save-alert-outline"}
-                    ></ha-icon>
-                    <h2 id="confirm-title">
-                      ${this.confirmation.kind === "delete-row" ? "Delete row?" : "Discard changes?"}
-                    </h2>
-                  </div>
-                  <div class="modal-body">
-                    <p class="modal-copy">
-                      ${this.confirmation.kind === "delete-row" ? "This row and all cards inside it will be removed." : "You have unsaved changes. Leaving Mini Displays will discard them."}
-                    </p>
-                  </div>
-                  <div class="modal-actions">
-                    <ha-button @click=${this.closeConfirmation}
-                      >Cancel</ha-button
-                    >
-                    <ha-button
-                      class="danger-action"
-                      @click=${() => {
-      this.confirmAction();
-    }}
-                      >${this.confirmation.kind === "delete-row" ? "Delete" : "Discard and leave"}</ha-button
-                    >
-                  </div>
-                </ha-card>
-              </div>
-            ` : c}
-    `;
-  }
+			["icon", "Icon"],
+			["condition", "Description"],
+			["temperature", "Temperature / high"],
+			["low", "Low temperature"],
+			["label", "Time / date"],
+			["humidity", "Humidity"],
+			["precipitation", "Rain probability"],
+			["wind", "Wind speed"]
+		].map(([e, n]) => D`<label>
+          <input
+            type="checkbox"
+            .checked=${t.includes(e)}
+            @change=${(n) => {
+			let r = n.target.checked ? [...t, e] : t.filter((t) => t !== e);
+			r.length ? this.patch({ fields: r }) : n.target.checked = !0;
+		}}
+          />${n}</label
+        >`)}
+      </div>`;
+	}
 };
-w.styles = z`
+B([R({ attribute: !1 })], kt.prototype, "settings", void 0), kt = B([L("mini-display-weather-editor")], kt);
+//#endregion
+//#region src/editor.ts
+var $ = class extends I {
+	constructor(...e) {
+		super(...e), this.displays = [], this.scenes = [], this.dashboards = {}, this.assets = {}, this.savedDashboards = {}, this.selectedDisplayId = "", this.selectedSceneId = "", this.section = "scenes", this.pageIndex = 0, this.cardSection = "content", this.previewPages = {}, this.syncState = "idle", this.syncMessage = "", this.loaded = !1, this.sceneForm = null, this.sceneName = "", this.dirtyDisplays = /* @__PURE__ */ new Set(), this.previewsStarted = /* @__PURE__ */ new Set(), this.previewTimers = /* @__PURE__ */ new Map(), this.previewUpdates = /* @__PURE__ */ new Map(), this.previewSentAt = /* @__PURE__ */ new Map(), this.allowNavigation = !1, this.closeActionMenusOnOutsideClick = (e) => {
+			let t = e.composedPath();
+			this.renderRoot.querySelectorAll("details.menu[open]").forEach((e) => {
+				t.includes(e) || (e.open = !1);
+			});
+		}, this.beforeUnload = (e) => {
+			this.stopPanelPreviews(), this.dirtyDisplays.size && !this.allowNavigation && (e.preventDefault(), e.returnValue = "");
+		}, this.interceptNavigation = (e) => {
+			if (!this.dirtyDisplays.size || this.allowNavigation || e.defaultPrevented || e.button !== 0) return;
+			let t = e.composedPath().find((e) => e instanceof HTMLAnchorElement);
+			if (!t?.href || t.target === "_blank" || t.hasAttribute("download")) return;
+			let n = new URL(t.href, window.location.href);
+			(n.pathname !== window.location.pathname || n.search !== window.location.search || n.hash !== window.location.hash) && (e.preventDefault(), e.stopImmediatePropagation(), this.confirmation = {
+				kind: "leave",
+				href: n.href
+			});
+		};
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
       color: var(--primary-text-color);
@@ -7123,100 +5221,2011 @@ w.styles = z`
       }
     }
   `;
-D([
-  g({ attribute: !1 })
-], w.prototype, "hass", 2);
-D([
-  v()
-], w.prototype, "displays", 2);
-D([
-  v()
-], w.prototype, "scenes", 2);
-D([
-  v()
-], w.prototype, "dashboards", 2);
-D([
-  v()
-], w.prototype, "assets", 2);
-D([
-  v()
-], w.prototype, "savedDashboards", 2);
-D([
-  v()
-], w.prototype, "selectedDisplayId", 2);
-D([
-  v()
-], w.prototype, "selectedSceneId", 2);
-D([
-  v()
-], w.prototype, "section", 2);
-D([
-  v()
-], w.prototype, "pageIndex", 2);
-D([
-  v()
-], w.prototype, "cardSection", 2);
-D([
-  v()
-], w.prototype, "editingRowTitle", 2);
-D([
-  v()
-], w.prototype, "previewPages", 2);
-D([
-  v()
-], w.prototype, "selected", 2);
-D([
-  v()
-], w.prototype, "syncState", 2);
-D([
-  v()
-], w.prototype, "syncMessage", 2);
-D([
-  v()
-], w.prototype, "loaded", 2);
-D([
-  v()
-], w.prototype, "sceneForm", 2);
-D([
-  v()
-], w.prototype, "sceneName", 2);
-D([
-  v()
-], w.prototype, "dirtyDisplays", 2);
-D([
-  v()
-], w.prototype, "visibilityTarget", 2);
-D([
-  v()
-], w.prototype, "confirmation", 2);
-w = D([
-  H("mini-display-editor")
-], w);
-var Xa = Object.defineProperty, Ya = Object.getOwnPropertyDescriptor, Te = (t, e, i, a) => {
-  for (var s = a > 1 ? void 0 : a ? Ya(e, i) : e, r = t.length - 1, o; r >= 0; r--)
-    (o = t[r]) && (s = (a ? o(e, i, s) : o(s)) || s);
-  return a && s && Xa(e, i, s), s;
-};
-let ce = class extends C {
-  constructor() {
-    super(...arguments), this.narrow = !1;
-  }
-  render() {
-    return d`
-      <div class="shell">
-        <header>
-          <ha-icon icon="mdi:monitor-dashboard"></ha-icon>
-          <div>
-            <h1>Mini Displays</h1>
-            <p>Configure pages and content shown on your displays.</p>
-          </div>
-        </header>
-        <mini-display-editor .hass=${this.hass}></mini-display-editor>
+	}
+	updated(e) {
+		e.has("hass") && !this.loaded && this.load();
+	}
+	connectedCallback() {
+		super.connectedCallback(), window.addEventListener("beforeunload", this.beforeUnload), window.addEventListener("click", this.interceptNavigation, !0), window.addEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0);
+	}
+	disconnectedCallback() {
+		this.stopPanelPreviews(), window.removeEventListener("beforeunload", this.beforeUnload), window.removeEventListener("click", this.interceptNavigation, !0), window.removeEventListener("pointerdown", this.closeActionMenusOnOutsideClick, !0), super.disconnectedCallback();
+	}
+	actionMenuToggled(e) {
+		let t = e.currentTarget;
+		t.open && this.renderRoot.querySelectorAll("details.menu[open]").forEach((e) => {
+			e !== t && (e.open = !1);
+		});
+	}
+	closeActionMenu(e) {
+		let t = e.composedPath().find((e) => e instanceof HTMLButtonElement);
+		if (!t || t.disabled) return;
+		let n = e.currentTarget.closest("details");
+		n && (n.open = !1);
+	}
+	actionMenuKeydown(e) {
+		if (e.key !== "Escape") return;
+		let t = e.currentTarget.closest("details");
+		t && (t.open = !1, t.querySelector("summary")?.focus(), e.preventDefault(), e.stopPropagation());
+	}
+	stopPanelPreviews() {
+		for (let e of this.previewTimers.values()) window.clearTimeout(e);
+		if (this.previewTimers.clear(), !this.hass) return;
+		let e = new Set(this.previewsStarted);
+		for (let t of this.displays) t.preview_scene_id && e.add(t.config_entry_id);
+		for (let t of e) (this.previewUpdates.get(t) ?? Promise.resolve()).then(() => this.hass.callWS({
+			type: "mini_display/scene/preview/stop",
+			config_entry_id: t
+		}));
+		this.previewsStarted.clear();
+	}
+	get selectedDisplay() {
+		return this.displays.find((e) => e.config_entry_id === this.selectedDisplayId);
+	}
+	get selectedScene() {
+		return this.scenes.find((e) => e.id === this.selectedSceneId);
+	}
+	get dashboard() {
+		return this.dashboards[this.selectedDisplayId];
+	}
+	errorMessage(e) {
+		if (typeof e == "string") return e;
+		if (e instanceof Error) return e.message;
+		if (e && typeof e == "object") {
+			let t = e;
+			if (typeof t.message == "string") return typeof t.code == "string" ? `${t.message} (${t.code})` : t.message;
+			try {
+				return JSON.stringify(e);
+			} catch {
+				return "Unknown error";
+			}
+		}
+		return String(e);
+	}
+	retryableSaveError(e) {
+		if (!e || typeof e != "object") return !1;
+		let t = e;
+		if (t.code === "display_unavailable") return !0;
+		if (typeof t.message != "string") return !1;
+		let n = t.message.toLowerCase();
+		return n.includes("did not respond") || n.includes("timeout");
+	}
+	async saveDashboardWithRetry(e) {
+		if (!this.hass) return;
+		let t = [
+			0,
+			300,
+			800
+		];
+		for (let n = 0; n < t.length; n += 1) {
+			t[n] && (this.syncMessage = `Retrying save (${n + 1}/${t.length})`, await new Promise((e) => window.setTimeout(e, t[n])));
+			try {
+				await this.hass.callWS(e);
+				return;
+			} catch (e) {
+				if (n === t.length - 1 || !this.retryableSaveError(e)) throw e;
+			}
+		}
+	}
+	async load(e) {
+		if (this.hass) {
+			this.loaded = !0;
+			try {
+				let [t, n] = await Promise.all([this.hass.callWS({ type: "mini_display/displays" }), this.hass.callWS({ type: "mini_display/scenes" })]);
+				this.displays = t, this.scenes = n, t.some((e) => e.config_entry_id === this.selectedDisplayId) || (this.selectedDisplayId = t[0]?.config_entry_id ?? "");
+				let r = this.selectedDisplay?.active_scene_id ?? n[0]?.id ?? "", i = e ?? this.selectedSceneId;
+				this.selectedSceneId = n.some((e) => e.id === i) ? i : r, await Promise.all([this.loadSceneDashboards(), this.loadAssets()]), this.syncState = "idle", this.syncMessage = "";
+			} catch (e) {
+				this.syncState = "error", this.syncMessage = this.errorMessage(e);
+			}
+		}
+	}
+	async loadAssets() {
+		if (!this.hass) return;
+		let e = await Promise.all(this.displays.map(async (e) => [e.config_entry_id, await this.hass.callWS({
+			type: "mini_display/assets",
+			config_entry_id: e.config_entry_id,
+			include_data: !1
+		})]));
+		this.assets = Object.fromEntries(e);
+	}
+	imageField(e, t, n) {
+		return D`<mini-display-image-field
+      .hass=${this.hass}
+      .assets=${this.assets[this.selectedDisplayId] ?? []}
+      .displayId=${this.selectedDisplayId}
+      .label=${e}
+      .value=${t ?? ""}
+      .maximumWidth=${this.selectedDisplay?.width ?? 240}
+      .maximumHeight=${this.selectedDisplay?.height ?? 240}
+      @image-changed=${(e) => n(e.detail)}
+      @asset-uploaded=${(e) => {
+			let t = this.assets[this.selectedDisplayId] ?? [];
+			this.assets = {
+				...this.assets,
+				[this.selectedDisplayId]: [...t.filter((t) => t.id !== e.detail.id), e.detail]
+			};
+		}}
+    ></mini-display-image-field>`;
+	}
+	async loadSceneDashboards() {
+		if (!this.hass || !this.selectedSceneId) {
+			this.dashboards = {};
+			return;
+		}
+		let e = await Promise.all(this.displays.map(async (e) => {
+			let t = await this.hass.callWS({
+				type: "mini_display/dashboard/get",
+				config_entry_id: e.config_entry_id,
+				scene_id: this.selectedSceneId
+			});
+			return [e.config_entry_id, t];
+		}));
+		this.dashboards = Object.fromEntries(e), this.savedDashboards = structuredClone(this.dashboards), this.dirtyDisplays = /* @__PURE__ */ new Set(), this.previewPages = Object.fromEntries(this.displays.map((e) => [e.config_entry_id, 0])), this.pageIndex = 0, this.selected = {
+			row: 0,
+			card: 0
+		};
+	}
+	async selectScene(e) {
+		this.section = "scenes", e !== this.selectedSceneId && (!this.dirtyDisplays.size || window.confirm("Discard unsaved changes and switch scene?")) && (this.stopPanelPreviews(), this.displays = this.displays.map((e) => ({
+			...e,
+			preview_scene_id: null
+		})), this.selectedSceneId = e, this.syncState = "idle", this.syncMessage = "", await this.loadSceneDashboards());
+	}
+	selectDisplay(e) {
+		this.selectedDisplayId = e, this.pageIndex = this.previewPages[e] ?? 0, this.selected = {
+			row: 0,
+			card: 0
+		};
+	}
+	changed() {
+		this.changedDisplay(this.selectedDisplayId);
+	}
+	changedDisplay(e) {
+		let t = this.dashboards[e];
+		t && (this.dashboards = {
+			...this.dashboards,
+			[e]: structuredClone(t)
+		}, this.dirtyDisplays = new Set(this.dirtyDisplays).add(e), this.syncState = "idle", this.syncMessage = "Unsaved changes", this.schedulePreviewUpdate(e));
+	}
+	schedulePreviewUpdate(e) {
+		window.clearTimeout(this.previewTimers.get(e)), this.previewsStarted.has(e) && this.previewTimers.set(e, window.setTimeout(() => {
+			if (this.previewTimers.delete(e), !this.previewsStarted.has(e) || !this.hass) return;
+			if (this.previewUpdates.has(e)) {
+				this.previewUpdates.get(e).then(() => this.schedulePreviewUpdate(e));
+				return;
+			}
+			this.previewSentAt.set(e, Date.now());
+			let t = this.dashboards[e], n = this.previewPages[e] ?? 0, r = this.hass.callWS({
+				type: "mini_display/scene/preview/start",
+				config_entry_id: e,
+				scene_id: this.selectedSceneId,
+				page_id: t?.pages[n]?.id,
+				dashboard: t,
+				update: !0
+			}).then(() => {}, (e) => {
+				this.syncState = "error", this.syncMessage = this.errorMessage(e);
+			}).finally(() => this.previewUpdates.delete(e));
+			this.previewUpdates.set(e, r);
+		}, Math.max(0, 1e3 - (Date.now() - (this.previewSentAt.get(e) ?? 0)))));
+	}
+	async save() {
+		if (this.hass && this.dashboard && this.selectedDisplayId && this.selectedSceneId) try {
+			this.syncState = "syncing", this.syncMessage = "Saving", await this.saveDashboardWithRetry({
+				type: "mini_display/dashboard/set",
+				config_entry_id: this.selectedDisplayId,
+				scene_id: this.selectedSceneId,
+				dashboard: this.dashboard
+			}), this.savedDashboards = {
+				...this.savedDashboards,
+				[this.selectedDisplayId]: structuredClone(this.dashboard)
+			};
+			let e = new Set(this.dirtyDisplays);
+			e.delete(this.selectedDisplayId), this.dirtyDisplays = e, this.syncState = "success", this.syncMessage = "Saved";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async showPage(e) {
+		await this.stopPreviewFor(this.selectedDisplayId), this.pageIndex = e, this.previewPages = {
+			...this.previewPages,
+			[this.selectedDisplayId]: e
+		}, this.selected = {
+			row: 0,
+			card: 0
+		};
+	}
+	discard() {
+		this.stopPreviewFor(this.selectedDisplayId);
+		let e = this.savedDashboards[this.selectedDisplayId];
+		if (e === void 0) return;
+		this.dashboards = {
+			...this.dashboards,
+			[this.selectedDisplayId]: e ? structuredClone(e) : null
+		};
+		let t = new Set(this.dirtyDisplays);
+		t.delete(this.selectedDisplayId), this.dirtyDisplays = t, this.pageIndex = 0, this.previewPages = {
+			...this.previewPages,
+			[this.selectedDisplayId]: 0
+		}, this.selected = {
+			row: 0,
+			card: 0
+		}, this.syncState = "idle", this.syncMessage = "Changes discarded";
+	}
+	async stopPreviewFor(e) {
+		window.clearTimeout(this.previewTimers.get(e)), this.previewTimers.delete(e), this.previewsStarted.delete(e);
+		let t = this.displays.find((t) => t.config_entry_id === e);
+		if (this.hass && t?.preview_scene_id) try {
+			await this.previewUpdates.get(e), await this.hass.callWS({
+				type: "mini_display/scene/preview/stop",
+				config_entry_id: e
+			}), this.previewsStarted.delete(e), this.displays = this.displays.map((t) => t.config_entry_id === e ? {
+				...t,
+				preview_scene_id: null
+			} : t);
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async activateScene(e) {
+		if (this.hass) try {
+			await this.hass.callWS({
+				type: "mini_display/scene/activate",
+				config_entry_id: e.config_entry_id,
+				scene_id: this.selectedSceneId
+			}), this.previewsStarted.delete(e.config_entry_id), this.displays = this.displays.map((t) => t.config_entry_id === e.config_entry_id ? {
+				...t,
+				active_scene_id: this.selectedSceneId,
+				active_scene_name: this.selectedScene?.name ?? null,
+				preview_scene_id: null
+			} : t), this.syncState = "success", this.syncMessage = "Scene activated";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async togglePreview(e) {
+		if (!this.hass) return;
+		let t = e.preview_scene_id === this.selectedSceneId;
+		try {
+			if (t) await this.stopPreviewFor(e.config_entry_id);
+			else {
+				let t = this.dashboards[e.config_entry_id], n = this.previewPages[e.config_entry_id] ?? 0;
+				await this.hass.callWS({
+					type: "mini_display/scene/preview/start",
+					config_entry_id: e.config_entry_id,
+					scene_id: this.selectedSceneId,
+					page_id: t?.pages[n]?.id,
+					dashboard: t
+				}), this.previewsStarted.add(e.config_entry_id);
+			}
+			this.displays = this.displays.map((n) => n.config_entry_id === e.config_entry_id ? {
+				...n,
+				preview_scene_id: t ? null : this.selectedSceneId
+			} : n), this.syncState = "success", this.syncMessage = t ? "Preview stopped" : "Preview shown for 5 minutes";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async createScene() {
+		if (!this.hass || this.dirtyDisplays.size && !window.confirm("Discard unsaved changes and create a scene?")) return;
+		let e = new Set(this.scenes.map((e) => e.name.toLocaleLowerCase())), t = "New scene", n = 1;
+		for (; e.has(t.toLocaleLowerCase());) t = `New scene (${n++})`;
+		try {
+			this.section = "scenes";
+			let e = await this.hass.callWS({
+				type: "mini_display/scene/create",
+				name: t
+			});
+			await this.load(e.id), this.syncState = "success", this.syncMessage = "Scene created";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	openRenameScene() {
+		this.sceneForm = "rename", this.sceneName = this.selectedScene?.name ?? "";
+	}
+	async saveSceneForm() {
+		let e = this.sceneName.trim();
+		if (this.hass && e) try {
+			this.sceneForm === "rename" && this.selectedSceneId && (await this.hass.callWS({
+				type: "mini_display/scene/rename",
+				scene_id: this.selectedSceneId,
+				name: e
+			}), this.sceneForm = null, await this.load(this.selectedSceneId));
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async deleteScene() {
+		if (this.hass && !this.selectedScene?.is_default && window.confirm(`Delete scene "${this.selectedScene?.name}"?`)) try {
+			await this.hass.callWS({
+				type: "mini_display/scene/delete",
+				scene_id: this.selectedSceneId
+			}), await this.load(this.scenes.find((e) => e.is_default)?.id);
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async duplicateScene() {
+		if (this.hass && this.selectedSceneId) try {
+			let e = await this.hass.callWS({
+				type: "mini_display/scene/duplicate",
+				source_scene_id: this.selectedSceneId
+			});
+			await this.load(e.id), this.syncState = "success", this.syncMessage = "Scene duplicated";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	async setDefaultScene() {
+		if (this.hass && this.selectedSceneId && !this.selectedScene?.is_default) try {
+			await this.hass.callWS({
+				type: "mini_display/scene/default",
+				scene_id: this.selectedSceneId
+			}), await this.load(this.selectedSceneId), this.syncState = "success", this.syncMessage = "Default scene changed";
+		} catch (e) {
+			this.syncState = "error", this.syncMessage = this.errorMessage(e);
+		}
+	}
+	createLayout() {
+		this.selectedDisplayId && !this.dashboard && (this.dashboards = {
+			...this.dashboards,
+			[this.selectedDisplayId]: Re()
+		}, this.pageIndex = 0, this.previewPages = {
+			...this.previewPages,
+			[this.selectedDisplayId]: 0
+		}, this.selected = {
+			row: 0,
+			card: 0
+		}, this.dirtyDisplays = new Set(this.dirtyDisplays).add(this.selectedDisplayId), this.syncState = "idle", this.syncMessage = "Unsaved changes");
+	}
+	deletePage() {
+		if (!this.dashboard || this.dashboard.pages.length <= 1) return;
+		let e = this.dashboard.pages[this.pageIndex];
+		window.confirm(`Delete page "${e.title || e.id}"?`) && (this.dashboard.pages.splice(this.pageIndex, 1), this.pageIndex = Math.min(this.pageIndex, this.dashboard.pages.length - 1), this.previewPages = {
+			...this.previewPages,
+			[this.selectedDisplayId]: this.pageIndex
+		}, this.selected = {
+			row: 0,
+			card: 0
+		}, this.changed());
+	}
+	visibilityObject() {
+		if (!this.visibilityTarget || !this.dashboard) return;
+		let e = this.dashboard.pages[this.pageIndex]?.rows[this.visibilityTarget.row];
+		if (e) return this.visibilityTarget.kind === "row" ? e : e.cards[this.visibilityTarget.card ?? -1];
+	}
+	openVisibility(e, t, n) {
+		this.visibilityTarget = {
+			kind: e,
+			row: t,
+			card: n
+		};
+	}
+	saveVisibility(e) {
+		let t = this.visibilityObject();
+		t && (t.visibility = e, this.visibilityTarget = void 0, this.changed());
+	}
+	clearVisibility() {
+		let e = this.visibilityObject();
+		e && delete e.visibility, this.visibilityTarget = void 0, this.changed();
+	}
+	requestDeleteRow(e) {
+		this.confirmation = {
+			kind: "delete-row",
+			row: e
+		};
+	}
+	closeConfirmation() {
+		this.confirmation = void 0;
+	}
+	async confirmAction() {
+		let e = this.confirmation;
+		if (this.confirmation = void 0, !e) return;
+		if (e.kind === "delete-row") {
+			let t = this.dashboard?.pages[this.pageIndex];
+			if (!t || t.rows.length <= 1 || !t.rows[e.row]) return;
+			t.rows.splice(e.row, 1), this.selected = void 0, this.changed();
+			return;
+		}
+		this.allowNavigation = !0, this.stopPanelPreviews();
+		let t = new URL(e.href);
+		t.origin === window.location.origin ? (history.pushState(null, "", `${t.pathname}${t.search}${t.hash}`), window.dispatchEvent(new Event("location-changed"))) : window.location.assign(t.href);
+	}
+	async previewPage(e, t) {
+		await this.stopPreviewFor(e);
+		let n = this.dashboards[e];
+		if (!n) return;
+		let r = ((this.previewPages[e] ?? 0) + t + n.pages.length) % n.pages.length;
+		this.previewPages = {
+			...this.previewPages,
+			[e]: r
+		}, e === this.selectedDisplayId && (this.pageIndex = r, this.selected = {
+			row: 0,
+			card: 0
+		});
+	}
+	async openFromPreview(e) {
+		this.selectedDisplayId = e.displayId, this.pageIndex = e.page, this.previewPages = {
+			...this.previewPages,
+			[e.displayId]: e.page
+		}, this.selected = e.row !== void 0 && e.card !== void 0 ? {
+			row: e.row,
+			card: e.card
+		} : void 0, await this.updateComplete;
+		let t = null;
+		if (e.kind === "page-title") {
+			let e = this.shadowRoot?.querySelector(".page-settings");
+			e && (e.open = !0);
+			let n = this.shadowRoot?.querySelector(".page-appearance");
+			n && (n.open = !0), t = n ?? e ?? null;
+		} else if (e.row !== void 0 && (t = this.shadowRoot?.querySelectorAll(".row-panel")[e.row] ?? null, e.card !== void 0)) {
+			let n = t?.querySelector(".card-settings") ?? null;
+			if (e.kind === "title" || e.kind === "value") {
+				let e = n?.querySelector(".style");
+				e && (e.open = !0), t = e ?? n ?? t;
+			} else t = n ?? t;
+		}
+		t?.scrollIntoView({
+			behavior: "smooth",
+			block: "center"
+		});
+	}
+	updateFromPreview(e) {
+		let t = this.dashboards[e.displayId]?.pages[e.page];
+		if (t) {
+			if (e.kind === "page-title" && e.position) t.titlePosition = e.position;
+			else if (e.row !== void 0 && e.card !== void 0 && e.horizontalAlign && e.verticalAlign) {
+				let n = t.rows[e.row]?.cards[e.card];
+				if (!n) return;
+				let r = e.kind === "title" ? "titleStyle" : "valueStyle";
+				n[r] = {
+					...n[r] ?? {},
+					horizontalAlign: e.horizontalAlign,
+					verticalAlign: e.verticalAlign
+				};
+			}
+			this.changedDisplay(e.displayId);
+		}
+	}
+	field(e, t, n, r = "text") {
+		return D`<label class="field"
+      >${e}<input
+        type=${r}
+        .value=${String(t ?? "")}
+        @input=${(e) => n(e.target.value)}
+    /></label>`;
+	}
+	select(e, t, n, r) {
+		return D`<label class="field"
+      >${e}<select
+        @change=${(e) => r(e.target.value)}
+      >
+        ${n.map((e) => D`<option value=${e} ?selected=${e === t}>${e}</option>`)}
+      </select></label
+    >`;
+	}
+	numberField(e, t, n, r, i, a) {
+		return D`<label class="field"
+      >${e}<input
+        type="number"
+        min=${r}
+        max=${i}
+        step="1"
+        .value=${String(t ?? n)}
+        @change=${(e) => {
+			let t = e.target, o = Number(t.value), s = Math.max(r, Math.min(i, Number.isFinite(o) ? o : n));
+			t.value = String(s), a(s);
+		}}
+    /></label>`;
+	}
+	fontSelect(e, t, n) {
+		let r = this.selectedDisplay, i = t === "font1" || t === "font2" ? t : "default", a = new Map((r?.fonts ?? []).map((e) => [e.id, e])), o = r?.default_font;
+		return D`<label class="field"
+      >${e}<select
+        @change=${(e) => n(e.target.value)}
+      >
+        ${[{
+			value: "default",
+			label: `Default · ${o && o !== "builtin" && a.get(o)?.installed ? a.get(o)?.name || (o === "font1" ? "Font 1" : "Font 2") : "Inter Tight Bold"}`
+		}, ...["font1", "font2"].map((e, t) => {
+			let n = a.get(e);
+			return {
+				value: e,
+				label: `Font ${t + 1} · ${n?.installed ? n.name || "Installed" : "Empty"}`
+			};
+		})].map((e) => D`<option
+              value=${e.value}
+              ?selected=${e.value === i}
+            >
+              ${e.label}
+            </option>`)}
+      </select></label
+    >`;
+	}
+	checkbox(e, t, n, r = !1, i = "") {
+		return D`<label class="check" title=${i}
+      ><input
+        type="checkbox"
+        .checked=${t}
+        ?disabled=${r}
+        @change=${(e) => n(e.target.checked)}
+      />${e}</label
+    >`;
+	}
+	segmented(e, t, n, r, i = !1) {
+		return D`<div class="segmented-field">
+      <span>${e}</span>
+      <div class="segmented" role="radiogroup" aria-label=${e}>
+        ${n.map((e) => D`<button class="segment ${e.value === t ? "active" : ""}" role="radio" aria-checked=${e.value === t} title=${e.label} ?disabled=${i} @click=${() => {
+			i || r(e.value);
+		}}>${e.icon ? D`<ha-icon icon=${e.icon}></ha-icon>` : A}<span>${e.label}</span></button>`)}
       </div>
+    </div>`;
+	}
+	textPosition(e, t, n = "center", r = "middle") {
+		let i = t.horizontalAlign ?? n, a = t.verticalAlign ?? r, o = [
+			{
+				horizontal: "left",
+				vertical: "top",
+				label: "Top left"
+			},
+			{
+				horizontal: "center",
+				vertical: "top",
+				label: "Top center"
+			},
+			{
+				horizontal: "right",
+				vertical: "top",
+				label: "Top right"
+			},
+			{
+				horizontal: "left",
+				vertical: "middle",
+				label: "Middle left"
+			},
+			{
+				horizontal: "center",
+				vertical: "middle",
+				label: "Center"
+			},
+			{
+				horizontal: "right",
+				vertical: "middle",
+				label: "Middle right"
+			},
+			{
+				horizontal: "left",
+				vertical: "bottom",
+				label: "Bottom left"
+			},
+			{
+				horizontal: "center",
+				vertical: "bottom",
+				label: "Bottom center"
+			},
+			{
+				horizontal: "right",
+				vertical: "bottom",
+				label: "Bottom right"
+			}
+		];
+		return D`<details class="position-field">
+      <summary>${e} · ${o.find((e) => e.horizontal === i && e.vertical === a).label}</summary>
+      <div class="position-grid" role="radiogroup" aria-label=${e}>
+        ${o.map((e) => {
+			let n = e.horizontal === i && e.vertical === a;
+			return D`<button
+            class="position-button ${n ? "active" : ""}"
+            role="radio"
+            aria-checked=${n}
+            aria-label=${e.label}
+            title=${e.label}
+            @click=${() => {
+				t.horizontalAlign = e.horizontal, t.verticalAlign = e.vertical, this.changed();
+			}}
+          >
+            <span class="position-dot"></span>
+          </button>`;
+		})}
+      </div>
+    </details>`;
+	}
+	textEffectEditor(e, t) {
+		let n = t.textEffect ?? "none";
+		return D`<details class="position-field effect-field">
+      <summary>${e} · ${n === "shadow" ? "Shadow" : n === "outline" ? "Outline" : "None"}</summary>
+      <div class="grid effect-grid">
+        ${this.select("Effect", n, [
+			"none",
+			"shadow",
+			"outline"
+		], (e) => {
+			t.textEffect = e, this.changed();
+		})}
+        ${n === "none" ? A : D`<mini-display-color-field
+                  label="Effect color"
+                  .value=${t.effectColor ?? "background"}
+                  @color-changed=${(e) => {
+			t.effectColor = e.detail || "background", this.changed();
+		}}
+                ></mini-display-color-field>
+                ${this.numberField("Thickness", t.effectThickness, 1, 1, 3, (e) => {
+			t.effectThickness = e, this.changed();
+		})}
+                ${n === "shadow" ? D`${this.numberField("Horizontal offset", t.effectOffsetX, 2, -6, 6, (e) => {
+			t.effectOffsetX = e, this.changed();
+		})}${this.numberField("Vertical offset", t.effectOffsetY, 2, -6, 6, (e) => {
+			t.effectOffsetY = e, this.changed();
+		})}` : A}`}
+      </div>
+    </details>`;
+	}
+	entity(e) {
+		return D`<ha-form
+      .hass=${this.hass}
+      .data=${{ entity: e.source ?? "" }}
+      .schema=${[{
+			name: "entity",
+			required: e.type !== "text",
+			selector: { entity: { domain: {
+				weather: ["weather"],
+				number: [
+					"sensor",
+					"number",
+					"input_number",
+					"counter"
+				],
+				chart: [
+					"sensor",
+					"number",
+					"input_number",
+					"counter"
+				],
+				status: [
+					"binary_sensor",
+					"switch",
+					"input_boolean",
+					"lock",
+					"cover",
+					"person",
+					"device_tracker"
+				],
+				text: [
+					"sensor",
+					"text",
+					"input_text",
+					"select",
+					"input_select"
+				],
+				clock: [],
+				image: []
+			}[e.type] } }
+		}]}
+      .computeLabel=${() => e.type === "number" ? "Numeric entity" : e.type === "status" ? "State entity" : "Text entity (optional)"}
+      @value-changed=${(t) => {
+			e.source = t.detail.value.entity, this.changed();
+		}}
+    ></ha-form>`;
+	}
+	menu(e) {
+		return D`<details
+      class="menu"
+      @toggle=${this.actionMenuToggled}
+      @keydown=${this.actionMenuKeydown}
+    >
+      <summary aria-label="More actions" aria-haspopup="menu">
+        <ha-icon icon="mdi:dots-vertical"></ha-icon>
+      </summary>
+      <div class="menu-popover" role="menu" @click=${this.closeActionMenu}>
+        ${e}
+      </div>
+    </details>`;
+	}
+	cardName(e) {
+		return e.title?.trim() || `${e.type[0].toUpperCase()}${e.type.slice(1)} card`;
+	}
+	appearanceEditor(e) {
+		let t = this.dashboard?.pages[this.pageIndex]?.layout === "free", n = this.dashboard?.pages[this.pageIndex]?.transparentCards === !0, r = e.style ??= {}, i = e.valueStyle ??= {}, a = e.titleStyle ??= {}, o = n ? "transparent" : e.backgroundMode ?? (e.transparentBackground ? "transparent" : e.backgroundImage ? "image" : "color"), s = !!(e.title?.trim() && e.showTitle !== !1);
+		return D`<div class="grid appearance-grid">
+      <section class="appearance-section">
+        <header><ha-icon icon="mdi:card-outline"></ha-icon>Card</header>
+        ${this.segmented("Background", o, [
+			{
+				value: "color",
+				label: "Color",
+				icon: "mdi:palette"
+			},
+			{
+				value: "transparent",
+				label: "Page",
+				icon: "mdi:checkerboard"
+			},
+			{
+				value: "image",
+				label: "Image",
+				icon: "mdi:image-outline"
+			}
+		], (t) => {
+			e.backgroundMode = t, e.transparentBackground = t === "transparent", this.changed();
+		}, n)}
+        ${o === "image" ? this.imageField("Card background image", e.backgroundImage, (t) => {
+			e.backgroundImage = t || void 0, this.changed();
+		}) : A}
+        ${o === "color" ? D`<mini-display-color-field
+                label="Background color"
+                .value=${r.background ?? ""}
+                @color-changed=${(e) => {
+			r.background = e.detail || void 0, this.changed();
+		}}
+              ></mini-display-color-field>` : A}
+        <mini-display-color-field
+          label="Accent"
+          .value=${r.accent ?? ""}
+          @color-changed=${(e) => {
+			r.accent = e.detail || void 0, this.changed();
+		}}
+        ></mini-display-color-field>
+      </section>
+      ${e.type === "image" ? A : D`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-text"></ha-icon>Value</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${r.foreground ?? ""}
+                @color-changed=${(e) => {
+			r.foreground = e.detail || void 0, this.changed();
+		}}
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", i.fontFamily, (e) => {
+			i.fontFamily = e, this.changed();
+		})}
+              ${t ? A : this.select("Font size", i.fontSize ?? "auto", [
+			"auto",
+			"small",
+			"medium",
+			"large",
+			"xlarge"
+		], (e) => {
+			i.fontSize = e, this.changed();
+		})}
+              ${t ? A : this.textPosition("Position", i)}
+              ${this.select("Text flow", i.textFlow ?? "default", [
+			"default",
+			"overflow",
+			"wrap"
+		], (e) => {
+			i.textFlow = e, this.changed();
+		})}
+              ${this.textEffectEditor("Effect", i)}
+            </section>`}
+      ${s ? D`<section class="appearance-section">
+              <header><ha-icon icon="mdi:format-title"></ha-icon>Title</header>
+              <mini-display-color-field
+                label="Text color"
+                .value=${a.foreground ?? ""}
+                @color-changed=${(e) => {
+			a.foreground = e.detail || void 0, this.changed();
+		}}
+              ></mini-display-color-field>
+              ${this.fontSelect("Font", a.fontFamily, (e) => {
+			a.fontFamily = e, this.changed();
+		})}
+              ${t ? A : this.select("Font size", a.fontSize ?? "auto", [
+			"auto",
+			"small",
+			"medium",
+			"large",
+			"xlarge"
+		], (e) => {
+			a.fontSize = e, this.changed();
+		})}
+              ${t ? A : this.textPosition("Position", a, "left", "top")}
+              ${this.select("Text flow", a.textFlow ?? "default", [
+			"default",
+			"overflow",
+			"wrap"
+		], (e) => {
+			a.textFlow = e, this.changed();
+		})}
+              ${this.textEffectEditor("Effect", a)}
+            </section>` : A}
+    </div>`;
+	}
+	transitionEditor(e) {
+		let t = e.transition ?? { type: "none" }, n = (t) => {
+			e.transition = t, this.changed();
+		}, r = (e) => n({
+			...t,
+			...e
+		}), i = [
+			{
+				type: "none",
+				label: "None",
+				icon: "mdi:cancel"
+			},
+			{
+				type: "random",
+				label: "Random",
+				icon: "mdi:shuffle-variant"
+			},
+			{
+				type: "slide",
+				label: "Slide",
+				icon: "mdi:arrow-right-bold"
+			},
+			{
+				type: "bounce",
+				label: "Bounce",
+				icon: "mdi:arrow-up-bold-circle-outline"
+			},
+			{
+				type: "fade",
+				label: "Fade",
+				icon: "mdi:brightness-6"
+			},
+			{
+				type: "wipe",
+				label: "Wipe",
+				icon: "mdi:transition-masked"
+			},
+			{
+				type: "dissolve",
+				label: "Dissolve",
+				icon: "mdi:dots-grid"
+			},
+			{
+				type: "curtain",
+				label: "Curtain",
+				icon: "mdi:curtains"
+			},
+			{
+				type: "blinds",
+				label: "Blinds",
+				icon: "mdi:blinds-horizontal"
+			},
+			{
+				type: "mosaic",
+				label: "Mosaic",
+				icon: "mdi:view-grid-plus"
+			},
+			{
+				type: "doors",
+				label: "Doors",
+				icon: "mdi:door-sliding"
+			},
+			{
+				type: "spiral",
+				label: "Spiral",
+				icon: "mdi:reload"
+			}
+		], a = (e) => e === "none" ? { type: e } : e === "random" ? {
+			type: e,
+			speed: "normal"
+		} : [
+			"dissolve",
+			"mosaic",
+			"spiral"
+		].includes(e) ? {
+			type: e,
+			speed: "normal",
+			tileSize: "medium"
+		} : e === "fade" ? {
+			type: e,
+			speed: "normal",
+			intensity: "strong"
+		} : e === "bounce" ? {
+			type: e,
+			direction: "left",
+			speed: "normal",
+			intensity: "subtle"
+		} : (["curtain", "blinds"].includes(e), {
+			type: e,
+			direction: "left",
+			speed: "normal"
+		});
+		return D`<details class="transition-settings">
+      <summary class="transition-summary">
+        Transition to next page ·
+        ${i.find((e) => e.type === t.type)?.label ?? "None"}
+      </summary>
+      <div class="effect-grid">
+        ${i.map((e) => D`<button class="effect ${t.type === e.type ? "active" : ""}" aria-pressed=${e.type === t.type} @click=${() => n(a(e.type))}><ha-icon icon=${e.icon}></ha-icon><span>${e.label}</span></button>`)}
+      </div>
+      ${t.type === "none" ? A : D`<div class="transition-options">
+              ${[
+			"slide",
+			"bounce",
+			"wipe",
+			"curtain",
+			"blinds"
+		].includes(t.type) ? this.segmented("Direction", t.direction ?? "left", [
+			{
+				value: "left",
+				label: "Left",
+				icon: "mdi:arrow-left"
+			},
+			{
+				value: "right",
+				label: "Right",
+				icon: "mdi:arrow-right"
+			},
+			{
+				value: "up",
+				label: "Up",
+				icon: "mdi:arrow-up"
+			},
+			{
+				value: "down",
+				label: "Down",
+				icon: "mdi:arrow-down"
+			}
+		], (e) => r({ direction: e })) : A}${this.segmented("Speed", t.speed ?? "normal", [
+			{
+				value: "slow",
+				label: "Slow"
+			},
+			{
+				value: "normal",
+				label: "Normal"
+			},
+			{
+				value: "fast",
+				label: "Fast"
+			}
+		], (e) => r({ speed: e }))}${["bounce", "fade"].includes(t.type) ? this.segmented("Intensity", t.intensity ?? "subtle", [{
+			value: "subtle",
+			label: "Subtle"
+		}, {
+			value: "strong",
+			label: "Strong"
+		}], (e) => r({ intensity: e })) : A}${[
+			"dissolve",
+			"mosaic",
+			"spiral"
+		].includes(t.type) ? this.segmented("Tile size", t.tileSize ?? "medium", [
+			{
+				value: "small",
+				label: "Small"
+			},
+			{
+				value: "medium",
+				label: "Medium"
+			},
+			{
+				value: "large",
+				label: "Large"
+			}
+		], (e) => r({ tileSize: e })) : A}
+            </div>`}
+    </details>`;
+	}
+	dragMapping(e, t, n) {
+		this.draggedMapping = {
+			kind: e,
+			index: t
+		}, n.dataTransfer?.setData("text/plain", `${e}:${t}`), n.dataTransfer && (n.dataTransfer.effectAllowed = "move"), this.requestUpdate();
+	}
+	dropMapping(e, t, n, r) {
+		r.preventDefault();
+		let i = this.draggedMapping;
+		if (this.draggedMapping = void 0, !i || i.kind !== t || i.index === n) {
+			this.requestUpdate();
+			return;
+		}
+		let a = t === "value" ? e.valueMappings : e.colorMappings;
+		if (!a) return;
+		let [o] = a.splice(i.index, 1);
+		a.splice(n, 0, o), this.changed();
+	}
+	dragHandle(e, t) {
+		return D`<span
+      class="drag-handle"
+      draggable="true"
+      title="Drag to reorder"
+      aria-label="Drag to reorder"
+      @dragstart=${(n) => this.dragMapping(e, t, n)}
+      @dragend=${() => {
+			this.draggedMapping = void 0, this.requestUpdate();
+		}}
+      ><ha-icon icon="mdi:drag-vertical"></ha-icon
+    ></span>`;
+	}
+	dragCard(e, t, n) {
+		this.draggedCard = {
+			row: e,
+			index: t
+		}, n.dataTransfer?.setData("text/plain", `card:${e}:${t}`), n.dataTransfer && (n.dataTransfer.effectAllowed = "move"), this.requestUpdate();
+	}
+	dropCard(e, t, n) {
+		n.preventDefault();
+		let r = this.draggedCard;
+		if (this.draggedCard = void 0, !r || r.row !== e || r.index === t) {
+			this.requestUpdate();
+			return;
+		}
+		let i = this.dashboard?.pages[this.pageIndex]?.rows[e]?.cards;
+		if (!i) return;
+		let [a] = i.splice(r.index, 1);
+		i.splice(t, 0, a), this.selected = {
+			row: e,
+			card: t
+		}, this.changed();
+	}
+	valueMappingsEditor(e) {
+		if (e.type !== "number" && e.type !== "text") return A;
+		let t = e.valueMappings ?? [], n = (e, n, r) => {
+			let i = t[e];
+			r.trim() === "" ? delete i[n] : i[n] = Number(r), this.changed();
+		}, r = (n) => {
+			t.splice(n, 1), t.length || delete e.valueMappings, this.changed();
+		};
+		return D`<details class="mappings">
+      <summary>
+        Value mappings${t.length ? ` (${t.length})` : ""}
+      </summary>
+      <div class="mapping-list">
+        <p class="mapping-copy">
+          Rules are checked from top to bottom. The first match wins.
+        </p>
+        ${t.map((t, i) => e.type === "number" ? D`
+                <div
+                  class="mapping-rule ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === i ? "dragging" : ""}"
+                  @dragover=${(e) => e.preventDefault()}
+                  @drop=${(t) => this.dropMapping(e, "value", i, t)}
+                >
+                  ${this.dragHandle("value", i)}
+                  ${this.field("From", t.minimum, (e) => n(i, "minimum", e), "number")}
+                  ${this.field("To", t.maximum, (e) => n(i, "maximum", e), "number")}
+                  ${this.field("Display as", t.value, (e) => {
+			t.value = e, this.changed();
+		})}
+                  <button
+                    class="icon-button danger"
+                    title="Delete mapping"
+                    aria-label="Delete mapping"
+                    @click=${() => r(i)}
+                  >
+                    <ha-icon icon="mdi:delete-outline"></ha-icon>
+                  </button>
+                </div>
+              ` : D`
+                <div
+                  class="mapping-rule text ${this.draggedMapping?.kind === "value" && this.draggedMapping.index === i ? "dragging" : ""}"
+                  @dragover=${(e) => e.preventDefault()}
+                  @drop=${(t) => this.dropMapping(e, "value", i, t)}
+                >
+                  ${this.dragHandle("value", i)}
+                  ${this.select("Match", t.operator, [
+			"equals",
+			"starts_with",
+			"ends_with",
+			"contains"
+		], (e) => {
+			t.operator = e, this.changed();
+		})}
+                  ${this.field("Text", t.match, (e) => {
+			t.match = e, this.changed();
+		})}
+                  ${this.field("Display as", t.value, (e) => {
+			t.value = e, this.changed();
+		})}
+                  <button
+                    class="icon-button danger"
+                    title="Delete mapping"
+                    aria-label="Delete mapping"
+                    @click=${() => r(i)}
+                  >
+                    <ha-icon icon="mdi:delete-outline"></ha-icon>
+                  </button>
+                </div>
+              `)}
+        ${t.length < 12 ? D`<button
+                class="add-button"
+                @click=${() => {
+			let n = e.type === "number" ? {
+				minimum: 0,
+				maximum: 100,
+				value: ""
+			} : {
+				operator: "equals",
+				match: "",
+				value: ""
+			};
+			e.valueMappings = [...t, n], this.changed();
+		}}
+              >
+                Add mapping
+              </button>` : A}
+      </div>
+    </details>`;
+	}
+	colorMappingsEditor(e) {
+		if (e.type !== "number" && e.type !== "text") return A;
+		let t = this.dashboard?.pages[this.pageIndex]?.transparentCards === !0, n = e.colorMappings ?? [], r = (e, t, r) => {
+			let i = n[e];
+			r.trim() === "" ? delete i[t] : i[t] = Number(r), this.changed();
+		}, i = (e, t, n) => {
+			n ? e[t] = n : delete e[t], this.changed();
+		}, a = (t) => {
+			n.splice(t, 1), n.length || delete e.colorMappings, this.changed();
+		};
+		return D`<details class="mappings">
+      <summary>
+        Color mappings${n.length ? ` (${n.length})` : ""}
+      </summary>
+      <div class="mapping-list">
+        <p class="mapping-copy">
+          The first matching rule sets the card colors.
+        </p>
+        ${n.map((n, o) => e.type === "number" ? D`
+                <div
+                  class="mapping-rule colors ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === o ? "dragging" : ""}"
+                  @dragover=${(e) => e.preventDefault()}
+                  @drop=${(t) => this.dropMapping(e, "color", o, t)}
+                >
+                  ${this.dragHandle("color", o)}
+                  ${this.field("From", n.minimum, (e) => r(o, "minimum", e), "number")}
+                  ${this.field("To", n.maximum, (e) => r(o, "maximum", e), "number")}
+                  <mini-display-color-field
+                    label="Background"
+                    .disabled=${t}
+                    .value=${n.background ?? ""}
+                    @color-changed=${(e) => i(n, "background", e.detail)}
+                  ></mini-display-color-field>
+                  <mini-display-color-field
+                    label="Text color"
+                    .value=${n.foreground ?? ""}
+                    @color-changed=${(e) => i(n, "foreground", e.detail)}
+                  ></mini-display-color-field>
+                  <button
+                    class="icon-button danger"
+                    title="Delete color mapping"
+                    aria-label="Delete color mapping"
+                    @click=${() => a(o)}
+                  >
+                    <ha-icon icon="mdi:delete-outline"></ha-icon>
+                  </button>
+                </div>
+              ` : D`
+                <div
+                  class="mapping-rule colors text ${this.draggedMapping?.kind === "color" && this.draggedMapping.index === o ? "dragging" : ""}"
+                  @dragover=${(e) => e.preventDefault()}
+                  @drop=${(t) => this.dropMapping(e, "color", o, t)}
+                >
+                  ${this.dragHandle("color", o)}
+                  ${this.select("Match", n.operator, [
+			"equals",
+			"starts_with",
+			"ends_with",
+			"contains"
+		], (e) => {
+			n.operator = e, this.changed();
+		})}
+                  ${this.field("Text", n.match, (e) => {
+			n.match = e, this.changed();
+		})}
+                  <mini-display-color-field
+                    label="Background"
+                    .disabled=${t}
+                    .value=${n.background ?? ""}
+                    @color-changed=${(e) => i(n, "background", e.detail)}
+                  ></mini-display-color-field>
+                  <mini-display-color-field
+                    label="Text color"
+                    .value=${n.foreground ?? ""}
+                    @color-changed=${(e) => i(n, "foreground", e.detail)}
+                  ></mini-display-color-field>
+                  <button
+                    class="icon-button danger"
+                    title="Delete color mapping"
+                    aria-label="Delete color mapping"
+                    @click=${() => a(o)}
+                  >
+                    <ha-icon icon="mdi:delete-outline"></ha-icon>
+                  </button>
+                </div>
+              `)}
+        ${n.length < 12 ? D`<button
+                class="add-button"
+                @click=${() => {
+			let t = e.type === "number" ? {
+				minimum: 0,
+				maximum: 100
+			} : {
+				operator: "equals",
+				match: ""
+			};
+			e.colorMappings = [...n, t], this.changed();
+		}}
+              >
+                Add color mapping
+              </button>` : A}
+      </div>
+    </details>`;
+	}
+	cardSettings(e, t, n) {
+		let r = this.dashboard.pages[this.pageIndex].rows[t].cards, i = {
+			number: "Displays a numeric value with an optional unit and progress visualization.",
+			text: "Displays text from an entity or the static text below.",
+			status: "Maps a state entity to two readable labels.",
+			clock: "Displays local time without using an entity.",
+			image: "Displays an optimized image without an entity.",
+			chart: "Displays recorded values as a chart.",
+			weather: "Current conditions and forecasts from Home Assistant."
+		}, a = +!!e.visibility + (e.valueMappings?.length ?? 0) + (e.colorMappings?.length ?? 0);
+		return D`<section class="card-settings">
+      <div class="card-head">
+        <div class="card-title">
+          <strong>${this.cardName(e)}</strong
+          >${e.title?.trim() && e.showTitle === !1 ? D`<span class="condition-mark"><ha-icon icon="mdi:eye-off-outline"></ha-icon>Title hidden</span>` : A}${e.visibility ? D`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : A}
+        </div>
+        ${this.menu(D`<button
+              @click=${() => {
+			r.splice(n + 1, 0, structuredClone(e)), this.selected = {
+				row: t,
+				card: n + 1
+			}, this.changed();
+		}}
+            >
+              Duplicate</button
+            ><button
+              class="danger"
+              ?disabled=${r.length === 1 && this.dashboard.pages[this.pageIndex].layout !== "free"}
+              @click=${() => {
+			(r.length > 1 || this.dashboard.pages[this.pageIndex].layout === "free") && (r.splice(n, 1), this.selected = void 0, this.changed());
+		}}
+            >
+              Delete
+            </button>`)}
+      </div>
+      <nav class="card-section-tabs" aria-label="Card settings sections">
+        ${[
+			[
+				"content",
+				"Content",
+				"mdi:text-box-outline"
+			],
+			[
+				"appearance",
+				"Appearance",
+				"mdi:palette-outline"
+			],
+			[
+				"rules",
+				"Rules",
+				"mdi:source-branch"
+			]
+		].map(([e, t, n]) => D`<button
+              class="card-section-tab ${this.cardSection === e ? "active" : ""}"
+              role="tab"
+              aria-selected=${this.cardSection === e}
+              @click=${() => this.cardSection = e}
+            >
+              <ha-icon icon=${n}></ha-icon><span>${t}</span>${e === "rules" && a ? D`<span class="section-count">${a}</span>` : A}
+            </button>`)}
+      </nav>
+      <div class="card-pane" role="tabpanel">
+        ${this.cardSection === "content" ? D`
+                <section class="settings-group">
+                  <div class="settings-heading">
+                    <ha-icon icon="mdi:card-text-outline"></ha-icon>
+                    <div>
+                      <strong>Card</strong><small>${i[e.type]}</small>
+                    </div>
+                  </div>
+                  ${this.segmented("Card type", e.type, [
+			{
+				value: "number",
+				label: "Number",
+				icon: "mdi:numeric"
+			},
+			{
+				value: "text",
+				label: "Text",
+				icon: "mdi:format-text"
+			},
+			{
+				value: "chart",
+				label: "Chart",
+				icon: "mdi:chart-bar"
+			},
+			{
+				value: "weather",
+				label: "Weather",
+				icon: "mdi:weather-partly-cloudy"
+			},
+			{
+				value: "status",
+				label: "Status",
+				icon: "mdi:toggle-switch-outline"
+			},
+			{
+				value: "clock",
+				label: "Clock",
+				icon: "mdi:clock-outline"
+			},
+			{
+				value: "image",
+				label: "Image",
+				icon: "mdi:image-outline"
+			}
+		], (t) => {
+			let { frame: n, titleFrame: r, valueFrame: i } = e;
+			Object.keys(e).forEach((t) => delete e[t]), Object.assign(e, Pe(t)), n && (e.frame = n), r && (e.titleFrame = r), i && (e.valueFrame = i), this.changed();
+		})}
+                  <div class="grid compact-grid">
+                    ${this.field("Title", e.title, (t) => {
+			e.title = t, this.changed();
+		})}
+                    <div class="inline-option">
+                      ${this.checkbox("Show title on display", e.showTitle !== !1, (t) => {
+			this.dashboard?.pages[this.pageIndex]?.layout === "free" && He(e), e.showTitle = t, this.changed();
+		}, !e.title?.trim())}
+                    </div>
+                  </div>
+                </section>
+                ${e.type === "image" ? D`<section class="settings-group">
+                        <div class="settings-heading">
+                          <ha-icon icon="mdi:image-outline"></ha-icon>
+                          <div>
+                            <strong>Image</strong
+                            ><small>Displayed without an entity value</small>
+                          </div>
+                        </div>
+                        ${this.imageField("Image", e.image, (t) => {
+			e.image = t, this.changed();
+		})}
+                        ${this.segmented("Fit", e.imageFit ?? "cover", [
+			{
+				value: "cover",
+				label: "Cover",
+				icon: "mdi:image-size-select-actual"
+			},
+			{
+				value: "contain",
+				label: "Contain",
+				icon: "mdi:image-size-select-large"
+			},
+			{
+				value: "stretch",
+				label: "Stretch",
+				icon: "mdi:fit-to-screen-outline"
+			}
+		], (t) => {
+			e.imageFit = t, this.changed();
+		})}
+                      </section>` : A}
+                ${[
+			"number",
+			"status",
+			"text",
+			"chart",
+			"weather"
+		].includes(e.type) ? D`<section class="settings-group">
+                        <div class="settings-heading">
+                          <ha-icon icon="mdi:database-outline"></ha-icon>
+                          <div>
+                            <strong>Data</strong
+                            ><small>Value shown by this card</small>
+                          </div>
+                        </div>
+                        <div class="grid">
+                          ${this.entity(e)}
+                          ${e.type === "weather" ? D`<mini-display-weather-editor style="grid-column:1/-1" .settings=${e.weather ?? {}}
+                            @weather-changed=${(t) => {
+			e.weather = t.detail, this.changed();
+		}}></mini-display-weather-editor>` : A}
+                          ${e.type === "number" ? D`${this.field("Unit", e.unit, (t) => {
+			e.unit = t, this.changed();
+		})}${this.select("Progress", e.progress ?? "none", [
+			"none",
+			"bar",
+			"ring"
+		], (t) => {
+			e.progress = t, this.changed();
+		})}${e.progress && e.progress !== "none" ? D`${this.field("Minimum", e.minimum, (t) => {
+			e.minimum = Number(t), this.changed();
+		}, "number")}${this.field("Maximum", e.maximum, (t) => {
+			e.maximum = Number(t), this.changed();
+		}, "number")}` : A}` : A}
+                          ${e.type === "text" ? D`${this.field("Static text", e.text, (t) => {
+			e.text = t, this.changed();
+		})}${this.field("Unit", e.unit, (t) => {
+			e.unit = t, this.changed();
+		})}` : A}
+                          ${e.type === "status" ? D`${this.field("On text", e.onText, (t) => {
+			e.onText = t, this.changed();
+		})}${this.field("Off text", e.offText, (t) => {
+			e.offText = t, this.changed();
+		})}` : A}
+                        </div>
+                      </section>` : A}
+                <section class="settings-group"><mini-display-graph-editor .card=${e} .hass=${this.hass}
+                  @graph-changed=${(t) => {
+			e.graph = t.detail, this.changed();
+		}}
+                ></mini-display-graph-editor></section>
+              ` : this.cardSection === "appearance" ? D`<section class="settings-group">
+                  <div class="settings-heading">
+                    <ha-icon icon="mdi:palette-outline"></ha-icon>
+                    <div>
+                      <strong>Appearance</strong
+                      ><small>Colors, typography and placement</small>
+                    </div>
+                  </div>
+                  ${this.appearanceEditor(e)}
+                </section>` : D`
+                  <section class="settings-group">
+                    <div class="setting-action">
+                      <ha-icon icon="mdi:eye-settings-outline"></ha-icon>
+                      <div>
+                        <strong>Visibility</strong>
+                        <small
+                          >${e.visibility ? "Shown when configured conditions match" : "Always visible"}</small
+                        >
+                      </div>
+                      <ha-button
+                        @click=${() => this.openVisibility("card", t, n)}
+                        >${e.visibility ? "Edit" : "Configure"}</ha-button
+                      >
+                    </div>
+                  </section>
+                  <section class="settings-group rule-groups">
+                    <div class="settings-heading">
+                      <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+                      <div>
+                        <strong>Mappings</strong
+                        ><small
+                          >Transform values and colors in rule order</small
+                        >
+                      </div>
+                    </div>
+                    ${this.valueMappingsEditor(e)}${this.colorMappingsEditor(e)}
+                  </section>
+                `}
+      </div>
+    </section>`;
+	}
+	rowEditor(e, t) {
+		let n = this.dashboard.pages[this.pageIndex];
+		return D`<section class="row-panel">
+      <div class="row-head">
+        <div class="row-title">
+          ${this.editingRowTitle === t ? D`<input
+                  class="row-title-input"
+                  aria-label="Row title"
+                  autofocus
+                  .value=${e.title ?? ""}
+                  placeholder=${`Row ${t + 1}`}
+                  @input=${(t) => {
+			e.title = t.target.value, this.changed();
+		}}
+                  @blur=${() => this.editingRowTitle = void 0}
+                  @keydown=${(e) => {
+			(e.key === "Enter" || e.key === "Escape") && e.currentTarget.blur();
+		}}
+                />` : D`<strong
+                    >${e.title?.trim() || `Row ${t + 1}`}</strong
+                  ><button
+                    class="inline-icon-button"
+                    aria-label="Edit row title"
+                    title="Edit row title"
+                    @click=${() => this.editingRowTitle = t}
+                  >
+                    <ha-icon icon="mdi:pencil-outline"></ha-icon>
+                  </button>`}<small
+            >${e.cards.length}
+            ${e.cards.length === 1 ? "card" : "cards"}</small
+          >${e.visibility ? D`<span class="condition-mark"><ha-icon icon="mdi:eye-settings-outline"></ha-icon>Conditional</span>` : A}
+        </div>
+        ${this.menu(D`<button @click=${() => this.openVisibility("row", t)}>
+              Visibility</button
+            ><button
+              @click=${() => {
+			n.rows.splice(t + 1, 0, structuredClone(e)), this.changed();
+		}}
+            >
+              Duplicate</button
+            ><button
+              class="danger"
+              ?disabled=${n.rows.length === 1}
+              @click=${() => {
+			n.rows.length > 1 && this.requestDeleteRow(t);
+		}}
+            >
+              Delete
+            </button>`)}
+      </div>
+      ${e.title?.trim() ? this.fontSelect("Row title font", e.titleStyle?.fontFamily, (t) => {
+			e.titleStyle = {
+				...e.titleStyle ?? {},
+				fontFamily: t
+			}, this.changed();
+		}) : A}
+      <nav class="card-tabs" aria-label=${`Cards in row ${t + 1}`}>
+        ${e.cards.map((e, n) => {
+			let r = this.selected?.row === t && this.selected?.card === n;
+			return D`<button
+            draggable="true"
+            class="tab ${r ? "active" : ""} ${this.draggedCard?.row === t && this.draggedCard.index === n ? "dragging" : ""}"
+            aria-label=${this.cardName(e)}
+            aria-expanded=${r}
+            @dragstart=${(e) => this.dragCard(t, n, e)}
+            @dragover=${(e) => e.preventDefault()}
+            @drop=${(e) => this.dropCard(t, n, e)}
+            @dragend=${() => {
+				this.draggedCard = void 0, this.requestUpdate();
+			}}
+            @click=${() => this.selected = r ? void 0 : {
+				row: t,
+				card: n
+			}}
+          >
+            ${this.cardName(e)}
+          </button>`;
+		})}${e.cards.length < 3 ? D`<button
+                class="icon-button"
+                title="Add card"
+                aria-label="Add card"
+                @click=${() => {
+			e.cards.push(Pe()), this.selected = {
+				row: t,
+				card: e.cards.length - 1
+			}, this.changed();
+		}}
+              >
+                <ha-icon icon="mdi:plus"></ha-icon>
+              </button>` : A}
+      </nav>
+      ${this.selected?.row === t ? this.cardSettings(e.cards[this.selected.card], t, this.selected.card) : A}
+    </section>`;
+	}
+	setLayout(e) {
+		let t = this.dashboard.pages[this.pageIndex];
+		if (e === "free") t.rows.forEach((e, n) => e.cards.forEach((r, i) => {
+			r.frame ??= {
+				x: i * 100 / e.cards.length,
+				y: n * 100 / t.rows.length,
+				width: 100 / e.cards.length,
+				height: 100 / t.rows.length
+			};
+		}));
+		else {
+			let e = t.rows.flatMap((e) => e.cards);
+			t.rows = [];
+			for (let n = 0; n < e.length; n += 3) t.rows.push({
+				weight: 1,
+				gap: "small",
+				cards: e.slice(n, n + 3)
+			});
+			t.rows.length || (t.rows = [Ie()]);
+		}
+		t.layout = e, this.selected = void 0, this.changed();
+	}
+	freeEditor(e) {
+		let t = e.rows.flatMap((e, t) => e.cards.map((e, n) => ({
+			card: e,
+			ri: t,
+			ci: n
+		}))), n = this.selected && e.rows[this.selected.row]?.cards[this.selected.card], r = (n) => {
+			if (t.length >= 18) {
+				this.syncState = "error", this.syncMessage = "This display supports up to 18 items per page";
+				return;
+			}
+			let r = Pe(n);
+			r.frame = {
+				x: 5,
+				y: 5,
+				width: 50,
+				height: 30
+			}, r.backgroundMode = "transparent", e.rows[0].cards.push(r), this.selected = {
+				row: 0,
+				card: e.rows[0].cards.length - 1
+			}, this.changed();
+		}, i = (r) => {
+			if (!n) return;
+			let i = t.map((e) => e.card), a = i.indexOf(n), o = a + r;
+			o < 0 || o >= i.length || (i.splice(o, 0, i.splice(a, 1)[0]), e.rows = [{ cards: i }], this.selected = {
+				row: 0,
+				card: o
+			}, this.changed());
+		};
+		return D`<section class="row-panel">
+      <nav class="tabs" aria-label="Add item">${[
+			"number",
+			"text",
+			"image",
+			"chart",
+			"weather",
+			"clock",
+			"status"
+		].map((e) => D`<button class="tab" @click=${() => r(e)}><ha-icon icon="mdi:plus"></ha-icon>${e}</button>`)}</nav>
+      <nav class="card-tabs" aria-label="Items">${t.map(({ card: e, ri: t, ci: n }) => D`<button class="tab ${this.selected?.row === t && this.selected.card === n ? "active" : ""}" @click=${() => this.selected = {
+			row: t,
+			card: n
+		}}>${this.cardName(e)}</button>`)}</nav>
+      ${n?.frame ? D`<div class="grid compact-grid">${[
+			"x",
+			"y",
+			"width",
+			"height"
+		].map((e) => this.numberField(e.toUpperCase() + " (%)", n.frame[e], 0, e === "x" || e === "y" ? 0 : 2, 100, (t) => {
+			He(n);
+			let r = n.frame;
+			r[e] = t, r.x = Math.min(r.x, 100 - r.width), r.y = Math.min(r.y, 100 - r.height), this.changed();
+		}))}</div><div class="tabs"><button class="tab" @click=${() => i(-1)}>Send backward</button><button class="tab" @click=${() => i(1)}>Bring forward</button></div>` : A}
+      ${n && this.selected ? this.cardSettings(n, this.selected.row, this.selected.card) : A}
+    </section>`;
+	}
+	renderEditor() {
+		let e = this.dashboard, t = e?.pages[this.pageIndex], n = this.dirtyDisplays.has(this.selectedDisplayId), r = e?.pages.filter((e) => e.enabled !== !1).length ?? 0, i = t?.style ?? {}, a = t?.titleStyle ?? {};
+		return D`
+      <ha-card class="editor-card">
+        <div class="editor-heading">
+          <div class="editor-title">
+            <strong>${this.selectedDisplay?.title}</strong
+            ><small>${this.selectedScene?.name}</small>
+          </div>
+          <div class="save-area">
+            <div
+              class="sync ${this.syncState}"
+              role=${this.syncState === "error" ? "alert" : "status"}
+              aria-live="polite"
+            >
+              <i></i><span>${this.syncMessage}</span>
+            </div>
+            <div class="save-actions">
+              <ha-button .disabled=${!n} @click=${this.discard}
+                >Discard</ha-button
+              ><ha-button
+                .disabled=${!n || this.syncState === "syncing"}
+                @click=${() => void this.save()}
+                >Save</ha-button
+              >
+            </div>
+          </div>
+        </div>
+        ${t && e ? D`
+                <div class="editor-content">
+                  <nav class="tabs" aria-label="Dashboard pages">
+                    ${e.pages.map((e, t) => D`
+                        <button
+                          class="tab ${t === this.pageIndex ? "active" : ""} ${e.enabled === !1 ? "inactive" : ""}"
+                          aria-pressed=${t === this.pageIndex}
+                          @click=${() => void this.showPage(t)}
+                        >
+                          ${e.enabled === !1 ? D`<ha-icon icon="mdi:eye-off-outline"></ha-icon>` : A}${e.title || e.id}
+                        </button>
+                      `)}
+                    <button
+                      class="icon-button"
+                      aria-label="Add page"
+                      title="Add page"
+                      @click=${() => {
+			e.pages.push(Le(e.pages.length + 1)), this.pageIndex = e.pages.length - 1, this.previewPages = {
+				...this.previewPages,
+				[this.selectedDisplayId]: this.pageIndex
+			}, this.selected = {
+				row: 0,
+				card: 0
+			}, this.changed();
+		}}
+                    >
+                      <ha-icon icon="mdi:plus"></ha-icon>
+                    </button>
+                  </nav>
+                  <details class="page-settings">
+                    <summary class="page-summary">
+                      <span class="page-summary-copy"
+                        ><span>Page settings</span
+                        ><small
+                          >${t.durationSeconds ?? 10}s ·
+                          ${t.enabled === !1 ? "Disabled" : "Enabled"}${t.showTitle === !1 ? " · title hidden" : ""}</small
+                        ></span
+                      ><button
+                        class="icon-button danger"
+                        aria-label="Delete page"
+                        title="Delete page"
+                        ?disabled=${e.pages.length <= 1}
+                        @click=${(e) => {
+			e.preventDefault(), e.stopPropagation(), this.deletePage();
+		}}
+                      >
+                        <ha-icon icon="mdi:delete-outline"></ha-icon>
+                      </button>
+                    </summary>
+                    <div class="page-settings-grid">
+                      ${this.field("Page title", t.title, (e) => {
+			t.title = e, this.changed();
+		})}
+                      ${this.field("Duration (seconds)", t.durationSeconds, (e) => {
+			t.durationSeconds = Number(e), this.changed();
+		}, "number")}
+                      <div class="page-options">
+                        ${this.checkbox("Enabled", t.enabled !== !1, (e) => {
+			t.enabled = e, this.changed();
+		}, t.enabled !== !1 && r <= 1, "At least one page must stay enabled")}
+                        ${this.checkbox("Show title", t.showTitle !== !1, (e) => {
+			t.showTitle = e, this.changed();
+		})}
+                      </div>
+                      ${t.showTitle === !1 ? A : D`<div class="page-title-position">
+                              ${this.segmented("Title position", t.titlePosition ?? "top", [
+			{
+				value: "top",
+				label: "Top",
+				icon: "mdi:format-vertical-align-top"
+			},
+			{
+				value: "right",
+				label: "Right",
+				icon: "mdi:format-horizontal-align-right"
+			},
+			{
+				value: "bottom",
+				label: "Bottom",
+				icon: "mdi:format-vertical-align-bottom"
+			},
+			{
+				value: "left",
+				label: "Left",
+				icon: "mdi:format-horizontal-align-left"
+			}
+		], (e) => {
+			t.titlePosition = e, this.changed();
+		})}
+                            </div>`}
+                      <details class="page-appearance">
+                        <summary>Page appearance</summary>
+                        <div class="page-appearance-grid">
+                          <mini-display-color-field
+                            label="Page background"
+                            .value=${i.background ?? ""}
+                            @color-changed=${(e) => {
+			t.style = {
+				...t.style ?? {},
+				background: e.detail || void 0
+			}, this.changed();
+		}}
+                          ></mini-display-color-field>
+                          ${this.imageField("Page background image", t.backgroundImage, (e) => {
+			t.backgroundImage = e || void 0, this.changed();
+		})}
+                          <div class="inline-option">
+                            ${this.checkbox("Transparent card backgrounds", t.transparentCards === !0, (e) => {
+			t.transparentCards = e, this.changed();
+		}, !1, "Keeps each card background setting but does not render it on this page")}
+                          </div>
+                          ${t.showTitle === !1 ? A : D`
+                                  <mini-display-color-field
+                                    label="Title background"
+                                    .value=${a.background ?? ""}
+                                    @color-changed=${(e) => {
+			t.titleStyle = {
+				...t.titleStyle ?? {},
+				background: e.detail || void 0
+			}, this.changed();
+		}}
+                                  ></mini-display-color-field>
+                                  <mini-display-color-field
+                                    label="Title text"
+                                    .value=${a.foreground ?? ""}
+                                    @color-changed=${(e) => {
+			t.titleStyle = {
+				...t.titleStyle ?? {},
+				foreground: e.detail || void 0
+			}, this.changed();
+		}}
+                                  ></mini-display-color-field>
+                                  ${this.fontSelect("Title font", a.fontFamily, (e) => {
+			t.titleStyle = {
+				...t.titleStyle ?? {},
+				fontFamily: e
+			}, this.changed();
+		})}
+                                  ${this.select("Title font size", a.fontSize ?? "small", [
+			"small",
+			"medium",
+			"large",
+			"xlarge"
+		], (e) => {
+			t.titleStyle = {
+				...t.titleStyle ?? {},
+				fontSize: e
+			}, this.changed();
+		})}
+                                `}
+                        </div>
+                      </details>
+                      <details class="advanced-settings">
+                        <summary>Advanced</summary>
+                        <div class="advanced-settings-content">
+                          ${this.field("Page ID", t.id, (e) => {
+			t.id = e, this.changed();
+		})}
+                        </div>
+                      </details>
+                    </div>
+                  </details>
+                  ${this.transitionEditor(t)}
+                  ${this.segmented("Layout", t.layout ?? "rows", [{
+			value: "rows",
+			label: "Rows",
+			icon: "mdi:view-agenda-outline"
+		}, {
+			value: "free",
+			label: "Free layout",
+			icon: "mdi:vector-square"
+		}], (e) => this.setLayout(e))}
+                  <div class="rows">
+                    ${t.layout === "free" ? this.freeEditor(t) : t.rows.map((e, t) => this.rowEditor(e, t))}
+                  </div>
+                  ${t.layout !== "free" && t.rows.length < 6 ? D`<button
+                          class="add-button"
+                          @click=${() => {
+			t.rows.push(Ie()), this.changed();
+		}}
+                        >
+                          Add row
+                        </button>` : A}
+                </div>
+              ` : D`<div class="loading">
+                <p>No layout configured for this display.</p>
+                <ha-button @click=${this.createLayout}>Create layout</ha-button>
+              </div>`}
+      </ha-card>
     `;
-  }
+	}
+	render() {
+		if (!this.loaded) return D`<div class="loading">Loading displays…</div>`;
+		if (this.displays.length === 0) return D`<ha-card class="empty"
+        ><ha-icon icon="mdi:monitor-off"></ha-icon>
+        <h2>No Mini Displays yet</h2>
+        <p>
+          Add a Mini Display integration first. Configured displays will appear
+          here automatically.
+        </p>
+        <ha-button
+          @click=${() => {
+			history.pushState(null, "", "/config/integrations"), window.dispatchEvent(new Event("location-changed"));
+		}}
+          ><ha-icon icon="mdi:plus"></ha-icon>Add integration</ha-button
+        ></ha-card
+      >`;
+		let e = this.visibilityObject()?.visibility, t = this.visibilityTarget?.kind === "row" ? "Row" : "Card", n = this.visibilityTarget?.kind === "card" ? this.visibilityObject() : void 0;
+		return D`
+      <div class="layout">
+        <mini-display-scene-sidebar
+          .displays=${this.displays}
+          .scenes=${this.scenes}
+          .selectedDisplayId=${this.selectedDisplayId}
+          .selectedSceneId=${this.selectedSceneId}
+          .section=${this.section}
+          .imageCount=${this.assets[this.selectedDisplayId]?.length ?? 0}
+          .form=${this.sceneForm}
+          .sceneName=${this.sceneName}
+          @display-selected=${(e) => this.selectDisplay(e.detail)}
+          @scene-selected=${(e) => void this.selectScene(e.detail)}
+          @images-selected=${() => this.section = "images"}
+          @scene-create=${() => void this.createScene()}
+          @scene-rename=${this.openRenameScene}
+          @scene-duplicate=${() => void this.duplicateScene()}
+          @scene-default=${() => void this.setDefaultScene()}
+          @scene-delete=${() => void this.deleteScene()}
+          @scene-name=${(e) => this.sceneName = e.detail}
+          @scene-cancel=${() => this.sceneForm = null}
+          @scene-save=${() => void this.saveSceneForm()}
+        ></mini-display-scene-sidebar>
+
+        ${this.section === "images" ? D`<mini-display-image-manager
+                class="images-view"
+                .hass=${this.hass}
+                .assets=${this.assets[this.selectedDisplayId] ?? []}
+                .displayId=${this.selectedDisplayId}
+                .displayName=${this.selectedDisplay?.title ?? "Display"}
+                .maximumWidth=${this.selectedDisplay?.width ?? 240}
+                .maximumHeight=${this.selectedDisplay?.height ?? 240}
+                @asset-uploaded=${(e) => {
+			let t = this.assets[this.selectedDisplayId] ?? [];
+			this.assets = {
+				...this.assets,
+				[this.selectedDisplayId]: [...t.filter((t) => t.id !== e.detail.id), e.detail]
+			};
+		}}
+                @asset-deleted=${(e) => {
+			this.assets = {
+				...this.assets,
+				[this.selectedDisplayId]: (this.assets[this.selectedDisplayId] ?? []).filter((t) => t.id !== e.detail)
+			};
+		}}
+              ></mini-display-image-manager>` : D`${this.renderEditor()}
+
+                <mini-display-preview-list
+                  .hass=${this.hass}
+                  .displays=${this.displays}
+                  .dashboards=${this.dashboards}
+                  .pages=${this.previewPages}
+                  .dirtyDisplays=${this.dirtyDisplays}
+                  .selectedDisplayId=${this.selectedDisplayId}
+                  .selectedSceneId=${this.selectedSceneId}
+                  .selectedSceneName=${this.selectedScene?.name ?? ""}
+                  .assets=${this.assets}
+                  @preview-frame=${(e) => {
+			let t = e.detail, n = this.dashboards[t.displayId]?.pages[t.page]?.rows[t.row]?.cards[t.card];
+			n && (He(n), t.part === "title" ? n.titleFrame = t.frame : t.part === "value" ? n.valueFrame = t.frame : n.frame = t.frame, this.selectedDisplayId = t.displayId, this.pageIndex = t.page, this.selected = {
+				row: t.row,
+				card: t.card
+			}, this.changed());
+		}}
+                  @display-selected=${(e) => this.selectDisplay(e.detail)}
+                  @preview-toggle=${(e) => void this.togglePreview(e.detail)}
+                  @preview-page=${(e) => this.previewPage(e.detail.displayId, e.detail.delta)}
+                  @preview-select=${(e) => void this.openFromPreview(e.detail)}
+                  @preview-position=${(e) => void this.updateFromPreview(e.detail)}
+                  @scene-activate=${(e) => void this.activateScene(e.detail)}
+                ></mini-display-preview-list>`}
+      </div>
+
+      ${this.visibilityTarget ? D`
+              <mini-display-visibility-dialog
+                .hass=${this.hass}
+                .targetName=${t}
+                .targetKind=${this.visibilityTarget.kind}
+                .card=${n}
+                .value=${e}
+                @visibility-save=${(e) => this.saveVisibility(e.detail)}
+                @visibility-clear=${this.clearVisibility}
+                @visibility-cancel=${() => this.visibilityTarget = void 0}
+              ></mini-display-visibility-dialog>
+            ` : A}
+      ${this.confirmation ? D`
+              <div class="modal-backdrop" @click=${this.closeConfirmation}>
+                <ha-card
+                  class="confirm-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="confirm-title"
+                  @click=${(e) => e.stopPropagation()}
+                >
+                  <div class="confirm-heading">
+                    <ha-icon
+                      icon=${this.confirmation.kind === "delete-row" ? "mdi:delete-alert-outline" : "mdi:content-save-alert-outline"}
+                    ></ha-icon>
+                    <h2 id="confirm-title">
+                      ${this.confirmation.kind === "delete-row" ? "Delete row?" : "Discard changes?"}
+                    </h2>
+                  </div>
+                  <div class="modal-body">
+                    <p class="modal-copy">
+                      ${this.confirmation.kind === "delete-row" ? "This row and all cards inside it will be removed." : "You have unsaved changes. Leaving Mini Displays will discard them."}
+                    </p>
+                  </div>
+                  <div class="modal-actions">
+                    <ha-button @click=${this.closeConfirmation}
+                      >Cancel</ha-button
+                    >
+                    <ha-button
+                      class="danger-action"
+                      @click=${() => void this.confirmAction()}
+                      >${this.confirmation.kind === "delete-row" ? "Delete" : "Discard and leave"}</ha-button
+                    >
+                  </div>
+                </ha-card>
+              </div>
+            ` : A}
+    `;
+	}
 };
-ce.styles = z`
+B([R({ attribute: !1 })], $.prototype, "hass", void 0), B([z()], $.prototype, "displays", void 0), B([z()], $.prototype, "scenes", void 0), B([z()], $.prototype, "dashboards", void 0), B([z()], $.prototype, "assets", void 0), B([z()], $.prototype, "savedDashboards", void 0), B([z()], $.prototype, "selectedDisplayId", void 0), B([z()], $.prototype, "selectedSceneId", void 0), B([z()], $.prototype, "section", void 0), B([z()], $.prototype, "pageIndex", void 0), B([z()], $.prototype, "cardSection", void 0), B([z()], $.prototype, "editingRowTitle", void 0), B([z()], $.prototype, "previewPages", void 0), B([z()], $.prototype, "selected", void 0), B([z()], $.prototype, "syncState", void 0), B([z()], $.prototype, "syncMessage", void 0), B([z()], $.prototype, "loaded", void 0), B([z()], $.prototype, "sceneForm", void 0), B([z()], $.prototype, "sceneName", void 0), B([z()], $.prototype, "dirtyDisplays", void 0), B([z()], $.prototype, "visibilityTarget", void 0), B([z()], $.prototype, "confirmation", void 0), $ = B([L("mini-display-editor")], $);
+//#endregion
+//#region src/panel.ts
+var At = class extends I {
+	constructor(...e) {
+		super(...e), this.narrow = !1;
+	}
+	static {
+		this.styles = o`
     :host {
       display: block;
       min-height: 100%;
@@ -7255,19 +7264,23 @@ ce.styles = z`
       h1 { font-size: 21px; }
     }
   `;
-Te([
-  g({ attribute: !1 })
-], ce.prototype, "hass", 2);
-Te([
-  g({ attribute: !1 })
-], ce.prototype, "narrow", 2);
-Te([
-  g({ attribute: !1 })
-], ce.prototype, "route", 2);
-Te([
-  g({ attribute: !1 })
-], ce.prototype, "panel", 2);
-ce = Te([
-  H("mini-display-panel")
-], ce);
+	}
+	render() {
+		return D`
+      <div class="shell">
+        <header>
+          <ha-icon icon="mdi:monitor-dashboard"></ha-icon>
+          <div>
+            <h1>Mini Displays</h1>
+            <p>Configure pages and content shown on your displays.</p>
+          </div>
+        </header>
+        <mini-display-editor .hass=${this.hass}></mini-display-editor>
+      </div>
+    `;
+	}
+};
+B([R({ attribute: !1 })], At.prototype, "hass", void 0), B([R({ attribute: !1 })], At.prototype, "narrow", void 0), B([R({ attribute: !1 })], At.prototype, "route", void 0), B([R({ attribute: !1 })], At.prototype, "panel", void 0), At = B([L("mini-display-panel")], At);
+//#endregion
+
 //# sourceMappingURL=mini-display-panel.js.map
