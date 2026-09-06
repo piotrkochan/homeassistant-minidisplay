@@ -44,6 +44,7 @@ export class MiniDisplayEditor extends LitElement {
   @state() private cardSection: "content" | "appearance" | "rules" = "content";
   @state() private editingRowTitle?: number;
   @state() private previewPages: Record<string, number> = {};
+  @state() private schemaViewOpen = false;
   @state() private selected?: { row: number; card: number };
   @state() private syncState: "idle" | "syncing" | "success" | "error" = "idle";
   @state() private syncMessage = "";
@@ -90,10 +91,13 @@ export class MiniDisplayEditor extends LitElement {
     }
     .layout {
       display: grid;
-      grid-template-columns: 220px minmax(420px, 1fr) 288px;
+      grid-template-columns: 220px minmax(420px, 1fr) var(--preview-column-width, 288px);
       gap: 16px;
       align-items: start;
       min-width: 0;
+    }
+    .layout.schema-open {
+      grid-template-columns: 220px minmax(360px, 1fr) clamp(440px, 44vw, 720px);
     }
     .images-view {
       grid-column: 2 / -1;
@@ -3765,7 +3769,10 @@ export class MiniDisplayEditor extends LitElement {
         ? (this.visibilityObject() as DisplayCard)
         : undefined;
     return html`
-      <div class="layout">
+      <div
+        class="layout ${this.schemaViewOpen ? "schema-open" : ""}"
+        style=${`--preview-column-width:${Math.min(640, Math.max(288, ...this.displays.map((display) => display.width + 28)))}px`}
+      >
         <mini-display-scene-sidebar
           .displays=${this.displays}
           .scenes=${this.scenes}
@@ -3845,6 +3852,7 @@ export class MiniDisplayEditor extends LitElement {
                   @display-selected=${(event: CustomEvent<string>) => this.selectDisplay(event.detail)}
                   @preview-toggle=${(event: CustomEvent<Display>) => void this.togglePreview(event.detail)}
                   @preview-page=${(event: CustomEvent<{ displayId: string; delta: number }>) => this.previewPage(event.detail.displayId, event.detail.delta)}
+                  @schema-view-changed=${(event: CustomEvent<boolean>) => { this.schemaViewOpen = event.detail; }}
                   @preview-select=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "row" | "card" | "title" | "value"; row?: number; card?: number }>) => void this.openFromPreview(event.detail)}
                   @preview-position=${(event: CustomEvent<{ displayId: string; page: number; kind: "page-title" | "title" | "value"; row?: number; card?: number; position?: "top" | "right" | "bottom" | "left"; horizontalAlign?: NonNullable<Style["horizontalAlign"]>; verticalAlign?: NonNullable<Style["verticalAlign"]> }>) => void this.updateFromPreview(event.detail)}
                   @scene-activate=${(event: CustomEvent<Display>) => void this.activateScene(event.detail)}
