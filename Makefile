@@ -61,6 +61,11 @@ test-native:
 		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
 		firmware/tests/graph_snapshot_test.cpp -o .cache/tests/graph-snapshot
 	.cache/tests/graph-snapshot
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/tests/graph_stubs -I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/graph_history_test.cpp firmware/src/GraphHistory.cpp -o .cache/tests/graph-history
+	.cache/tests/graph-history
+	python3 tests/test_graph_validation.py
 	python3 tests/test_page_timing.py
 	python3 tests/test_history_aggregation.py
 	python3 tests/test_history_data.py

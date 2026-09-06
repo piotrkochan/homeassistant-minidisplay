@@ -14,10 +14,22 @@ class GraphHistory {
   const GraphSeries *find(JsonObjectConst card) const;
   size_t bytes() const;
   bool storageError() const { return false; }
-  const GraphSeries *series(uint8_t index) const { return index < kMaxGraphSeries ? series_[index].get() : nullptr; }
+  const GraphSeries *series(size_t index) const;
 
  private:
-  std::unique_ptr<GraphSeries> series_[kMaxGraphSeries];
+  struct Entry {
+    explicit Entry(uint8_t points) : data(points) {}
+    ~Entry() {
+      // Release long lists without recursively consuming the device stack.
+      while (next) {
+        auto removed = std::move(next);
+        next = std::move(removed->next);
+      }
+    }
+    GraphSeries data;
+    std::unique_ptr<Entry> next;
+  };
+  std::unique_ptr<Entry> first_;
 };
 
 extern GraphHistory graphHistory;

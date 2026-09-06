@@ -2,8 +2,7 @@
 #include "GraphSnapshot.h"
 
 int main() {
-  GraphSeries series;
-  series.capacity = 3;
+  GraphSeries series(3);
   DynamicJsonDocument json(2048);
   assert(!deserializeJson(json, R"({"bucket":6000000,"values":[12,null,24]})"));
   assert(applyGraphSnapshot(series, json.as<JsonObjectConst>()));

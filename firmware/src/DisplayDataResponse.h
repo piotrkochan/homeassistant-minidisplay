@@ -63,9 +63,9 @@ void writeDisplayData(Sink &sink, const Value *values, size_t count,
   }
   writer.literal("},\"series\":[");
   first = true;
-  for (uint8_t index = 0; index < kMaxGraphSeries; ++index) {
+  for (size_t index = 0; ; ++index) {
     const GraphSeries *series = history.series(index);
-    if (!series) continue;
+    if (!series) break;
     if (!first) writer.literal(",");
     first = false;
     writer.literal("{\"source\":");

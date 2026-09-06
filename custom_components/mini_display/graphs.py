@@ -5,7 +5,6 @@ from typing import Any
 
 
 def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
-    series: set[tuple] = set()
     for pi, page in enumerate(document["pages"]):
         free = page.get("layout", "rows") == "free"
         if page.get("layout", "rows") not in {"free", "rows"}:
@@ -57,9 +56,6 @@ def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
                     raise error("Chart limit must be a finite number", f"{path}/graph/{key}")
             if graph.get("minimum", -math.inf) >= graph.get("maximum", math.inf):
                 raise error("Minimum must be below maximum", f"{path}/graph")
-            series.add((source, graph.get("points", 48), graph.get("intervalSeconds", 300), graph.get("aggregation", "mean")))
-    if len(series) > 4:
-        raise error("This display supports up to 4 different history series", "/pages")
 
 
 def number(value: Any) -> bool:

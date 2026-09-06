@@ -3,8 +3,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <new>
 
-constexpr uint8_t kMaxGraphSeries = 4;
 constexpr uint8_t kMaxGraphPoints = 120;
 
 enum class GraphAggregation : uint8_t { Mean, Minimum, Maximum, Last };
@@ -22,11 +23,13 @@ struct GraphSeries {
   uint8_t capacity = 48;
   uint8_t head = 0;
   GraphAggregation aggregation = GraphAggregation::Mean;
-  float values[kMaxGraphPoints];
+  std::unique_ptr<float[]> values;
 
-  GraphSeries() { clear(); }
+  explicit GraphSeries(uint8_t points = kMaxGraphPoints)
+      : capacity(points), values(new (std::nothrow) float[points]) { clear(); }
+  size_t bytes() const { return sizeof(GraphSeries) + sizeof(float) * capacity; }
   void clear() {
-    for (float &value : values) value = NAN;
+    if (values) for (uint8_t i = 0; i < capacity; ++i) values[i] = NAN;
     head = 0;
     bucket = 0;
     count = 0;

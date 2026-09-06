@@ -2413,7 +2413,7 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
       document["defaults"]["pageDurationSeconds"] | 10;
   JsonArray pages = document["pages"].as<JsonArray>();
   if (pages.size() == 0 || pages.size() > kMaxPages) return false;
-  if (!graphHistory.validate(pages)) return reject(F("Invalid graph settings or too many history series"));
+  if (!graphHistory.validate(pages)) return reject(F("Invalid graph settings"));
 
   PageTransitionConfig legacyTransition;
   if (!PageTransitionRenderer::parse(document["transition"], legacyTransition)) {

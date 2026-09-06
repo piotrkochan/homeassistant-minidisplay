@@ -10,9 +10,10 @@ struct Value {
   bool available;
 };
 struct History {
-  GraphSeries entries[kMaxGraphSeries];
+  static constexpr size_t testSeriesCount = 6;
+  GraphSeries entries[testSeriesCount];
   size_t count = 0;
-  const GraphSeries *series(uint8_t index) const {
+  const GraphSeries *series(size_t index) const {
     return index < count ? &entries[index] : nullptr;
   }
 };
@@ -65,14 +66,14 @@ void maximumHistory() {
     values[i] = {sources[i].c_str(), "-123456789.123456789", true};
   }
   History history;
-  history.count = kMaxGraphSeries;
+  history.count = History::testSeriesCount;
   for (uint8_t i = 0; i < history.count; ++i) {
     auto &series = history.entries[i];
     strcpy(series.source, sources[i].c_str());
     series.capacity = kMaxGraphPoints;
     series.head = 17;
     series.bucket = 6000000;
-    series.aggregation = static_cast<GraphAggregation>(i);
+    series.aggregation = static_cast<GraphAggregation>(i % 4);
     for (uint8_t j = 0; j < kMaxGraphPoints; ++j) series.values[j] = float(j) - 60;
     series.values[12] = NAN;
     series.values[13] = INFINITY;
@@ -83,7 +84,7 @@ void maximumHistory() {
   DynamicJsonDocument document(65536);
   assert(!deserializeJson(document, sink.json));
   assert(document["values"].size() == 32);
-  assert(document["series"].size() == kMaxGraphSeries);
+  assert(document["series"].size() == History::testSeriesCount);
   for (uint8_t i = 0; i < history.count; ++i) {
     auto series = document["series"][i];
     assert(series["points"] == kMaxGraphPoints);
