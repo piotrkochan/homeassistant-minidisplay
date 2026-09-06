@@ -9,12 +9,21 @@ struct CachedGraph {
   float minimum;
   float maximum;
   uint16_t color;
+  uint16_t gridColor;
   uint8_t opacity;
+  uint8_t fillOpacity;
+  uint8_t gridOpacity;
+  uint8_t gridLines;
+  uint8_t lineWidth;
+  uint8_t pointSize;
+  uint8_t barGap;
   uint8_t labelEvery;
   uint8_t decimals;
   bool line;
   bool labels;
   bool fit;
+  bool showPoints;
+  uint8_t scalePadding;
 };
 
 // Blend against the existing compositor band; no extra framebuffer is needed.
@@ -30,18 +39,36 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
     if (std::isfinite(value)) { if (value < low) low = value; if (value > high) high = value; }
   }
   if (!std::isfinite(low)) return;
-  fitGraphScale(low, high, graph.fit, graph.minimum, graph.maximum);
+  fitGraphScale(low, high, graph.fit, graph.minimum, graph.maximum,
+                graph.scalePadding);
   const int16_t plotTop = graph.labels ? 6 : 0;
   const int16_t plotHeight = max<int16_t>(1, height - plotTop - 1);
   const auto ordinate = [&](float value) {
     return plotTop + plotHeight - static_cast<int16_t>(constrain((value - low) / (high - low), 0.0F, 1.0F) * plotHeight);
   };
-  const auto pixel = [&](int16_t px, int16_t py, bool label = false) {
+  const auto coloredPixel = [&](int16_t px, int16_t py, uint16_t foreground,
+                                uint8_t opacity, bool solid = false) {
     if (px < 0 || py < 0 || px >= width || py >= height ||
         x + px < clipX || y + py < clipY || x + px >= clipX + clipWidth || y + py >= clipY + clipHeight) return;
-    const uint16_t color = label || graph.opacity == 100 ? graph.color :
-        blendGraphColor(graph.color, background(x + px, y + py), graph.opacity);
+    const uint16_t color = solid || opacity == 100 ? foreground :
+        blendGraphColor(foreground, background(x + px, y + py), opacity);
     canvas.drawPixel(x + px, y + py, color);
+  };
+  const auto pixel = [&](int16_t px, int16_t py, bool label = false) {
+    coloredPixel(px, py, graph.color, graph.opacity, label);
+  };
+  for (uint8_t grid = 1; grid <= graph.gridLines; ++grid) {
+    const int16_t py = plotTop +
+        static_cast<int32_t>(plotHeight) * grid / (graph.gridLines + 1);
+    for (int16_t px = 0; px < width; ++px) {
+      coloredPixel(px, py, graph.gridColor, graph.gridOpacity);
+    }
+  }
+  const auto strokePixel = [&](int16_t px, int16_t py) {
+    const int8_t before = (graph.lineWidth - 1) / 2;
+    const int8_t after = graph.lineWidth / 2;
+    for (int8_t dx = -before; dx <= after; ++dx)
+      for (int8_t dy = -before; dy <= after; ++dy) pixel(px + dx, py + dy);
   };
   const auto line = [&](int16_t ax, int16_t ay, int16_t bx, int16_t by) {
     const int16_t dx = abs(bx - ax), sx = ax < bx ? 1 : -1;
@@ -49,7 +76,7 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
     int16_t error = dx + dy;
     bool first = true;
     while (true) {
-      if (!first) pixel(ax, ay);
+      if (!first) strokePixel(ax, ay);
       first = false;
       if (ax == bx && ay == by) break;
       const int16_t twice = error * 2;
@@ -66,11 +93,32 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
     const int16_t center = graph.line ? static_cast<int32_t>(i) * (width - 1) / (series.capacity - 1) : (left + right) / 2;
     const int16_t top = ordinate(value);
     if (graph.line) {
+      const int16_t baseline = ordinate(0);
+      if (previousX >= 0 && graph.fillOpacity > 0) {
+        const int16_t span = max<int16_t>(1, center - previousX);
+        for (int16_t px = previousX; px <= center; ++px) {
+          const int16_t fillTop = previousY +
+              static_cast<int32_t>(top - previousY) * (px - previousX) / span;
+          for (int16_t py = min(fillTop, baseline);
+               py <= max(fillTop, baseline); ++py) {
+            coloredPixel(px, py, graph.color, graph.fillOpacity);
+          }
+        }
+      }
       if (previousX >= 0) line(previousX, previousY, center, top);
-      else pixel(center, top);
+      else strokePixel(center, top);
+      if (graph.showPoints) {
+        for (int8_t dx = -graph.pointSize; dx <= graph.pointSize; ++dx)
+          for (int8_t dy = -graph.pointSize; dy <= graph.pointSize; ++dy)
+            if (dx * dx + dy * dy <= graph.pointSize * graph.pointSize)
+              pixel(center + dx, top + dy, true);
+      }
     } else {
       const int16_t baseline = ordinate(0);
-      for (int16_t px = left; px < max<int16_t>(left + 1, right - 1); ++px)
+      const int16_t gap = min<int16_t>(graph.barGap, max<int16_t>(0, right - left - 1));
+      const int16_t barLeft = left + gap / 2;
+      const int16_t barRight = max<int16_t>(barLeft + 1, right - (gap - gap / 2));
+      for (int16_t px = barLeft; px < barRight; ++px)
         for (int16_t py = min(top, baseline); py <= max(top, baseline); ++py) pixel(px, py);
     }
     if (graph.labels && i % graph.labelEvery == 0) {

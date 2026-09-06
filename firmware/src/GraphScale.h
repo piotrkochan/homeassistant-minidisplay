@@ -3,9 +3,11 @@
 #include <cstdint>
 
 inline void fitGraphScale(float &low, float &high, bool fit,
-                          float minimum, float maximum) {
+                          float minimum, float maximum,
+                          uint8_t paddingPercent = 5) {
   if (fit) {
-    const float padding = fmaxf((high - low) * 0.05F, 0.01F);
+    const float padding =
+        fmaxf((high - low) * paddingPercent / 100.0F, 0.01F);
     low -= padding;
     high += padding;
   } else {

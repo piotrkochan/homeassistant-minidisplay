@@ -1681,9 +1681,18 @@ CachedGraph cachedGraph(JsonObjectConst card) {
   result.minimum = graph["minimum"] | NAN;
   result.maximum = graph["maximum"] | NAN;
   result.color = parseColor(graph["color"], TFT_CYAN);
+  result.gridColor = parseColor(graph["gridColor"], TFT_DARKGREY);
   result.opacity = graph["opacity"] | 50;
+  result.fillOpacity = graph["fillOpacity"] | 0;
+  result.gridOpacity = graph["gridOpacity"] | 20;
+  result.gridLines = graph["gridLines"] | 0;
+  result.lineWidth = graph["lineWidth"] | 1;
+  result.pointSize = graph["pointSize"] | 1;
+  result.barGap = graph["barGap"] | 1;
   result.line = strcmp(graph["type"] | "bar", "line") == 0;
   result.fit = strcmp(graph["scale"] | (result.line ? "fit" : "zero"), "fit") == 0;
+  result.showPoints = graph["showPoints"] | false;
+  result.scalePadding = graph["scalePadding"] | 5;
   result.labels = graph["showValues"] | false;
   result.labelEvery = graph["labelEvery"] | 6;
   result.decimals = graph["decimals"] | 1;

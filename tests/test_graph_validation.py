@@ -19,5 +19,20 @@ class GraphValidationTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             graphs.validate_graphs(document, ValueError)
 
+    def test_chart_appearance_options(self):
+        graph = {
+            "type": "line", "points": 15, "intervalSeconds": 120,
+            "lineWidth": 4, "fillOpacity": 25, "showPoints": True,
+            "pointSize": 2, "gridLines": 4, "gridOpacity": 30,
+            "scalePadding": 10,
+        }
+        document = {"pages": [{"rows": [{"cards": [
+            {"type": "number", "source": "sensor.power", "graph": graph}
+        ]}]}]}
+        graphs.validate_graphs(document, ValueError)
+        graph["lineWidth"] = 5
+        with self.assertRaises(ValueError):
+            graphs.validate_graphs(document, ValueError)
+
 if __name__ == "__main__":
     unittest.main()

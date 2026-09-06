@@ -218,6 +218,7 @@ export const newCard = (type: DisplayCard["type"] = "number"): DisplayCard => {
 
 export type Graph = {
   scale?: "zero" | "fit";
+  scalePadding?: number;
   source?: string;
   type?: "bar" | "line";
   points?: number;
@@ -225,6 +226,14 @@ export type Graph = {
   aggregation?: "mean" | "min" | "max" | "last";
   color?: string;
   opacity?: number;
+  lineWidth?: number;
+  fillOpacity?: number;
+  showPoints?: boolean;
+  pointSize?: number;
+  barGap?: number;
+  gridLines?: number;
+  gridColor?: string;
+  gridOpacity?: number;
   showValues?: boolean;
   labelEvery?: number;
   decimals?: number;

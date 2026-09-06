@@ -41,6 +41,10 @@ def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
             for key, default, low, high in (
                 ("points", 48, 2, 120), ("intervalSeconds", 300, 30, 86400),
                 ("opacity", 50, 0, 100), ("labelEvery", 6, 1, 120), ("decimals", 1, 0, 3),
+                ("lineWidth", 1, 1, 4), ("fillOpacity", 0, 0, 100),
+                ("pointSize", 1, 1, 4), ("barGap", 1, 0, 8),
+                ("gridLines", 0, 0, 8), ("gridOpacity", 20, 0, 100),
+                ("scalePadding", 5, 0, 50),
             ):
                 value = graph.get(key, default)
                 if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
@@ -51,6 +55,8 @@ def validate_graphs(document: dict[str, Any], error: type[ValueError]) -> None:
                 raise error("Unsupported chart scale", f"{path}/graph/scale")
             if graph.get("aggregation", "mean") not in {"mean", "min", "max", "last"}:
                 raise error("Unsupported aggregation", f"{path}/graph/aggregation")
+            if not isinstance(graph.get("showPoints", False), bool):
+                raise error("showPoints must be a boolean", f"{path}/graph/showPoints")
             for key in ("minimum", "maximum"):
                 if key in graph and not number(graph[key]):
                     raise error("Chart limit must be a finite number", f"{path}/graph/{key}")

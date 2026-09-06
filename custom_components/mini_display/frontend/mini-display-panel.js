@@ -785,21 +785,28 @@ var H = class extends I {
 		if (!n.length) return A;
 		let r = Math.min(...n), i = Math.max(...n);
 		if ((e.scale ?? (e.type === "line" ? "fit" : "zero")) === "fit") {
-			let e = Math.max((i - r) * .05, .01);
-			r -= e, i += e;
+			let t = Math.max((i - r) * (e.scalePadding ?? 5) / 100, .01);
+			r -= t, i += t;
 		} else r = Math.min(0, r), i = Math.max(0, i);
 		r = e.minimum ?? r, i = e.maximum ?? i, i <= r && (i = r + .01);
-		let a = Math.max(4, this.width - 4), o = Math.max(6, this.height - 4), s = e.showValues ? 6 : 0, c = (e) => s + (o - s - 1) * (1 - Math.max(0, Math.min(1, (e - r) / (i - r)))), l = V[e.color ?? "accent"] ?? e.color ?? "#00ffff", u;
+		let a = Math.max(4, this.width - 4), o = Math.max(6, this.height - 4), s = e.showValues ? 6 : 0, c = (e) => s + (o - s - 1) * (1 - Math.max(0, Math.min(1, (e - r) / (i - r)))), l = V[e.color ?? "accent"] ?? e.color ?? "#00ffff", u = V[e.gridColor ?? "muted"] ?? e.gridColor ?? "#808080", d = c(0), f;
 		return O`<svg viewBox="0 0 ${a} ${o}" preserveAspectRatio="none" aria-label="Recorded values">
+      ${Array.from({ length: e.gridLines ?? 0 }, (t, n) => {
+			let r = s + (o - s - 1) * (n + 1) / ((e.gridLines ?? 0) + 1);
+			return O`<line x1="0" y1=${r} x2=${a} y2=${r} stroke=${u} stroke-width="1" opacity=${(e.gridOpacity ?? 20) / 100}/>`;
+		})}
       ${t.values.map((n, r) => {
-			if (n === null || !Number.isFinite(n)) return u = void 0, A;
-			let i = r * a / t.points, o = (r + 1) * a / t.points, s = e.type === "line" ? r * (a - 1) / (t.points - 1) : (i + o) / 2, d = c(n), f = u;
-			return u = {
+			if (n === null || !Number.isFinite(n)) return f = void 0, A;
+			let i = r * a / t.points, o = (r + 1) * a / t.points, s = e.type === "line" ? r * (a - 1) / (t.points - 1) : (i + o) / 2, u = c(n), p = f;
+			return f = {
 				x: s,
-				y: d
-			}, O`<g fill=${l} stroke=${l} opacity=${(e.opacity ?? 50) / 100}>
-          ${e.type === "line" ? f ? O`<line x1=${f.x} y1=${f.y} x2=${s} y2=${d} stroke-width="1"/>` : O`<circle cx=${s} cy=${d} r="0.6"/>` : O`<rect x=${i} y=${Math.min(d, c(0))} width=${Math.max(1, o - i - 1)} height=${Math.max(1, Math.abs(c(0) - d))} stroke="none"/>`}
-        </g>${e.showValues && r % (e.labelEvery ?? 6) === 0 ? O`<text x=${Math.max(10, Math.min(a - 10, s))} y=${Math.max(5, d - 1)} font-size="5" text-anchor="middle" fill=${l}>${n.toFixed(e.decimals ?? 1)}</text>` : A}`;
+				y: u
+			}, O`${e.type === "line" ? O`
+          ${p && (e.fillOpacity ?? 0) > 0 ? O`<polygon points="${p.x},${d} ${p.x},${p.y} ${s},${u} ${s},${d}" fill=${l} stroke="none" opacity=${(e.fillOpacity ?? 0) / 100}/>` : A}
+          ${p ? O`<line x1=${p.x} y1=${p.y} x2=${s} y2=${u} stroke=${l} stroke-width=${e.lineWidth ?? 1} opacity=${(e.opacity ?? 50) / 100}/>` : O`<circle cx=${s} cy=${u} r=${Math.max(.6, (e.lineWidth ?? 1) / 2)} fill=${l} opacity=${(e.opacity ?? 50) / 100}/>`}
+          ${e.showPoints ? O`<circle cx=${s} cy=${u} r=${e.pointSize ?? 1} fill=${l}/>` : A}
+        ` : O`<rect x=${i + Math.min((e.barGap ?? 1) / 2, (o - i - 1) / 2)} y=${Math.min(u, d)} width=${Math.max(1, o - i - (e.barGap ?? 1))} height=${Math.max(1, Math.abs(d - u))} fill=${l} stroke="none" opacity=${(e.opacity ?? 50) / 100}/>`}
+        ${e.showValues && r % (e.labelEvery ?? 6) === 0 ? O`<text x=${Math.max(10, Math.min(a - 10, s))} y=${Math.max(5, u - 1)} font-size="5" text-anchor="middle" fill=${l}>${n.toFixed(e.decimals ?? 1)}</text>` : A}`;
 		})}
     </svg>`;
 	}
@@ -3796,12 +3803,25 @@ var Ot = class extends I {
           <mini-display-color-field label="Color" .value=${e.color ?? "accent"} @color-changed=${(e) => this.patchGraph({ color: e.detail || "accent" })}></mini-display-color-field>
           ${this.numeric("Opacity (%)", "opacity", e.opacity ?? 50, 0, 100)}
         </div>
+        ${e.type === "line" ? D`
+          <div class="grid">
+            ${this.numeric("Line width", "lineWidth", e.lineWidth ?? 1, 1, 4)}
+            ${this.numeric("Area fill (%)", "fillOpacity", e.fillOpacity ?? 0, 0, 100)}
+          </div>
+          <label class="check"><input type="checkbox" .checked=${e.showPoints ?? !1} @change=${(e) => this.patchGraph({ showPoints: e.target.checked })}>Show points</label>
+          ${e.showPoints ? D`<div class="grid">${this.numeric("Point size", "pointSize", e.pointSize ?? 1, 1, 4)}</div>` : A}
+        ` : D`<div class="grid">${this.numeric("Column gap", "barGap", e.barGap ?? 1, 0, 8)}</div>`}
         <label class="check"><input type="checkbox" .checked=${e.showValues ?? !1} @change=${(e) => this.patchGraph({ showValues: e.target.checked })}>Show values</label>
         ${e.showValues ? D`<div class="grid">${this.numeric("Label every N points", "labelEvery", e.labelEvery ?? 6, 1, 120)}${this.numeric("Decimal places", "decimals", e.decimals ?? 1, 0, 3)}</div>` : A}
-        <div class="grid">
+        <details><summary>Grid and scale</summary><div class="grid">
           ${this.select("Scale", "scale", e.scale ?? (e.type === "line" ? "fit" : "zero"), [["zero", "Include zero"], ["fit", "Fit to data"]])}
-        </div>
-        <details><summary>Custom scale limits</summary><div class="grid">${this.numeric("Minimum", "minimum", e.minimum, -0xe8d4a51000, 0xe8d4a51000)}${this.numeric("Maximum", "maximum", e.maximum, -0xe8d4a51000, 0xe8d4a51000)}</div></details>
+          ${(e.scale ?? (e.type === "line" ? "fit" : "zero")) === "fit" ? this.numeric("Scale padding (%)", "scalePadding", e.scalePadding ?? 5, 0, 50) : A}
+          ${this.numeric("Grid lines", "gridLines", e.gridLines ?? 0, 0, 8)}
+          ${e.gridLines ? this.numeric("Grid opacity (%)", "gridOpacity", e.gridOpacity ?? 20, 0, 100) : A}
+          ${e.gridLines ? D`<mini-display-color-field label="Grid color" .value=${e.gridColor ?? "muted"} @color-changed=${(e) => this.patchGraph({ gridColor: e.detail || "muted" })}></mini-display-color-field>` : A}
+          ${this.numeric("Minimum", "minimum", e.minimum, -0xe8d4a51000, 0xe8d4a51000)}
+          ${this.numeric("Maximum", "maximum", e.maximum, -0xe8d4a51000, 0xe8d4a51000)}
+        </div></details>
       ` : A}`;
 	}
 };

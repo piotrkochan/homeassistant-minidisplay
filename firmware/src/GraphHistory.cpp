@@ -50,9 +50,21 @@ bool validGraphs(JsonArrayConst pages) {
           (strcmp(aggregation, "mean") && strcmp(aggregation, "min") &&
            strcmp(aggregation, "max") && strcmp(aggregation, "last"))) return false;
       const int opacity = graph["opacity"] | 50;
+      const int fillOpacity = graph["fillOpacity"] | 0;
+      const int gridOpacity = graph["gridOpacity"] | 20;
+      const int gridLines = graph["gridLines"] | 0;
+      const int lineWidth = graph["lineWidth"] | 1;
+      const int pointSize = graph["pointSize"] | 1;
+      const int barGap = graph["barGap"] | 1;
+      const int scalePadding = graph["scalePadding"] | 5;
       const int labels = graph["labelEvery"] | 6;
       const int decimals = graph["decimals"] | 1;
-      if (opacity < 0 || opacity > 100 || labels < 1 || labels > 120 || decimals < 0 || decimals > 3) return false;
+      if (opacity < 0 || opacity > 100 || fillOpacity < 0 || fillOpacity > 100 ||
+          gridOpacity < 0 || gridOpacity > 100 || gridLines < 0 || gridLines > 8 ||
+          lineWidth < 1 || lineWidth > 4 || pointSize < 1 || pointSize > 4 ||
+          barGap < 0 || barGap > 8 || scalePadding < 0 || scalePadding > 50 ||
+          labels < 1 || labels > 120 || decimals < 0 || decimals > 3 ||
+          (!graph["showPoints"].isNull() && !graph["showPoints"].is<bool>())) return false;
       for (const char *name : {"minimum", "maximum"})
         if (!graph[name].isNull() && (!graph[name].is<float>() || !std::isfinite(graph[name].as<float>()))) return false;
       if (!graph["minimum"].isNull() && !graph["maximum"].isNull() &&

@@ -57,6 +57,21 @@ class HistoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.reader.series(None), [])
         self.query.assert_not_awaited()
 
+    def test_card_and_background_graph_share_series(self):
+        dashboard = {"pages": [{"rows": [{"cards": [
+            {"type": "number", "source": "sensor.power", "graph": {
+                "type": "line", "points": 15, "intervalSeconds": 120,
+                "aggregation": "mean", "lineWidth": 3,
+            }},
+            {"type": "chart", "source": "sensor.power", "graph": {
+                "type": "bar", "points": 15, "intervalSeconds": 120,
+                "aggregation": "mean", "barGap": 2,
+            }},
+        ]}]}]}
+        self.assertEqual(module.graph_keys(dashboard), [
+            ("sensor.power", 15, 120, "mean")
+        ])
+
     async def test_recorder_failure_does_not_send_empty_replacement(self):
         self.query.side_effect = RuntimeError("recorder unavailable")
         with self.assertLogs(module._LOGGER, level="WARNING"):

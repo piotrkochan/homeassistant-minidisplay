@@ -26,7 +26,18 @@ int main() {
   series.capacity = 4;
   series.head = 3;
   for (int i = 0; i < 4; ++i) series.values[i] = 24;
-  CachedGraph graph{&series, NAN, NAN, 0xffff, 13, 6, 1, false, false, false};
+  CachedGraph graph{};
+  graph.series = &series;
+  graph.minimum = NAN;
+  graph.maximum = NAN;
+  graph.color = 0xffff;
+  graph.opacity = 13;
+  graph.lineWidth = 1;
+  graph.pointSize = 1;
+  graph.barGap = 1;
+  graph.labelEvery = 6;
+  graph.decimals = 1;
+  graph.scalePadding = 5;
   Canvas canvas;
   paintGraph(canvas, graph, 0, 0, 40, 20, 0, 0, 40, 20,
              [&](int x, int y) { return canvas.pixels[y * 40 + x]; });
@@ -34,4 +45,22 @@ int main() {
   for (int y = 0; y < 20; ++y)
     for (int x = 0; x < 40; ++x)
       assert(canvas.pixels[y * 40 + x] == (x % 10 == 9 ? 0 : expected));
+
+  for (int i = 0; i < 4; ++i) series.values[i] = 10 + i * 5;
+  graph.line = true;
+  graph.fit = true;
+  graph.opacity = 100;
+  graph.fillOpacity = 20;
+  graph.gridColor = 0x07e0;
+  graph.gridOpacity = 100;
+  graph.gridLines = 2;
+  graph.lineWidth = 3;
+  graph.pointSize = 2;
+  graph.showPoints = true;
+  Canvas lineCanvas;
+  paintGraph(lineCanvas, graph, 0, 0, 40, 20, 0, 0, 40, 20,
+             [&](int x, int y) { return lineCanvas.pixels[y * 40 + x]; });
+  int painted = 0;
+  for (const auto pixel : lineCanvas.pixels) painted += pixel != 0;
+  assert(painted > 40);
 }

@@ -54,12 +54,25 @@ export class GraphEditor extends LitElement {
           <mini-display-color-field label="Color" .value=${graph.color ?? "accent"} @color-changed=${(event: CustomEvent<string>)=>this.patchGraph({color:event.detail || "accent"})}></mini-display-color-field>
           ${this.numeric("Opacity (%)","opacity",graph.opacity ?? 50,0,100)}
         </div>
+        ${graph.type === "line" ? html`
+          <div class="grid">
+            ${this.numeric("Line width","lineWidth",graph.lineWidth ?? 1,1,4)}
+            ${this.numeric("Area fill (%)","fillOpacity",graph.fillOpacity ?? 0,0,100)}
+          </div>
+          <label class="check"><input type="checkbox" .checked=${graph.showPoints ?? false} @change=${(event: Event)=>this.patchGraph({showPoints:(event.target as HTMLInputElement).checked})}>Show points</label>
+          ${graph.showPoints ? html`<div class="grid">${this.numeric("Point size","pointSize",graph.pointSize ?? 1,1,4)}</div>` : nothing}
+        ` : html`<div class="grid">${this.numeric("Column gap","barGap",graph.barGap ?? 1,0,8)}</div>`}
         <label class="check"><input type="checkbox" .checked=${graph.showValues ?? false} @change=${(event: Event)=>this.patchGraph({showValues:(event.target as HTMLInputElement).checked})}>Show values</label>
         ${graph.showValues ? html`<div class="grid">${this.numeric("Label every N points","labelEvery",graph.labelEvery ?? 6,1,120)}${this.numeric("Decimal places","decimals",graph.decimals ?? 1,0,3)}</div>` : nothing}
-        <div class="grid">
+        <details><summary>Grid and scale</summary><div class="grid">
           ${this.select("Scale", "scale", graph.scale ?? (graph.type==='line'?'fit':'zero'), [["zero","Include zero"],["fit","Fit to data"]])}
-        </div>
-        <details><summary>Custom scale limits</summary><div class="grid">${this.numeric("Minimum","minimum",graph.minimum,-1e12,1e12)}${this.numeric("Maximum","maximum",graph.maximum,-1e12,1e12)}</div></details>
+          ${(graph.scale ?? (graph.type==='line'?'fit':'zero')) === "fit" ? this.numeric("Scale padding (%)","scalePadding",graph.scalePadding ?? 5,0,50) : nothing}
+          ${this.numeric("Grid lines","gridLines",graph.gridLines ?? 0,0,8)}
+          ${graph.gridLines ? this.numeric("Grid opacity (%)","gridOpacity",graph.gridOpacity ?? 20,0,100) : nothing}
+          ${graph.gridLines ? html`<mini-display-color-field label="Grid color" .value=${graph.gridColor ?? "muted"} @color-changed=${(event: CustomEvent<string>)=>this.patchGraph({gridColor:event.detail || "muted"})}></mini-display-color-field>` : nothing}
+          ${this.numeric("Minimum","minimum",graph.minimum,-1e12,1e12)}
+          ${this.numeric("Maximum","maximum",graph.maximum,-1e12,1e12)}
+        </div></details>
       `: nothing}`;
   }
 }
