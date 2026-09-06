@@ -1292,12 +1292,12 @@ String cardValue(JsonObjectConst card) {
     const bool mapped = mappedCardValue(card, raw, result);
     if (!mapped) result = raw;
     const char *unit = card["unit"];
-    if (!mapped && unit && unit[0]) result += " " + String(unit);
+    if (!mapped && unit && unit[0]) result += String(unit);
     return result;
   }
   String result(card["text"] | "");
   const char *unit = card["unit"];
-  if (unit && unit[0]) result += " " + String(unit);
+  if (unit && unit[0]) result += String(unit);
   return result;
 }
 

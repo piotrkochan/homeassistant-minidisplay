@@ -1927,7 +1927,7 @@ var nt = o`
 			"home"
 		].includes(t.toLowerCase()) ? e.onText ?? "On" : e.offText ?? "Off";
 		let n = ze(e, t);
-		return `${n.value}${!n.mapped && e.unit ? ` ${e.unit}` : ""}`;
+		return `${n.value}${!n.mapped && e.unit ? e.unit : ""}`;
 	}
 	imageUrl(e) {
 		return this.assets.find((t) => t.id === e)?.preview ?? "";
@@ -6668,7 +6668,8 @@ var $ = class extends I {
                       </section>` : A}
                 <section class="settings-group"><mini-display-graph-editor .card=${e} .hass=${this.hass}
                   @graph-changed=${(t) => {
-			e.graph = t.detail, this.changed();
+			let n = e.graph !== void 0 && e.graph !== null;
+			e.graph = t.detail, n && !t.detail && (e.backgroundMode = "transparent", e.transparentBackground = !0), this.changed();
 		}}
                 ></mini-display-graph-editor></section>
               ` : this.cardSection === "appearance" ? D`<section class="settings-group">

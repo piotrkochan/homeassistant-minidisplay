@@ -3214,7 +3214,15 @@ export class MiniDisplayEditor extends LitElement {
                     : nothing
                 }
                 <section class="settings-group"><mini-display-graph-editor .card=${card} .hass=${this.hass}
-                  @graph-changed=${(event: CustomEvent) => {card.graph = event.detail; this.changed();}}
+                  @graph-changed=${(event: CustomEvent) => {
+                    const graphWasEnabled = card.graph !== undefined && card.graph !== null;
+                    card.graph = event.detail;
+                    if (graphWasEnabled && !event.detail) {
+                      card.backgroundMode = "transparent";
+                      card.transparentBackground = true;
+                    }
+                    this.changed();
+                  }}
                 ></mini-display-graph-editor></section>
               `
             : this.cardSection === "appearance"

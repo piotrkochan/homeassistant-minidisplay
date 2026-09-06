@@ -91,7 +91,7 @@ export class MiniDisplayPreview extends LitElement {
         ? (card.onText ?? "On")
         : (card.offText ?? "Off");
     const mapped = mapCardValue(card, raw);
-    return `${mapped.value}${!mapped.mapped && card.unit ? ` ${card.unit}` : ""}`;
+    return `${mapped.value}${!mapped.mapped && card.unit ? card.unit : ""}`;
   }
 
   private imageUrl(id?: string) {
