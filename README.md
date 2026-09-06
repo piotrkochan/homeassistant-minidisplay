@@ -31,6 +31,8 @@ The dedicated **Home Assistant integration** adds a highly configurable visual
 editor for multiple displays. It forwards entity values, weather forecasts and
 Recorder history. Without HA, send layouts and data directly to the local API.
 
+![Home Assistant editor with scenes, card settings and live display preview](docs/screenshots/home-assistant-panel.png)
+
 ## On a real display
 
 Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
