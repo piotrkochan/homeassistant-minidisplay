@@ -3768,8 +3768,8 @@ var Ot = class extends I {
 			composed: !0
 		}))}>Background chart</label>`}
       ${e ? D`
-        ${this.card.type === "number" || this.card.type === "chart" ? D`<label class="check"><input type="checkbox" .checked=${!e.source} @change=${(e) => this.patchGraph({ source: e.target.checked ? void 0 : this.card.source || "" })}>Use this card’s entity</label>` : A}
-        <ha-form .hass=${this.hass} .data=${{ entity: e.source ?? this.card.source ?? "" }}
+        ${this.card.type === "number" || this.card.type === "chart" ? D`<label class="check"><input type="checkbox" .checked=${!e.source} @change=${(e) => this.patchGraph({ source: e.target.checked ? void 0 : this.card.source || "" })}>Use this card’s data</label>` : A}
+        ${e.source ? D`<ha-form .hass=${this.hass} .data=${{ entity: e.source }}
           .schema=${[{
 			name: "entity",
 			selector: { entity: { domain: [
@@ -3779,7 +3779,7 @@ var Ot = class extends I {
 				"counter"
 			] } }
 		}]}
-          .computeLabel=${() => "Chart entity"} @value-changed=${(e) => this.patchGraph({ source: e.detail.value.entity })}></ha-form>
+          .computeLabel=${() => "Chart entity"} @value-changed=${(e) => this.patchGraph({ source: e.detail.value.entity })}></ha-form>` : A}
         <div class="grid">
           <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
             ${[["bar", "Columns"], ["line", "Line"]].map(([t, n]) => D`<button type="button" aria-pressed=${(e.type ?? "bar") === t} @click=${() => this.patchGraph({ type: t })}>${n}</button>`)}

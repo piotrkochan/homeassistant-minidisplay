@@ -39,10 +39,10 @@ export class GraphEditor extends LitElement {
     return html`
       ${this.card.type !== "chart" ? html`<label class="check"><input type="checkbox" .checked=${!!graph} @change=${(event: Event)=>this.dispatchEvent(new CustomEvent("graph-changed",{detail:(event.target as HTMLInputElement).checked ? newGraph() : undefined,bubbles:true,composed:true}))}>Background chart</label>` : nothing}
       ${graph ? html`
-        ${this.card.type === "number" || this.card.type === "chart" ? html`<label class="check"><input type="checkbox" .checked=${!graph.source} @change=${(event: Event)=>this.patchGraph({source:(event.target as HTMLInputElement).checked ? undefined : this.card.source || ""})}>Use this card’s entity</label>`: nothing}
-        <ha-form .hass=${this.hass} .data=${{entity:graph.source ?? this.card.source ?? ""}}
+        ${this.card.type === "number" || this.card.type === "chart" ? html`<label class="check"><input type="checkbox" .checked=${!graph.source} @change=${(event: Event)=>this.patchGraph({source:(event.target as HTMLInputElement).checked ? undefined : this.card.source || ""})}>Use this card’s data</label>`: nothing}
+        ${graph.source ? html`<ha-form .hass=${this.hass} .data=${{entity:graph.source}}
           .schema=${[{name:"entity",selector:{entity:{domain:["sensor","number","input_number","counter"]}}}]}
-          .computeLabel=${()=>"Chart entity"} @value-changed=${(event: CustomEvent)=>this.patchGraph({source:event.detail.value.entity})}></ha-form>
+          .computeLabel=${()=>"Chart entity"} @value-changed=${(event: CustomEvent)=>this.patchGraph({source:event.detail.value.entity})}></ha-form>` : nothing}
         <div class="grid">
           <div><label>Chart</label><div class="segments" role="group" aria-label="Chart type">
             ${([['bar','Columns'],['line','Line']] as const).map(([type,label]) => html`<button type="button" aria-pressed=${(graph.type??'bar')===type} @click=${()=>this.patchGraph({type})}>${label}</button>`)}
