@@ -3,10 +3,11 @@
 import asyncio
 from copy import deepcopy
 import sys
+from pathlib import Path
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
-sys.path.insert(0, "/config")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.mini_display import dashboard as module
 
 
