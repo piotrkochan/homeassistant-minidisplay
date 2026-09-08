@@ -37,6 +37,10 @@ Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
 - **Scenes:** multiple pages, timed rotation, transitions and temporary device preview.
 - **Device settings:** a local web UI for brightness, fonts, Wi-Fi, time and updates.
 
+Images are resized in the browser for the selected display, converted to RGB565
+and RLE-compressed before upload. Firmware decodes them one scanline at a time to
+keep RAM use bounded.
+
 ## Home Assistant editor
 
 The dedicated integration adds a visual editor in HA's sidebar. Manage multiple

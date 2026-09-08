@@ -10,12 +10,13 @@ from unittest.mock import AsyncMock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.mini_display import assets as module
 from custom_components.mini_display import dashboard as dashboard_module
+from custom_components.mini_display.image_codec import encode_rgb565
 
 
 def mdi(width: int = 2, height: int = 1) -> bytes:
     """Return a tiny red and green RGB565 image."""
     pixels = (b"\x00\xf8\xe0\x07" * (width * height // 2 + 1))[: width * height * 2]
-    return b"MDI1" + width.to_bytes(2, "little") + height.to_bytes(2, "little") + pixels
+    return encode_rgb565(width, height, pixels)
 
 
 class AssetTests(unittest.IsolatedAsyncioTestCase):
@@ -69,7 +70,10 @@ class AssetTests(unittest.IsolatedAsyncioTestCase):
         manager = self.manager()
         content = mdi()
         manager._assets = {
-            "0123456789abcdef": {"data": base64.b64encode(content).decode()}
+            "0123456789abcdef": {
+                "bytes": len(content),
+                "data": base64.b64encode(content).decode(),
+            }
         }
         manager._client.async_get_assets.return_value = {
             "assets": [{"id": "fedcba9876543210"}]

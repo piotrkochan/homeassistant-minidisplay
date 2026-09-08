@@ -20,6 +20,69 @@ const hash64 = (bytes: Uint8Array) => {
   return hash.toString(16).padStart(16, "0");
 };
 
+export const encodeRgb565Rle = (
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+) => {
+  const maximumBytes =
+    8 + pixels.length + height * (2 + Math.ceil(width / 128));
+  const encoded = new Uint8Array(maximumBytes);
+  const encodedView = new DataView(encoded.buffer);
+  encoded.set([77, 68, 73, 50], 0);
+  encoded[4] = width & 0xff;
+  encoded[5] = width >> 8;
+  encoded[6] = height & 0xff;
+  encoded[7] = height >> 8;
+  const equal = (left: number, right: number) =>
+    pixels[left * 2] === pixels[right * 2] &&
+    pixels[left * 2 + 1] === pixels[right * 2 + 1];
+  let target = 8;
+  for (let row = 0; row < height; row += 1) {
+    const rowEnd = (row + 1) * width;
+    let source = row * width;
+    const rowLengthOffset = target;
+    target += 2;
+    while (source < rowEnd) {
+      let run = 1;
+      while (
+        run < 128 &&
+        source + run < rowEnd &&
+        equal(source, source + run)
+      ) {
+        run += 1;
+      }
+      if (run >= 2) {
+        encoded[target++] = 0x80 | (run - 1);
+        encoded[target++] = pixels[source * 2];
+        encoded[target++] = pixels[source * 2 + 1];
+        source += run;
+        continue;
+      }
+      const literalStart = source++;
+      while (source - literalStart < 128 && source < rowEnd) {
+        run = 1;
+        while (
+          run < 2 &&
+          source + run < rowEnd &&
+          equal(source, source + run)
+        ) {
+          run += 1;
+        }
+        if (run >= 2) break;
+        source += 1;
+      }
+      const literalPixels = source - literalStart;
+      encoded[target++] = literalPixels - 1;
+      const literal = pixels.subarray(literalStart * 2, source * 2);
+      encoded.set(literal, target);
+      target += literal.length;
+    }
+    encodedView.setUint16(rowLengthOffset, target - rowLengthOffset - 2, true);
+  }
+  return encoded.slice(0, target);
+};
+
 export const encodeImage = async (
   file: File,
   maximumWidth: number,
@@ -45,15 +108,10 @@ export const encodeImage = async (
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
   const rgba = context.getImageData(0, 0, width, height).data;
-  const bytes = new Uint8Array(8 + width * height * 2);
-  bytes.set([77, 68, 73, 49], 0);
-  bytes[4] = width & 0xff;
-  bytes[5] = width >> 8;
-  bytes[6] = height & 0xff;
-  bytes[7] = height >> 8;
-  const view = new DataView(bytes.buffer);
+  const pixels = new Uint8Array(width * height * 2);
+  const view = new DataView(pixels.buffer);
   for (
-    let source = 0, target = 8;
+    let source = 0, target = 0;
     source < rgba.length;
     source += 4, target += 2
   ) {
@@ -63,6 +121,7 @@ export const encodeImage = async (
       (rgba[source + 2] >> 3);
     view.setUint16(target, color, true);
   }
+  const bytes = encodeRgb565Rle(pixels, width, height);
   return {
     id: hash64(bytes),
     name: file.name,

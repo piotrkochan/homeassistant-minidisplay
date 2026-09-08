@@ -69,6 +69,7 @@ test-native:
 	python3 tests/test_page_timing.py
 	python3 tests/test_history_aggregation.py
 	python3 tests/test_history_data.py
+	python3 tests/test_image_codec.py
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
 		firmware/tests/display_data_test.cpp -o .cache/tests/display-data
@@ -82,6 +83,9 @@ test-native:
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/text_flow_test.cpp -o .cache/tests/text-flow
 	.cache/tests/text-flow
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/image_rle_test.cpp -o .cache/tests/image-rle
+	.cache/tests/image-rle
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/request_body_test.cpp -o .cache/tests/request-body
 	.cache/tests/request-body

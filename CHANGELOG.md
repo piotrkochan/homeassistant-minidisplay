@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feature: compress image assets
 - feature: synchronize display images
 - fix: restore device panel reactivity
 - fix: add preview schema tabs

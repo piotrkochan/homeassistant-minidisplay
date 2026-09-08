@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 
+#include "ImageRle.h"
+
 constexpr size_t kImageAssetIdLength = 16;
 constexpr size_t kImageAssetHeaderBytes = 8;
 constexpr size_t kMaxImageAssetBytes = 120 * 1024;
@@ -19,8 +21,27 @@ inline ImageFit parseImageFit(const char *value) {
 
 bool validImageAssetId(const String &id);
 String imageAssetPath(const String &id);
+bool readImageAssetHeader(File &file, uint16_t *width, uint16_t *height);
+bool readImageAssetRowSize(File &file, uint16_t *size);
 bool validImageAsset(File &file, uint16_t *width = nullptr,
                      uint16_t *height = nullptr);
+
+class ImageAssetByteReader {
+ public:
+  explicit ImageAssetByteReader(File &file) : file_(file) {}
+
+  bool begin(size_t offset, size_t length);
+  bool readByte(uint8_t &value);
+  size_t remaining() const { return remaining_; }
+
+ private:
+  static constexpr size_t kBufferBytes = 128;
+  File &file_;
+  uint8_t buffer_[kBufferBytes];
+  size_t offset_ = 0;
+  size_t size_ = 0;
+  size_t remaining_ = 0;
+};
 
 class ImageAssetRenderCache {
  public:
@@ -58,7 +79,7 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
     file = *cached;
   } else {
     file = LittleFS.open(imageAssetPath(String(assetId)), "r");
-    if (!file || !validImageAsset(file, &sourceWidth, &sourceHeight)) {
+    if (!file || !readImageAssetHeader(file, &sourceWidth, &sourceHeight)) {
       if (file) file.close();
       return false;
     }
@@ -106,16 +127,13 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
   uint16_t line[240];
   const int16_t outputWidth = visibleRight - visibleLeft;
   const int16_t firstDestinationColumn = visibleLeft - destinationX;
-  const int16_t lastDestinationColumn =
-      firstDestinationColumn + outputWidth - 1;
-  const int16_t firstMappedX =
-      sourceX + static_cast<int32_t>(firstDestinationColumn) * sampledWidth /
-                    destinationWidth;
-  const int16_t lastMappedX =
-      sourceX + static_cast<int32_t>(lastDestinationColumn) * sampledWidth /
-                    destinationWidth;
-  const int16_t sourceSpan = lastMappedX - firstMappedX + 1;
   const bool upscale = destinationWidth > sampledWidth;
+  ImageAssetByteReader reader(file);
+  Rgb565RleDecoder decoder;
+  if (!file.seek(kImageAssetHeaderBytes)) {
+    if (!retained) file.close();
+    return false;
+  }
   int16_t bufferedY = -1;
   for (int16_t destinationRow = visibleTop; destinationRow < visibleBottom;
        ++destinationRow) {
@@ -123,22 +141,52 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
         static_cast<int32_t>(destinationRow - destinationY) * sampledHeight /
             destinationHeight;
     if (mappedY != bufferedY) {
-      const uint32_t rowOffset =
-          kImageAssetHeaderBytes +
-          (static_cast<uint32_t>(mappedY) * sourceWidth + firstMappedX) * 2;
-      if ((file.position() != rowOffset && !file.seek(rowOffset)) ||
-          file.read(reinterpret_cast<uint8_t *>(line), sourceSpan * 2) !=
-              sourceSpan * 2) {
-        if (!retained) file.close();
-        return false;
+      while (bufferedY < mappedY) {
+        uint16_t rowBytes = 0;
+        const int16_t nextRow = bufferedY + 1;
+        if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
+            file.position() + rowBytes > file.size()) {
+          if (!retained) file.close();
+          return false;
+        }
+        if (nextRow < mappedY) {
+          if (!file.seek(file.position() + rowBytes)) {
+            if (!retained) file.close();
+            return false;
+          }
+          bufferedY = nextRow;
+          continue;
+        }
+        if (!reader.begin(file.position(), rowBytes)) {
+          if (!retained) file.close();
+          return false;
+        }
+        decoder = Rgb565RleDecoder{};
+        for (uint16_t column = 0; column < sourceWidth; ++column) {
+          if (!decoder.next(reader, line[column])) {
+            if (!retained) file.close();
+            return false;
+          }
+        }
+        if (!decoder.packetComplete() || reader.remaining() != 0) {
+          if (!retained) file.close();
+          return false;
+        }
+        ++bufferedY;
+#if defined(ESP8266)
+        if ((bufferedY & 15) == 0) optimistic_yield(20000);
+#endif
+      }
+      if (sourceX > 0) {
+        memmove(line, line + sourceX,
+                static_cast<size_t>(sampledWidth) * sizeof(line[0]));
       }
       if (upscale) {
         for (int16_t output = outputWidth - 1; output >= 0; --output) {
           const int16_t destinationColumn = firstDestinationColumn + output;
           const int16_t mappedX =
-              sourceX + static_cast<int32_t>(destinationColumn) * sampledWidth /
-                            destinationWidth -
-              firstMappedX;
+              static_cast<int32_t>(destinationColumn) * sampledWidth /
+              destinationWidth;
           const uint16_t color = line[mappedX];
 #if defined(ESP8266)
           line[output] = (color << 8) | (color >> 8);
@@ -150,9 +198,8 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
         for (int16_t output = 0; output < outputWidth; ++output) {
           const int16_t destinationColumn = firstDestinationColumn + output;
           const int16_t mappedX =
-              sourceX + static_cast<int32_t>(destinationColumn) * sampledWidth /
-                            destinationWidth -
-              firstMappedX;
+              static_cast<int32_t>(destinationColumn) * sampledWidth /
+              destinationWidth;
           const uint16_t color = line[mappedX];
 #if defined(ESP8266)
           line[output] = (color << 8) | (color >> 8);
@@ -161,7 +208,6 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
 #endif
         }
       }
-      bufferedY = mappedY;
     }
     canvas.pushImage(visibleLeft, destinationRow, outputWidth, 1, line);
 #if defined(ESP8266)

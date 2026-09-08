@@ -12,19 +12,72 @@ bool validImageAssetId(const String &id) {
 
 String imageAssetPath(const String &id) { return "/img_" + id + ".mdi"; }
 
-bool validImageAsset(File &file, uint16_t *width, uint16_t *height) {
-  if (!file || file.size() < kImageAssetHeaderBytes) return false;
+bool readImageAssetHeader(File &file, uint16_t *width, uint16_t *height) {
+  if (!file || file.size() < kImageAssetHeaderBytes + 3) return false;
   uint8_t header[kImageAssetHeaderBytes];
   if (!file.seek(0) || file.read(header, sizeof(header)) != sizeof(header) ||
-      memcmp(header, "MDI1", 4) != 0) return false;
+      memcmp(header, "MDI2", 4) != 0) return false;
   const uint16_t imageWidth = header[4] | (header[5] << 8);
   const uint16_t imageHeight = header[6] | (header[7] << 8);
   if (imageWidth == 0 || imageHeight == 0 || imageWidth > 240 ||
-      imageHeight > 240 ||
-      file.size() != kImageAssetHeaderBytes +
-                         static_cast<size_t>(imageWidth) * imageHeight * 2) {
+      imageHeight > 240 || file.size() > kMaxImageAssetBytes) {
     return false;
   }
+  if (width) *width = imageWidth;
+  if (height) *height = imageHeight;
+  return true;
+}
+
+bool readImageAssetRowSize(File &file, uint16_t *size) {
+  uint8_t bytes[2];
+  if (!size || file.read(bytes, sizeof(bytes)) != sizeof(bytes)) return false;
+  *size = bytes[0] | (static_cast<uint16_t>(bytes[1]) << 8);
+  return true;
+}
+
+bool ImageAssetByteReader::begin(size_t offset, size_t length) {
+  offset_ = 0;
+  size_ = 0;
+  remaining_ = length;
+  return file_.seek(offset);
+}
+
+bool ImageAssetByteReader::readByte(uint8_t &value) {
+  if (remaining_ == 0) return false;
+  if (offset_ == size_) {
+    size_ = file_.read(buffer_, min(sizeof(buffer_), remaining_));
+    offset_ = 0;
+    if (size_ == 0) return false;
+  }
+  value = buffer_[offset_++];
+  --remaining_;
+  return true;
+}
+
+bool validImageAsset(File &file, uint16_t *width, uint16_t *height) {
+  uint16_t imageWidth = 0;
+  uint16_t imageHeight = 0;
+  if (!readImageAssetHeader(file, &imageWidth, &imageHeight)) return false;
+  ImageAssetByteReader reader(file);
+  if (!file.seek(kImageAssetHeaderBytes)) return false;
+  uint16_t color = 0;
+  for (uint16_t row = 0; row < imageHeight; ++row) {
+    uint16_t rowBytes = 0;
+    if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
+        file.position() + rowBytes > file.size() ||
+        !reader.begin(file.position(), rowBytes)) {
+      return false;
+    }
+    Rgb565RleDecoder decoder;
+    for (uint16_t column = 0; column < imageWidth; ++column) {
+      if (!decoder.next(reader, color)) return false;
+    }
+    if (!decoder.packetComplete() || reader.remaining() != 0) return false;
+#if defined(ESP8266)
+    if ((row & 7) == 7) optimistic_yield(10000);
+#endif
+  }
+  if (file.position() != file.size()) return false;
   if (width) *width = imageWidth;
   if (height) *height = imageHeight;
   return true;
@@ -55,7 +108,7 @@ File *ImageAssetRenderCache::open(const char *assetId, uint16_t *width,
   if (entry.file) entry.file.close();
   entry.file = LittleFS.open(imageAssetPath(String(assetId)), "r");
   if (!entry.file ||
-      !validImageAsset(entry.file, &entry.width, &entry.height)) {
+      !readImageAssetHeader(entry.file, &entry.width, &entry.height)) {
     if (entry.file) entry.file.close();
     entry.id[0] = '\0';
     return nullptr;

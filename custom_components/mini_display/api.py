@@ -15,6 +15,7 @@ from .const import (
     FEATURE_TLS,
     REQUEST_TIMEOUT_SECONDS,
 )
+from .image_codec import MAX_ENCODED_BYTES
 
 
 class MiniDisplayApiError(Exception):
@@ -39,9 +40,6 @@ class MiniDisplayRequestError(MiniDisplayApiError):
     def __init__(self, status: int, message: str) -> None:
         super().__init__(message)
         self.status = status
-
-
-MAX_BINARY_RESPONSE_BYTES = 2 * 1024 * 1024 + 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,7 +216,7 @@ class MiniDisplayClient:
                         async for chunk in response.content.iter_chunked(4096):
                             if (
                                 len(content) + len(chunk)
-                                > MAX_BINARY_RESPONSE_BYTES
+                                > MAX_ENCODED_BYTES
                             ):
                                 raise MiniDisplayInvalidResponseError(
                                     "Display image exceeds the supported size"
@@ -332,7 +330,7 @@ class MiniDisplayClient:
 
     async def async_put_asset(self, asset_id: str, content: bytes) -> None:
         """Atomically upload one display-ready image asset."""
-        chunk_size = 4096
+        chunk_size = 2048
         for offset in range(0, len(content), chunk_size):
             await self._request(
                 "PUT",

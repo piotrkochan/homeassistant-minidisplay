@@ -14,12 +14,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .api import MiniDisplayApiError, MiniDisplayClient
+from .image_codec import ImageCodecError, MAX_ENCODED_BYTES, decode_rgb565
 
 STORE_VERSION = 1
 STORE_KEY_PREFIX = "mini_display.assets"
 ASSET_ID_PATTERN = re.compile(r"^[a-f0-9]{16}$")
 MAX_ASSETS = 24
-MAX_ASSET_BYTES = 2 * 1024 * 1024 + 8
+MAX_ASSET_BYTES = MAX_ENCODED_BYTES
 PREVIEW_MAX_DIMENSION = 120
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class MiniDisplayAssetManager:
             content = base64.b64decode(encoded, validate=True)
         except (ValueError, TypeError) as err:
             raise AssetValidationError("Invalid image data") from err
-        header_width, header_height = _validate_mdi(content)
+        header_width, header_height, _ = _decode_mdi(content)
         if header_width != width or header_height != height:
             raise AssetValidationError("Image metadata does not match payload")
         if len(self._assets) >= MAX_ASSETS and asset_id not in self._assets:
@@ -123,18 +124,20 @@ class MiniDisplayAssetManager:
                 f"Missing image asset: {sorted(missing)[0]}"
             )
         remote = await self._client.async_get_assets()
-        remote_ids = {
-            str(item.get("id"))
+        remote_assets = {
+            str(item.get("id")): item.get("bytes")
             for item in remote.get("assets", [])
             if isinstance(item, dict)
             and ASSET_ID_PATTERN.fullmatch(str(item.get("id", "")))
         }
-        for asset_id in sorted(asset_ids - remote_ids):
+        for asset_id in sorted(asset_ids):
+            if remote_assets.get(asset_id) == self._assets[asset_id]["bytes"]:
+                continue
             await self._client.async_put_asset(
                 asset_id, base64.b64decode(self._assets[asset_id]["data"])
             )
-            remote_ids.add(asset_id)
-        return remote_ids
+            remote_assets[asset_id] = self._assets[asset_id]["bytes"]
+        return set(remote_assets)
 
     async def async_prune(self, keep: set[str], remote_ids: set[str]) -> None:
         """Remove images not used by the dashboard currently on the display."""
@@ -167,7 +170,7 @@ class MiniDisplayAssetManager:
                 continue
             try:
                 content = await self._client.async_get_asset(asset_id)
-                width, height = _validate_mdi(content)
+                width, height, pixels = _decode_mdi(content)
             except (AssetValidationError, MiniDisplayApiError) as err:
                 complete = False
                 _LOGGER.warning(
@@ -188,7 +191,7 @@ class MiniDisplayAssetManager:
                 "height": height,
                 "bytes": len(content),
                 "data": base64.b64encode(content).decode(),
-                "preview": _mdi_preview(content, width, height),
+                "preview": _mdi_preview(pixels, width, height),
             }
         self._import_complete = complete
         await self._async_save()
@@ -202,20 +205,14 @@ class MiniDisplayAssetManager:
         )
 
 
-def _validate_mdi(content: bytes) -> tuple[int, int]:
-    """Validate display-ready RGB565 data and return its dimensions."""
-    if len(content) < 10 or content[:4] != b"MDI1":
-        raise AssetValidationError("Unsupported image format")
-    width = int.from_bytes(content[4:6], "little")
-    height = int.from_bytes(content[6:8], "little")
-    if (
-        not 1 <= width <= 1024
-        or not 1 <= height <= 1024
-        or len(content) != 8 + width * height * 2
-        or len(content) > MAX_ASSET_BYTES
-    ):
-        raise AssetValidationError("Invalid image data")
-    return width, height
+def _decode_mdi(content: bytes) -> tuple[int, int, bytes]:
+    """Decode MDI2 while exposing integration-specific validation errors."""
+    if len(content) > MAX_ASSET_BYTES:
+        raise AssetValidationError("Optimized image is too large")
+    try:
+        return decode_rgb565(content)
+    except ImageCodecError as err:
+        raise AssetValidationError(str(err)) from err
 
 
 def _png_chunk(kind: bytes, payload: bytes) -> bytes:
@@ -227,7 +224,7 @@ def _png_chunk(kind: bytes, payload: bytes) -> bytes:
     )
 
 
-def _mdi_preview(content: bytes, width: int, height: int) -> str:
+def _mdi_preview(pixels: bytes, width: int, height: int) -> str:
     """Create a small browser preview without adding an image dependency to HA."""
     step = max(
         1,
@@ -240,8 +237,8 @@ def _mdi_preview(content: bytes, width: int, height: int) -> str:
     for y in range(0, height, step):
         rows.append(0)
         for x in range(0, width, step):
-            offset = 8 + (y * width + x) * 2
-            color = content[offset] | (content[offset + 1] << 8)
+            offset = (y * width + x) * 2
+            color = pixels[offset] | (pixels[offset + 1] << 8)
             rows.extend(
                 (
                     ((color >> 11) & 0x1F) * 255 // 31,
