@@ -281,6 +281,7 @@ char lastResetReason[48]{};
 bool renderDashboardPage();
 bool renderDashboardPage(const uint32_t *changedValues,
                          bool clear = true);
+void registerDashboardMarquees(JsonObjectConst page);
 void showPageWithTransition(uint8_t nextPageIndex);
 void showSetupScreen();
 void startAccessPoint();
@@ -986,6 +987,7 @@ void resetMarqueeTitles() {
 void drawMarqueeTitle(MarqueeTitle &item, int16_t offset) {
   display.setViewport(item.clipX, item.clipY, item.clipWidth, item.clipHeight,
                       false);
+  display.startWrite();
   display.fillRect(item.clipX, item.clipY, item.clipWidth, item.clipHeight,
                    item.background);
   display.setTextDatum(ML_DATUM);
@@ -993,6 +995,7 @@ void drawMarqueeTitle(MarqueeTitle &item, int16_t offset) {
   drawTextWithEffect(display, marqueeTextPool + item.textOffset,
                      item.textX - offset, item.textY, item.foreground,
                      item.background, item.effect, item.font.coverage);
+  display.endWrite();
   display.resetViewport();
   item.drawnOffset = offset;
 }
@@ -2201,8 +2204,12 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
                            changedValues, pixelShiftX, pixelShiftY, clear);
   cached.reset(new (std::nothrow) CachedPage());
   if (!cached || !cacheDashboardPage(page, *cached)) return false;
+  const uint32_t previousMarqueeStartedAt = marqueeStartedAt;
+  registerDashboardMarquees(page);
+  if (changedValues != nullptr && marqueeTitleCount > 0) {
+    marqueeStartedAt = previousMarqueeStartedAt;
   }
-  resetMarqueeTitles();
+  }
 #if defined(ESP8266)
   if (display.fontLoaded) display.unloadFont();
   displayFontState = FontRenderState{};
@@ -2228,8 +2235,8 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
 }
 
 void registerDashboardMarquees(JsonObjectConst page) {
-  if (strcmp(page["layout"] | "rows", "free") == 0) return;
   resetMarqueeTitles();
+  if (strcmp(page["layout"] | "rows", "free") == 0) return;
   JsonArrayConst rows = page["rows"].as<JsonArrayConst>();
   if (rows.size() == 0) return;
 

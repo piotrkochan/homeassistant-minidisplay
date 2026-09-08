@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: smooth marquee updates
 - feature: compress image assets
 - feature: synchronize display images
 - fix: restore device panel reactivity
