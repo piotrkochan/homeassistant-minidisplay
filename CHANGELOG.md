@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- feature: synchronize display images
 - fix: restore device panel reactivity
 - fix: add preview schema tabs
 - fix: remove disabled chart containers

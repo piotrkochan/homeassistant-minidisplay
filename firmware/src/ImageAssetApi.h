@@ -15,6 +15,7 @@ class ImageAssetApi {
 
  private:
   void list();
+  void download();
   void uploadChunk();
   void remove();
   void sendError(int status, const __FlashStringHelper *error,

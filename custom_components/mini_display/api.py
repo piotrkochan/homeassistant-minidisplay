@@ -41,6 +41,9 @@ class MiniDisplayRequestError(MiniDisplayApiError):
         self.status = status
 
 
+MAX_BINARY_RESPONSE_BYTES = 2 * 1024 * 1024 + 8
+
+
 @dataclass(frozen=True, slots=True)
 class DeviceInfo:
     """Stable identity and capabilities returned by a display."""
@@ -178,6 +181,57 @@ class MiniDisplayClient:
                     last_error = err
             raise MiniDisplayConnectionError(str(last_error)) from last_error
 
+    async def _request_bytes(self, method: str, path: str) -> bytes:
+        """Request a bounded binary response from the display."""
+        async with self._request_lock:
+            last_error: ClientError | TimeoutError | None = None
+            for transport in self._transports():
+                use_ssl, port = transport
+                scheme = "https" if use_ssl else "http"
+                try:
+                    async with self._session.request(
+                        method,
+                        f"{scheme}://{self._host}:{port}/api/v1{path}",
+                        headers=self._headers,
+                        timeout=self._timeout,
+                        ssl=self._verify_ssl if use_ssl else None,
+                        allow_redirects=False,
+                    ) as response:
+                        if response.status in (401, 403):
+                            raise MiniDisplayAuthError(
+                                "Display rejected API credentials"
+                            )
+                        if response.status >= 400:
+                            try:
+                                payload = await response.json(content_type=None)
+                                message = str(
+                                    payload.get("message") or payload.get("error")
+                                )
+                            except (ValueError, TypeError):
+                                message = await response.text()
+                            raise MiniDisplayRequestError(
+                                response.status,
+                                message
+                                or f"Display returned HTTP {response.status}",
+                            )
+                        content = bytearray()
+                        async for chunk in response.content.iter_chunked(4096):
+                            if (
+                                len(content) + len(chunk)
+                                > MAX_BINARY_RESPONSE_BYTES
+                            ):
+                                raise MiniDisplayInvalidResponseError(
+                                    "Display image exceeds the supported size"
+                                )
+                            content.extend(chunk)
+                        self._active_transport = transport
+                        return bytes(content)
+                except MiniDisplayApiError:
+                    raise
+                except (ClientError, TimeoutError) as err:
+                    last_error = err
+            raise MiniDisplayConnectionError(str(last_error)) from last_error
+
     async def async_get_info(self) -> DeviceInfo:
         payload = await self._request("GET", "/info")
         try:
@@ -267,6 +321,10 @@ class MiniDisplayClient:
     async def async_get_assets(self) -> dict[str, Any]:
         """Return image assets stored by the display."""
         return await self._request("GET", "/assets")
+
+    async def async_get_asset(self, asset_id: str) -> bytes:
+        """Download one display-ready image asset."""
+        return await self._request_bytes("GET", f"/assets?id={asset_id}")
 
     async def async_get_data(self) -> dict[str, Any]:
         """Return current values and bounded history retained by the display."""

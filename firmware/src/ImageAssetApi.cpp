@@ -25,7 +25,13 @@ void ImageAssetApi::begin() {
   server_.on("/api/v1/assets", HTTP_DELETE, removeRoute);
 }
 
-void ImageAssetApi::listRoute() { instance_->list(); }
+void ImageAssetApi::listRoute() {
+  if (instance_->server_.hasArg("id")) {
+    instance_->download();
+    return;
+  }
+  instance_->list();
+}
 void ImageAssetApi::uploadRoute() { instance_->uploadChunk(); }
 void ImageAssetApi::removeRoute() { instance_->remove(); }
 
@@ -106,6 +112,29 @@ void ImageAssetApi::list() {
   body.reserve(2048);
   serializeJson(document, body);
   server_.send(200, "application/json", body);
+}
+
+void ImageAssetApi::download() {
+  if (!authenticate_()) return;
+  if (!filesystemReady_) {
+    sendError(503, F("filesystem_unavailable"), F("LittleFS unavailable"));
+    return;
+  }
+  const String id = server_.arg("id");
+  if (!validImageAssetId(id)) {
+    sendError(422, F("invalid_asset_id"),
+              F("Expected 16 lowercase hex characters"));
+    return;
+  }
+  File file = LittleFS.open(imageAssetPath(id), "r");
+  if (!file || !validImageAsset(file)) {
+    if (file) file.close();
+    sendError(404, F("asset_not_found"), F("Image asset not found"));
+    return;
+  }
+  file.seek(0);
+  server_.streamFile(file, "application/octet-stream");
+  file.close();
 }
 
 void ImageAssetApi::uploadChunk() {

@@ -92,7 +92,7 @@ jobs:
             -v "$PWD:/repo:ro" -w /repo \
             -e PYTHONPATH=/repo -e PYTHONDONTWRITEBYTECODE=1 \
             --entrypoint sh ghcr.io/home-assistant/home-assistant:2026.9.0 \
-            -c 'python tests/test_preview.py && python tests/test_weather.py'
+            -c 'python tests/test_assets.py && python tests/test_preview.py && python tests/test_weather.py'
 
   metadata:
     runs-on: ubuntu-latest

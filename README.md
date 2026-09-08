@@ -109,6 +109,9 @@ styles, visibility and data bindings. The device also serves it at
 | `PUT /api/v1/dashboard` | Upload a dashboard |
 | `PATCH /api/v1/data` | Send values and optional chart history |
 | `GET /api/v1/data` | Read retained values and history |
+| `GET /api/v1/assets` | List images or download one by id |
+| `PUT /api/v1/assets` | Upload an optimized image |
+| `DELETE /api/v1/assets` | Delete an image |
 | `GET /api/v1/screenshot` | Capture the display as BMP |
 
 Data keys need not be HA entity IDs. Your own application can send, for example:

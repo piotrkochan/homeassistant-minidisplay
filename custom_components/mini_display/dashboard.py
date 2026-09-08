@@ -971,7 +971,7 @@ class MiniDisplayDashboardManager:
         # A page preview needs only that page, not every page, image and source
         # in its scene. A one-page dashboard renders immediately without a
         # second HTTP request to select the page.
-        await self._async_send_dashboard(preview_dashboard)
+        await self._async_send_dashboard(preview_dashboard, prune_assets=False)
         self._clear_preview()
         self.preview_scene_id = scene_id
         self.preview_page_id = page_id
@@ -1052,7 +1052,11 @@ class MiniDisplayDashboardManager:
             self._replace_subscriptions()
 
     async def _async_send_dashboard(
-        self, dashboard: dict[str, Any], active_page_id: str | None = None
+        self,
+        dashboard: dict[str, Any],
+        active_page_id: str | None = None,
+        *,
+        prune_assets: bool = True,
     ) -> None:
         """Upload one dashboard and its current entity values."""
         rendered = render_dashboard(dashboard, self.hass)
@@ -1066,8 +1070,11 @@ class MiniDisplayDashboardManager:
             raise DashboardValidationError("Dashboard exceeds 32 display data sources")
         if values:
             await self.client.async_patch_values(values, render=False)
-        await self.assets.async_sync(extract_assets(rendered))
+        required_assets = extract_assets(rendered)
+        remote_assets = await self.assets.async_sync(required_assets)
         await self.client.async_put_dashboard(rendered, render=active_page_id is None)
+        if prune_assets:
+            await self.assets.async_prune(required_assets, remote_assets)
         await self._async_send_history(rendered)
         self._last_rendered_dashboard = canonical_rendered
         if active_page_id is not None:
@@ -1140,7 +1147,9 @@ class MiniDisplayDashboardManager:
             )
             if shown_dashboard is not None:
                 await self._async_send_dashboard(
-                    shown_dashboard, self.preview_page_id
+                    shown_dashboard,
+                    self.preview_page_id,
+                    prune_assets=self.preview_scene_id is None,
                 )
         finally:
             self._resync_in_progress = False
