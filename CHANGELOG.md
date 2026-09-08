@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: restore device panel reactivity
 - fix: add preview schema tabs
 - fix: remove disabled chart containers
 - fix: preserve unit spacing

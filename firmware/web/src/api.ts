@@ -132,14 +132,22 @@ export class DeviceApiError extends Error {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    credentials: "same-origin",
-    cache: "no-store",
-    ...init,
-    headers: init?.body
-      ? { "Content-Type": "application/json", ...init.headers }
-      : init?.headers,
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 8000);
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      credentials: "same-origin",
+      cache: "no-store",
+      ...init,
+      signal: controller.signal,
+      headers: init?.body
+        ? { "Content-Type": "application/json", ...init.headers }
+        : init?.headers,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+  }
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     const body = await response.text();

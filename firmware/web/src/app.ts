@@ -92,12 +92,10 @@ class MiniDisplayDevice extends LitElement {
     this.loading_ = true;
     this.error_ = "";
     try {
-      const [info, status] = await Promise.all([
-        request<DeviceInfo>("/api/v1/info"),
-        request<DeviceStatus>("/api/v1/status"),
-      ]);
-      this.info_ = info;
-      this.status_ = status;
+      // ESP8266 serves one request at a time. Loading both endpoints in
+      // parallel can leave one browser fetch waiting on a reused connection.
+      this.info_ = await request<DeviceInfo>("/api/v1/info");
+      this.status_ = await request<DeviceStatus>("/api/v1/status");
       if (this.page_ === "network") {
         this.network_ = await request<NetworkStatus>("/api/v1/network");
         this.networkState_ = {
