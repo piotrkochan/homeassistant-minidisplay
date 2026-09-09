@@ -4,6 +4,7 @@ export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 .PHONY: build build-all package clean check size elf-report card-build card-check web-build web-check test-native
 
 build: web-build
+	python3 firmware/scripts/index_smooth_fonts.py
 	cd firmware && $(PIO) run
 
 build-all: package
@@ -55,6 +56,41 @@ test-native:
 	@test -d firmware/.pio/libdeps/sdpro/ArduinoJson/src || { echo "run make build first to install ArduinoJson"; exit 1; }
 	@mkdir -p .cache/tests
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/notification_test.cpp -o .cache/tests/notifications
+	.cache/tests/notifications
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-DSTATIC_SMOOTH_TEST -DPROGMEM= -DTL_DATUM=0 -I firmware/src \
+		firmware/tests/notification_painter_test.cpp firmware/src/StaticSmoothFonts.generated.cpp \
+		-o .cache/tests/notification-painter
+	.cache/tests/notification-painter
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/marquee_test.cpp -o .cache/tests/marquee
+	.cache/tests/marquee
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/display_refresh_test.cpp -o .cache/tests/display-refresh
+	.cache/tests/display-refresh
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-DSTATIC_SMOOTH_TEST -DPROGMEM= -I firmware/src firmware/tests/static_smooth_font_test.cpp \
+		firmware/src/StaticSmoothFonts.generated.cpp -o .cache/tests/static-smooth-font
+	.cache/tests/static-smooth-font
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/transition_plan_test.cpp -o .cache/tests/transition-plan
+	.cache/tests/transition-plan
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/decoded_image_rows_test.cpp -o .cache/tests/decoded-image-rows
+	.cache/tests/decoded-image-rows
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/transition_pixel_transfer_test.cpp -o .cache/tests/transition-pixel-transfer
+	.cache/tests/transition-pixel-transfer
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/image_row_resampler_test.cpp -o .cache/tests/image-row-resampler
+	.cache/tests/image-row-resampler
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/dashboard_page_loader_test.cpp -o .cache/tests/dashboard-page-loader
+	.cache/tests/dashboard-page-loader
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/graph_painter_test.cpp -o .cache/tests/graph-painter
 	.cache/tests/graph-painter
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
@@ -66,7 +102,10 @@ test-native:
 		firmware/tests/graph_history_test.cpp firmware/src/GraphHistory.cpp -o .cache/tests/graph-history
 	.cache/tests/graph-history
 	python3 tests/test_graph_validation.py
+	python3 tests/test_data_rate.py
 	python3 tests/test_page_timing.py
+	python3 tests/test_rotation_switch.py
+	python3 tests/test_scene_updates.py
 	python3 tests/test_history_aggregation.py
 	python3 tests/test_history_data.py
 	python3 tests/test_image_codec.py
@@ -97,3 +136,36 @@ test-native:
 		-DCOVERAGE_TEST -DPROGMEM= -I firmware/src firmware/tests/coverage_font_test.cpp \
 		firmware/src/CoverageFonts.generated.cpp -o .cache/tests/coverage-font
 	.cache/tests/coverage-font
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_graph_test.cpp -o .cache/tests/scene-graph
+	.cache/tests/scene-graph
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_tile_buffer_test.cpp -o .cache/tests/scene-tile-buffer
+	.cache/tests/scene-tile-buffer
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_layout_test.cpp -o .cache/tests/scene-layout
+	.cache/tests/scene-layout
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_render_scheduler_test.cpp -o .cache/tests/scene-render-scheduler
+	.cache/tests/scene-render-scheduler
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_compositor_test.cpp -o .cache/tests/scene-compositor
+	.cache/tests/scene-compositor
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_state_test.cpp -o .cache/tests/scene-state
+	.cache/tests/scene-state
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/page_transition_math_test.cpp -o .cache/tests/page-transition-math
+	.cache/tests/page-transition-math
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_transition_frame_test.cpp -o .cache/tests/scene-transition-frame
+	.cache/tests/scene-transition-frame
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/display_snapshot_mover_test.cpp -o .cache/tests/display-snapshot-mover
+	.cache/tests/display-snapshot-mover
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/scene_animation_timeline_test.cpp -o .cache/tests/scene-animation-timeline
+	.cache/tests/scene-animation-timeline
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/dashboard_page_scanner_test.cpp -o .cache/tests/dashboard-page-scanner
+	.cache/tests/dashboard-page-scanner

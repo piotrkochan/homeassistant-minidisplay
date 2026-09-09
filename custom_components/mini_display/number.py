@@ -16,6 +16,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         [
             MiniDisplayBrightnessNumber(coordinator),
             MiniDisplayPixelShiftNumber(coordinator),
+            MiniDisplayRefreshRateNumber(coordinator),
         ]
     )
 
@@ -45,6 +46,35 @@ class MiniDisplayBrightnessNumber(MiniDisplayEntity, NumberEntity):
         await self.coordinator.client.async_set_display(
             on=True, brightness=round(value)
         )
+        await self.coordinator.async_request_refresh()
+
+
+class MiniDisplayRefreshRateNumber(MiniDisplayEntity, NumberEntity):
+    """Limit physical dashboard refreshes independently from data delivery."""
+
+    _attr_name = "Maximum refresh rate"
+    _attr_icon = "mdi:monitor-speed"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_native_min_value = 0.1
+    _attr_native_max_value = 60
+    _attr_native_step = 0.1
+    _attr_native_unit_of_measurement = "Hz"
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "refresh_rate")
+
+    @property
+    def available(self) -> bool:
+        return super().available and "refreshRateHz" in self.coordinator.data
+
+    @property
+    def native_value(self) -> float | None:
+        value = self.coordinator.data.get("refreshRateHz")
+        return float(value) if value is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.client.async_set_display(refresh_rate_hz=value)
         await self.coordinator.async_request_refresh()
 
 

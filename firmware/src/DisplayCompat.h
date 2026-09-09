@@ -3,6 +3,9 @@
 #if defined(ESP8266)
 
 #include <TFT_eSPI.h>
+#if defined(HARDWARE_PROFILE_SDPRO) && defined(TFT_SDA_READ)
+#error "SD PRO has no CS: SDA reads must remain disabled"
+#endif
 using MiniDisplay = TFT_eSPI;
 
 #else
@@ -51,6 +54,10 @@ enum TextDatum : uint8_t {
 
 class MiniDisplay {
  public:
+  int16_t width() const { return gfx_ ? gfx_->width() : TFT_WIDTH; }
+  int16_t height() const { return gfx_ ? gfx_->height() : TFT_HEIGHT; }
+  uint8_t getTextDatum() const { return datum_; }
+  void drawPixel(int16_t x, int16_t y, uint16_t color) { gfx_->drawPixel(x, y, color); }
   void init() {
     bus_ = new Arduino_HWSPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI,
                              GFX_NOT_DEFINED, &SPI);
@@ -71,6 +78,27 @@ class MiniDisplay {
   }
   void fillCircle(int16_t x, int16_t y, int16_t radius, uint16_t color) {
     gfx_->fillCircle(x, y, radius, color);
+  }
+  void drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t color) {
+    gfx_->drawCircle(x, y, radius, color);
+  }
+  void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+    gfx_->drawRect(x, y, w, h, color);
+  }
+  void drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h, int16_t r, uint16_t color) {
+    gfx_->drawRoundRect(x, y, w, h, r, color);
+  }
+  void drawLine(int16_t x, int16_t y, int16_t x2, int16_t y2, uint16_t color) {
+    gfx_->drawLine(x, y, x2, y2, color);
+  }
+  void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
+    gfx_->drawFastHLine(x, y, w, color);
+  }
+  void drawTriangle(int16_t x, int16_t y, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color) {
+    gfx_->drawTriangle(x, y, x2, y2, x3, y3, color);
+  }
+  void fillTriangle(int16_t x, int16_t y, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color) {
+    gfx_->fillTriangle(x, y, x2, y2, x3, y3, color);
   }
   void startWrite() {}
   void endWrite() {}

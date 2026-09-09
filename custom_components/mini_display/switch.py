@@ -15,9 +15,33 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         [
             MiniDisplayDataUpdatesSwitch(
                 runtime["coordinator"], runtime["dashboard"]
-            )
+            ),
+            MiniDisplayAutomaticPagesSwitch(runtime["coordinator"]),
         ]
     )
+
+
+class MiniDisplayAutomaticPagesSwitch(MiniDisplayEntity, SwitchEntity):
+    """Control rotation without changing the visible page."""
+
+    _attr_name = "Automatic page rotation"
+    _attr_icon = "mdi:autorenew"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "automatic_page_rotation")
+
+    @property
+    def is_on(self) -> bool | None:
+        mode = (self.coordinator.data or {}).get("rotation")
+        return mode == "auto" if mode in ("auto", "manual") else None
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.client.async_set_page_rotation(True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.client.async_set_page_rotation(False)
+        await self.coordinator.async_request_refresh()
 
 
 class MiniDisplayDataUpdatesSwitch(MiniDisplayEntity, SwitchEntity):

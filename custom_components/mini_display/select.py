@@ -9,6 +9,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dis
 
 from .const import SIGNAL_SCENES_UPDATED, TIMEZONE_OPTIONS
 from .entity import MiniDisplayEntity
+from .notification import MiniDisplayNotificationPositionSelect
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
@@ -18,6 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
             MiniDisplayPageSelect(runtime["coordinator"]),
             MiniDisplaySceneSelect(runtime["coordinator"], runtime["dashboard"]),
             MiniDisplayTimezoneSelect(runtime["coordinator"]),
+            MiniDisplayNotificationPositionSelect(runtime["coordinator"]),
         ]
     )
 

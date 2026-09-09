@@ -1,10 +1,12 @@
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { live } from "lit/directives/live.js";
 import type { DeviceStatus } from "../api";
 import { defaultTimezone, timezoneGroups, timezonePreset } from "../format";
 import { pageStyles } from "../styles";
 import type { SubmitRequest } from "./shared";
 import "./fonts";
+import "./notifications";
 
 @customElement("mini-display-display-page")
 export class DisplayPage extends LitElement {
@@ -14,6 +16,7 @@ export class DisplayPage extends LitElement {
 
   @state() private brightness_ = 100;
   @state() private pixelShift_ = 0;
+  @state() private refreshRate_ = 60;
   @state() private timezone_ = defaultTimezone;
   @state() private selectedTimezone_ = defaultTimezone;
   private initialized_ = false;
@@ -24,6 +27,7 @@ export class DisplayPage extends LitElement {
     if (!this.status || this.initialized_) return;
     this.brightness_ = this.status.brightness;
     this.pixelShift_ = this.status.pixelShift;
+    this.refreshRate_ = this.status.refreshRateHz ?? 60;
     this.timezone_ = timezonePreset(this.status.timezone);
     this.selectedTimezone_ = this.timezone_;
     this.initialized_ = true;
@@ -46,6 +50,7 @@ export class DisplayPage extends LitElement {
                   on: data.has("on"),
                   brightness: this.brightness_,
                   pixelShift: this.pixelShift_,
+                  refreshRateHz: this.refreshRate_,
                   timezone: this.timezone_,
                 },
                 "Display settings saved.",
@@ -87,6 +92,22 @@ export class DisplayPage extends LitElement {
                   ))}
             /></label>
             <label class="field"
+              >Maximum refresh rate (Hz)
+              <small
+                >Limits data, scrolling and transitions. Slow rates skip
+                animations.</small
+              >
+              <input
+                type="number"
+                min="0.1"
+                max="60"
+                step="0.1"
+                required
+                .value=${String(this.refreshRate_)}
+                @input=${(event: Event) => (this.refreshRate_ = (event.target as HTMLInputElement).valueAsNumber)}
+              />
+            </label>
+            <label class="field"
               >Time zone
               <small
                 >Used by clock cards. Time stays synchronized over NTP.</small
@@ -122,22 +143,42 @@ export class DisplayPage extends LitElement {
         <section class="card">
           <h2>Page control</h2>
           <p class="muted">
-            Temporarily change the visible page or resume automatic rotation.
+            Next and Previous keep the selected rotation mode.
           </p>
+          <label class="check">
+            <input
+              type="checkbox"
+              role="switch"
+              .checked=${live(status.rotation === "auto")}
+              ?disabled=${this.saving}
+              @change=${(event: Event) =>
+                this.submit?.(
+                  "/api/v1/page",
+                  {
+                    mode: (event.target as HTMLInputElement).checked
+                      ? "auto"
+                      : "manual",
+                  },
+                  "Page rotation updated.",
+                  "POST",
+                )}
+            />
+            Automatic page rotation
+          </label>
           <div class="actions">
             ${[
               ["previous", "Previous"],
               ["next", "Next"],
-              ["auto", "Automatic"],
             ].map(
               ([command, label]) =>
                 html`<button
                   class="secondary"
+                  ?disabled=${this.saving}
                   @click=${() =>
                     this.submit?.(
                       "/api/v1/page",
-                      command === "auto" ? { mode: "auto" } : { command },
-                      `Page mode changed to ${label.toLowerCase()}.`,
+                      { command },
+                      `${label} page selected.`,
                       "POST",
                     )}
                 >
@@ -146,6 +187,11 @@ export class DisplayPage extends LitElement {
             )}
           </div>
         </section>
+        <mini-display-notifications
+          .status=${status}
+          .saving=${this.saving}
+          .submit=${this.submit}
+        ></mini-display-notifications>
       </div>
       <mini-display-fonts></mini-display-fonts>`;
   }

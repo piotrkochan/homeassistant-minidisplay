@@ -222,12 +222,17 @@ export const previewStyles = css`
   .value {
     pointer-events: auto;
   }
-  .card-label.marquee {
-    display: inline-block;
+  .card-label.marquee,
+  .value.marquee {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 24px;
+    width: max-content;
     max-width: none;
+    overflow: visible;
     text-overflow: clip;
-    animation: card-title-marquee var(--marquee-duration) linear infinite;
   }
+  .marquee > .marquee-copy { flex: none; white-space: nowrap; }
   .value-wrap {
     z-index: 1;
   }

@@ -3,8 +3,9 @@
 #include <Arduino.h>
 
 #include "DisplayCompat.h"
-#include "PageTransitionRenderer.h"
+#include "ScenePage.h"
 #include "UserFonts.h"
+#include "NotificationState.h"
 
 class ScreenCapture {
  public:
@@ -18,8 +19,8 @@ class ScreenCapture {
 
   static bool supported();
   bool begin();
-  bool streamBmp(const CachedPage &page, int8_t offsetX, int8_t offsetY,
-                 Print &output);
+  bool streamBmp(const ScenePage &page, int8_t offsetX, int8_t offsetY,
+                 Print &output, const NotificationCenter *notifications = nullptr);
 
  private:
 #if defined(ESP8266)

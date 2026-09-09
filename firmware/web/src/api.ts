@@ -13,6 +13,13 @@ export type DeviceStatus = {
   displayOn: boolean;
   brightness: number;
   pixelShift: number;
+  refreshRateHz: number;
+  notificationPosition?: string;
+  notificationPositions?: string[];
+  notificationCount?: number;
+  notificationMaxVisible?: number;
+  notificationAuthEnabled?: boolean;
+  apiPasswordSet?: boolean;
   timezone: string;
   localTime: string;
   localDate: string;

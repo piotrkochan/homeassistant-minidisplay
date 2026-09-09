@@ -1,4 +1,5 @@
 import { css, html, LitElement, nothing } from "lit";
+import "./marquee-field";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   Dashboard,
@@ -702,10 +703,15 @@ export class MiniDisplayEditor extends LitElement {
       color: var(--secondary-text-color);
     }
     .appearance-section > mini-display-image-field,
+    .appearance-section > .text-layout-controls,
     .appearance-section > .segmented-field,
     .appearance-section > details {
       grid-column: 1 / -1;
     }
+    .text-layout-controls { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+    .text-layout-controls > .segmented-field,
+    .text-layout-controls > details { flex:1 1 190px; }
+    .text-layout-controls > mini-display-marquee-field { flex:1 1 240px; }
     .rule-groups .mappings {
       padding: 0;
     }
@@ -2288,6 +2294,18 @@ export class MiniDisplayEditor extends LitElement {
     );
   }
 
+  private textLayoutControls(style: Style, free: boolean, title: boolean, defaultMarquee: boolean) {
+    return html`<div class="text-layout-controls">
+      ${free ? this.textAlignment(style, title ? "left" : "center")
+        : this.textPosition("Position", style, title ? "left" : "center", title ? "top" : "middle")}
+      <mini-display-marquee-field .value=${{...style}} .defaultEnabled=${defaultMarquee}
+        @marquee-changed=${(event: CustomEvent<Partial<Style>>) => {
+          Object.assign(style, event.detail);
+          this.changed();
+        }}></mini-display-marquee-field>
+    </div>`;
+  }
+
   private textEffectEditor(label: string, style: Style) {
     const effect = style.textEffect ?? "none";
     const effectName =
@@ -2490,7 +2508,6 @@ export class MiniDisplayEditor extends LitElement {
                 value.fontFamily = input;
                 this.changed();
               })}
-              ${freeLayout ? this.textAlignment(value, "center") : nothing}
               ${freeLayout ? nothing : this.select(
                 "Font size",
                 value.fontSize ?? "auto",
@@ -2500,7 +2517,7 @@ export class MiniDisplayEditor extends LitElement {
                   this.changed();
                 },
               )}
-              ${freeLayout ? nothing : this.textPosition("Position", value)}
+              ${this.textLayoutControls(value, freeLayout, false, freeLayout && card.type === "text")}
               ${this.select("Text flow", value.textFlow ?? "default", ["default", "overflow", "wrap"], input => { value.textFlow = input as Style["textFlow"]; this.changed(); })}
               ${this.textEffectEditor("Effect", value)}
             </section>`
@@ -2522,7 +2539,6 @@ export class MiniDisplayEditor extends LitElement {
                 title.fontFamily = input;
                 this.changed();
               })}
-              ${freeLayout ? this.textAlignment(title, "left") : nothing}
               ${freeLayout ? nothing : this.select(
                 "Font size",
                 title.fontSize ?? "auto",
@@ -2532,7 +2548,7 @@ export class MiniDisplayEditor extends LitElement {
                   this.changed();
                 },
               )}
-              ${freeLayout ? nothing : this.textPosition("Position", title, "left", "top")}
+              ${this.textLayoutControls(title, freeLayout, true, true)}
               ${this.select("Text flow", title.textFlow ?? "default", ["default", "overflow", "wrap"], input => { title.textFlow = input as Style["textFlow"]; this.changed(); })}
               ${this.textEffectEditor("Effect", title)}
             </section>`

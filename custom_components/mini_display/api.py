@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import json as json_module
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -16,6 +17,7 @@ from .const import (
     REQUEST_TIMEOUT_SECONDS,
 )
 from .image_codec import MAX_ENCODED_BYTES
+from .data_rate import DataSendLimiter
 
 
 class MiniDisplayApiError(Exception):
@@ -80,6 +82,7 @@ class MiniDisplayClient:
         )
         self._timeout = ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
         self._request_lock = asyncio.Lock()
+        self.data_limiter = DataSendLimiter()
 
     @property
     def configured_use_ssl(self) -> bool:
@@ -159,10 +162,12 @@ class MiniDisplayClient:
         data: bytes | None = None,
         headers: dict[str, str] | None = None,
         expect_json: bool = True,
+        retry_transport: bool = True,
     ) -> dict[str, Any]:
         async with self._request_lock:
             last_error: ClientError | TimeoutError | None = None
-            for transport in self._transports():
+            transports = self._transports()
+            for transport in transports if retry_transport else transports[:1]:
                 try:
                     return await self._request_transport(
                         method,
@@ -260,7 +265,9 @@ class MiniDisplayClient:
         on: bool | None = None,
         brightness: int | None = None,
         pixel_shift: int | None = None,
+        refresh_rate_hz: float | None = None,
         timezone: str | None = None,
+        notification_position: str | None = None,
     ) -> None:
         body: dict[str, Any] = {}
         if on is not None:
@@ -271,15 +278,34 @@ class MiniDisplayClient:
             body["pixelShift"] = max(0, min(10, pixel_shift))
         if timezone is not None:
             body["timezone"] = timezone
+        if notification_position is not None:
+            body["notificationPosition"] = notification_position
+        if refresh_rate_hz is not None:
+            body["refreshRateHz"] = refresh_rate_hz
         await self._request("PUT", "/display", json=body, expect_json=False)
+        if refresh_rate_hz is not None:
+            self.data_limiter.set_rate(refresh_rate_hz)
 
     async def async_set_page(self, page_id: str) -> None:
         body = {"mode": "auto"} if page_id == "auto" else {"id": page_id}
         await self._request("POST", "/page", json=body, expect_json=False)
 
+    async def async_notify(self, payload: dict[str, Any]) -> None:
+        """Send once, outside sensor pacing and without duplicating on retries."""
+        await self._request("POST", "/notifications", json=payload, expect_json=False, retry_transport=False)
+
+    async def async_dismiss_notifications(self) -> None:
+        await self._request("DELETE", "/notifications", expect_json=False)
+
     async def async_page_command(self, command: str) -> None:
         await self._request(
             "POST", "/page", json={"command": command}, expect_json=False
+        )
+
+    async def async_set_page_rotation(self, enabled: bool) -> None:
+        await self._request(
+            "POST", "/page",
+            json={"mode": "auto" if enabled else "manual"}, expect_json=False
         )
 
     async def async_restart(self) -> None:
@@ -288,28 +314,34 @@ class MiniDisplayClient:
     async def async_put_dashboard(
         self, dashboard: dict[str, Any], *, render: bool = True
     ) -> None:
+        body = json_module.dumps(
+            dashboard, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
         await self._request(
             "PUT",
             f"/dashboard?render={'true' if render else 'false'}",
-            json=dashboard,
+            data=body,
+            headers={"Content-Type": "application/json"},
             expect_json=False,
         )
 
     async def async_patch_values(
         self, values: dict[str, Any], *, render: bool = True
     ) -> None:
-        await self._request(
-            "PATCH",
-            "/data",
-            json={"values": values, "render": render},
-            expect_json=False,
-        )
+        async with self.data_limiter:
+            await self._request(
+                "PATCH",
+                "/data",
+                json={"values": values, "render": render},
+                expect_json=False,
+            )
 
     async def async_patch_history(self, series: dict[str, Any], *, render: bool = True) -> None:
         """One series per request keeps the ESP JSON allocation bounded."""
         for attempt in range(3):
             try:
-                await self._request("PATCH", "/data", json={"values": {}, "series": series, "render": render}, expect_json=False)
+                async with self.data_limiter:
+                    await self._request("PATCH", "/data", json={"values": {}, "series": series, "render": render}, expect_json=False)
                 return
             except MiniDisplayRequestError as err:
                 if err.status != 503 or attempt == 2:

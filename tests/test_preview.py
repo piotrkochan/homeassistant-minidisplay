@@ -83,12 +83,12 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
     async def test_stop_waits_for_inflight_update(self):
         await self.manager.async_start_preview("default", owner=self.owner)
         entered, release = asyncio.Event(), asyncio.Event()
-        async def send(*args):
+        async def send(*args, **kwargs):
             entered.set()
             await release.wait()
         self.manager._async_send_dashboard.side_effect = send
         update = asyncio.create_task(self.manager.async_start_preview("default", owner=self.owner, update=True))
-        await entered.wait()
+        await asyncio.wait_for(entered.wait(), timeout=1)
         stop = asyncio.create_task(self.manager.async_stop_preview(self.owner))
         await asyncio.sleep(0)
         self.assertFalse(stop.done())
@@ -171,6 +171,51 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertEqual(rendered["pages"][0]["id"], "no_visible_pages")
+
+    def test_device_compaction_preserves_source_and_defaults(self):
+        dashboard = {
+            "version": 1,
+            "defaults": {"pageDurationSeconds": 10, "theme": "dark"},
+            "pages": [{
+                "id": "page",
+                "enabled": True,
+                "showTitle": True,
+                "titlePosition": "top",
+                "transparentCards": False,
+                "rows": [{
+                    "weight": 1,
+                    "gap": "small",
+                    "cards": [{
+                        "type": "number",
+                        "source": "sensor.power",
+                        "progress": "none",
+                        "imageFit": "cover",
+                        "backgroundMode": "color",
+                        "style": {
+                            "fontSize": "auto",
+                            "textFlow": "default",
+                            "marquee": False,
+                            "foreground": "warning",
+                        },
+                    }],
+                }],
+            }],
+        }
+        original = deepcopy(dashboard)
+
+        compact = module.compact_dashboard_for_device(dashboard)
+
+        self.assertEqual(dashboard, original)
+        page = compact["pages"][0]
+        self.assertNotIn("enabled", page)
+        self.assertNotIn("titlePosition", page)
+        row = page["rows"][0]
+        self.assertNotIn("weight", row)
+        self.assertNotIn("gap", row)
+        card = row["cards"][0]
+        self.assertNotIn("progress", card)
+        self.assertNotIn("backgroundMode", card)
+        self.assertEqual(card["style"], {"foreground": "warning"})
 
 
 if __name__ == "__main__":

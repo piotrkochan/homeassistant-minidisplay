@@ -2,14 +2,20 @@
 
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <memory>
+#include <new>
 
 #include "ImageRle.h"
+#include "ImageRowResampler.h"
+#include "DecodedImageRows.h"
 
 constexpr size_t kImageAssetIdLength = 16;
 constexpr size_t kImageAssetHeaderBytes = 8;
 constexpr size_t kMaxImageAssetBytes = 120 * 1024;
 constexpr size_t kImageStorageReserveBytes = 256 * 1024;
 constexpr uint8_t kImageRenderCacheEntries = 4;
+constexpr uint8_t kImageRowIndexStride = 16;
+constexpr uint8_t kImageRowIndexEntries = 15;
 
 enum class ImageFit : uint8_t { Cover, Contain, Stretch };
 
@@ -32,6 +38,7 @@ class ImageAssetByteReader {
 
   bool begin(size_t offset, size_t length);
   bool readByte(uint8_t &value);
+  bool skipBytes(size_t length);
   size_t remaining() const { return remaining_; }
 
  private:
@@ -43,11 +50,47 @@ class ImageAssetByteReader {
   size_t remaining_ = 0;
 };
 
+class ImageAssetMemoryReader {
+ public:
+  bool begin(const uint8_t *data, size_t length) {
+    data_ = data;
+    remaining_ = length;
+    return data_ != nullptr;
+  }
+  bool readByte(uint8_t &value) {
+    if (!remaining_) return false;
+    value = *data_++;
+    --remaining_;
+    return true;
+  }
+  bool skipBytes(size_t length) {
+    if (length > remaining_) return false;
+    data_ += length;
+    remaining_ -= length;
+    return true;
+  }
+  size_t remaining() const { return remaining_; }
+
+ private:
+  const uint8_t *data_ = nullptr;
+  size_t remaining_ = 0;
+};
+
 class ImageAssetRenderCache {
  public:
   ~ImageAssetRenderCache();
 
   File *open(const char *assetId, uint16_t *width, uint16_t *height);
+  bool seekRow(const char *assetId, uint16_t row);
+  void enableRowCache();
+  bool hasRowCache() const { return decodedRows_ != nullptr; }
+  void setCooperativeYield(bool enabled) { cooperativeYield_ = enabled; }
+  bool cooperativeYield() const { return cooperativeYield_; }
+  bool readRow(const char *assetId, uint16_t row, uint16_t width, uint16_t *out);
+  bool readRowWindow(const char *assetId, uint16_t row, uint16_t width,
+                     uint16_t first, uint16_t end, uint16_t *out);
+  // Shared by sequential draw calls, never retained by a canvas.
+  uint16_t *rowPixels() { return rowPixels_; }
 
  private:
   struct Entry {
@@ -55,11 +98,20 @@ class ImageAssetRenderCache {
     char id[kImageAssetIdLength + 1]{};
     uint16_t width = 0;
     uint16_t height = 0;
+    uint32_t rowOffsets[kImageRowIndexEntries]{};
+    uint32_t lastRowOffset = 0;
+    uint16_t lastRow = 0;
     uint32_t usedAt = 0;
   };
 
+  bool buildRowIndex(Entry &entry);
+
   Entry entries_[kImageRenderCacheEntries];
+  uint16_t rowPixels_[240];
+  uint8_t encodedRow_[512];
   uint32_t useCounter_ = 0;
+  std::unique_ptr<DecodedImageRows> decodedRows_;
+  bool cooperativeYield_ = true;
 };
 
 template <typename Canvas>
@@ -70,13 +122,14 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
                     ImageAssetRenderCache *cache = nullptr) {
   if (!assetId || !assetId[0] || width <= 0 || height <= 0) return false;
   File file;
+  File *retainedFile = nullptr;
   uint16_t sourceWidth = 0;
   uint16_t sourceHeight = 0;
   const bool retained = cache != nullptr;
   if (retained) {
-    File *cached = cache->open(assetId, &sourceWidth, &sourceHeight);
-    if (!cached) return false;
-    file = *cached;
+    retainedFile = cache->open(assetId, &sourceWidth, &sourceHeight);
+    if (!retainedFile) return false;
+    file = *retainedFile;
   } else {
     file = LittleFS.open(imageAssetPath(String(assetId)), "r");
     if (!file || !readImageAssetHeader(file, &sourceWidth, &sourceHeight)) {
@@ -124,24 +177,36 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
     return true;
   }
 
-  uint16_t line[240];
+  // Keep the 480-byte row off the small ESP8266 continuation stack.
+  std::unique_ptr<uint16_t[]> uncachedRow;
+  if (!cache) uncachedRow.reset(new (std::nothrow) uint16_t[240]);
+  uint16_t *line = cache ? cache->rowPixels() : uncachedRow.get();
+  if (!line) return false;
   const int16_t outputWidth = visibleRight - visibleLeft;
   const int16_t firstDestinationColumn = visibleLeft - destinationX;
-  const bool upscale = destinationWidth > sampledWidth;
+  const uint16_t firstSourceColumn = sourceX +
+      static_cast<uint32_t>(firstDestinationColumn) * sampledWidth / destinationWidth;
+  const uint16_t endSourceColumn = sourceX +
+      static_cast<uint32_t>(firstDestinationColumn + outputWidth - 1) *
+          sampledWidth / destinationWidth + 1;
   ImageAssetByteReader reader(file);
-  Rgb565RleDecoder decoder;
-  if (!file.seek(kImageAssetHeaderBytes)) {
-    if (!retained) file.close();
+  int16_t bufferedY = -1;
+  if (!retained && !file.seek(kImageAssetHeaderBytes)) {
+    file.close();
     return false;
   }
-  int16_t bufferedY = -1;
   for (int16_t destinationRow = visibleTop; destinationRow < visibleBottom;
        ++destinationRow) {
     const int16_t mappedY = sourceY +
         static_cast<int32_t>(destinationRow - destinationY) * sampledHeight /
             destinationHeight;
     if (mappedY != bufferedY) {
-      while (bufferedY < mappedY) {
+      if (retained) {
+        if (!cache->readRowWindow(assetId, mappedY, sourceWidth,
+                                  firstSourceColumn, endSourceColumn, line))
+          return false;
+        bufferedY = mappedY;
+      } else while (bufferedY < mappedY) {
         uint16_t rowBytes = 0;
         const int16_t nextRow = bufferedY + 1;
         if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
@@ -161,57 +226,30 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
           if (!retained) file.close();
           return false;
         }
-        decoder = Rgb565RleDecoder{};
-        for (uint16_t column = 0; column < sourceWidth; ++column) {
-          if (!decoder.next(reader, line[column])) {
-            if (!retained) file.close();
-            return false;
-          }
-        }
-        if (!decoder.packetComplete() || reader.remaining() != 0) {
+        if (!decodeRgb565Window(reader, sourceWidth, firstSourceColumn,
+                                 endSourceColumn, line) || reader.remaining() != 0) {
           if (!retained) file.close();
           return false;
         }
         ++bufferedY;
 #if defined(ESP8266)
-        if ((bufferedY & 15) == 0) optimistic_yield(20000);
+        if ((!cache || cache->cooperativeYield()) && (bufferedY & 15) == 0)
+          optimistic_yield(20000);
 #endif
       }
-      if (sourceX > 0) {
-        memmove(line, line + sourceX,
-                static_cast<size_t>(sampledWidth) * sizeof(line[0]));
-      }
-      if (upscale) {
-        for (int16_t output = outputWidth - 1; output >= 0; --output) {
-          const int16_t destinationColumn = firstDestinationColumn + output;
-          const int16_t mappedX =
-              static_cast<int32_t>(destinationColumn) * sampledWidth /
-              destinationWidth;
-          const uint16_t color = line[mappedX];
 #if defined(ESP8266)
-          line[output] = (color << 8) | (color >> 8);
+      constexpr bool swapBytes = true;
 #else
-          line[output] = color;
+      constexpr bool swapBytes = false;
 #endif
-        }
-      } else {
-        for (int16_t output = 0; output < outputWidth; ++output) {
-          const int16_t destinationColumn = firstDestinationColumn + output;
-          const int16_t mappedX =
-              static_cast<int32_t>(destinationColumn) * sampledWidth /
-              destinationWidth;
-          const uint16_t color = line[mappedX];
-#if defined(ESP8266)
-          line[output] = (color << 8) | (color >> 8);
-#else
-          line[output] = color;
-#endif
-        }
-      }
+      if (!resampleImageRow(line, 240, sourceWidth, sourceX, sampledWidth,
+                            destinationWidth, firstDestinationColumn,
+                            outputWidth, swapBytes)) return false;
     }
     canvas.pushImage(visibleLeft, destinationRow, outputWidth, 1, line);
 #if defined(ESP8266)
-    if ((destinationRow & 15) == 0) optimistic_yield(20000);
+    if ((!cache || cache->cooperativeYield()) && (destinationRow & 15) == 0)
+      optimistic_yield(20000);
 #endif
   }
   if (!retained) file.close();

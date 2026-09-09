@@ -4,7 +4,7 @@
 #include "GraphScale.h"
 #include <cstdio>
 
-struct CachedGraph {
+struct GraphPaintConfig {
   const GraphSeries *series;
   float minimum;
   float maximum;
@@ -28,10 +28,15 @@ struct CachedGraph {
 
 // Blend against the existing compositor band; no extra framebuffer is needed.
 template <typename Canvas, typename Background>
-void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
+void paintGraph(Canvas &canvas, const GraphPaintConfig &graph, int16_t x, int16_t y,
                 int16_t width, int16_t height, int16_t clipX, int16_t clipY,
                 int16_t clipWidth, int16_t clipHeight, Background background) {
   if (!graph.series || width < 4 || height < 6 || graph.opacity == 0) return;
+  const int16_t visibleLeft = max<int16_t>(0, clipX - x);
+  const int16_t visibleTop = max<int16_t>(0, clipY - y);
+  const int16_t visibleRight = min<int16_t>(width, clipX + clipWidth - x);
+  const int16_t visibleBottom = min<int16_t>(height, clipY + clipHeight - y);
+  if (visibleLeft >= visibleRight || visibleTop >= visibleBottom) return;
   const auto &series = *graph.series;
   float low = INFINITY, high = -INFINITY;
   for (uint8_t i = 0; i < series.capacity; ++i) {
@@ -60,7 +65,8 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
   for (uint8_t grid = 1; grid <= graph.gridLines; ++grid) {
     const int16_t py = plotTop +
         static_cast<int32_t>(plotHeight) * grid / (graph.gridLines + 1);
-    for (int16_t px = 0; px < width; ++px) {
+    if (py < visibleTop || py >= visibleBottom) continue;
+    for (int16_t px = visibleLeft; px < visibleRight; ++px) {
       coloredPixel(px, py, graph.gridColor, graph.gridOpacity);
     }
   }
@@ -96,11 +102,12 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
       const int16_t baseline = ordinate(0);
       if (previousX >= 0 && graph.fillOpacity > 0) {
         const int16_t span = max<int16_t>(1, center - previousX);
-        for (int16_t px = previousX; px <= center; ++px) {
+        for (int16_t px = max(previousX, visibleLeft);
+             px <= min<int16_t>(center, visibleRight - 1); ++px) {
           const int16_t fillTop = previousY +
               static_cast<int32_t>(top - previousY) * (px - previousX) / span;
-          for (int16_t py = min(fillTop, baseline);
-               py <= max(fillTop, baseline); ++py) {
+          for (int16_t py = max(min(fillTop, baseline), visibleTop);
+               py <= min<int16_t>(max(fillTop, baseline), visibleBottom - 1); ++py) {
             coloredPixel(px, py, graph.color, graph.fillOpacity);
           }
         }
@@ -118,8 +125,9 @@ void paintGraph(Canvas &canvas, const CachedGraph &graph, int16_t x, int16_t y,
       const int16_t gap = min<int16_t>(graph.barGap, max<int16_t>(0, right - left - 1));
       const int16_t barLeft = left + gap / 2;
       const int16_t barRight = max<int16_t>(barLeft + 1, right - (gap - gap / 2));
-      for (int16_t px = barLeft; px < barRight; ++px)
-        for (int16_t py = min(top, baseline); py <= max(top, baseline); ++py) pixel(px, py);
+      for (int16_t px = max(barLeft, visibleLeft); px < min(barRight, visibleRight); ++px)
+        for (int16_t py = max(min(top, baseline), visibleTop);
+             py <= min<int16_t>(max(top, baseline), visibleBottom - 1); ++py) pixel(px, py);
     }
     if (graph.labels && i % graph.labelEvery == 0) {
       char text[20];

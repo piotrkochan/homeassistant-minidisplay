@@ -150,6 +150,13 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                     style = card.get(style_key) or {}
                     if not isinstance(style, dict) or style.get("textFlow", "default") not in ("default", "overflow", "wrap"):
                         raise DashboardValidationError("Invalid text flow", f"{card_path}/{style_key}/textFlow")
+                    if "marquee" in style and not isinstance(style["marquee"], bool):
+                        raise DashboardValidationError("Invalid marquee toggle", f"{card_path}/{style_key}/marquee")
+                    interval = style.get("marqueeIntervalMs", 100)
+                    if style.get("marqueeEffect", "bounce") not in ("bounce", "loop"):
+                        raise DashboardValidationError("Invalid marquee effect", f"{card_path}/{style_key}/marqueeEffect")
+                    if type(interval) is not int or not 50 <= interval <= 10000:
+                        raise DashboardValidationError("Marquee interval must be 50-10000 ms", f"{card_path}/{style_key}/marqueeIntervalMs")
                 if card.get("type") == "weather":
                     validate_weather(card, card_path, DashboardValidationError)
                 if source is not None and (not isinstance(source, str) or len(source) > 64):
@@ -657,6 +664,56 @@ def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str,
     return rendered
 
 
+def compact_dashboard_for_device(document: dict[str, Any]) -> dict[str, Any]:
+    """Remove wire defaults without changing the editable HA document."""
+    compact = deepcopy(document)
+    for page in compact["pages"]:
+        for key, default in (
+            ("enabled", True),
+            ("showTitle", True),
+            ("titlePosition", "top"),
+            ("transparentCards", False),
+        ):
+            if page.get(key) == default:
+                page.pop(key)
+        for row in page["rows"]:
+            if row.get("weight") == 1:
+                row.pop("weight")
+            # Firmware always uses a four-pixel row/card gap.
+            row.pop("gap", None)
+            if row.get("showTitle") is True:
+                row.pop("showTitle")
+            for card in row["cards"]:
+                for key, default in (
+                    ("showTitle", True),
+                    ("transparentBackground", False),
+                    ("progress", "none"),
+                    ("imageFit", "cover"),
+                ):
+                    if card.get(key) == default:
+                        card.pop(key)
+                if card.get("backgroundMode") == "color" and not card.get(
+                    "backgroundImage"
+                ):
+                    card.pop("backgroundMode")
+                for key in ("style", "titleStyle", "valueStyle"):
+                    style = card.get(key)
+                    if not isinstance(style, dict):
+                        continue
+                    for name, default in (
+                        ("fontSize", "auto"),
+                        ("textFlow", "default"),
+                        ("marquee", False),
+                        ("marqueeEffect", "bounce"),
+                        ("marqueeIntervalMs", 100),
+                    ):
+                        if style.get(name) == default:
+                            style.pop(name)
+                    if not style:
+                        card.pop(key)
+    return compact
+
+
 def serialize_state(state: State | None) -> dict[str, Any]:
     """Serialize state without exposing arbitrary large attributes."""
     if state is None:
@@ -714,7 +771,7 @@ class MiniDisplayDashboardManager:
         self.assets = MiniDisplayAssetManager(hass, entry_id, client)
         self.weather = hass.data.setdefault("mini_display_weather_cache", WeatherData(hass))
         self.history = HistoryData(hass)
-        self.data_batch_interval = data_batch_interval
+        self._configured_batch_interval = data_batch_interval
         self.scenes: dict[str, dict[str, Any]] = {}
         self.active_scene_id = DEFAULT_SCENE_ID
         self.default_scene_id = DEFAULT_SCENE_ID
@@ -1072,7 +1129,9 @@ class MiniDisplayDashboardManager:
             await self.client.async_patch_values(values, render=False)
         required_assets = extract_assets(rendered)
         remote_assets = await self.assets.async_sync(required_assets)
-        await self.client.async_put_dashboard(rendered, render=active_page_id is None)
+        await self.client.async_put_dashboard(
+            compact_dashboard_for_device(rendered), render=active_page_id is None
+        )
         if prune_assets:
             await self.assets.async_prune(required_assets, remote_assets)
         await self._async_send_history(rendered)
@@ -1199,9 +1258,19 @@ class MiniDisplayDashboardManager:
                 self.hass, self.data_batch_interval, self._flush_pending
             )
 
+    @property
+    def data_batch_interval(self) -> float:
+        """Keep only the latest state per entity while the display is waiting."""
+        return max(self._configured_batch_interval, self.client.data_limiter.interval)
+
     async def _flush_pending(self, _now: datetime) -> None:
         self._cancel_batch = None
         if self._flush_in_progress:
+            return
+        if self.client.data_limiter.delay > 0:
+            self._cancel_batch = async_call_later(
+                self.hass, self.client.data_limiter.delay, self._flush_pending
+            )
             return
         self._flush_in_progress = True
         pending, self._pending_sources = self._pending_sources, set()

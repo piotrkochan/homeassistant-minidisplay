@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "CoverageFont.h"
+#include "StaticSmoothFont.h"
 
 inline const char *coverageText(const char *text) { return text; }
 inline const char *coverageText(const String &text) { return text.c_str(); }
@@ -40,17 +41,24 @@ inline int16_t textEffectExtent(const TextEffect &effect) {
 template <typename Canvas, typename Text>
 void drawTextWithEffect(Canvas &canvas, const Text &text, int16_t x, int16_t y,
                         uint16_t foreground, uint16_t background,
-                        const TextEffect &effect, const CoverageFont *coverage = nullptr) {
+                        const TextEffect &effect, const CoverageFont *coverage = nullptr,
+                        const StaticSmoothFont *smooth = nullptr) {
   uint16_t ink = foreground;
   const auto setColor = [&](uint16_t color) { ink = color; canvas.setTextColor(color); };
   const auto draw = [&](const auto &value, int16_t left, int16_t top) {
 #if defined(ESP8266)
+    if (smooth && smooth->data) {
+      paintStaticSmoothText(canvas, *smooth, coverageText(value), left, top, ink,
+          [&](int16_t px, int16_t py) { return coverageBackground(canvas, px, py, background); });
+      return;
+    }
     if (coverage) {
       paintCoverageText(canvas, *coverage, coverageText(value), left, top, ink,
           [&](int16_t px, int16_t py) { return coverageBackground(canvas, px, py, background); });
       return;
     }
 #else
+    (void)smooth;
     (void)coverage;
     (void)background;
 #endif

@@ -237,6 +237,7 @@ export class MiniDisplayPreviewList extends LitElement {
                     .page=${page}
                     .width=${display.width}
                     .height=${display.height}
+                    .refreshRateHz=${display.refresh_rate_hz ?? 60}
                     .displayId=${display.config_entry_id}
                     .interactive=${true}
                   .showHidden=${this.showHidden}

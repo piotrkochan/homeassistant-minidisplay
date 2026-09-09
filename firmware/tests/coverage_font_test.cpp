@@ -19,10 +19,11 @@ struct Canvas {
   std::array<uint16_t, 240 * 240> pixels{};
   unsigned reads = 0, writes = 0;
   int h = 240;
+  int w = 240;
   const CoverageFont *font;
   uint8_t datum = 0;
   int height() { return h; }
-  int width() { return 240; }
+  int width() { return w; }
   uint8_t getTextDatum() { return datum; }
   int textWidth(const char *text) {
     int result = 0;
@@ -33,7 +34,7 @@ struct Canvas {
     return result;
   }
   void drawPixel(int x, int y, uint16_t color) {
-    assert(x >= 0 && x < 240 && y >= 0 && y < h);
+    assert(x >= 0 && x < w && y >= 0 && y < h);
     pixels[y * 240 + x] = color;
     ++writes;
   }
@@ -42,7 +43,7 @@ struct Canvas {
   }
   int drawChar(uint32_t, int, int) { return 0; }
   uint16_t background(int x, int y) {
-    assert(x >= 0 && x < 240 && y >= 0 && y < h);
+    assert(x >= 0 && x < w && y >= 0 && y < h);
     ++reads;
     return pixels[y * 240 + x];
   }
@@ -70,6 +71,25 @@ int main() {
     canvas.h = 240;
   }
   canvas.pixels.fill(0);
+  // Different tile aspect ratios preserve all antialiased edge pixels.
+  for (const auto dimensions : {std::array<int, 2>{8, 120}, {240, 4}, {30, 32}}) {
+    Canvas full, tile;
+    full.font = tile.font = builtInCoverageFont(2);
+    paintCoverageText(full, *full.font, "37% Łódź", 30, 60, 0xFFFF,
+        [&](int x, int y) { return full.background(x, y); });
+    for (int y = 0; y < 240; y += dimensions[1]) {
+      for (int x = 0; x < 240; x += dimensions[0]) {
+        tile.pixels.fill(0);
+        tile.w = std::min(dimensions[0], 240 - x);
+        tile.h = std::min(dimensions[1], 240 - y);
+        paintCoverageText(tile, *tile.font, "37% Łódź", 30 - x, 60 - y, 0xFFFF,
+            [&](int px, int py) { return tile.background(px, py); });
+        for (int py = 0; py < tile.h; ++py)
+          for (int px = 0; px < tile.w; ++px)
+            assert(tile.pixels[py * 240 + px] == full.pixels[(y + py) * 240 + x + px]);
+      }
+    }
+  }
   canvas.font = builtInCoverageFont(2);
   paintCoverageText(canvas, *canvas.font, "37%", 24, 40, 0xFFFF,
       [&](int x, int y) { return canvas.background(x,y); });

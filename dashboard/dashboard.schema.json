@@ -279,7 +279,22 @@
         "textFlow": {
           "enum": ["default", "overflow", "wrap"],
           "default": "default",
-          "description": "Default fits one line; overflow keeps size outside the text box; wrap breaks text into lines within its area."
+          "description": "Default fits one line or scrolls when marquee is enabled; overflow keeps size outside the text box; wrap breaks text into lines within its area."
+        },
+        "marquee": {
+          "type": "boolean",
+          "description": "Scroll overflowing text inside its box with default text flow. Defaults to enabled for card titles and free-layout text cards."
+        },
+        "marqueeIntervalMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 10000,
+          "default": 100,
+          "description": "Minimum pause between 8-pixel steps in milliseconds. Page transitions pause scrolling."
+        },
+        "marqueeEffect": {
+          "enum": ["bounce", "loop"],
+          "default": "bounce"
         },
         "effectColor": { "$ref": "#/$defs/color" },
         "effectThickness": {

@@ -14,6 +14,7 @@ from homeassistant.components.lovelace.resources import ResourceStorageCollectio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -36,6 +37,7 @@ from .const import (
     SIGNAL_SCENES_UPDATED,
 )
 from .coordinator import MiniDisplayCoordinator
+from .notification import async_register_notification_services
 from .weather import WeatherData, validate_weather
 from .dashboard import (
     DEFAULT_SCENE_ID,
@@ -50,6 +52,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Register frontend assets and integration WebSocket commands once."""
     hass.data.setdefault(DOMAIN, {})
+    async_register_notification_services(hass)
     panel_path = FRONTEND_DIR / "mini-display-panel.js"
     if panel_path.exists():
         await hass.http.async_register_static_paths(
@@ -144,12 +147,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         last_boot_id = boot_id
         hass.async_create_task(dashboard.async_resynchronize())
 
-    entry.async_on_unload(coordinator.async_add_listener(_status_updated))
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "dashboard": dashboard,
     }
-    await dashboard.async_resynchronize()
+    try:
+        await dashboard.async_resynchronize()
+    except MiniDisplayApiError as err:
+        # Failed setup must not leave a sender repeatedly uploading dashboards.
+        dashboard.close()
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        raise ConfigEntryNotReady("Display synchronization will retry") from err
+    entry.async_on_unload(coordinator.async_add_listener(_status_updated))
     await _async_reconcile_scenes(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
@@ -302,6 +311,7 @@ async def websocket_list_displays(hass, connection, msg) -> None:
                 if coordinator
                 else "builtin",
                 "fonts": coordinator.data.get("fonts", []) if coordinator else [],
+                "refresh_rate_hz": coordinator.data.get("refreshRateHz", 60) if coordinator else 60,
             }
         )
     connection.send_result(msg["id"], displays)

@@ -14,11 +14,18 @@ export class DurationField extends LitElement {
   @property({ type: Number }) min = 30;
   @property({ type: Number }) max = 86400;
   @property() label = "Bucket duration";
+  @property({ type: Boolean }) subsecond = false;
   @state() private unit?: number;
+
+  private get unitOptions() {
+    return this.subsecond
+      ? [{ label: "ms", name: "Milliseconds", scale: 0.001 }, units[0]]
+      : units;
+  }
 
   protected willUpdate(_changed: PropertyValues) {
     if (this.unit === undefined)
-      this.unit = [...units].reverse().find(u => this.seconds >= u.scale && this.seconds % u.scale === 0)?.scale ?? 1;
+      this.unit = [...this.unitOptions].reverse().find(u => this.seconds >= u.scale && Number.isInteger(this.seconds / u.scale))?.scale ?? this.unitOptions[0].scale;
   }
 
   static styles = css`
@@ -41,17 +48,18 @@ export class DurationField extends LitElement {
     return html`<label for="duration">${this.label}</label><div class="field">
       <input id="duration" type="number" inputmode="decimal" step="any"
         min=${this.min / scale} max=${this.max / scale}
-        aria-label=${`${this.label} (${units.find(u => u.scale === scale)?.name})`}
+        aria-label=${`${this.label} (${this.unitOptions.find(u => u.scale === scale)?.name})`}
         .value=${String(Number((this.seconds / scale).toFixed(8)))}
         @change=${(event: Event) => {
           const input = event.target as HTMLInputElement;
           if (!input.value || !input.reportValidity()) return;
-          const seconds = Math.round(input.valueAsNumber * scale);
+          const precision = this.subsecond ? 1000 : 1;
+          const seconds = Math.round(input.valueAsNumber * scale * precision) / precision;
           if (!Number.isFinite(seconds) || seconds < this.min || seconds > this.max) return;
           this.dispatchEvent(new CustomEvent("duration-changed", { detail: seconds, bubbles: true, composed: true }));
         }}>
       <div class="units" role="radiogroup" aria-label="Time unit">
-        ${units.map(u => html`<label title=${u.name}><input type="radio" name="unit" aria-label=${u.name}
+        ${this.unitOptions.map(u => html`<label title=${u.name}><input type="radio" name="unit" aria-label=${u.name}
           .checked=${scale === u.scale} @change=${() => { this.unit = u.scale; }}>${u.label}</label>`)}
       </div>
     </div>`;

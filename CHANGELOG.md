@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+- feature: show animated notification overlays
+- feature: send notifications from home assistant
+- feature: configure notification placement
+- feature: stack independently timed notifications
+- feature: configure notification api protection
+- fix: compact dashboard transfers
+- fix: protect wifi memory during notifications
+- feature: pace data with display refresh
+- feature: configure display refresh rate
+- feature: configure marquee effects and timing
+- fix: size scrolling text by height
+- fix: scroll values in both layouts
+- fix: avoid font reloads between animation bands
+- fix: share animation frame scheduling
+- fix: reuse decoded animation image rows
+- fix: block marquee during transitions
+- fix: transfer cropped animation tiles together
+- fix: advance curtain edges together
+- fix: move rendering buffers off stack
+- fix: compose moving transition scenes
+- fix: clip glyph work before rasterizing
+- fix: clip chart fills before rasterizing
+- fix: reuse image row seek positions
+- fix: decode visible image columns
+- feature: control automatic page rotation
+- fix: preserve rotation during navigation
+- fix: align animation tiles and timing
+- fix: preserve cropped image pixels
+- fix: compose animation strips before transfer
+- fix: recompose marquee through scene tiles
+- fix: refresh old and new text bounds
+- feature: cache parsed page definitions
+- feature: step marquee every 100ms
+- fix: preserve display spi configuration
+- fix: defer navigation rendering
+- feature: replace legacy rendering with retained scenes
+- feature: animate retained scenes
+- feature: redraw changed scene regions only
+- fix: index compressed image rows
+- fix: apply mapped text color to titles
 - fix: smooth marquee updates
 - feature: compress image assets
 - feature: synchronize display images

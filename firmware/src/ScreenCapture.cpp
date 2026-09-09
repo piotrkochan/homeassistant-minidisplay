@@ -1,6 +1,7 @@
 #include "ScreenCapture.h"
 
-#include "CachedPagePainter.h"
+#include "ScenePageRenderer.h"
+#include "NotificationPainter.h"
 
 namespace {
 
@@ -71,8 +72,8 @@ bool ScreenCapture::begin() {
 #endif
 }
 
-bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
-                              int8_t offsetY, Print &output) {
+bool ScreenCapture::streamBmp(const ScenePage &page, int8_t offsetX,
+                              int8_t offsetY, Print &output, const NotificationCenter *notifications) {
 #if defined(ESP8266)
   if (!ready_) return false;
   uint8_t header[kBmpHeaderSize]{};
@@ -93,8 +94,9 @@ bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
   for (int16_t bandY = kHeight - kBandHeight; bandY >= 0;
        bandY -= kBandHeight) {
     frame_.fillSprite(page.background);
-    paintCachedPage(frame_, page, offsetX, offsetY - bandY, 0, 0, kWidth,
-                    kBandHeight, fontState_, &imageCache_);
+    paintScenePage(frame_, page, offsetX, offsetY - bandY, 0, 0, kWidth,
+                   kBandHeight, fontState_, &imageCache_);
+    if (notifications) paintNotification(frame_, *notifications, 0, -bandY);
     for (int8_t localY = kBandHeight - 1; localY >= 0; --localY) {
       size_t outputOffset = 0;
       for (uint16_t x = 0; x < kWidth; ++x) {
@@ -116,6 +118,7 @@ bool ScreenCapture::streamBmp(const CachedPage &page, int8_t offsetX,
   (void)offsetX;
   (void)offsetY;
   (void)output;
+  (void)notifications;
   return false;
 #endif
 }

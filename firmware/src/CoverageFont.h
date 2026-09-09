@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #if defined(ESP8266)
+#include <Arduino.h>
 #include <pgmspace.h>
 #endif
 
@@ -86,12 +87,24 @@ void paintCoverageText(Canvas &canvas, const CoverageFont &font, const char *tex
       continue;
     }
     const int16_t left = x + glyph.x, top = baseline + glyph.y;
-    for (int16_t row = 0; row < glyph.height; ++row) {
-      if (top + row < 0 || top + row >= canvas.height()) continue;
+    const int16_t firstRow = top < 0 ? -top : 0;
+    const int16_t lastRow = top + glyph.height > canvas.height()
+                                ? canvas.height() - top : glyph.height;
+    const int16_t firstColumn = left < 0 ? -left : 0;
+    const int16_t lastColumn = left + glyph.width > canvas.width()
+                                   ? canvas.width() - left : glyph.width;
+    if (firstRow >= lastRow || firstColumn >= lastColumn) {
+      x += glyph.advance;
+      continue;
+    }
+#if defined(ESP8266)
+    optimistic_yield(10000);
+#endif
+    for (int16_t row = firstRow; row < lastRow; ++row) {
       int16_t run = 0;
-      for (int16_t column = 0; column <= glyph.width; ++column) {
+      for (int16_t column = firstColumn; column <= lastColumn; ++column) {
         uint8_t alpha = 0;
-        if (column < glyph.width && left + column >= 0 && left + column < canvas.width()) {
+        if (column < lastColumn) {
           const uint32_t pixel = uint32_t(row) * glyph.width + column;
           alpha = (coverageByte(font.pixels + glyph.offset + pixel / 4) >> (6 - 2 * (pixel % 4))) & 3;
         }

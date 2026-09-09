@@ -35,6 +35,7 @@ class MiniDisplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.device_info is None:
                 self.device_info = await self.client.async_get_info()
             status = await self.client.async_get_status()
+            self.client.data_limiter.set_rate(status.get("refreshRateHz"))
             self._update_transport_issue(status)
             status["lastSync"] = datetime.now(UTC)
             return status

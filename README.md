@@ -125,6 +125,9 @@ Data keys need not be HA entity IDs. Your own application can send, for example:
 ```
 
 Bind a card to `"source": "power"`. See [the format and API notes](dashboard/README.md).
+Send temporary [notification overlays](docs/notifications.md) through the local API
+or Home Assistant automations, with a title, message, icon and severity.
+
 Protected endpoints use the configured panel/API credentials. **Keep the display
 on a trusted LAN; HTTPS is currently disabled in the default build.**
 

@@ -1,4 +1,5 @@
 import { html, LitElement, nothing } from "lit";
+import { marqueeEnabled, marqueeMotion } from "./preview-marquee";
 import { property, state } from "lit/decorators.js";
 import type { Dashboard, Hass, ImageAsset } from "./types";
 import type { HistorySeries } from "./graph-preview";
@@ -21,6 +22,7 @@ export class MiniDisplayPreview extends LitElement {
   @property({ type: Boolean }) autoRotate = false;
   @property({ type: Number }) width = 240;
   @property({ type: Number }) height = 240;
+  @property({ type: Number }) refreshRateHz = 60;
   @property() displayId = "";
   @property({ type: Boolean }) interactive = false;
   @property({ type: Boolean }) showHidden = false;
@@ -302,7 +304,7 @@ export class MiniDisplayPreview extends LitElement {
                       contentHeight - this.typography.fontLineHeight(provisionalValueSize),
                     ),
                   );
-                  const titleSize = free ? this.typography.freeFontSize(card.title ?? "", card.titleStyle, titleFrame.width*this.width/100, titleFrame.height*this.height/100) : hasTitle
+                  const titleSize = free ? this.typography.freeFontSize(card.title ?? "", card.titleStyle, titleFrame.width*this.width/100, titleFrame.height*this.height/100, marqueeEnabled(card.titleStyle, true)) : hasTitle
                     ? this.typography.titleFontSize(
                         card,
                         card.title ?? "",
@@ -324,7 +326,7 @@ export class MiniDisplayPreview extends LitElement {
                           Math.max(12, (contentHeight - titleBand) / 4),
                         )
                       : contentHeight - titleBand;
-                  const size = free ? this.typography.freeFontSize(displayValue, card.valueStyle, valueFrame.width*this.width/100, valueFrame.height*this.height/100) : this.typography.valueFontSize(
+                  const size = free ? this.typography.freeFontSize(displayValue, card.valueStyle, valueFrame.width*this.width/100, valueFrame.height*this.height/100, marqueeEnabled(card.valueStyle, card.type === "text")) : this.typography.valueFontSize(
                     card,
                     displayValue,
                     cardWidth,
@@ -397,16 +399,23 @@ export class MiniDisplayPreview extends LitElement {
                     ? Math.max(
                         0,
                         firmwareTextWidth(card.title, titleSize) -
-                          (cardWidth - 10),
+                          (free ? titleFrame.width*this.width/100 - 8 : cardWidth - 8),
                       )
                     : 0;
-                  const titleMarquee = !free &&
-                    (card.titleStyle?.textFlow ?? "default") === "default" &&
-                    titleOverflow > 0 &&
-                    (titleVerticalKey === "top" ||
-                      titleVerticalKey === "bottom");
+                  const titleMarquee = marqueeEnabled(card.titleStyle, true) && titleOverflow > 0;
+                  const valueOverflow = Math.max(0, firmwareTextWidth(displayValue, size) -
+                    (free ? valueFrame.width*this.width/100 - 8 : cardWidth - 8));
+                  const valueMarquee = marqueeEnabled(card.valueStyle, free && card.type === "text") && valueOverflow > 0;
+                  const valueContent = free && ["default", "sans", "sans-bold"].includes(card.valueStyle?.fontFamily ?? "default") && card.valueStyle?.textFlow !== "wrap" && (!card.valueStyle?.textEffect || card.valueStyle.textEffect === "none")
+                      ? html`<mini-display-firmware-text .text=${displayValue} .size=${size} .color=${foreground}></mini-display-firmware-text>`
+                      : displayValue;
+                  const cardTitleColor = colorMapping?.foreground ?? card.titleStyle?.foreground ?? foreground;
+                  const titleContent = ["default","sans","sans-bold"].includes(card.titleStyle?.fontFamily ?? "default") && card.titleStyle?.textFlow !== "wrap" && (!card.titleStyle?.textEffect || card.titleStyle.textEffect === "none")
+                      ? html`<mini-display-firmware-text .text=${card.title ?? ""} .size=${titleSize} .color=${displayColors[cardTitleColor] ?? cardTitleColor}></mini-display-firmware-text>`
+                      : card.title;
                   const value = html`<div
-                    class="value"
+                    class="value ${valueMarquee ? "marquee" : ""}"
+                    ${marqueeMotion(valueMarquee ? (card.valueStyle?.marqueeEffect === "loop" ? firmwareTextWidth(displayValue, size) + 24 : valueOverflow) : 0, card.valueStyle, displayValue, this.refreshRateHz)}
                     .draggable=${this.interactive}
                     style=${`font-family:${family};font-size:${size}px;font-weight:700;${this.typography.textEffectCss(card.valueStyle)};${this.typography.textFlowCss(card.valueStyle,size)}`}
                     @click=${(event: Event) => {
@@ -420,9 +429,8 @@ export class MiniDisplayPreview extends LitElement {
                     @dragstart=${(event: DragEvent) => this.interaction.startDrag(event, { kind: "value", row: rowIndex, card: cardIndex })}
                     @dragend=${() => this.interaction.stopDrag()}
                   >
-                    ${free && ["default", "sans", "sans-bold"].includes(card.valueStyle?.fontFamily ?? "default") && card.valueStyle?.textFlow !== "wrap" && (!card.valueStyle?.textEffect || card.valueStyle.textEffect === "none")
-                      ? html`<mini-display-firmware-text .text=${displayValue} .size=${size} .color=${foreground}></mini-display-firmware-text>`
-                      : displayValue}
+                    <span class="marquee-copy">${valueContent}</span>
+                    ${valueMarquee && card.valueStyle?.marqueeEffect === "loop" ? html`<span class="marquee-copy" aria-hidden="true">${valueContent}</span>` : nothing}
                   </div>`;
                   const textOnlyFrame = free && (page.transparentCards || backgroundMode === "transparent") && !card.graph && card.type !== "image";
                   return html`<div
@@ -455,8 +463,9 @@ export class MiniDisplayPreview extends LitElement {
                             style=${`${titleArea};overflow:${card.titleStyle?.textFlow === "overflow" ? "visible" : "hidden"};align-items:${titleVertical};justify-content:${titleMarquee ? "flex-start" : titleHorizontal};text-align:${titleMarquee ? "left" : (card.titleStyle?.horizontalAlign ?? "left")};font-size:${titleSize}px;line-height:${this.typography.fontLineHeight(titleSize)}px`}
                             ><span
                               class="card-label ${titleMarquee ? "marquee" : ""}"
+                              ${marqueeMotion(titleMarquee ? (card.titleStyle?.marqueeEffect === "loop" ? firmwareTextWidth(card.title ?? "", titleSize) + 24 : titleOverflow) : 0, card.titleStyle, card.title ?? "", this.refreshRateHz)}
                               aria-label=${card.title ?? ""}
-                              style=${`${titleMarquee ? `--marquee-distance:-${titleOverflow}px;--marquee-duration:${Math.max(3, 1.7 + titleOverflow * 0.035)}s;` : ""}${this.typography.textEffectCss(card.titleStyle)};${this.typography.textFlowCss(card.titleStyle,titleSize)}`}
+                              style=${`${this.typography.textEffectCss(card.titleStyle)};${this.typography.textFlowCss(card.titleStyle,titleSize)}`}
                               .draggable=${this.interactive}
                               @click=${(event: Event) => {
                                 event.stopPropagation();
@@ -468,9 +477,8 @@ export class MiniDisplayPreview extends LitElement {
                               }}
                               @dragstart=${(event: DragEvent) => this.interaction.startDrag(event, { kind: "title", row: rowIndex, card: cardIndex })}
                               @dragend=${() => this.interaction.stopDrag()}
-                              >${["default","sans","sans-bold"].includes(card.titleStyle?.fontFamily ?? "default") && card.titleStyle?.textFlow !== "wrap" && (!card.titleStyle?.textEffect || card.titleStyle.textEffect === "none")
-                                ? html`<mini-display-firmware-text .text=${card.title ?? ""} .size=${titleSize} .color=${displayColors[card.titleStyle?.foreground ?? ""] ?? card.titleStyle?.foreground ?? "#d3d3d3"}></mini-display-firmware-text>`
-                                : card.title}</span
+                              ><span class="marquee-copy">${titleContent}</span>
+                              ${titleMarquee && card.titleStyle?.marqueeEffect === "loop" ? html`<span class="marquee-copy" aria-hidden="true">${titleContent}</span>` : nothing}</span
                             >${free && this.interactive ? html`<button class="resize-handle" aria-label="Resize title"></button>` : nothing}</small
                           >`
                         : null
@@ -491,7 +499,7 @@ export class MiniDisplayPreview extends LitElement {
                           : html`<div
                               class="value-wrap"
                               data-part=${free ? "value" : nothing}
-                              style=${`${valueArea};align-items:${vertical};justify-content:${horizontal};text-align:${textAlign}`}
+                              style=${`${valueArea};align-items:${vertical};justify-content:${valueMarquee ? "flex-start" : horizontal};text-align:${textAlign};${valueMarquee ? "overflow:hidden;padding-inline:4px" : ""}`}
                             >
                               ${value}
                               ${free && this.interactive ? html`<button class="resize-handle" aria-label="Resize value"></button>` : nothing}

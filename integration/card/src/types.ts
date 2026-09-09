@@ -14,6 +14,9 @@ export type Style = {
   fontFamily?: "default" | "font1" | "font2";
   fontSize?: "auto" | "small" | "medium" | "large" | "xlarge";
   textFlow?: "default" | "overflow" | "wrap";
+  marquee?: boolean;
+  marqueeIntervalMs?: number;
+  marqueeEffect?: "bounce" | "loop";
   horizontalAlign?: "left" | "center" | "right";
   verticalAlign?: "top" | "middle" | "bottom";
   textEffect?: "none" | "shadow" | "outline";
@@ -192,6 +195,7 @@ export type Display = {
   width: number;
   height: number;
   default_font: "builtin" | "font1" | "font2";
+  refresh_rate_hz?: number;
   fonts: { id: "font1" | "font2"; installed: boolean; name: string }[];
 };
 export type Scene = { id: string; name: string; is_default: boolean };

@@ -15,15 +15,15 @@ inline String weatherDescription(uint8_t condition, bool polish) {
   return String(FPSTR(polish ? translated[condition] : english[condition]));
 }
 
-template <typename FindValue, typename CacheLine, typename CacheIcon>
-bool cacheWeatherContent(JsonObjectConst card, int16_t x, int16_t y,
+template <typename FindValue, typename AddLine, typename AddIcon>
+bool compileWeatherContent(JsonObjectConst card, int16_t x, int16_t y,
                          int16_t width, int16_t height,
-                         FindValue findValue, CacheLine cacheLine, CacheIcon cacheIcon) {
+                         FindValue findValue, AddLine addLine, AddIcon addIcon) {
   JsonObjectConst settings = card["weather"];
   JsonArrayConst fields = settings["fields"];
   JsonArrayConst sources = settings["sources"];
   const uint8_t count = min<size_t>(5, sources.size());
-  if (!count) return cacheLine("--", x, y, width, height);
+  if (!count) return addLine("--", x, y, width, height);
   const bool polish = strcmp(settings["language"] | "en", "pl") == 0;
   const auto enabled = [&](const char *name) {
     if (fields.isNull()) return strcmp(name,"icon")==0 || strcmp(name,"condition")==0 || strcmp(name,"temperature")==0;
@@ -54,7 +54,7 @@ bool cacheWeatherContent(JsonObjectConst card, int16_t x, int16_t y,
       if (maxSize >= 24) {
         const int16_t iconX = beside && lineCount ? left+size/2 : left+cellWidth/2;
         const int16_t iconY = beside || !lineCount ? y+height/2 : y+size/2;
-        if (!cacheIcon(value.available ? value.condition : 15, size, iconX, iconY,
+        if (!addIcon(value.available ? value.condition : 15, size, iconX, iconY,
                        strcmp(settings["iconStyle"] | "color", "mono") != 0)) return false;
         if (lineCount) {
           if (beside) { textX += size+2; textWidth -= size+2; }
@@ -65,7 +65,7 @@ bool cacheWeatherContent(JsonObjectConst card, int16_t x, int16_t y,
     for (uint8_t line = 0; line < lineCount; ++line) {
       const int16_t top = textY + int32_t(line) * textHeight / lineCount;
       const int16_t bottom = textY + int32_t(line+1) * textHeight / lineCount;
-      if (bottom > top && !cacheLine(lines[line], textX, top, textWidth, bottom-top)) return false;
+      if (bottom > top && !addLine(lines[line], textX, top, textWidth, bottom-top)) return false;
     }
   }
   return true;

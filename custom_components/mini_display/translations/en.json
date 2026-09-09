@@ -1,4 +1,32 @@
 {
+  "entity": {
+    "select": {
+      "notification_position": {
+        "name": "Notification position",
+        "state": {"top": "Top", "bottom": "Bottom", "left": "Left", "right": "Right", "top_left": "Top left", "top_right": "Top right", "bottom_left": "Bottom left", "bottom_right": "Bottom right"}
+      }
+    }
+  },
+  "services": {
+    "notify": {
+      "name": "Show notification",
+      "description": "Show a temporary message above the dashboard without changing its scene",
+      "fields": {
+        "device_id": {"name": "Display", "description": "Mini-Display that should show the message"},
+        "title": {"name": "Title", "description": "Optional heading up to 96 UTF-8 bytes"},
+        "message": {"name": "Message", "description": "Text up to 384 UTF-8 bytes. Provide a title or message"},
+        "icon": {"name": "Icon", "description": "Auto chooses an icon matching severity"},
+        "severity": {"name": "Severity", "description": "Controls the accent color and default icon"},
+        "duration": {"name": "Duration", "description": "Seconds visible before dismissal"},
+        "position": {"name": "Position", "description": "Leave empty for the display default. Small screens support top and bottom"}
+      }
+    },
+    "dismiss_notifications": {
+      "name": "Dismiss notifications",
+      "description": "Remove all visible and waiting notifications from one display",
+      "fields": {"device_id": {"name": "Display", "description": "Mini-Display whose notifications should be dismissed"}}
+    }
+  },
   "config": {
     "step": {
       "user": {

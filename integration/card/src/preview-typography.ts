@@ -1,6 +1,7 @@
 import type { Dashboard, Style } from "./types";
 import { firmwareFontHeight, firmwareTextWidth } from "./firmware-text";
 import { displayColors } from "./color-field";
+import { marqueeEnabled } from "./preview-marquee";
 
 export class PreviewTypography {
   valueFontSize(
@@ -34,7 +35,7 @@ export class PreviewTypography {
       return sizes[requested === "auto" ? Math.min(index, 1) : index];
     while (index > 0) {
       if (lineHeights[index] <= height) {
-        if (firmwareTextWidth(value, sizes[index]) <= width - 6) break;
+        if (marqueeEnabled(card.valueStyle) || firmwareTextWidth(value, sizes[index]) <= width - 6) break;
       }
       index -= 1;
     }
@@ -67,7 +68,7 @@ export class PreviewTypography {
     );
     for (const size of candidates) {
       if (this.fontLineHeight(size) > height) continue;
-      if (firmwareTextWidth(title, size) <= width - 6) return size;
+      if (marqueeEnabled(card.titleStyle, true) || firmwareTextWidth(title, size) <= width - 6) return size;
     }
     return builtIn ? 13 : 18;
   }
@@ -77,6 +78,7 @@ export class PreviewTypography {
     style: Style | undefined,
     width: number,
     height: number,
+    scroll = false,
   ) {
     const builtIn = ["default", "sans", "sans-bold"].includes(
       style?.fontFamily ?? "default",
@@ -85,7 +87,7 @@ export class PreviewTypography {
       [48, 36, 24, 18, ...(builtIn ? [13] : [])].find(
         (size) =>
           this.fontLineHeight(size) <= height &&
-          firmwareTextWidth(text, size) <= width - 8,
+          (scroll || style?.textFlow === "overflow" || firmwareTextWidth(text, size) <= width - 8),
       ) ?? (builtIn ? 13 : 18)
     );
   }
