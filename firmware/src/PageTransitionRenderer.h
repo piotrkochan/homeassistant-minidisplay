@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 
 #include "DisplayCompat.h"
+#include "DisplayScrollBuffer.h"
 #include "PageTransitionTypes.h"
 #include "ScenePage.h"
 #include "SceneRegionPainter.h"
@@ -17,7 +18,8 @@ class PageTransitionRenderer {
   PageTransitionRenderer(MiniDisplay &display, bool &displayOn,
                          uint8_t &displayBrightness,
                          ApplyBacklight applyBacklight,
-                         FontRenderState &displayFontState);
+                         FontRenderState &displayFontState,
+                         DisplayScrollBuffer &scrollBuffer);
 
   static bool parse(JsonVariantConst value, PageTransitionConfig &result);
 
@@ -33,6 +35,7 @@ class PageTransitionRenderer {
   uint8_t &displayBrightness_;
   ApplyBacklight applyBacklight_;
   FontRenderState &displayFontState_;
+  DisplayScrollBuffer &scrollBuffer_;
   ImageAssetRenderCache imageCache_;
 #if defined(ESP8266)
   std::unique_ptr<SceneRegionPainter> regionPainter_;

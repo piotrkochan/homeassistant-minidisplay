@@ -114,12 +114,14 @@ RuntimeProfilePoint frameProfilePoint(PageTransitionType type) {
 
 PageTransitionRenderer::PageTransitionRenderer(
     MiniDisplay &display, bool &displayOn, uint8_t &displayBrightness,
-    ApplyBacklight applyBacklight, FontRenderState &displayFontState)
+    ApplyBacklight applyBacklight, FontRenderState &displayFontState,
+    DisplayScrollBuffer &scrollBuffer)
     : display_(display),
       displayOn_(displayOn),
       displayBrightness_(displayBrightness),
       applyBacklight_(applyBacklight),
-      displayFontState_(displayFontState) {}
+      displayFontState_(displayFontState),
+      scrollBuffer_(scrollBuffer) {}
 
 const char *PageTransitionRenderer::lastTypeName() const {
   switch (lastType_) {
@@ -186,6 +188,13 @@ void PageTransitionRenderer::render(
     previousType = type;
     selected.type = kTypes[type];
     selected.direction = static_cast<PageTransitionDirection>((entropy / 5) % 4);
+    // The ST7789 can move its 240-row viewport through 320 rows of GRAM.
+    // Prefer that real zero-copy path for randomly selected push effects.
+    if (selected.type == PageTransitionType::Slide ||
+        selected.type == PageTransitionType::Bounce) {
+      selected.direction = (entropy & 1U) ? PageTransitionDirection::Up
+                                          : PageTransitionDirection::Down;
+    }
     selected.intensity = static_cast<PageTransitionIntensity>((entropy / 20) % 2);
     selected.tileSize = kTileSizes[(entropy / 40) % 3];
   }
@@ -206,8 +215,15 @@ void PageTransitionRenderer::render(
   RuntimeProfileScope transitionTypeScope(transitionProfile);
 #endif
 #if defined(ESP8266)
+  const bool hardwareScroll =
+      (selected.type == PageTransitionType::Slide ||
+       selected.type == PageTransitionType::Bounce) &&
+      (selected.direction == PageTransitionDirection::Up ||
+       selected.direction == PageTransitionDirection::Down);
   constexpr bool motion = false;
-  regionPainter_.reset(new (std::nothrow) SceneRegionPainter(display_));
+  scrollBuffer_.begin();
+  regionPainter_.reset(
+      new (std::nothrow) SceneRegionPainter(display_, scrollBuffer_));
   if (!regionPainter_ || !regionPainter_->begin(motion)) {
     regionPainter_.reset();
     lastType_ = PageTransitionType::None;
@@ -237,6 +253,8 @@ void PageTransitionRenderer::render(
   SceneAnimationTimeline timeline;
   timeline.start(millis(), durationMs, frameCount);
   uint8_t previous = 0;
+  uint16_t previousMovement = 0;
+  const uint16_t baseScrollOffset = scrollBuffer_.offset();
   while (timeline.active()) {
     SceneAnimationFrame frame;
     if (!timeline.next(millis(), frame)) {
@@ -257,7 +275,36 @@ void PageTransitionRenderer::render(
       RuntimeProfileScope transitionFrameTypeScope(
           frameProfilePoint(selected.type));
 #endif
-      if (motion && frame.index == frame.count) {
+      if (hardwareScroll) {
+        const uint16_t movement = min<uint16_t>(
+            240, static_cast<uint16_t>(240.0F * pageMotionProgress(
+                frame.progress(),
+                selected.type == PageTransitionType::Bounce, true,
+                selected.intensity)));
+        if (movement > previousMovement) {
+          const int16_t rows = movement - previousMovement;
+          int16_t sourceY;
+          uint16_t physicalY;
+          if (selected.direction == PageTransitionDirection::Up) {
+            sourceY = previousMovement;
+            physicalY =
+                (baseScrollOffset + 240 + previousMovement) % 320;
+          } else {
+            sourceY = 240 - movement;
+            physicalY =
+                (baseScrollOffset + 320 - movement) % 320;
+          }
+          regionPainter_->paintNextRowsPhysical(
+              nextPage, sourceY, rows, physicalY, contentOffsetX,
+              contentOffsetY, imageCache_);
+        }
+        const uint16_t nextOffset =
+            selected.direction == PageTransitionDirection::Up
+                ? (baseScrollOffset + movement) % 320
+                : (baseScrollOffset + 320 - movement) % 320;
+        scrollBuffer_.setOffset(nextOffset);
+        previousMovement = movement;
+      } else if (motion && frame.index == frame.count) {
         // Release large motion scratch before loading full-quality glyphs.
         // Final page uses normal renderer; no transition state remains visible.
         regionPainter_.reset();

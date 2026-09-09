@@ -30,6 +30,7 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
+#include "DisplayScrollBuffer.h"
 #include "NotificationPainter.h"
 #include "ApiAccessPolicy.h"
 #include "DashboardPageLoader.h"
@@ -209,6 +210,7 @@ JsonStreamWriter<HttpChunkSink> jsonStreamWriter(httpChunkSink);
 TlsCertificateManager tlsCertificates;
 #endif
 MiniDisplay display;
+DisplayScrollBuffer displayScrollBuffer(display);
 SceneRenderScheduler<> sceneScheduler(240, 240, kSceneUpdateBandHeight);
 std::unique_ptr<ScenePage> activeScene;
 bool activeSceneReady = false;
@@ -2050,7 +2052,9 @@ bool renderPendingScene(const ScenePage &scene) {
       }
       {
         MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SpiTransfer);
-        band.pushSprite(0, tile.y);
+        displayScrollBuffer.pushLogical(
+            0, tile.y, 240, kSceneUpdateBandHeight,
+            static_cast<uint16_t *>(band.getPointer()));
       }
       yield();
     }
@@ -2117,7 +2121,9 @@ void updateNotifications() {
               painter->band.drawString("WAITING FOR DASHBOARD", 120, 135 - y, 2);
             }
             paintNotification(painter->band, notifications, 0, -y);
-            painter->band.pushSprite(0, y);
+            displayScrollBuffer.pushLogical(
+                0, y, 240, kSceneUpdateBandHeight,
+                static_cast<uint16_t *>(painter->band.getPointer()));
             yield();
           }
           displayRefresh.completed(millis());
@@ -2313,7 +2319,8 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   }
   std::unique_ptr<PageTransitionRenderer> renderer(
       new (std::nothrow) PageTransitionRenderer(
-          display, displayOn, displayBrightness, applyBacklight, displayFontState));
+          display, displayOn, displayBrightness, applyBacklight,
+          displayFontState, displayScrollBuffer));
   if (!renderer) {
     nextPage.reset();
     showWithoutTransition();

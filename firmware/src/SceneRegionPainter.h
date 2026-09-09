@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ScenePageRenderer.h"
+#include "DisplayScrollBuffer.h"
 #include "RuntimeProfiler.h"
 #include "TransitionPlan.h"
 #include "TransitionPixelTransfer.h"
@@ -13,7 +14,8 @@ constexpr uint32_t kTransitionHeapReserve = 11000;
 // A band is scratch space, not a separate animation with its own timeline.
 class SceneRegionPainter {
  public:
-  explicit SceneRegionPainter(MiniDisplay &display) : display_(display), tile_(&display) {}
+  SceneRegionPainter(MiniDisplay &display, DisplayScrollBuffer &scroll)
+      : display_(display), scroll_(scroll), tile_(&display) {}
   ~SceneRegionPainter() {
     if (tile_.fontLoaded) tile_.unloadFont();
     tile_.deleteSprite();
@@ -83,19 +85,44 @@ class SceneRegionPainter {
     }
   }
 
+  void paintNextRowsPhysical(const ScenePage &page, int16_t sourceY,
+                             int16_t height, uint16_t physicalY,
+                             int16_t offsetX, int16_t offsetY,
+                             ImageAssetRenderCache &images) {
+    if (sourceY < 0 || height <= 0 || sourceY + height > 240) return;
+    for (int16_t row = 0; row < height; row += bandHeight_) {
+      const int16_t rows = min<int16_t>(bandHeight_, height - row);
+      tile_.resetViewport();
+      tile_.setViewport(0, 0, 240, rows, false);
+      tile_.fillRect(0, 0, 240, rows, page.background);
+      paintScenePage(tile_, page, offsetX,
+                     offsetY - sourceY - row, 0, 0, 240, rows,
+                     font_, &images, ScenePaintQuality::Full);
+      tile_.resetViewport();
+      transferPhysical(0, (physicalY + row) % 320, 240, rows);
+    }
+  }
+
  private:
   void transfer(int16_t x, int16_t y, int16_t width, int16_t height) {
     MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SpiTransfer);
     auto *pixels = static_cast<uint16_t *>(tile_.getPointer());
     if (!packTransitionPixels(
             pixels, 240 * bandHeight_, 240, width, height)) return;
-    const bool swapped = display_.getSwapBytes();
-    display_.setSwapBytes(false);
-    display_.pushImage(x, y, width, height, pixels);
-    display_.setSwapBytes(swapped);
+    scroll_.pushLogical(x, y, width, height, pixels);
+  }
+
+  void transferPhysical(int16_t x, uint16_t y, int16_t width,
+                        int16_t height) {
+    MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SpiTransfer);
+    auto *pixels = static_cast<uint16_t *>(tile_.getPointer());
+    if (!packTransitionPixels(
+            pixels, 240 * bandHeight_, 240, width, height)) return;
+    scroll_.pushPhysical(x, y, width, height, pixels);
   }
 
   MiniDisplay &display_;
+  DisplayScrollBuffer &scroll_;
   TFT_eSprite tile_;
   FontRenderState font_;
   int16_t bandHeight_ = kMinimumTransitionBandHeight;
