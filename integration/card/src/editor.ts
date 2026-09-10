@@ -3305,8 +3305,8 @@ export class MiniDisplayEditor extends LitElement {
                   </div>
                   <mini-display-value-transform-editor
                     .value=${card.valueTransform}
-                    @value-transform-changed=${(event: CustomEvent) => {
-                      card.valueTransform = event.detail;
+                    .onValueChange=${(value: DisplayCard["valueTransform"]) => {
+                      card.valueTransform = value;
                       this.changed();
                     }}
                   ></mini-display-value-transform-editor>

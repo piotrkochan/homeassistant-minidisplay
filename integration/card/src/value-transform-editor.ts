@@ -5,6 +5,9 @@ import type { NumberValueTransform } from "./types";
 @customElement("mini-display-value-transform-editor")
 export class ValueTransformEditor extends LitElement {
   @property({ attribute: false }) value?: NumberValueTransform;
+  @property({ attribute: false }) onValueChange?: (
+    value: NumberValueTransform | undefined,
+  ) => void;
 
   static styles = css`
     :host { display:block; color:var(--primary-text-color); font:inherit; }
@@ -26,11 +29,7 @@ export class ValueTransformEditor extends LitElement {
     for (const key of Object.keys(next) as (keyof NumberValueTransform)[]) {
       if (next[key] === undefined) delete next[key];
     }
-    this.dispatchEvent(new CustomEvent("value-transform-changed", {
-      detail: Object.keys(next).length ? next : undefined,
-      bubbles: true,
-      composed: true,
-    }));
+    this.onValueChange?.(Object.keys(next).length ? next : undefined);
   }
 
   private number(
@@ -41,7 +40,7 @@ export class ValueTransformEditor extends LitElement {
     const value = this.value?.[key];
     return html`<label>${label}<input type="number" step="any"
       placeholder=${placeholder} .value=${value === undefined ? "" : String(value)}
-      @change=${(event: Event) => {
+      @input=${(event: Event) => {
         const input = event.target as HTMLInputElement;
         this.patch({ [key]: input.value === "" ? undefined : input.valueAsNumber });
       }}></label>`;
@@ -51,7 +50,7 @@ export class ValueTransformEditor extends LitElement {
     const absolute = this.value?.absolute ?? false;
     return html`<div class="grid">
       <label>Precision<select
-        @change=${(event: Event) => {
+        @input=${(event: Event) => {
           const value = (event.target as HTMLSelectElement).value;
           this.patch({ precision: value === "source" ? undefined : Number(value) });
         }}>

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: persist value transformers
 - fix: hide free layout coordinates
 - feature: transform numeric values
 - fix: stack schema on mobile

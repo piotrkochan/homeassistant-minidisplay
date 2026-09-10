@@ -4345,17 +4345,13 @@ var Jt = class extends F {
 			...e
 		};
 		for (let e of Object.keys(t)) t[e] === void 0 && delete t[e];
-		this.dispatchEvent(new CustomEvent("value-transform-changed", {
-			detail: Object.keys(t).length ? t : void 0,
-			bubbles: !0,
-			composed: !0
-		}));
+		this.onValueChange?.(Object.keys(t).length ? t : void 0);
 	}
 	number(e, t, n) {
 		let r = this.value?.[t];
 		return D`<label>${e}<input type="number" step="any"
       placeholder=${n} .value=${r === void 0 ? "" : String(r)}
-      @change=${(e) => {
+      @input=${(e) => {
 			let n = e.target;
 			this.patch({ [t]: n.value === "" ? void 0 : n.valueAsNumber });
 		}}></label>`;
@@ -4364,7 +4360,7 @@ var Jt = class extends F {
 		let e = this.value?.absolute ?? !1;
 		return D`<div class="grid">
       <label>Precision<select
-        @change=${(e) => {
+        @input=${(e) => {
 			let t = e.target.value;
 			this.patch({ precision: t === "source" ? void 0 : Number(t) });
 		}}>
@@ -4393,7 +4389,7 @@ var Jt = class extends F {
     </div>`;
 	}
 };
-z([L({ attribute: !1 })], Jt.prototype, "value", void 0), Jt = z([I("mini-display-value-transform-editor")], Jt);
+z([L({ attribute: !1 })], Jt.prototype, "value", void 0), z([L({ attribute: !1 })], Jt.prototype, "onValueChange", void 0), Jt = z([I("mini-display-value-transform-editor")], Jt);
 //#endregion
 //#region src/editor.ts
 var $ = class extends F {
@@ -7129,8 +7125,8 @@ var $ = class extends F {
                   </div>
                   <mini-display-value-transform-editor
                     .value=${e.valueTransform}
-                    @value-transform-changed=${(t) => {
-			e.valueTransform = t.detail, this.changed();
+                    .onValueChange=${(t) => {
+			e.valueTransform = t, this.changed();
 		}}
                   ></mini-display-value-transform-editor>
                 </section>` : A}
