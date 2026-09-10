@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <ctype.h>
-#include <EEPROM.h>
 #include <memory>
 #include <new>
-#include "FreeTextSizing.h"
+#include "DeviceSettings.h"
+#include "DashboardValues.h"
+#include "CardValue.h"
 #include "MarqueeState.h"
 #include "DisplayRefresh.h"
 #include "NotificationRequest.h"
-#include "NumberTransform.h"
 #include "FeatureFlags.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
@@ -31,6 +30,7 @@
 #include <LittleFS.h>
 #include <WiFiUdp.h>
 #include "DisplayCompat.h"
+#include "DisplayFonts.h"
 #include "DisplayScrollBuffer.h"
 #include "NotificationPainter.h"
 #include "ApiAccessPolicy.h"
@@ -41,43 +41,28 @@
 #include "GraphHistory.h"
 #include "DisplayDataResponse.h"
 #include "JsonStreamWriter.h"
-#include "WeatherCardRenderer.h"
-#include "fonts/WeatherGlyphs.h"
 #include "ScenePageRenderer.h"
+#include "ScenePageCompiler.h"
+#include "SceneTextCompiler.h"
 #include "SceneUpdatePainter.h"
-#include "TextFlow.h"
 #include "FreeTextFrame.h"
 #include "ImageAssetApi.h"
 #include "PageTransitionRenderer.h"
-#include "ProgressRenderer.h"
 #include "ScreenCapture.h"
 #include "SceneLayout.h"
+#include "SceneCompileFailure.h"
 #include "SceneRenderScheduler.h"
+#include "StartupScreens.h"
 #include "TextEffect.h"
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
 #include "TlsCertificateManager.h"
 #endif
 #include "UserFonts.h"
 #include "WebAssets.generated.h"
-#include "fonts/InterTightCompact13.h"
-#include "fonts/InterTightBold18.h"
-#include "fonts/InterTightBold24.h"
-#include "fonts/InterTightBold36.h"
-#include "fonts/InterTightBold48.h"
-#include "fonts/InterTightSmooth.h"
-
-StaticSmoothFont notificationTitleFont() { return indexedSmoothFont(InterTightSmooth24); }
-StaticSmoothFont notificationBodyFont() { return indexedSmoothFont(InterTightSmooth18); }
 
 namespace {
 
-constexpr uint32_t kLegacyConfigMagic = 0x53445031;
-constexpr uint32_t kV2ConfigMagic = 0x53445032;
-constexpr uint32_t kV3ConfigMagic = 0x53445033;
-constexpr uint32_t kConfigMagic = 0x53445034;
-constexpr size_t kEepromSize = 512;
 constexpr uint32_t kConnectTimeoutMs = 20000;
-constexpr uint8_t kDefaultWifiRetryLimit = 3;
 #ifndef MINI_DISPLAY_VERSION
 #define MINI_DISPLAY_VERSION "0.3.0-dev"
 #endif
@@ -103,88 +88,19 @@ constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
 constexpr char kDisplaySettingsPath[] = "/display.json";
 constexpr char kDisplaySettingsTempPath[] = "/display.tmp";
-constexpr char kNetworkSettingsPath[] = "/network.json";
-constexpr char kNetworkSettingsTempPath[] = "/network.tmp";
 constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
-constexpr uint8_t kMaxValues = 32;
 constexpr uint8_t kMaxPixelShift = 10;
 constexpr uint32_t kPixelShiftIntervalMs = 60000;
 constexpr uint32_t kDiagnosticsCaptureTimeoutMs = 15000;
-constexpr char kDefaultTimezone[] = "CET-1CEST,M3.5.0,M10.5.0/3";
-constexpr char kDefaultNtpServer[] = "pool.ntp.org";
 constexpr uint8_t kExtendLeft = 1U << 0;
 constexpr uint8_t kExtendRight = 1U << 1;
 constexpr uint8_t kExtendTop = 1U << 2;
 constexpr uint8_t kExtendBottom = 1U << 3;
 
-struct LegacyDeviceConfig {
-  uint32_t magic;
-  char ssid[33];
-  char wifiPassword[65];
-  char otaPassword[33];
-  uint32_t checksum;
-};
-
-struct DeviceConfig {
-  uint32_t magic;
-  char ssid[33];
-  char wifiPassword[65];
-  char apiPassword[33];
-  char otaPassword[33];
-  char hostname[33];
-  char username[33];
-  uint8_t apiAuthEnabled;
-  uint8_t otaAuthEnabled;
-  uint8_t wifiRetryLimit;
-  uint8_t resetApiAuthOnRecovery;
-  uint8_t directOtaEnabled;
-  uint8_t reserved[3];
-  uint32_t checksum;
-};
-
-struct V3DeviceConfig {
-  uint32_t magic;
-  char ssid[33];
-  char wifiPassword[65];
-  char apiPassword[33];
-  char otaPassword[33];
-  char hostname[33];
-  uint8_t apiAuthEnabled;
-  uint8_t otaAuthEnabled;
-  uint8_t wifiRetryLimit;
-  uint8_t resetApiAuthOnRecovery;
-  uint8_t directOtaEnabled;
-  uint8_t reserved[3];
-  uint32_t checksum;
-};
-
-struct V2DeviceConfig {
-  uint32_t magic;
-  char ssid[33];
-  char wifiPassword[65];
-  char apiPassword[33];
-  char otaPassword[33];
-  char hostname[33];
-  uint8_t apiAuthEnabled;
-  uint8_t otaAuthEnabled;
-  uint8_t wifiRetryLimit;
-  uint8_t resetApiAuthOnRecovery;
-  uint32_t checksum;
-};
-
-struct NetworkSettings {
-  char recoveryPassword[64];
-  char ntpServer[64] = "pool.ntp.org";
-  char staticIp[16];
-  char gateway[16];
-  char subnet[16];
-  char dns1[16];
-  char dns2[16];
-  bool staticIpEnabled;
-  bool ntpFromDhcp;
-};
+void drawStartupText(const String &text, int16_t y, uint8_t font,
+                     uint16_t color);
 
 DeviceConfig config{};
 NetworkSettings networkSettings{};
@@ -221,13 +137,8 @@ uint32_t connectStartedAt = 0;
 uint8_t wifiAttemptCount = 0;
 bool wifiWasConnected = false;
 bool accessPointRunning = false;
-uint8_t setupStationCount = UINT8_MAX;
-uint32_t setupScreenUpdatedAt = 0;
 bool startupSequenceActive = true;
 uint32_t startupConnectedAt = 0;
-uint32_t startupScreenUpdatedAt = 0;
-uint8_t startupCountdownShown = UINT8_MAX;
-bool connectionScreenVisible = false;
 uint32_t reconnectCount = 0;
 wl_status_t lastDisconnectStatus = WL_IDLE_STATUS;
 bool routesReady = false;
@@ -245,6 +156,7 @@ uint32_t notificationPaintedRevision = 0;
 uint32_t notificationFrameAt = 0;
 char displayTimezone[64] = "CET-1CEST,M3.5.0,M10.5.0/3";
 FontRenderState displayFontState;
+StartupScreens startupScreens(display, drawStartupText);
 int8_t pixelShiftX = 0;
 int8_t pixelShiftY = 0;
 uint32_t pixelShiftAt = 0;
@@ -266,16 +178,8 @@ DashboardPage dashboardPages[kMaxPages]{};
 uint8_t dashboardPageCount = 0;
 DashboardPageLoader pageDefinition;
 
-struct DashboardValue {
-  char *source;
-  uint32_t sourceHash;
-  uint32_t sourceCheck;
-  char state[49];
-  bool available;
-};
-
-DashboardValue dashboardValues[kMaxValues]{};
-uint8_t dashboardValueCount = 0;
+DashboardValues dashboardValues;
+CardValueResolver cardValues(dashboardValues);
 uint32_t pendingChangedValues = 0;
 uint32_t transitionDeferredValues = 0;
 bool pageTransitionActive = false;
@@ -303,21 +207,13 @@ enum class RenderFailure : uint8_t {
   SceneCompilation,
 };
 
-enum class SceneCompileFailure : uint8_t {
-  None,
-  Allocation,
-  CardLimit,
-  TextLimit,
-  TextPool,
-  Weather,
-  Value,
-  Title,
-  EmptyRows,
-  EmptyRow,
-};
-
 RenderFailure lastRenderFailure = RenderFailure::None;
 SceneCompileFailure lastSceneCompileFailure = SceneCompileFailure::None;
+SceneTextCompiler sceneText(display, displayFontState, cardValues,
+                            lastSceneCompileFailure);
+ScenePageCompiler sceneCompiler(display, sceneText, dashboardValues,
+                                cardValues, graphHistory,
+                                lastSceneCompileFailure);
 
 const char *renderFailureName() {
   switch (lastRenderFailure) {
@@ -332,21 +228,6 @@ const char *renderFailureName() {
   return "unknown";
 }
 
-const char *sceneCompileFailureName() {
-  switch (lastSceneCompileFailure) {
-    case SceneCompileFailure::None: return "none";
-    case SceneCompileFailure::Allocation: return "allocation";
-    case SceneCompileFailure::CardLimit: return "card_limit";
-    case SceneCompileFailure::TextLimit: return "text_limit";
-    case SceneCompileFailure::TextPool: return "text_pool";
-    case SceneCompileFailure::Weather: return "weather";
-    case SceneCompileFailure::Value: return "value";
-    case SceneCompileFailure::Title: return "title";
-    case SceneCompileFailure::EmptyRows: return "empty_rows";
-    case SceneCompileFailure::EmptyRow: return "empty_row";
-  }
-  return "unknown";
-}
 #if defined(ESP8266)
 char lastResetReason[48]{};
 #endif
@@ -436,13 +317,7 @@ void saveDisplaySettings() {
 }
 
 bool timezoneValid(const char *value) {
-  const size_t length = strlen(value);
-  if (length == 0 || length >= sizeof(displayTimezone)) return false;
-  for (size_t index = 0; index < length; ++index) {
-    const unsigned char character = value[index];
-    if (character < 0x20 || character > 0x7e) return false;
-  }
-  return true;
+  return ::timezoneValid(value, sizeof(displayTimezone));
 }
 
 void applyTimezone() {
@@ -451,313 +326,47 @@ void applyTimezone() {
 }
 
 void loadNetworkSettings() {
-  if (!filesystemReady || !LittleFS.exists(kNetworkSettingsPath)) return;
-  File file = LittleFS.open(kNetworkSettingsPath, "r");
-  if (!file) return;
-  StaticJsonDocument<512> document;
-  const auto error = deserializeJson(document, file);
-  file.close();
-  if (error) return;
-  strlcpy(networkSettings.recoveryPassword,
-          document["recoveryPassword"] | "",
-          sizeof(networkSettings.recoveryPassword));
-  strlcpy(networkSettings.ntpServer,
-          document["ntpServer"] | kDefaultNtpServer,
-          sizeof(networkSettings.ntpServer));
-  strlcpy(networkSettings.staticIp, document["staticIp"] | "",
-          sizeof(networkSettings.staticIp));
-  strlcpy(networkSettings.gateway, document["gateway"] | "",
-          sizeof(networkSettings.gateway));
-  strlcpy(networkSettings.subnet, document["subnet"] | "",
-          sizeof(networkSettings.subnet));
-  strlcpy(networkSettings.dns1, document["dns1"] | "",
-          sizeof(networkSettings.dns1));
-  strlcpy(networkSettings.dns2, document["dns2"] | "",
-          sizeof(networkSettings.dns2));
-  networkSettings.staticIpEnabled = document["staticIpEnabled"] | false;
-  networkSettings.ntpFromDhcp = document["ntpFromDhcp"] | false;
+  ::loadNetworkSettings(networkSettings, filesystemReady);
 }
 
 bool saveNetworkSettings() {
-  if (!filesystemReady) return false;
-  File file = LittleFS.open(kNetworkSettingsTempPath, "w");
-  if (!file) return false;
-  StaticJsonDocument<512> document;
-  document["recoveryPassword"] = networkSettings.recoveryPassword;
-  document["ntpServer"] = networkSettings.ntpServer;
-  document["ntpFromDhcp"] = networkSettings.ntpFromDhcp;
-  document["staticIpEnabled"] = networkSettings.staticIpEnabled;
-  document["staticIp"] = networkSettings.staticIp;
-  document["gateway"] = networkSettings.gateway;
-  document["subnet"] = networkSettings.subnet;
-  document["dns1"] = networkSettings.dns1;
-  document["dns2"] = networkSettings.dns2;
-  if (serializeJson(document, file) == 0) {
-    file.close();
-    LittleFS.remove(kNetworkSettingsTempPath);
-    return false;
-  }
-  file.close();
-  LittleFS.remove(kNetworkSettingsPath);
-  return LittleFS.rename(kNetworkSettingsTempPath, kNetworkSettingsPath);
-}
-
-bool ipv4Valid(const char *value, bool required) {
-  if (!value[0]) return !required;
-  IPAddress address;
-  return address.fromString(value);
-}
-
-bool ntpServerValid(const char *value) {
-  const size_t length = strlen(value);
-  if (length == 0 || length >= sizeof(networkSettings.ntpServer)) return false;
-  for (size_t index = 0; index < length; ++index) {
-    const unsigned char character = value[index];
-    if (!isalnum(character) && character != '.' && character != '-' &&
-        character != ':' && character != '_') {
-      return false;
-    }
-  }
-  return true;
+  return ::saveNetworkSettings(networkSettings, filesystemReady);
 }
 
 bool networkExtrasValid(const JsonDocument &document) {
-  const bool recoveryPasswordEnabled =
-      document["recoveryPasswordEnabled"] |
-      (networkSettings.recoveryPassword[0] != '\0');
-  const char *recoveryPassword = document["recoveryPassword"] | "";
-  const size_t nextRecoveryPasswordLength =
-      recoveryPassword[0] ? strlen(recoveryPassword)
-                          : strlen(networkSettings.recoveryPassword);
-  const bool staticIpEnabled =
-      document["staticIpEnabled"] | networkSettings.staticIpEnabled;
-  const bool ntpFromDhcp =
-      document["ntpFromDhcp"] | networkSettings.ntpFromDhcp;
-  const char *ntpServer = document["ntpServer"] | networkSettings.ntpServer;
-  const char *staticIp = document["staticIp"] | networkSettings.staticIp;
-  const char *gateway = document["gateway"] | networkSettings.gateway;
-  const char *subnet = document["subnet"] | networkSettings.subnet;
-  const char *dns1 = document["dns1"] | networkSettings.dns1;
-  const char *dns2 = document["dns2"] | networkSettings.dns2;
-  return (!recoveryPasswordEnabled ||
-          (nextRecoveryPasswordLength >= 8 &&
-           nextRecoveryPasswordLength <= 63)) &&
-         (!ntpFromDhcp || !staticIpEnabled) &&
-         (ntpFromDhcp || ntpServerValid(ntpServer)) &&
-         (!staticIpEnabled ||
-          (ipv4Valid(staticIp, true) && ipv4Valid(gateway, true) &&
-           ipv4Valid(subnet, true) && ipv4Valid(dns1, false) &&
-           ipv4Valid(dns2, false)));
+  return ::networkExtrasValid(document, networkSettings);
 }
 
 void updateNetworkExtras(const JsonDocument &document) {
-  const bool recoveryPasswordEnabled =
-      document["recoveryPasswordEnabled"] |
-      (networkSettings.recoveryPassword[0] != '\0');
-  const char *recoveryPassword = document["recoveryPassword"] | "";
-  if (!recoveryPasswordEnabled) {
-    memset(networkSettings.recoveryPassword, 0,
-           sizeof(networkSettings.recoveryPassword));
-  } else if (recoveryPassword[0]) {
-    strlcpy(networkSettings.recoveryPassword, recoveryPassword,
-            sizeof(networkSettings.recoveryPassword));
-  }
-  networkSettings.staticIpEnabled =
-      document["staticIpEnabled"] | networkSettings.staticIpEnabled;
-  networkSettings.ntpFromDhcp =
-      document["ntpFromDhcp"] | networkSettings.ntpFromDhcp;
-  strlcpy(networkSettings.ntpServer,
-          document["ntpServer"] | networkSettings.ntpServer,
-          sizeof(networkSettings.ntpServer));
-  strlcpy(networkSettings.staticIp,
-          document["staticIp"] | networkSettings.staticIp,
-          sizeof(networkSettings.staticIp));
-  strlcpy(networkSettings.gateway,
-          document["gateway"] | networkSettings.gateway,
-          sizeof(networkSettings.gateway));
-  strlcpy(networkSettings.subnet,
-          document["subnet"] | networkSettings.subnet,
-          sizeof(networkSettings.subnet));
-  strlcpy(networkSettings.dns1, document["dns1"] | networkSettings.dns1,
-          sizeof(networkSettings.dns1));
-  strlcpy(networkSettings.dns2, document["dns2"] | networkSettings.dns2,
-          sizeof(networkSettings.dns2));
-}
-
-uint32_t checksum(const DeviceConfig &value) {
-  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
-  uint32_t hash = 2166136261UL;
-  for (size_t index = 0; index < offsetof(DeviceConfig, checksum); ++index) {
-    hash ^= bytes[index];
-    hash *= 16777619UL;
-  }
-  return hash;
-}
-
-uint32_t checksum(const LegacyDeviceConfig &value) {
-  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
-  uint32_t hash = 2166136261UL;
-  for (size_t index = 0; index < offsetof(LegacyDeviceConfig, checksum);
-       ++index) {
-    hash ^= bytes[index];
-    hash *= 16777619UL;
-  }
-  return hash;
-}
-
-uint32_t checksum(const V2DeviceConfig &value) {
-  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
-  uint32_t hash = 2166136261UL;
-  for (size_t index = 0; index < offsetof(V2DeviceConfig, checksum); ++index) {
-    hash ^= bytes[index];
-    hash *= 16777619UL;
-  }
-  return hash;
-}
-
-uint32_t checksum(const V3DeviceConfig &value) {
-  const auto *bytes = reinterpret_cast<const uint8_t *>(&value);
-  uint32_t hash = 2166136261UL;
-  for (size_t index = 0; index < offsetof(V3DeviceConfig, checksum); ++index) {
-    hash ^= bytes[index];
-    hash *= 16777619UL;
-  }
-  return hash;
+  ::updateNetworkExtras(document, networkSettings);
 }
 
 bool configValid() {
-  return config.magic == kConfigMagic && config.checksum == checksum(config);
+  return deviceConfigValid(config);
 }
 
-bool wifiConfigured() { return configValid() && config.ssid[0] != '\0'; }
-
-bool legacyConfigValid(const LegacyDeviceConfig &value) {
-  return value.magic == kLegacyConfigMagic &&
-         value.checksum == checksum(value) && value.ssid[0] != '\0' &&
-         strlen(value.otaPassword) >= 8;
-}
-
-bool v2ConfigValid(const V2DeviceConfig &value) {
-  return value.magic == kV2ConfigMagic && value.checksum == checksum(value) &&
-         value.ssid[0] != '\0';
-}
-
-bool v3ConfigValid(const V3DeviceConfig &value) {
-  return value.magic == kV3ConfigMagic && value.checksum == checksum(value) &&
-         value.ssid[0] != '\0';
-}
-
-void saveConfig();
+bool wifiConfigured() { return ::wifiConfigured(config); }
 
 void loadConfig() {
-  EEPROM.begin(kEepromSize);
-  EEPROM.get(0, config);
-  if (configValid()) return;
-
-  V3DeviceConfig v3{};
-  EEPROM.get(0, v3);
-  if (v3ConfigValid(v3)) {
-    memset(&config, 0, sizeof(config));
-    strlcpy(config.ssid, v3.ssid, sizeof(config.ssid));
-    strlcpy(config.wifiPassword, v3.wifiPassword,
-            sizeof(config.wifiPassword));
-    strlcpy(config.apiPassword, v3.apiPassword,
-            sizeof(config.apiPassword));
-    strlcpy(config.otaPassword, v3.otaPassword,
-            sizeof(config.otaPassword));
-    strlcpy(config.hostname, v3.hostname, sizeof(config.hostname));
-    strlcpy(config.username, "admin", sizeof(config.username));
-    config.apiAuthEnabled = v3.apiAuthEnabled;
-    config.otaAuthEnabled = v3.otaAuthEnabled;
-    config.wifiRetryLimit = v3.wifiRetryLimit;
-    config.resetApiAuthOnRecovery = v3.resetApiAuthOnRecovery;
-    config.directOtaEnabled = v3.directOtaEnabled;
-    saveConfig();
-    return;
-  }
-
-  V2DeviceConfig v2{};
-  EEPROM.get(0, v2);
-  if (v2ConfigValid(v2)) {
-    memset(&config, 0, sizeof(config));
-    strlcpy(config.ssid, v2.ssid, sizeof(config.ssid));
-    strlcpy(config.wifiPassword, v2.wifiPassword,
-            sizeof(config.wifiPassword));
-    strlcpy(config.apiPassword, v2.apiPassword,
-            sizeof(config.apiPassword));
-    strlcpy(config.otaPassword, v2.otaPassword,
-            sizeof(config.otaPassword));
-    strlcpy(config.hostname, v2.hostname, sizeof(config.hostname));
-    strlcpy(config.username, "admin", sizeof(config.username));
-    config.apiAuthEnabled = v2.apiAuthEnabled;
-    config.otaAuthEnabled = v2.otaAuthEnabled;
-    config.wifiRetryLimit = v2.wifiRetryLimit;
-    config.resetApiAuthOnRecovery = v2.resetApiAuthOnRecovery;
-    config.directOtaEnabled = 1;
-    saveConfig();
-    return;
-  }
-
-  LegacyDeviceConfig legacy{};
-  EEPROM.get(0, legacy);
-  if (legacyConfigValid(legacy)) {
-    memset(&config, 0, sizeof(config));
-    strlcpy(config.ssid, legacy.ssid, sizeof(config.ssid));
-    strlcpy(config.wifiPassword, legacy.wifiPassword,
-            sizeof(config.wifiPassword));
-    strlcpy(config.apiPassword, legacy.otaPassword,
-            sizeof(config.apiPassword));
-    strlcpy(config.otaPassword, legacy.otaPassword,
-            sizeof(config.otaPassword));
-    strlcpy(config.username, "admin", sizeof(config.username));
-    config.apiAuthEnabled = 1;
-    config.otaAuthEnabled = 1;
-    config.directOtaEnabled = 1;
-    config.wifiRetryLimit = kDefaultWifiRetryLimit;
-    saveConfig();
-    return;
-  }
-  memset(&config, 0, sizeof(config));
+  loadDeviceConfig(config);
 }
 
 void saveConfig() {
-  config.magic = kConfigMagic;
-  config.checksum = checksum(config);
-  EEPROM.put(0, config);
-  EEPROM.commit();
+  saveDeviceConfig(config);
 }
 
-String deviceSuffix() {
-  char suffix[7];
-#if defined(ESP8266)
-  snprintf(suffix, sizeof(suffix), "%06X", ESP.getChipId());
-#else
-  snprintf(suffix, sizeof(suffix), "%06X",
-           static_cast<uint32_t>(ESP.getEfuseMac()));
-#endif
-  return String(suffix);
-}
+String deviceSuffix() { return ::deviceSuffix(); }
 
 String configuredHostname() {
-  if (config.hostname[0]) return String(config.hostname);
-  return "mini-display-" + deviceSuffix();
+  return ::configuredHostname(config);
 }
 
 const char *configuredUsername() {
-  return config.username[0] ? config.username : "admin";
+  return ::configuredUsername(config);
 }
 
 bool usernameValid(const char *username) {
-  const size_t length = strlen(username);
-  if (length == 0 || length > 32) return false;
-  for (size_t index = 0; index < length; ++index) {
-    const char character = username[index];
-    if (!isalnum(static_cast<unsigned char>(character)) && character != '-' &&
-        character != '_' && character != '.') {
-      return false;
-    }
-  }
-  return true;
+  return ::usernameValid(username);
 }
 
 const char *disconnectReason() {
@@ -777,64 +386,19 @@ const char *disconnectReason() {
 }
 
 void configureIpAddress() {
-  IPAddress zero(static_cast<uint32_t>(0));
-  if (!networkSettings.staticIpEnabled) {
-    WiFi.config(zero, zero, zero);
-    return;
-  }
-  IPAddress address;
-  IPAddress gateway;
-  IPAddress subnet;
-  IPAddress dns1;
-  IPAddress dns2;
-  address.fromString(networkSettings.staticIp);
-  gateway.fromString(networkSettings.gateway);
-  subnet.fromString(networkSettings.subnet);
-  if (!dns1.fromString(networkSettings.dns1)) dns1 = gateway;
-  dns2.fromString(networkSettings.dns2);
-  WiFi.config(address, gateway, subnet, dns1, dns2);
+  ::configureIpAddress(networkSettings);
 }
 
 void configureTimeService() {
-  const char *server = networkSettings.ntpServer[0]
-                           ? networkSettings.ntpServer
-                           : kDefaultNtpServer;
-#if defined(ESP8266)
-  configTime(displayTimezone, server);
-  sntp_servermode_dhcp(networkSettings.ntpFromDhcp ? 1 : 0);
-#else
-  configTzTime(displayTimezone, server);
-  esp_sntp_servermode_dhcp(networkSettings.ntpFromDhcp);
-#endif
+  ::configureTimeService(networkSettings, displayTimezone);
 }
 
 String currentNtpServer() {
-#if defined(ESP8266)
-  const char *name = sntp_getservername(0);
-  const ip_addr_t *address = sntp_getserver(0);
-#else
-  const char *name = esp_sntp_getservername(0);
-  const ip_addr_t *address = esp_sntp_getserver(0);
-#endif
-  if (name && name[0]) return String(name);
-  if (address && !ip_addr_isany(address)) return String(ipaddr_ntoa(address));
-  return networkSettings.ntpFromDhcp ? "Waiting for DHCP"
-                                     : String(networkSettings.ntpServer);
+  return ::currentNtpServer(networkSettings);
 }
 
 bool hostnameValid(const char *hostname) {
-  const size_t length = strlen(hostname);
-  if (length == 0 || length > 32 || hostname[0] == '-' ||
-      hostname[length - 1] == '-') {
-    return false;
-  }
-  for (size_t index = 0; index < length; ++index) {
-    const char character = hostname[index];
-    if (!isalnum(static_cast<unsigned char>(character)) && character != '-') {
-      return false;
-    }
-  }
-  return true;
+  return ::hostnameValid(hostname);
 }
 
 bool directOtaAuthenticated() {
@@ -944,139 +508,21 @@ void showCurrentPage() {
   paintNotification(display, notifications, 0, 0);
 }
 
-void fingerprintSource(const char *source, uint32_t &hash, uint32_t &check) {
-  hash = 2166136261UL;
-  check = 5381UL;
-  for (const uint8_t *cursor = reinterpret_cast<const uint8_t *>(source);
-       *cursor; ++cursor) {
-    hash = (hash ^ *cursor) * 16777619UL;
-    check = ((check << 5) + check) ^ *cursor;
-  }
-}
-
 DashboardValue *findValue(const char *source, bool create) {
-  if (source == nullptr || source[0] == '\0') return nullptr;
-  uint32_t sourceHash = 0;
-  uint32_t sourceCheck = 0;
-  fingerprintSource(source, sourceHash, sourceCheck);
-  for (uint8_t index = 0; index < dashboardValueCount; ++index) {
-    if (dashboardValues[index].sourceHash == sourceHash &&
-        dashboardValues[index].sourceCheck == sourceCheck &&
-        strcmp(dashboardValues[index].source, source) == 0) {
-      return &dashboardValues[index];
-    }
-  }
-  if (!create || dashboardValueCount >= kMaxValues) return nullptr;
-  const size_t length = strlen(source);
-  if (length > 64) return nullptr;
-  char *name = static_cast<char *>(malloc(length + 1));
-  if (!name) return nullptr;
-  memcpy(name, source, length + 1);
-  DashboardValue *slot = &dashboardValues[dashboardValueCount++];
-  memset(slot, 0, sizeof(*slot));
-  slot->source = name;
-  slot->sourceHash = sourceHash;
-  slot->sourceCheck = sourceCheck;
-  return slot;
-}
-
-uint16_t parseColor(JsonVariantConst value, uint16_t fallback) {
-  if (!value.is<const char *>()) return fallback;
-  const char *text = value.as<const char *>();
-  if (text[0] == '#' && strlen(text) == 7) {
-    const uint32_t rgb = strtoul(text + 1, nullptr, 16);
-    return display.color565((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
-  }
-  if (strcmp(text, "surface") == 0) return display.color565(30, 34, 42);
-  if (strcmp(text, "primary") == 0) return TFT_WHITE;
-  if (strcmp(text, "secondary") == 0) return display.color565(158, 158, 158);
-  if (strcmp(text, "muted") == 0) return display.color565(102, 102, 102);
-  if (strcmp(text, "accent") == 0) return TFT_CYAN;
-  if (strcmp(text, "success") == 0) return TFT_GREEN;
-  if (strcmp(text, "warning") == 0) return TFT_ORANGE;
-  if (strcmp(text, "error") == 0) return TFT_RED;
-  if (strcmp(text, "background") == 0) return TFT_BLACK;
-  return fallback;
-}
-
-uint16_t cardTitleForeground(JsonObjectConst card,
-                             JsonObjectConst colorMapping) {
-  JsonVariantConst foreground = colorMapping["foreground"];
-  if (!foreground.isNull()) return parseColor(foreground, TFT_LIGHTGREY);
-  JsonVariantConst titleStyle = card["titleStyle"];
-  if (titleStyle.isNull()) titleStyle = card["style"];
-  return parseColor(titleStyle["foreground"], TFT_LIGHTGREY);
-}
-
-TextEffect parseTextEffect(JsonVariantConst style) {
-  TextEffect result{};
-  result.offsetX = 2;
-  result.offsetY = 2;
-  result.thickness = 1;
-  const char *type = style["textEffect"] | "none";
-  if (strcmp(type, "shadow") == 0) {
-    result.type = TextEffectType::Shadow;
-  } else if (strcmp(type, "outline") == 0) {
-    result.type = TextEffectType::Outline;
-  }
-  result.color = parseColor(style["effectColor"], TFT_BLACK);
-  result.thickness = constrain(style["effectThickness"] | 1, 1, 3);
-  result.offsetX = constrain(style["effectOffsetX"] | 2, -6, 6);
-  result.offsetY = constrain(style["effectOffsetY"] | 2, -6, 6);
-  return result;
-}
-
-const GFXfont *builtInFontFor(const char *family, uint8_t size) {
-  if (family == nullptr) family = "sans";
-  if (strcmp(family, "sans") == 0 || strcmp(family, "sans-bold") == 0) {
-    const GFXfont *fonts[] = {
-        &InterTightBold18, &InterTightBold24, &InterTightBold36,
-        &InterTightBold48};
-    return fonts[min<uint8_t>(size, 3)];
-  }
-  if (strcmp(family, "mono") == 0) {
-    const GFXfont *fonts[] = {&FreeMono9pt7b, &FreeMono12pt7b,
-                              &FreeMono18pt7b, &FreeMono24pt7b};
-    return fonts[min<uint8_t>(size, 3)];
-  }
-  if (strcmp(family, "serif") == 0) {
-    const GFXfont *fonts[] = {&FreeSerif9pt7b, &FreeSerif12pt7b,
-                              &FreeSerif18pt7b, &FreeSerif24pt7b};
-    return fonts[min<uint8_t>(size, 3)];
-  }
-  const GFXfont *fonts[] = {
-      &InterTightBold18, &InterTightBold24, &InterTightBold36,
-      &InterTightBold48};
-  return fonts[min<uint8_t>(size, 3)];
-}
-
-RenderFont renderFontFor(const char *family, uint8_t size) {
-  RenderFont font{builtInFontFor(family, size), -1, size, nullptr};
-#if defined(ESP8266)
-  const bool font1 = family && strcmp(family, "font1") == 0;
-  const bool font2 = family && strcmp(family, "font2") == 0;
-  const bool defaultFont =
-      family == nullptr || strcmp(family, "default") == 0 ||
-      strcmp(family, "sans") == 0 || strcmp(family, "sans-bold") == 0;
-  const int8_t requestedSlot = font1 ? 0 : font2 ? 1 : -1;
-  if (requestedSlot >= 0 && userFonts.available(requestedSlot, size)) {
-    font.userSlot = requestedSlot;
-  } else if ((defaultFont || requestedSlot >= 0) &&
-             userFonts.activeSlot() >= 0 &&
-             userFonts.available(userFonts.activeSlot(), size)) {
-    font.userSlot = userFonts.activeSlot();
-  } else if (defaultFont && size < 2) {
-    const uint8_t *fonts[] = {InterTightSmooth18, InterTightSmooth24};
-    font.smooth = fonts[size];
-  } else if (defaultFont) {
-    font.coverage = builtInCoverageFont(size);
-  }
-#endif
-  return font;
+  return dashboardValues.find(source, create);
 }
 
 void applyDisplayFont(const RenderFont &font) {
   applyRenderFont(display, font, displayFontState);
+}
+
+void drawStartupText(const String &text, int16_t y, uint8_t font,
+                     uint16_t color) {
+  const uint8_t size = font >= 4 ? 1 : 0;
+  applyDisplayFont(
+      RenderFont{builtInFontFor("sans-bold", size), -1, size});
+  display.setTextColor(color);
+  display.drawString(text, 120, y);
 }
 
 void resetMarqueeTitles() {
@@ -1119,940 +565,8 @@ void updateMarqueeTitles() {
   displayRefresh.completed(now);
 }
 
-uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
-  const char *size = style["fontSize"] | "auto";
-  if (strcmp(size, "small") == 0) return 0;
-  if (strcmp(size, "medium") == 0) return 1;
-  if (strcmp(size, "large") == 0) return 2;
-  if (strcmp(size, "xlarge") == 0) return 3;
-  if (height >= 58) return 3;
-  if (height >= 42) return 2;
-  if (height >= 28) return 1;
-  return 0;
-}
-
-bool marqueeEnabled(JsonVariantConst style, bool fallback = false) {
-  return (style["marquee"] | fallback) &&
-         strcmp(style["textFlow"] | "default", "default") == 0;
-}
-
-RenderFont selectBestFont(const String &text, JsonVariantConst style,
-                          int16_t width, int16_t height, bool scroll = false) {
-  const char *family = style["fontFamily"] | "sans";
-  int8_t size = requestedFontSize(style, height);
-  if (strcmp(style["textFlow"] | "default", "default") != 0) {
-    // Explicit flow preserves the chosen size; wrapping controls line breaks.
-    if (strcmp(style["fontSize"] | "auto", "auto") == 0) size = min<int8_t>(size, 1);
-    const RenderFont font = renderFontFor(family, size);
-    applyDisplayFont(font);
-    return font;
-  }
-  while (size > 0) {
-    const RenderFont font = renderFontFor(family, size);
-    applyDisplayFont(font);
-    if ((scroll || display.textWidth(text) <= width - 6) && display.fontHeight() <= height) {
-      return font;
-    }
-    --size;
-  }
-  const RenderFont font = renderFontFor(family, 0);
-  applyDisplayFont(font);
-  return font;
-}
-
-bool isBuiltInCardTitleFamily(const char *family) {
-  return strcmp(family, "default") == 0 || strcmp(family, "sans") == 0 ||
-         strcmp(family, "sans-bold") == 0;
-}
-
-RenderFont compactCardTitleFont() {
-  return RenderFont{&InterTightCompact13, -1, 0,
-#if defined(ESP8266)
-                    InterTightSmooth13
-#else
-                    nullptr
-#endif
-  };
-}
-
-RenderFont selectCardTitleFont(const String &text, JsonVariantConst style,
-                               int16_t width, int16_t height,
-                               int8_t maximumAutoSize) {
-  const char *size = style["fontSize"] | "auto";
-  const char *family = style["fontFamily"] | "sans";
-  const bool automatic = strcmp(size, "auto") == 0;
-  if (!automatic) {
-    if (strcmp(size, "small") == 0 && isBuiltInCardTitleFamily(family))
-      return compactCardTitleFont();
-    return renderFontFor(family, requestedFontSize(style, height));
-  }
-  if (strcmp(style["textFlow"] | "default", "default") != 0) {
-    if (automatic && isBuiltInCardTitleFamily(family)) return compactCardTitleFont();
-    return selectBestFont(text, style, width, height);
-  }
-  if (automatic) {
-    for (int8_t candidate = maximumAutoSize; candidate >= 0; --candidate) {
-      const RenderFont font = renderFontFor(family, candidate);
-      applyDisplayFont(font);
-      if (display.fontHeight() <= height &&
-          (marqueeEnabled(style, true) || display.textWidth(text) <= width - 6)) {
-        return font;
-      }
-    }
-  }
-  if ((automatic || strcmp(size, "small") == 0) &&
-      isBuiltInCardTitleFamily(family)) {
-    const RenderFont font = compactCardTitleFont();
-    applyDisplayFont(font);
-    return font;
-  }
-  return selectBestFont(text, style, width, height);
-}
-
-struct RingLayout {
-  int16_t x;
-  int16_t y;
-  int16_t diameter;
-  int16_t valueY;
-  int16_t valueHeight;
-};
-
-RingLayout ringLayout(int16_t x, int16_t y, int16_t width, int16_t height) {
-  const int16_t valueHeight =
-      min(static_cast<int16_t>(22),
-          max(static_cast<int16_t>(12), static_cast<int16_t>(height / 4)));
-  const int16_t available =
-      max(static_cast<int16_t>(8),
-          static_cast<int16_t>(height - valueHeight - 8));
-  const int16_t diameter =
-      min(static_cast<int16_t>(52),
-          min(static_cast<int16_t>(width - 10), available));
-  const int16_t groupHeight = diameter + 2 + valueHeight;
-  const int16_t top =
-      y + max(static_cast<int16_t>(3),
-              static_cast<int16_t>((height - groupHeight) / 2));
-  return {static_cast<int16_t>(x + (width - diameter) / 2), top, diameter,
-          static_cast<int16_t>(top + diameter + 2), valueHeight};
-}
-
-NumberTransform cardNumberTransform(JsonObjectConst card) {
-  NumberTransform result;
-  JsonObjectConst source = card["valueTransform"];
-  if (source.isNull()) return result;
-  result.multiply = source["multiply"] | 1.0F;
-  result.add = source["add"] | 0.0F;
-  result.absolute = source["absolute"] | false;
-  if (!source["minimum"].isNull()) result.minimum = source["minimum"];
-  if (!source["maximum"].isNull()) result.maximum = source["maximum"];
-  if (!source["precision"].isNull()) result.precision = source["precision"];
-  return result;
-}
-
-bool transformedCardNumber(JsonObjectConst card, const char *raw,
-                           float &result) {
-  if (raw == nullptr) return false;
-  char *end = nullptr;
-  result = strtof(raw, &end);
-  if (end == raw || *end != '\0' || !isfinite(result)) return false;
-  result = cardNumberTransform(card).apply(result);
-  return isfinite(result);
-}
-
-String compactNumber(float value) {
-  String result(value, 4);
-  while (result.endsWith("0")) result.remove(result.length() - 1);
-  if (result.endsWith(".")) result.remove(result.length() - 1);
-  if (result == "-0") return String("0");
-  return result;
-}
-
-String transformedCardNumberText(JsonObjectConst card, const char *raw,
-                                 bool applyPrecision = true) {
-  float value = 0.0F;
-  if (!transformedCardNumber(card, raw, value)) return String(raw ? raw : "");
-  const NumberTransform transform = cardNumberTransform(card);
-  return applyPrecision && transform.precision >= 0
-             ? String(value, static_cast<unsigned char>(transform.precision))
-             : card["valueTransform"].isNull() ? String(raw)
-                                                : compactNumber(value);
-}
-
-float progressRatio(JsonObjectConst card, DashboardValue *value) {
-  const float minimum = card["minimum"] | 0.0F;
-  const float maximum = card["maximum"] | 100.0F;
-  float current = minimum;
-  if (value) transformedCardNumber(card, value->state, current);
-  return maximum > minimum
-             ? constrain((current - minimum) / (maximum - minimum), 0.0F,
-                         1.0F)
-             : 0.0F;
-}
-
-bool mappingMatches(const char *type, JsonObjectConst rule, const String &raw) {
-  if (strcmp(type, "number") == 0) {
-    char *end = nullptr;
-    const float number = strtof(raw.c_str(), &end);
-    if (end == raw.c_str() || *end != '\0') return false;
-    const bool hasMinimum = !rule["minimum"].isNull();
-    const bool hasMaximum = !rule["maximum"].isNull();
-    return (!hasMinimum || number >= rule["minimum"].as<float>()) &&
-           (!hasMaximum || number <= rule["maximum"].as<float>());
-  }
-  if (strcmp(type, "text") != 0) return false;
-  const String match(rule["match"] | "");
-  const char *operatorName = rule["operator"] | "equals";
-  return strcmp(operatorName, "equals") == 0
-             ? raw == match
-             : strcmp(operatorName, "starts_with") == 0
-                   ? raw.startsWith(match)
-                   : strcmp(operatorName, "ends_with") == 0
-                         ? raw.endsWith(match)
-                         : strcmp(operatorName, "contains") == 0 &&
-                               raw.indexOf(match) >= 0;
-}
-
-bool findCardMapping(JsonObjectConst card, const char *collection,
-                     const String &raw, JsonObjectConst &matched) {
-  JsonArrayConst mappings = card[collection].as<JsonArrayConst>();
-  if (mappings.isNull()) return false;
-  const char *type = card["type"] | "text";
-  for (JsonObjectConst rule : mappings) {
-    if (mappingMatches(type, rule, raw)) {
-      matched = rule;
-      return true;
-    }
-  }
-  return false;
-}
-
-bool mappedCardValue(JsonObjectConst card, const String &raw, String &mapped) {
-  JsonObjectConst rule;
-  if (!findCardMapping(card, "valueMappings", raw, rule)) return false;
-  mapped = String(rule["value"] | "");
-  return true;
-}
-
-String cardValue(JsonObjectConst card) {
-  const char *type = card["type"] | "text";
-  if (strcmp(type, "clock") == 0) {
-    time_t now = time(nullptr);
-    struct tm localTime {};
-    localtime_r(&now, &localTime);
-    char buffer[24];
-    const bool seconds = card["showSeconds"] | false;
-    const char *format = card["format"] | "24h";
-    strftime(buffer, sizeof(buffer),
-             strcmp(format, "12h") == 0
-                 ? (seconds ? "%I:%M:%S" : "%I:%M")
-                 : (seconds ? "%H:%M:%S" : "%H:%M"),
-             &localTime);
-    return String(buffer);
-  }
-  const char *source = card["source"];
-  if (source != nullptr) {
-    DashboardValue *value = findValue(source, false);
-    if (value == nullptr || !value->available) return String("--");
-    const bool numeric = strcmp(type, "number") == 0;
-    const String raw = numeric ? transformedCardNumberText(card, value->state)
-                               : String(value->state);
-    const String mappingInput = numeric
-                                    ? transformedCardNumberText(
-                                          card, value->state, false)
-                                    : raw;
-    String result;
-    const bool mapped = mappedCardValue(card, mappingInput, result);
-    if (!mapped) result = raw;
-    const char *unit = card["unit"];
-    if (!mapped && unit && unit[0]) result += String(unit);
-    return result;
-  }
-  String result(card["text"] | "");
-  const char *unit = card["unit"];
-  if (unit && unit[0]) result += String(unit);
-  return result;
-}
-
-struct CardTextLayout {
-  int16_t valueY;
-  int16_t valueHeight;
-  int16_t titleY;
-  int16_t titleHeight;
-  bool hasTitle;
-  RenderFont titleFont;
-};
-
-CardTextLayout cardTextLayout(JsonObjectConst card, int16_t width, int16_t y,
-                              int16_t height) {
-  const char *title = card["title"];
-  const bool hasTitle = (card["showTitle"] | true) && title && title[0] &&
-                        height >= 28;
-  const bool bar = strcmp(card["progress"] | "none", "bar") == 0;
-  const int16_t contentHeight =
-      max<int16_t>(1, height - (bar && height >= 20 ? 9 : 0));
-  CardTextLayout layout{y, contentHeight, y, contentHeight, hasTitle,
-                        compactCardTitleFont()};
-  if (!hasTitle) return layout;
-
-  JsonVariantConst titleStyle = card["titleStyle"];
-  if (titleStyle.isNull()) titleStyle = card["style"];
-  JsonVariantConst valueStyle = card["valueStyle"];
-  if (valueStyle.isNull()) valueStyle = card["style"];
-  const int16_t provisionalValueHeight = max<int16_t>(1, contentHeight - 17);
-  const RenderFont valueFont = selectBestFont(
-      cardValue(card), valueStyle, width, provisionalValueHeight);
-  applyDisplayFont(valueFont);
-  const int16_t valueFontHeight = display.fontHeight();
-  const int8_t maximumAutoTitleSize =
-      valueFont.size >= 3 ? 1 : valueFont.size >= 1 ? 0 : -1;
-
-  const char *vertical = titleStyle["verticalAlign"] | "top";
-  if (strcmp(vertical, "top") != 0 && strcmp(vertical, "bottom") != 0) {
-    layout.titleFont = selectCardTitleFont(
-        String(title), titleStyle, width - 10, contentHeight,
-        maximumAutoTitleSize);
-    return layout;
-  }
-
-  const int16_t maximumTitleHeight =
-      strcmp(titleStyle["fontSize"] | "auto", "auto") != 0
-          ? contentHeight
-          : max<int16_t>(1, min<int16_t>(contentHeight / 2,
-                                        contentHeight - valueFontHeight));
-  layout.titleFont = selectCardTitleFont(
-      String(title), titleStyle, width - 10, maximumTitleHeight,
-      maximumAutoTitleSize);
-  applyDisplayFont(layout.titleFont);
-  const int16_t titleBand =
-      min<int16_t>(maximumTitleHeight, display.fontHeight());
-  const bool wrapped = strcmp(titleStyle["textFlow"] | "default", "wrap") == 0;
-  const int16_t reserved = wrapped ? maximumTitleHeight : titleBand;
-  layout.titleHeight = reserved;
-  layout.valueHeight = max<int16_t>(1, contentHeight - reserved);
-  if (strcmp(vertical, "top") == 0) {
-    layout.valueY += reserved;
-  } else {
-    layout.titleY += contentHeight - reserved;
-  }
-  return layout;
-}
-
-
-
-bool compileText(ScenePage &page, const String &value, const RenderFont &font,
-                 uint8_t datum, int16_t x, int16_t y,
-                 uint16_t foreground, uint16_t background,
-                 const TextEffect &effect = TextEffect{},
-                 uint8_t lineCount = 1, int16_t blockWidth = 0,
-                 uint16_t maxBytes = 48,
-                 uint32_t sourceMask = 0, int16_t zIndex = 1000) {
-  if (page.textCount >= kMaxSceneTexts) {
-    lastSceneCompileFailure = SceneCompileFailure::TextLimit;
-    return false;
-  }
-  const uint16_t valueBytes = min<size_t>(value.length(), maxBytes) + 1;
-  if (page.textBytes + valueBytes > kMaxSceneTextBytes) {
-    lastSceneCompileFailure = SceneCompileFailure::TextPool;
-    return false;
-  }
-  if (!page.texts.ensure(page.textCount + 1) ||
-      !page.textPool.ensure(page.textBytes + valueBytes)) {
-    lastSceneCompileFailure = SceneCompileFailure::Allocation;
-    return false;
-  }
-  const uint8_t payloadIndex = page.textCount;
-  SceneText &text = page.texts[payloadIndex];
-  text = SceneText{};
-  text.x = x;
-  text.y = y;
-  applyDisplayFont(font);
-  int16_t boundsWidth = display.textWidth(value);
-  int16_t boundsHeight = display.fontHeight();
-  text.lineCount = max<uint8_t>(1, lineCount);
-  if (lineCount > 1) {
-    boundsWidth = blockWidth;
-    boundsHeight *= lineCount;
-  }
-  const bool centeredX = datum == TC_DATUM || datum == MC_DATUM ||
-                         datum == BC_DATUM;
-  const bool rightX = datum == TR_DATUM || datum == MR_DATUM ||
-                      datum == BR_DATUM;
-  const bool centeredY = datum == ML_DATUM || datum == MC_DATUM ||
-                         datum == MR_DATUM;
-  const bool bottomY = datum == BL_DATUM || datum == BC_DATUM ||
-                       datum == BR_DATUM;
-  int16_t boundsX = centeredX ? x - boundsWidth / 2
-                              : rightX ? x - boundsWidth : x;
-  int16_t boundsY = centeredY ? y - boundsHeight / 2
-                              : bottomY ? y - boundsHeight : y;
-  const int16_t effectExtent = textEffectExtent(effect);
-  boundsX -= effectExtent;
-  boundsY -= effectExtent;
-  boundsWidth += effectExtent * 2;
-  boundsHeight += effectExtent * 2;
-  text.foreground = foreground;
-  text.background = background;
-  text.effect = effect;
-  text.font = font.builtin;
-  text.smoothFont = font.smooth;
-  text.coverageFont = font.coverage;
-  text.userFontSlot = font.userSlot;
-  text.userFontSize = font.size;
-  text.datum = datum;
-  text.valueOffset = page.textBytes;
-  strlcpy(page.textPool.data() + page.textBytes, value.c_str(), valueBytes);
-  page.textBytes += valueBytes;
-  SceneNode node;
-  node.id = 0x4000U + payloadIndex;
-  node.type = SceneNodeType::Text;
-  node.payloadIndex = payloadIndex;
-  node.sourceMask = sourceMask;
-  node.zIndex = zIndex;
-  node.bounds = {boundsX, boundsY, boundsWidth, boundsHeight};
-  node.clip = {0, 0, 240, 240};
-  if (!page.graph.add(node)) {
-    lastSceneCompileFailure = SceneCompileFailure::TextLimit;
-    return false;
-  }
-  ++page.textCount;
-  return true;
-}
-
-RenderFont selectFreeTextFont(const String &text, JsonVariantConst style,
-                              int16_t width, int16_t height,
-                              bool scroll = false) {
-  const char *family = style["fontFamily"] | "default";
-  const int8_t selected = freeTextSize(width, height, scroll,
-      [&](int8_t size, int16_t &textWidth, int16_t &textHeight) {
-    const RenderFont font = renderFontFor(family, size);
-    applyDisplayFont(font);
-    textWidth = display.textWidth(text);
-    textHeight = display.fontHeight();
-  });
-  if (selected >= 0) return renderFontFor(family, selected);
-  return isBuiltInCardTitleFamily(family) ? compactCardTitleFont()
-                                         : renderFontFor(family, 0);
-}
-
-bool compilePositionedText(ScenePage &page, String value,
-                         JsonVariantConst style, int16_t x, int16_t y,
-                         int16_t width, int16_t height, uint16_t foreground,
-                         uint16_t background,
-                         const char *defaultHorizontal = "center",
-                         const char *defaultVertical = "middle",
-                         int16_t fontHeight = 0,
-                         const RenderFont *selectedFont = nullptr,
-                         bool tightVerticalEdges = false,
-                         bool freeFit = false,
-                         uint32_t sourceMask = 0,
-                         int16_t zIndex = 1000,
-                         bool preserveText = false) {
-  const char *horizontal = style["horizontalAlign"] | defaultHorizontal;
-  const char *vertical = style["verticalAlign"] | defaultVertical;
-  const bool left = strcmp(horizontal, "left") == 0;
-  const bool right = strcmp(horizontal, "right") == 0;
-  const bool top = strcmp(vertical, "top") == 0;
-  const bool bottom = strcmp(vertical, "bottom") == 0;
-  const uint8_t datum = top
-                            ? (left ? TL_DATUM : right ? TR_DATUM : TC_DATUM)
-                            : bottom
-                                  ? (left ? BL_DATUM
-                                          : right ? BR_DATUM : BC_DATUM)
-                                  : (left ? ML_DATUM
-                                          : right ? MR_DATUM : MC_DATUM);
-  const int16_t availableHeight =
-      fontHeight > 0 ? min(height, fontHeight) : height;
-  const bool scroll = marqueeEnabled(style, preserveText);
-  const RenderFont font = selectedFont != nullptr
-                              ? *selectedFont
-                              : freeFit ? selectFreeTextFont(value, style, width, availableHeight,
-                                    scroll || strcmp(style["textFlow"] | "default", "overflow") == 0)
-                                        : selectBestFont(value, style, width, availableHeight, scroll);
-  applyDisplayFont(font);
-  const char *flow = style["textFlow"] | "default";
-  const bool wrap = strcmp(flow, "wrap") == 0;
-  const bool overflow = strcmp(flow, "overflow") == 0;
-  WrappedText wrapped;
-  if (wrap) {
-    wrapped = wrapDisplayText(value.c_str(), max<int16_t>(1, width - 8),
-        max<int16_t>(1, min<int16_t>(6, height / max<int16_t>(1, display.fontHeight()))),
-        [&](const char *line) { return display.textWidth(line); });
-    value = wrapped.text;
-  }
-  while (!scroll && !wrap && !overflow && value.length() > 1 && display.textWidth(value) > width - 8) {
-    value.remove(value.length() - 1);
-  }
-  const int16_t textX = left ? x + 4 : right ? x + width - 4 : x + width / 2;
-  const int16_t textY = top    ? y + (tightVerticalEdges ? 0 : 3)
-                        : bottom ? y + height - (tightVerticalEdges ? 1 : 3)
-                                 : y + height / 2;
-  if (!compileText(page, value, font, datum, textX, textY, foreground,
-                   background, parseTextEffect(style), wrapped.lines, wrapped.width,
-                   scroll ? value.length() : wrap || overflow ? 144 : 48,
-                   sourceMask, zIndex)) return false;
-  if (!overflow) {
-    const uint16_t textNodeId = 0x4000U + page.textCount - 1;
-    const int16_t textNodeIndex = page.graph.findById(textNodeId);
-    if (textNodeIndex < 0) {
-      lastSceneCompileFailure = SceneCompileFailure::TextLimit;
-      return false;
-    }
-    SceneNode &node = page.graph.node(textNodeIndex);
-    node.clip = {int16_t(x + 4), y, max<int16_t>(1, width - 8), height};
-    node.bounds = node.clip;
-    SceneText &text = page.texts[node.payloadIndex];
-    if (scroll && display.textWidth(value) > width - 8) {
-      text.marqueeIntervalMs = constrain(style["marqueeIntervalMs"] | 100, 50, 10000);
-      text.marqueeStepPixels = constrain(style["marqueeStepPixels"] | 1, 1, 16);
-      if (strcmp(style["marqueeEffect"] | "bounce", "loop") == 0)
-        text.marqueeRepeat = display.textWidth(value) + 24;
-      // Start at the first character, irrespective of the resting alignment.
-      text.x = x + 4;
-      text.datum = top ? TL_DATUM : bottom ? BL_DATUM : ML_DATUM;
-    }
-  }
-  return true;
-}
-
-bool compileCenteredFit(ScenePage &page, String value, JsonVariantConst style,
-                      int16_t x, int16_t y, int16_t width, int16_t height,
-                      uint16_t foreground, uint16_t background,
-                      bool freeFit = false, uint32_t sourceMask = 0,
-                      int16_t zIndex = 1000) {
-  return compilePositionedText(page, value, style, x, y, width, height,
-      foreground, background, "center", "middle", 0, nullptr, false,
-      freeFit, sourceMask, zIndex);
-}
-
-GraphPaintConfig compileGraph(JsonObjectConst card) {
-  GraphPaintConfig result;
-  result.series = graphHistory.find(card);
-  JsonObjectConst graph = card["graph"];
-  result.minimum = graph["minimum"] | NAN;
-  result.maximum = graph["maximum"] | NAN;
-  result.color = parseColor(graph["color"], TFT_CYAN);
-  result.gridColor = parseColor(graph["gridColor"], TFT_DARKGREY);
-  result.opacity = graph["opacity"] | 50;
-  result.fillOpacity = graph["fillOpacity"] | 0;
-  result.gridOpacity = graph["gridOpacity"] | 20;
-  result.gridLines = graph["gridLines"] | 0;
-  result.lineWidth = graph["lineWidth"] | 1;
-  result.pointSize = graph["pointSize"] | 1;
-  result.barGap = graph["barGap"] | 1;
-  result.line = strcmp(graph["type"] | "bar", "line") == 0;
-  result.fit = strcmp(graph["scale"] | (result.line ? "fit" : "zero"), "fit") == 0;
-  result.showPoints = graph["showPoints"] | false;
-  result.scalePadding = graph["scalePadding"] | 5;
-  result.labels = graph["showValues"] | false;
-  result.labelEvery = graph["labelEvery"] | 6;
-  result.decimals = graph["decimals"] | 1;
-  return result;
-}
-
-void addSceneSource(const char *source, uint32_t &mask) {
-  DashboardValue *value = findValue(source, false);
-  if (value == nullptr) return;
-  const uint8_t index = static_cast<uint8_t>(value - dashboardValues);
-  if (index < 32) mask |= uint32_t{1} << index;
-}
-
-void collectSceneSources(JsonVariantConst value, uint32_t &mask) {
-  if (value.is<JsonArrayConst>()) {
-    for (JsonVariantConst item : value.as<JsonArrayConst>()) {
-      if (item.is<const char *>()) addSceneSource(item.as<const char *>(), mask);
-      else collectSceneSources(item, mask);
-    }
-    return;
-  }
-  if (!value.is<JsonObjectConst>()) return;
-  for (JsonPairConst pair : value.as<JsonObjectConst>()) {
-    const char *key = pair.key().c_str();
-    JsonVariantConst nested = pair.value();
-    if ((strcmp(key, "source") == 0 || strcmp(key, "entity") == 0) &&
-        nested.is<const char *>()) {
-      addSceneSource(nested.as<const char *>(), mask);
-    } else if (strcmp(key, "sources") == 0 ||
-               nested.is<JsonObjectConst>() || nested.is<JsonArrayConst>()) {
-      collectSceneSources(nested, mask);
-    }
-  }
-}
-
-bool compileCard(ScenePage &page, JsonObjectConst card, int16_t x, int16_t y,
-               int16_t width, int16_t height, bool forceTransparent = false) {
-  if (page.cardCount >= kMaxSceneCards) {
-    lastSceneCompileFailure = SceneCompileFailure::CardLimit;
-    return false;
-  }
-  if (!page.cards.ensure(page.cardCount + 1)) {
-    lastSceneCompileFailure = SceneCompileFailure::Allocation;
-    return false;
-  }
-  JsonObjectConst colorMapping;
-  const char *source = card["source"];
-  DashboardValue *sourceValue = findValue(source, false);
-  uint32_t sourceMask = 0;
-  collectSceneSources(card, sourceMask);
-  if (sourceValue != nullptr && sourceValue->available) {
-    const char *cardType = card["type"] | "";
-    const String mappingValue = strcmp(cardType, "number") == 0
-                                    ? transformedCardNumberText(
-                                          card, sourceValue->state, false)
-                                    : String(sourceValue->state);
-    findCardMapping(card, "colorMappings", mappingValue, colorMapping);
-  }
-  JsonVariantConst backgroundValue = colorMapping["background"];
-  if (backgroundValue.isNull()) backgroundValue = card["style"]["background"];
-  JsonVariantConst foregroundValue = colorMapping["foreground"];
-  if (foregroundValue.isNull()) foregroundValue = card["style"]["foreground"];
-  const uint16_t background =
-      parseColor(backgroundValue, display.color565(30, 34, 42));
-  const uint16_t foreground = parseColor(foregroundValue, TFT_WHITE);
-
-  const uint8_t payloadIndex = page.cardCount;
-  SceneCard &sceneCard = page.cards[payloadIndex];
-  sceneCard = SceneCard{};
-  sceneCard.graph = compileGraph(card);
-  sceneCard.background = background;
-  const char *backgroundMode = card["backgroundMode"] | "";
-  sceneCard.flags =
-      (forceTransparent || strcmp(backgroundMode, "transparent") == 0 ||
-       (card["transparentBackground"] | false))
-          ? 1U
-          : 0U;
-  sceneCard.imageFit = parseImageFit(card["imageFit"] | "cover");
-  const char *cardType = card["type"] | "";
-  const char *image = strcmp(cardType, "image") == 0
-                          ? card["image"] | ""
-                          : strcmp(backgroundMode, "image") == 0 ||
-                                    backgroundMode[0] == '\0'
-                                ? card["backgroundImage"] | ""
-                                : "";
-  strlcpy(sceneCard.image, image, sizeof(sceneCard.image));
-  SceneNode cardNode;
-  cardNode.id = 0x2000U + payloadIndex;
-  cardNode.type = SceneNodeType::Card;
-  cardNode.payloadIndex = payloadIndex;
-  cardNode.sourceMask = sourceMask;
-  const int16_t cardZ = 20 + payloadIndex * 3;
-  cardNode.zIndex = cardZ;
-  cardNode.bounds = {x, y, width, height};
-  cardNode.clip = {0, 0, 240, 240};
-  if (!page.graph.add(cardNode)) {
-    lastSceneCompileFailure = SceneCompileFailure::CardLimit;
-    return false;
-  }
-  ++page.cardCount;
-  if (strcmp(cardType, "image") == 0 || strcmp(cardType, "chart") == 0) return true;
-
-  const char *title = card["title"];
-  const char *progressType = card["progress"] | "none";
-  const bool bar = strcmp(progressType, "bar") == 0;
-  const bool ring = strcmp(progressType, "ring") == 0;
-  CardTextLayout textLayout{y, height, y, height, false, compactCardTitleFont()};
-  int16_t valueX = x, valueWidth = width, titleX = x, titleWidth = width;
-  if (page.freeLayout) {
-    const FreeTextFrame valueBox = freeTextFrame(card, false);
-    const FreeTextFrame titleBox = freeTextFrame(card, true);
-    valueX = valueBox.x;
-    valueWidth = valueBox.width;
-    textLayout.valueY = valueBox.y;
-    textLayout.valueHeight = valueBox.height;
-    titleX = titleBox.x;
-    titleWidth = titleBox.width;
-    textLayout.titleY = titleBox.y;
-    textLayout.titleHeight = titleBox.height;
-    textLayout.hasTitle = title && title[0] && (card["showTitle"] | true);
-    textLayout.titleFont = selectFreeTextFont(String(title ? title : ""),
-        card["titleStyle"], titleWidth, titleBox.height,
-        marqueeEnabled(card["titleStyle"], true) ||
-        strcmp(card["titleStyle"]["textFlow"] | "default", "overflow") == 0);
-  } else textLayout = cardTextLayout(card, width, y, height);
-  JsonVariantConst valueStyle = card["valueStyle"];
-  if (valueStyle.isNull()) valueStyle = card["style"];
-  RingLayout ringGeometry{};
-  if (strcmp(cardType, "weather") == 0) {
-    if (!compileWeatherContent(card, valueX, textLayout.valueY, valueWidth, textLayout.valueHeight, findValue,
-        [&](const String &line, int16_t lx, int16_t ly, int16_t lw, int16_t lh) {
-          return compilePositionedText(page, line, valueStyle, lx, ly, lw, lh,
-                                     foreground, background, "center", "middle", 0, nullptr,
-                                     false, page.freeLayout, sourceMask, cardZ + 1);
-        },
-        [&](uint8_t code, uint8_t size, int16_t cx, int16_t cy, bool colored) {
-          RenderFont font;
-          font.builtin = size == 96 ? &Weather96 : size == 48 ? &Weather48 : &Weather24;
-          const uint16_t color = !colored ? foreground : code == 11 ? TFT_YELLOW :
-              code == 0 ? TFT_LIGHTGREY : code == 4 || code == 5 ? TFT_ORANGE : TFT_CYAN;
-          return compileText(page, String(char('A'+code)), font, MC_DATUM, cx,
-                             cy, color, background, TextEffect{}, 1, 0, 48,
-                             sourceMask, cardZ + 1);
-        })) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Weather;
-      }
-      return false;
-    }
-  } else if (ring) {
-    ringGeometry =
-        ringLayout(valueX, textLayout.valueY, valueWidth, textLayout.valueHeight);
-    if (!compileCenteredFit(page, cardValue(card), valueStyle, valueX,
-                          ringGeometry.valueY, valueWidth,
-                          ringGeometry.valueHeight, foreground, background,
-                          page.freeLayout, sourceMask, cardZ + 1)) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Value;
-      }
-      return false;
-    }
-  } else {
-    if (!compilePositionedText(page, cardValue(card), valueStyle, valueX,
-                             textLayout.valueY, valueWidth, textLayout.valueHeight,
-                             foreground, background, "center", "middle", 0,
-                             nullptr, false, page.freeLayout, sourceMask,
-                             cardZ + 1, page.freeLayout && strcmp(cardType, "text") == 0)) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Value;
-      }
-      return false;
-    }
-  }
-  if (textLayout.hasTitle) {
-    JsonVariantConst titleStyle = card["titleStyle"];
-    if (titleStyle.isNull()) titleStyle = card["style"];
-    const uint16_t titleForeground =
-        cardTitleForeground(card, colorMapping);
-    if (!compilePositionedText(page, String(title), titleStyle, titleX,
-                             textLayout.titleY, titleWidth, textLayout.titleHeight,
-                             titleForeground, background, "left", "top",
-                             textLayout.titleHeight, &textLayout.titleFont,
-                             true, page.freeLayout, sourceMask, cardZ + 1,
-                             true)) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Title;
-      }
-      return false;
-    }
-  }
-
-  if (bar || ring) {
-    const float ratio = progressRatio(card, sourceValue);
-    sceneCard.hasProgress = true;
-    sceneCard.progressRing = ring;
-    sceneCard.progressX = ring ? ringGeometry.x : x + 5;
-    sceneCard.progressY = ring ? ringGeometry.y : y + height - 8;
-    sceneCard.progressWidth = ring ? ringGeometry.diameter : width - 10;
-    sceneCard.progressFill = static_cast<int16_t>(
-        (ring ? 1000 : sceneCard.progressWidth) * ratio);
-    sceneCard.progressBackground = TFT_DARKGREY;
-    sceneCard.progressForeground =
-        parseColor(card["style"]["accent"], TFT_CYAN);
-    sceneCard.progressCenter = background;
-  }
-  return true;
-}
-
-struct PageContentLayout {
-  int16_t x;
-  int16_t y;
-  int16_t right;
-  int16_t bottom;
-  int16_t titleThickness;
-  const char *titlePosition;
-  bool hasTitle;
-};
-
-uint8_t pageTitleFontSize(JsonVariantConst style) {
-  const char *size = style["fontSize"] | "small";
-  if (strcmp(size, "medium") == 0) return 1;
-  if (strcmp(size, "large") == 0) return 2;
-  if (strcmp(size, "xlarge") == 0) return 3;
-  return 0;
-}
-
-RenderFont pageTitleFont(JsonVariantConst style) {
-  return renderFontFor(style["fontFamily"] | "default",
-                       pageTitleFontSize(style));
-}
-
-int16_t pageTitleThickness(JsonVariantConst style) {
-  applyDisplayFont(pageTitleFont(style));
-  return min<int16_t>(64, display.fontHeight() + 2);
-}
-
-RenderFont rowTitleFont(JsonVariantConst style) {
-  const char *family = style["fontFamily"] | "default";
-  const bool builtInFamily = strcmp(family, "default") == 0 ||
-                             strcmp(family, "sans") == 0 ||
-                             strcmp(family, "sans-bold") == 0;
-  if (builtInFamily) return {&InterTightCompact13, -1, 0};
-  return renderFontFor(family, 0);
-}
-
-int16_t rowTitleHeight(JsonVariantConst style) {
-  applyDisplayFont(rowTitleFont(style));
-  return display.fontHeight();
-}
-
-PageContentLayout pageContentLayout(JsonObjectConst page) {
-  PageContentLayout layout{6, 6, 234, 234, 0, "top", false};
-  const char *title = page["title"];
-  layout.hasTitle = (page["showTitle"] | true) && title && title[0];
-  layout.titlePosition = page["titlePosition"] | "top";
-  if (!layout.hasTitle) return layout;
-  layout.titleThickness = pageTitleThickness(page["titleStyle"]);
-  if (strcmp(layout.titlePosition, "bottom") == 0) {
-    layout.bottom -= layout.titleThickness;
-  } else if (strcmp(layout.titlePosition, "left") == 0) {
-    layout.x += layout.titleThickness;
-  } else if (strcmp(layout.titlePosition, "right") == 0) {
-    layout.right -= layout.titleThickness;
-  } else {
-    layout.y += layout.titleThickness;
-  }
-  return layout;
-}
-
 bool compileScenePage(JsonObjectConst source, ScenePage &page) {
-  MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SceneCompile);
-  lastSceneCompileFailure = SceneCompileFailure::None;
-  page.clear();
-  page.background = parseColor(source["style"]["background"], TFT_BLACK);
-  strlcpy(page.backgroundImage, source["backgroundImage"] | "",
-          sizeof(page.backgroundImage));
-  page.transparentCards = source["transparentCards"] | false;
-  JsonArrayConst rows = source["rows"].as<JsonArrayConst>();
-  page.freeLayout = strcmp(source["layout"] | "rows", "free") == 0;
-  if (page.freeLayout) {
-    for (JsonObjectConst row : rows) for (JsonObjectConst card : row["cards"].as<JsonArrayConst>()) {
-      JsonObjectConst frame = card["frame"];
-      const int16_t x = lroundf((frame["x"] | 0.0F) * 2.4F);
-      const int16_t y = lroundf((frame["y"] | 0.0F) * 2.4F);
-      const int16_t width = min<int16_t>(240 - x, lroundf((frame["width"] | 50.0F) * 2.4F));
-      const int16_t height = min<int16_t>(240 - y, lroundf((frame["height"] | 25.0F) * 2.4F));
-      if (!compileCard(page, card, x, y, width, height, page.transparentCards)) return false;
-    }
-    return true;
-  }
-  const PageContentLayout layout = pageContentLayout(source);
-  const char *pageTitle = source["title"];
-  JsonVariantConst titleStyle = source["titleStyle"];
-  const uint16_t titleBackground =
-      parseColor(titleStyle["background"], page.background);
-  const uint16_t titleForeground =
-      parseColor(titleStyle["foreground"], TFT_WHITE);
-  if (layout.hasTitle) {
-    SceneRect titleBounds;
-    if (strcmp(layout.titlePosition, "bottom") == 0) {
-      titleBounds = {
-          0, static_cast<uint8_t>(240 - layout.titleThickness), 240,
-          static_cast<uint8_t>(layout.titleThickness)};
-    } else if (strcmp(layout.titlePosition, "left") == 0) {
-      titleBounds = {0, 0, static_cast<uint8_t>(layout.titleThickness), 240};
-    } else if (strcmp(layout.titlePosition, "right") == 0) {
-      titleBounds = {
-          static_cast<uint8_t>(240 - layout.titleThickness), 0,
-          static_cast<uint8_t>(layout.titleThickness), 240};
-    } else {
-      titleBounds = {0, 0, 240,
-                     static_cast<uint8_t>(layout.titleThickness)};
-    }
-    if (page.fillCount >= kMaxSceneFills) {
-      lastSceneCompileFailure = SceneCompileFailure::Title;
-      return false;
-    }
-    if (!page.fills.ensure(page.fillCount + 1)) {
-      lastSceneCompileFailure = SceneCompileFailure::Allocation;
-      return false;
-    }
-    const uint8_t fillIndex = page.fillCount++;
-    page.fills[fillIndex].color = titleBackground;
-    SceneNode titleNode;
-    titleNode.id = 0x1000U + fillIndex;
-    titleNode.type = SceneNodeType::Fill;
-    titleNode.payloadIndex = fillIndex;
-    titleNode.zIndex = 10;
-    titleNode.bounds = titleBounds;
-    titleNode.clip = {0, 0, 240, 240};
-    if (!page.graph.add(titleNode)) {
-      lastSceneCompileFailure = SceneCompileFailure::Title;
-      return false;
-    }
-  }
-  if (layout.hasTitle && strcmp(layout.titlePosition, "top") == 0) {
-    if (!compileText(page, String(pageTitle), pageTitleFont(titleStyle), MC_DATUM,
-                   120, layout.titleThickness / 2, titleForeground,
-                   titleBackground)) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Title;
-      }
-      return false;
-    }
-  } else if (layout.hasTitle &&
-             strcmp(layout.titlePosition, "bottom") == 0) {
-    if (!compileText(page, String(pageTitle), pageTitleFont(titleStyle), MC_DATUM,
-                   120, 240 - layout.titleThickness / 2, titleForeground,
-                   titleBackground)) {
-      if (lastSceneCompileFailure == SceneCompileFailure::None) {
-        lastSceneCompileFailure = SceneCompileFailure::Title;
-      }
-      return false;
-    }
-  }
-
-  uint16_t totalWeight = 0;
-  for (JsonObjectConst row : rows) totalWeight += row["weight"] | 1;
-  if (totalWeight == 0 || rows.size() == 0) {
-    lastSceneCompileFailure = SceneCompileFailure::EmptyRows;
-    return false;
-  }
-  const int16_t gap = 4;
-  const int16_t availableHeight =
-      layout.bottom - layout.y - gap * (rows.size() - 1);
-  int16_t rowY = layout.y;
-  uint16_t consumedWeight = 0;
-  for (size_t rowIndex = 0; rowIndex < rows.size(); ++rowIndex) {
-    JsonObjectConst row = rows[rowIndex];
-    const uint16_t weight = row["weight"] | 1;
-    consumedWeight += weight;
-    const int16_t nextY = rowIndex + 1 == rows.size()
-                              ? layout.bottom
-                              : layout.y + availableHeight * consumedWeight /
-                                               totalWeight +
-                                    gap * rowIndex;
-    int16_t rowHeight = nextY - rowY;
-    const char *rowTitle = row["title"];
-    const bool showTitle = row["showTitle"] | true;
-    if (showTitle && rowTitle && rowTitle[0] && rowHeight >= 24) {
-      JsonVariantConst rowTitleStyle = row["titleStyle"];
-      if (rowTitleStyle.isNull()) rowTitleStyle = row["style"];
-      const RenderFont rowFont = rowTitleFont(rowTitleStyle);
-      const int16_t titleHeight = rowTitleHeight(rowTitleStyle);
-      const uint16_t rowForeground =
-          parseColor(rowTitleStyle["foreground"], TFT_LIGHTGREY);
-      if (!compileText(page, String(rowTitle), rowFont, TL_DATUM, layout.x + 2,
-                     rowY, rowForeground, page.background)) {
-        return false;
-      }
-      rowY += titleHeight;
-      rowHeight -= titleHeight;
-    }
-    JsonArrayConst cards = row["cards"].as<JsonArrayConst>();
-    if (cards.size() == 0) {
-      lastSceneCompileFailure = SceneCompileFailure::EmptyRow;
-      return false;
-    }
-    const int16_t cardWidth =
-        (layout.right - layout.x - gap * (cards.size() - 1)) / cards.size();
-    int16_t cardX = layout.x;
-    for (JsonObjectConst card : cards) {
-      if (!compileCard(page, card, cardX, rowY, cardWidth, rowHeight,
-                     page.transparentCards)) {
-        return false;
-      }
-      cardX += cardWidth + gap;
-    }
-    rowY = nextY + gap;
-  }
-  return true;
+  return sceneCompiler.compile(source, page);
 }
 
 void invalidateSceneBand(const SceneRect &bounds, uint8_t expansion) {
@@ -2826,11 +1340,12 @@ void sendApiStatus() {
   response.field("mdnsReady", mdnsReady);
   response.field("setupMode", accessPointRunning);
   response.field("dashboardPageCount", dashboardPageCount);
-  response.field("trackedValueCount", dashboardValueCount);
+  response.field("trackedValueCount", dashboardValues.size());
   response.field("graphHistoryBytes", graphHistory.bytes());
   response.field("graphStorageError", graphHistory.storageError());
   response.field("renderError", renderFailureName());
-  response.field("sceneCompileError", sceneCompileFailureName());
+  response.field("sceneCompileError",
+                 sceneCompileFailureName(lastSceneCompileFailure));
   response.field("sceneBytes", activeScene ? activeScene->allocatedBytes() : 0);
   response.field("pageDefinitionBytes", pageDefinition.allocatedBytes());
   response.field("pageDefinitionParses", pageDefinition.parseCount());
@@ -2996,7 +1511,7 @@ void receiveApiData() {
     }
     strlcpy(slot->state, state, sizeof(slot->state));
     slot->available = available;
-    changedValueMask |= 1UL << (slot - dashboardValues);
+    changedValueMask |= 1UL << dashboardValues.indexOf(slot);
   }
   if (document["render"] | true) {
     if (pageTransitionActive) {
@@ -3035,7 +1550,7 @@ void sendApiData() {
   server.sendHeader("Cache-Control", "no-store");
   server.setContentLength(CONTENT_LENGTH_UNKNOWN);
   server.send(200, "application/json", "");
-  writeDisplayData(httpChunkSink, dashboardValues, dashboardValueCount,
+  writeDisplayData(httpChunkSink, dashboardValues.data(), dashboardValues.size(),
                    graphHistory);
   server.sendContent("");
 }
@@ -3410,9 +1925,7 @@ void receiveApiFactoryReset() {
     sendJsonError(500, F("storage_error"), F("Could not erase settings"));
     return;
   }
-  DeviceConfig erased{};
-  EEPROM.put(0, erased);
-  if (!EEPROM.commit()) {
+  if (!eraseDeviceConfig()) {
     sendJsonError(500, F("storage_error"), F("Could not erase settings"));
     return;
   }
@@ -3441,7 +1954,7 @@ void startAccessPoint() {
     WiFi.softAP(ssid.c_str());
   }
   accessPointRunning = true;
-  setupStationCount = UINT8_MAX;
+  startupScreens.clearConnection();
   showSetupScreen();
   Serial.printf("Setup AP: %s, http://%s/\n", ssid.c_str(),
                 WiFi.softAPIP().toString().c_str());
@@ -4062,191 +2575,27 @@ void connectToWiFi() {
   wifiWasConnected = false;
 }
 
-void drawCenteredBold(const String &text, int16_t y, uint8_t font,
-                      uint16_t color) {
-  const uint8_t size = font >= 4 ? 1 : 0;
-  applyDisplayFont(
-      RenderFont{builtInFontFor("sans-bold", size), -1, size});
-  display.setTextColor(color);
-  display.drawString(text, 120, y);
-}
-
 void showStartupScreen() {
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
-  display.init();
-  display.setRotation(0);
-#if defined(ESP8266)
-  display.setTextWrap(false, false);
-#endif
-
-  const uint16_t background = display.color565(9, 14, 23);
-  const uint16_t panel = display.color565(25, 34, 47);
-  const uint16_t muted = display.color565(150, 164, 181);
-  const uint16_t accent = display.color565(3, 169, 244);
-  display.fillScreen(background);
-  display.fillRoundRect(12, 12, 216, 216, 12, panel);
-  display.fillRoundRect(12, 12, 216, 6, 3, accent);
-  display.setTextDatum(MC_DATUM);
-  display.setTextColor(accent, panel);
-  display.drawCircle(120, 76, 28, accent);
-  display.drawLine(104, 76, 116, 88, accent);
-  display.drawLine(116, 88, 139, 63, accent);
-  drawCenteredBold("MINI-DISPLAY", 130, 4, TFT_WHITE);
-  drawCenteredBold("HOME ASSISTANT", 160, 2, muted);
-  drawCenteredBold("Starting...", 198, 2, muted);
+  startupScreens.begin();
 }
 
 void showWifiConnectingScreen() {
-  if (!wifiConfigured() || WiFi.status() == WL_CONNECTED) return;
-  setupScreenUpdatedAt = millis();
-
-  const uint16_t background = display.color565(9, 14, 23);
-  const uint16_t panel = display.color565(25, 34, 47);
-  const uint16_t muted = display.color565(150, 164, 181);
-  const uint16_t accent = display.color565(3, 169, 244);
-  const uint16_t warning = display.color565(245, 180, 0);
-  const uint8_t retryLimit = config.wifiRetryLimit
-                                 ? config.wifiRetryLimit
-                                 : kDefaultWifiRetryLimit;
-  const uint32_t elapsed = millis() - connectStartedAt;
-  const uint32_t remainingSeconds =
-      elapsed >= kConnectTimeoutMs
-          ? 0
-          : (kConnectTimeoutMs - elapsed + 999) / 1000;
-  const uint16_t progressWidth =
-      min<uint32_t>(180, elapsed * 180 / kConnectTimeoutMs);
-
-  if (!connectionScreenVisible) {
-    display.fillScreen(background);
-    display.fillRoundRect(12, 12, 216, 216, 12, panel);
-    display.fillRoundRect(12, 12, 216, 6, 3, accent);
-    display.setTextDatum(MC_DATUM);
-    drawCenteredBold("CONNECTING", 38, 4, TFT_WHITE);
-    drawCenteredBold("WI-FI NETWORK", 69, 2, muted);
-    drawCenteredBold(config.ssid, 90, 2, TFT_WHITE);
-    connectionScreenVisible = true;
-  }
-
-  display.fillRect(25, 106, 190, 27, panel);
-  drawCenteredBold("ATTEMPT " + String(wifiAttemptCount) + " OF " +
-                       String(retryLimit),
-                   119, 2, warning);
-  display.fillRect(28, 138, 184, 16, panel);
-  display.drawRoundRect(29, 139, 182, 14, 5, muted);
-  if (progressWidth > 0) {
-    display.fillRoundRect(30, 140, progressWidth, 12, 4, accent);
-  }
-  display.fillRect(25, 160, 190, 29, panel);
-  drawCenteredBold("Waiting up to " + String(remainingSeconds) + " s", 174,
-                   2, muted);
-
-  const wl_status_t status = WiFi.status();
-  display.fillRect(25, 190, 190, 25, panel);
-  if (status == WL_NO_SSID_AVAIL) {
-    drawCenteredBold("Network not found", 202, 2, muted);
-  } else if (status == WL_CONNECT_FAILED) {
-    drawCenteredBold("Check Wi-Fi password", 202, 2, TFT_RED);
-  } else {
-    drawCenteredBold("Please wait...", 202, 2, muted);
-  }
-
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+  startupScreens.showConnecting(config, wifiAttemptCount, connectStartedAt,
+                                kConnectTimeoutMs);
 }
 
 void updateWifiConnectedCountdown(uint8_t secondsRemaining) {
-  const uint16_t panel = display.color565(25, 34, 47);
-  display.fillRect(85, 192, 70, 32, panel);
-  drawCenteredBold(String(secondsRemaining), 207, 4, TFT_WHITE);
-  startupCountdownShown = secondsRemaining;
-  startupScreenUpdatedAt = millis();
+  startupScreens.updateConnectedCountdown(secondsRemaining);
 }
 
 void showWifiConnectedScreen(uint8_t secondsRemaining) {
-
-  const uint16_t background = display.color565(9, 14, 23);
-  const uint16_t panel = display.color565(25, 34, 47);
-  const uint16_t muted = display.color565(150, 164, 181);
-  const uint16_t success = display.color565(46, 204, 113);
-  display.fillScreen(background);
-  display.fillRoundRect(12, 12, 216, 216, 12, panel);
-  display.fillRoundRect(12, 12, 216, 6, 3, success);
-
-  display.drawCircle(120, 56, 24, success);
-  display.drawLine(108, 56, 117, 65, success);
-  display.drawLine(117, 65, 133, 47, success);
-  display.setTextDatum(MC_DATUM);
-  drawCenteredBold("CONNECTED", 94, 4, success);
-  drawCenteredBold(config.ssid, 122, 2, muted);
-  drawCenteredBold("IP  " + WiFi.localIP().toString(), 148, 2, TFT_WHITE);
-  drawCenteredBold("Opening dashboard in", 181, 2, muted);
-  updateWifiConnectedCountdown(secondsRemaining);
+  startupScreens.showConnected(config, secondsRemaining);
 }
 
 void showSetupScreen() {
   if (!accessPointRunning) return;
-  setupStationCount = WiFi.softAPgetStationNum();
-  setupScreenUpdatedAt = millis();
-
-  const uint16_t background = display.color565(9, 14, 23);
-  const uint16_t panel = display.color565(25, 34, 47);
-  const uint16_t muted = display.color565(150, 164, 181);
-  const uint16_t accent = display.color565(3, 169, 244);
-  display.fillScreen(background);
-  display.fillRoundRect(12, 12, 216, 216, 12, panel);
-  display.fillRoundRect(12, 12, 216, 6, 3, accent);
-
-  display.setTextDatum(MC_DATUM);
-  display.setTextColor(TFT_WHITE, panel);
-  display.drawString("SETUP MODE", 120, 32, 4);
-  const uint8_t retryLimit = config.wifiRetryLimit
-                                 ? config.wifiRetryLimit
-                                 : kDefaultWifiRetryLimit;
-  const bool connectionFailed =
-      wifiConfigured() && wifiAttemptCount >= retryLimit;
-  if (connectionFailed) {
-    display.setTextColor(TFT_RED, panel);
-    display.drawString("WI-FI CONNECTION FAILED", 120, 52, 1);
-  }
-  display.setTextColor(muted, panel);
-  display.drawString("CONNECT TO", 120, connectionFailed ? 69 : 60, 2);
-  display.setTextColor(TFT_WHITE, panel);
-  display.drawString("SDPRO-Setup-" + deviceSuffix(), 120,
-                     connectionFailed ? 87 : 78, 2);
-
-  display.setTextColor(muted, panel);
-  display.drawString("OPEN IN BROWSER", 120,
-                     connectionFailed ? 107 : 100, 2);
-  display.setTextColor(accent, panel);
-  display.drawString("http://" + WiFi.softAPIP().toString(), 120,
-                     connectionFailed ? 125 : 118, 2);
-
-  if (networkSettings.recoveryPassword[0]) {
-    display.setTextColor(muted, panel);
-    display.drawString("PASSWORD", 120, connectionFailed ? 145 : 140, 2);
-    display.setTextColor(TFT_WHITE, panel);
-    const String password = networkSettings.recoveryPassword;
-    const int16_t passwordY = connectionFailed ? 162 : 158;
-    if (password.length() <= 24) {
-      display.drawString(password, 120, passwordY, 2);
-    } else if (password.length() <= 36) {
-      display.drawString(password, 120, passwordY, 1);
-    } else {
-      const size_t split = (password.length() + 1) / 2;
-      display.drawString(password.substring(0, split), 120, passwordY - 5, 1);
-      display.drawString(password.substring(split), 120, passwordY + 7, 1);
-    }
-  }
-  display.setTextColor(muted, panel);
-  display.drawString("CONNECTED DEVICES", 120,
-                     networkSettings.recoveryPassword[0] ? 188 : 151, 2);
-  display.setTextColor(accent, panel);
-  display.drawString(String(setupStationCount), 120,
-                     networkSettings.recoveryPassword[0] ? 211 : 184, 4);
-
-  pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
+  startupScreens.showSetup(config, networkSettings, deviceSuffix(),
+                           wifiAttemptCount);
 }
 
 void startMdns() {
@@ -4315,8 +2664,9 @@ void loop() {
       wifiAttemptCount = 0;
       startupSequenceActive = true;
       startupConnectedAt = 0;
-    } else if (millis() - setupScreenUpdatedAt >= 1000 &&
-               WiFi.softAPgetStationNum() != setupStationCount) {
+    } else if (millis() - startupScreens.setupUpdatedAt() >= 1000 &&
+               WiFi.softAPgetStationNum() !=
+                   startupScreens.setupStationCount()) {
       showSetupScreen();
     }
     recordFreeHeap();
@@ -4348,7 +2698,7 @@ void loop() {
         WiFi.begin(config.ssid, config.wifiPassword);
         showWifiConnectingScreen();
       }
-    } else if (millis() - setupScreenUpdatedAt >= 1000) {
+    } else if (millis() - startupScreens.setupUpdatedAt() >= 1000) {
       showWifiConnectingScreen();
     }
     recordFreeHeap();
@@ -4368,7 +2718,7 @@ void loop() {
     const uint32_t connectedFor = millis() - startupConnectedAt;
     if (connectedFor < 4000) {
       const uint8_t secondsRemaining = 4 - connectedFor / 1000;
-      if (secondsRemaining != startupCountdownShown) {
+      if (secondsRemaining != startupScreens.countdownShown()) {
         updateWifiConnectedCountdown(secondsRemaining);
       }
       startMdns();
@@ -4380,11 +2730,11 @@ void loop() {
       return;
     }
     startupSequenceActive = false;
-    connectionScreenVisible = false;
+    startupScreens.clearConnection();
     showCurrentPage();
     applyBacklight();
-  } else if (connectionScreenVisible) {
-    connectionScreenVisible = false;
+  } else if (startupScreens.connectionVisible()) {
+    startupScreens.clearConnection();
     showCurrentPage();
     applyBacklight();
   }

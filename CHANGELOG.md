@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- refactor: split firmware modules
 - fix: persist value transformers
 - fix: hide free layout coordinates
 - feature: transform numeric values
