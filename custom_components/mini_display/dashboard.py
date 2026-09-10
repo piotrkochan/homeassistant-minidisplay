@@ -62,10 +62,11 @@ COLOR_TOKENS = {
 PREVIEW_TIMEOUT_SECONDS = 300
 TRANSITION_TYPES = {
     "none", "random", "slide", "bounce", "fade", "wipe", "dissolve",
-    "curtain", "blinds", "mosaic", "doors", "spiral"
+    "curtain", "blinds", "mosaic", "cascade", "spiral"
 }
-TRANSITION_DIRECTIONS = {"left", "right", "up", "down"}
+TRANSITION_DIRECTIONS = {"left", "right", "up", "down", "random"}
 TRANSITION_SPEEDS = {"slow", "normal", "fast"}
+HARDWARE_SCROLL_TRANSITIONS = {"slide", "bounce"}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,10 +154,13 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                     if "marquee" in style and not isinstance(style["marquee"], bool):
                         raise DashboardValidationError("Invalid marquee toggle", f"{card_path}/{style_key}/marquee")
                     interval = style.get("marqueeIntervalMs", 100)
+                    step = style.get("marqueeStepPixels", 1)
                     if style.get("marqueeEffect", "bounce") not in ("bounce", "loop"):
                         raise DashboardValidationError("Invalid marquee effect", f"{card_path}/{style_key}/marqueeEffect")
                     if type(interval) is not int or not 50 <= interval <= 10000:
                         raise DashboardValidationError("Marquee interval must be 50-10000 ms", f"{card_path}/{style_key}/marqueeIntervalMs")
+                    if type(step) is not int or not 1 <= step <= 16:
+                        raise DashboardValidationError("Marquee step must be 1-16 pixels", f"{card_path}/{style_key}/marqueeStepPixels")
                 if card.get("type") == "weather":
                     validate_weather(card, card_path, DashboardValidationError)
                 if source is not None and (not isinstance(source, str) or len(source) > 64):
@@ -240,11 +244,16 @@ def _validate_transition(transition: Any, path: str) -> None:
     if not isinstance(transition, dict):
         raise DashboardValidationError("Transition must be an object", path)
     transition_type = transition.get("type", "none")
+    if transition_type == "doors":
+        transition_type = "cascade"
+        transition["type"] = transition_type
     if transition_type not in TRANSITION_TYPES:
         raise DashboardValidationError("Unsupported transition type", f"{path}/type")
     direction = transition.get("direction")
     if direction is not None and direction not in TRANSITION_DIRECTIONS:
         raise DashboardValidationError("Unsupported transition direction", f"{path}/direction")
+    if transition_type in HARDWARE_SCROLL_TRANSITIONS and direction in {"left", "right"}:
+        transition["direction"] = "up" if direction == "left" else "down"
     speed = transition.get("speed")
     if speed is not None and speed not in TRANSITION_SPEEDS:
         raise DashboardValidationError("Unsupported transition speed", f"{path}/speed")
@@ -700,12 +709,18 @@ def compact_dashboard_for_device(document: dict[str, Any]) -> dict[str, Any]:
                     style = card.get(key)
                     if not isinstance(style, dict):
                         continue
+                    marquee_default = key == "titleStyle" or (
+                        key == "valueStyle"
+                        and page.get("layout") == "free"
+                        and card.get("type") == "text"
+                    )
                     for name, default in (
                         ("fontSize", "auto"),
                         ("textFlow", "default"),
-                        ("marquee", False),
+                        ("marquee", marquee_default),
                         ("marqueeEffect", "bounce"),
                         ("marqueeIntervalMs", 100),
+                        ("marqueeStepPixels", 1),
                     ):
                         if style.get(name) == default:
                             style.pop(name)

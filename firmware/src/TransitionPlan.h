@@ -44,6 +44,11 @@ class TransitionPlan {
                                             static_cast<int16_t>(w), static_cast<int16_t>(h)}, 240, 240);
       if (!rect.empty()) emit(SceneTransitionSlice{rect, 0, 0, true});
     };
+    const auto current = [&](int x, int y, int w, int h) {
+      const SceneRect rect = clipSceneRect({static_cast<int16_t>(x), static_cast<int16_t>(y),
+                                            static_cast<int16_t>(w), static_cast<int16_t>(h)}, 240, 240);
+      if (!rect.empty()) emit(SceneTransitionSlice{rect, 0, 0, false});
+    };
     const bool horizontal = config_.direction == PageTransitionDirection::Left ||
                             config_.direction == PageTransitionDirection::Right;
     const bool reverse = config_.direction == PageTransitionDirection::Right ||
@@ -56,24 +61,22 @@ class TransitionPlan {
           progress, bounce, true, config_.intensity));
     };
     switch (config_.type) {
-      case PageTransitionType::Slide:
-      case PageTransitionType::Bounce: {
-        const bool bounce = config_.type == PageTransitionType::Bounce;
-        const int a = easedReveal(previous, 240, bounce);
-        const int b = easedReveal(step, 240, bounce);
+      case PageTransitionType::Slide: {
+        const int a = easedReveal(previous, 240, false);
+        const int b = easedReveal(step, 240, false);
         if (horizontal) next(reverse ? a : 240 - b, 0, b - a, 240);
         else next(0, reverse ? a : 240 - b, 240, b - a);
         break;
       }
-      case PageTransitionType::Doors: {
-        const int a = easedReveal(previous, 120, false);
-        const int b = easedReveal(step, 120, false);
-        if (horizontal) {
-          next(120 - b, 0, b - a, 240);
-          next(120 + a, 0, b - a, 240);
+      case PageTransitionType::Bounce: {
+        const int a = easedReveal(previous, 240, true);
+        const int b = easedReveal(step, 240, true);
+        if (b >= a) {
+          if (horizontal) next(reverse ? a : 240 - b, 0, b - a, 240);
+          else next(0, reverse ? a : 240 - b, 240, b - a);
         } else {
-          next(0, 120 - b, 240, b - a);
-          next(0, 120 + a, 240, b - a);
+          if (horizontal) current(reverse ? b : 240 - a, 0, a - b, 240);
+          else current(0, reverse ? b : 240 - a, 240, a - b);
         }
         break;
       }
@@ -96,13 +99,17 @@ class TransitionPlan {
         }
         break;
       case PageTransitionType::Mosaic:
+      case PageTransitionType::Cascade:
       case PageTransitionType::Spiral: {
         const int total = columns_ * columns_;
         const int multiplier = columns_ == 8 ? 17 : columns_ == 6 ? 13 : 5;
         const int size = 240 / columns_;
         for (int item = total * previous / count; item < total * step / count; ++item) {
-          const int tile = config_.type == PageTransitionType::Spiral ? order_[item]
-              : (item * multiplier + seed_ % total) % total;
+          const int tile = config_.type == PageTransitionType::Spiral
+              ? order_[item]
+              : config_.type == PageTransitionType::Cascade
+                  ? cascadeTile(item)
+                  : (item * multiplier + seed_ % total) % total;
           next(tile % columns_ * size, tile / columns_ * size, size, size);
         }
         break;
@@ -129,6 +136,23 @@ class TransitionPlan {
   }
 
  private:
+  int cascadeTile(int item) const {
+    int remaining = item;
+    for (int diagonal = 0; diagonal <= 2 * (columns_ - 1); ++diagonal) {
+      const int firstX = diagonal >= columns_ ? diagonal - columns_ + 1 : 0;
+      const int lastX = diagonal < columns_ ? diagonal : columns_ - 1;
+      const int length = lastX - firstX + 1;
+      if (remaining >= length) {
+        remaining -= length;
+        continue;
+      }
+      const int x = diagonal % 2 == 0 ? lastX - remaining
+                                      : firstX + remaining;
+      return (diagonal - x) * columns_ + x;
+    }
+    return columns_ * columns_ - 1;
+  }
+
   PageTransitionConfig config_;
   uint32_t seed_;
   uint8_t columns_;

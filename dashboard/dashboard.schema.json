@@ -290,7 +290,14 @@
           "minimum": 50,
           "maximum": 10000,
           "default": 100,
-          "description": "Minimum pause between 8-pixel steps in milliseconds. Page transitions pause scrolling."
+          "description": "Pause between movement steps in milliseconds. Page transitions pause scrolling."
+        },
+        "marqueeStepPixels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 1,
+          "description": "Distance moved during each marquee step in pixels."
         },
         "marqueeEffect": {
           "enum": ["bounce", "loop"],
@@ -342,15 +349,26 @@
             "curtain",
             "blinds",
             "mosaic",
-            "doors",
+            "cascade",
             "spiral"
           ]
         },
-        "direction": { "enum": ["left", "right", "up", "down"] },
+        "direction": { "enum": ["left", "right", "up", "down", "random"] },
         "speed": { "enum": ["slow", "normal", "fast"] },
         "intensity": { "enum": ["subtle", "strong"] },
         "tileSize": { "enum": ["small", "medium", "large"] }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "enum": ["slide", "bounce"] } },
+            "required": ["type"]
+          },
+          "then": {
+            "properties": { "direction": { "enum": ["up", "down", "random"] } }
+          }
+        }
+      ]
     },
     "defaults": {
       "type": "object",

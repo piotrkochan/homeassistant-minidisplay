@@ -1102,21 +1102,20 @@ void updateMarqueeTitles() {
       !activeSceneReady || !activeScene || !displayRefresh.ready(millis())) return;
   MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::Marquee);
   const uint32_t now = millis();
-  bool changed[kMaxMarqueeTitles]{};
   bool anyChanged = false;
   for (uint8_t index = 0; index < marqueeTitleCount; ++index) {
     MarqueeTitle &item = marqueeTitles[index];
     if (!stepMarquee(item, now)) continue;
     drawMarqueeTitle(item, item.drawnOffset);
-    changed[index] = anyChanged = true;
+    anyChanged = true;
   }
   if (!anyChanged) return;
-  // Recompose all dirty text regions together, leaving time for API/data updates.
+  // Recompose all dirty text regions together. The main loop gives page and
+  // data work priority before the next marquee frame.
   if (!renderPendingScene(*activeScene)) requestFullRender();
-  const uint32_t finishedAt = millis();
-  for (uint8_t index = 0; index < marqueeTitleCount; ++index)
-    if (changed[index]) marqueeTitles[index].nextActionAt =
-        finishedAt + marqueeDelay(marqueeTitles[index]);
+  // Rendering can take longer than one display interval on image-backed pages.
+  // Count that work as frame time instead of adding another idle interval.
+  displayRefresh.completed(now);
 }
 
 uint8_t requestedFontSize(JsonVariantConst style, int16_t height) {
@@ -1547,6 +1546,7 @@ bool compilePositionedText(ScenePage &page, String value,
     SceneText &text = page.texts[node.payloadIndex];
     if (scroll && display.textWidth(value) > width - 8) {
       text.marqueeIntervalMs = constrain(style["marqueeIntervalMs"] | 100, 50, 10000);
+      text.marqueeStepPixels = constrain(style["marqueeStepPixels"] | 1, 1, 16);
       if (strcmp(style["marqueeEffect"] | "bounce", "loop") == 0)
         text.marqueeRepeat = display.textWidth(value) + 24;
       // Start at the first character, irrespective of the resting alignment.
@@ -2243,6 +2243,7 @@ void registerDashboardMarquees(JsonObjectConst page, ScenePage &scene,
       if (item.loop) item.overflow = text.marqueeRepeat;
       item.nextActionAt = millis() + kMarqueeStartPauseMs;
       item.intervalMs = text.marqueeIntervalMs;
+      item.stepPixels = text.marqueeStepPixels;
       item.phase = MarqueePhase::PausedAtStart;
     }
   }

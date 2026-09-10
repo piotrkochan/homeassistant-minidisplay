@@ -22,19 +22,23 @@ int main() {
     MarqueeTitle item;
     item.overflow = 19;
     item.intervalMs = interval;
+    item.stepPixels = interval == 50 ? 1 : interval == 100 ? 2 : 8;
     item.nextActionAt = 1000;
     assert(!stepMarquee(item, 999));
-    assert(stepMarquee(item, 1000) && item.drawnOffset == 8);
+    assert(stepMarquee(item, 1000) && item.drawnOffset == item.stepPixels);
     assert(!stepMarquee(item, 1000));
     assert(!stepMarquee(item, 1000 + interval - 1));
     // Slow render/networking must never cause multiple catch-up steps.
-    assert(stepMarquee(item, 100000) && item.drawnOffset == 16);
+    assert(stepMarquee(item, 100000) &&
+           item.drawnOffset == item.stepPixels * 2);
     assert(!stepMarquee(item, 100000));
-    assert(stepMarquee(item, item.nextActionAt) && item.drawnOffset == 19);
+    while (item.phase != MarqueePhase::PausedAtEnd)
+      assert(stepMarquee(item, item.nextActionAt));
+    assert(item.drawnOffset == 19);
     assert(item.phase == MarqueePhase::PausedAtEnd);
-    assert(stepMarquee(item, item.nextActionAt) && item.drawnOffset == 11);
-    assert(stepMarquee(item, item.nextActionAt) && item.drawnOffset == 3);
-    assert(stepMarquee(item, item.nextActionAt) && item.drawnOffset == 0);
+    while (item.phase != MarqueePhase::PausedAtStart)
+      assert(stepMarquee(item, item.nextActionAt));
+    assert(item.drawnOffset == 0);
     assert(item.phase == MarqueePhase::PausedAtStart);
     item.nextActionAt = 20; // millis() rollover
     assert(!stepMarquee(item, UINT32_MAX - 10));
@@ -46,7 +50,7 @@ int main() {
   loop.overflow = 51;
   for (int n = 1; n <= 100; ++n) {
     assert(stepMarquee(loop, loop.nextActionAt));
-    assert(loop.drawnOffset == (n * 8) % 51);
+    assert(loop.drawnOffset == n % 51);
     assert(loop.phase == MarqueePhase::Forward);
   }
 }

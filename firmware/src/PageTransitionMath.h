@@ -31,13 +31,12 @@ inline float boundedTransitionBounce(float progress) {
 inline float pageMotionProgress(float progress, bool bounce, bool smooth,
                                 PageTransitionIntensity intensity) {
   if (bounce) {
-    // A snapshot can move forward without repainting either page. Vary its
-    // velocity to retain a spring-like feel, but never reverse and require
-    // pixels of A that have already left the display.
-    const float amplitude =
-        intensity == PageTransitionIntensity::Strong ? 0.06F : 0.03F;
-    return progress + amplitude * sinf(4.0F * 3.14159265F * progress) *
-                          progress * (1.0F - progress);
+    const float bounced = boundedTransitionBounce(progress);
+    if (intensity == PageTransitionIntensity::Subtle &&
+        progress > 1.0F / 2.75F) {
+      return 1.0F - (1.0F - bounced) * 0.5F;
+    }
+    return bounced;
   }
   return smooth ? progress * progress * (3.0F - 2.0F * progress) : progress;
 }
@@ -73,6 +72,13 @@ inline uint8_t pageTransitionFrameCount(PageTransitionSpeed speed) {
   if (speed == PageTransitionSpeed::Fast) return 8;
   if (speed == PageTransitionSpeed::Slow) return 18;
   return 12;
+}
+
+inline uint8_t pageBounceFrameCount(PageTransitionSpeed speed) {
+  // 8/22, 4/11 and 12/33 land on the first impact at 1 / 2.75.
+  if (speed == PageTransitionSpeed::Fast) return 11;
+  if (speed == PageTransitionSpeed::Slow) return 33;
+  return 22;
 }
 
 inline uint16_t pageTransitionDurationMs(PageTransitionSpeed speed) {

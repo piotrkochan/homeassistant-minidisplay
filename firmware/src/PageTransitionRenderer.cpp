@@ -25,7 +25,8 @@ bool parseType(const char *value, PageTransitionType &result) {
   else if (strcmp(value, "curtain") == 0) result = PageTransitionType::Curtain;
   else if (strcmp(value, "blinds") == 0) result = PageTransitionType::Blinds;
   else if (strcmp(value, "mosaic") == 0) result = PageTransitionType::Mosaic;
-  else if (strcmp(value, "doors") == 0) result = PageTransitionType::Doors;
+  else if (strcmp(value, "cascade") == 0 || strcmp(value, "doors") == 0)
+    result = PageTransitionType::Cascade;
   else if (strcmp(value, "spiral") == 0) result = PageTransitionType::Spiral;
   else return false;
   return true;
@@ -36,6 +37,7 @@ bool parseDirection(const char *value, PageTransitionDirection &result) {
   else if (strcmp(value, "right") == 0) result = PageTransitionDirection::Right;
   else if (strcmp(value, "up") == 0) result = PageTransitionDirection::Up;
   else if (strcmp(value, "down") == 0) result = PageTransitionDirection::Down;
+  else if (strcmp(value, "random") == 0) result = PageTransitionDirection::Random;
   else return false;
   return true;
 }
@@ -84,7 +86,7 @@ RuntimeProfilePoint profilePoint(PageTransitionType type) {
     case PageTransitionType::Curtain: return RuntimeProfilePoint::TransitionCurtain;
     case PageTransitionType::Blinds: return RuntimeProfilePoint::TransitionBlinds;
     case PageTransitionType::Mosaic: return RuntimeProfilePoint::TransitionMosaic;
-    case PageTransitionType::Doors: return RuntimeProfilePoint::TransitionDoors;
+    case PageTransitionType::Cascade: return RuntimeProfilePoint::TransitionCascade;
     case PageTransitionType::Spiral: return RuntimeProfilePoint::TransitionSpiral;
     case PageTransitionType::Random: break;
   }
@@ -101,7 +103,7 @@ RuntimeProfilePoint frameProfilePoint(PageTransitionType type) {
     case PageTransitionType::Curtain: return RuntimeProfilePoint::TransitionCurtainFrame;
     case PageTransitionType::Blinds: return RuntimeProfilePoint::TransitionBlindsFrame;
     case PageTransitionType::Mosaic: return RuntimeProfilePoint::TransitionMosaicFrame;
-    case PageTransitionType::Doors: return RuntimeProfilePoint::TransitionDoorsFrame;
+    case PageTransitionType::Cascade: return RuntimeProfilePoint::TransitionCascadeFrame;
     case PageTransitionType::Spiral: return RuntimeProfilePoint::TransitionSpiralFrame;
     case PageTransitionType::None:
     case PageTransitionType::Random: break;
@@ -135,7 +137,7 @@ const char *PageTransitionRenderer::lastTypeName() const {
     case PageTransitionType::Curtain: return "curtain";
     case PageTransitionType::Blinds: return "blinds";
     case PageTransitionType::Mosaic: return "mosaic";
-    case PageTransitionType::Doors: return "doors";
+    case PageTransitionType::Cascade: return "cascade";
     case PageTransitionType::Spiral: return "spiral";
   }
   return "unknown";
@@ -175,7 +177,7 @@ void PageTransitionRenderer::render(
         PageTransitionType::Slide, PageTransitionType::Bounce,
         PageTransitionType::Wipe, PageTransitionType::Dissolve,
         PageTransitionType::Curtain, PageTransitionType::Blinds,
-        PageTransitionType::Mosaic, PageTransitionType::Doors,
+        PageTransitionType::Mosaic, PageTransitionType::Cascade,
         PageTransitionType::Spiral};
     static constexpr PageTransitionTileSize kTileSizes[] = {
         PageTransitionTileSize::Small, PageTransitionTileSize::Medium,
@@ -197,6 +199,23 @@ void PageTransitionRenderer::render(
     }
     selected.intensity = static_cast<PageTransitionIntensity>((entropy / 20) % 2);
     selected.tileSize = kTileSizes[(entropy / 40) % 3];
+  }
+
+  if (selected.direction == PageTransitionDirection::Random) {
+    selected.direction =
+        selected.type == PageTransitionType::Slide ||
+                selected.type == PageTransitionType::Bounce
+            ? (nextRandomValue() & 1U) ? PageTransitionDirection::Up
+                                      : PageTransitionDirection::Down
+            : static_cast<PageTransitionDirection>(nextRandomValue() % 4);
+  }
+  if ((selected.type == PageTransitionType::Slide ||
+       selected.type == PageTransitionType::Bounce) &&
+      (selected.direction == PageTransitionDirection::Left ||
+       selected.direction == PageTransitionDirection::Right)) {
+    selected.direction = selected.direction == PageTransitionDirection::Left
+                             ? PageTransitionDirection::Up
+                             : PageTransitionDirection::Down;
   }
 
   // Slow panels get one complete page, not a long queue of animation frames.
@@ -243,7 +262,10 @@ void PageTransitionRenderer::render(
 #endif
   TransitionPlan plan(selected, nextRandomValue());
   const uint8_t frameCount = selected.type == PageTransitionType::None
-      ? 1 : pageTransitionFrameCount(selected.speed);
+      ? 1
+      : selected.type == PageTransitionType::Bounce
+          ? pageBounceFrameCount(selected.speed)
+          : pageTransitionFrameCount(selected.speed);
   const uint16_t durationMs = selected.type == PageTransitionType::None
       ? 1 : pageTransitionDurationMs(selected.speed);
   const uint8_t originalBrightness = displayBrightness_;
@@ -253,7 +275,7 @@ void PageTransitionRenderer::render(
   SceneAnimationTimeline timeline;
   timeline.start(millis(), durationMs, frameCount);
   uint8_t previous = 0;
-  uint16_t previousMovement = 0;
+  uint16_t paintedMovement = 0;
   const uint16_t baseScrollOffset = scrollBuffer_.offset();
   while (timeline.active()) {
     SceneAnimationFrame frame;
@@ -281,14 +303,14 @@ void PageTransitionRenderer::render(
                 frame.progress(),
                 selected.type == PageTransitionType::Bounce, true,
                 selected.intensity)));
-        if (movement > previousMovement) {
-          const int16_t rows = movement - previousMovement;
+        if (movement > paintedMovement) {
+          const int16_t rows = movement - paintedMovement;
           int16_t sourceY;
           uint16_t physicalY;
           if (selected.direction == PageTransitionDirection::Up) {
-            sourceY = previousMovement;
+            sourceY = paintedMovement;
             physicalY =
-                (baseScrollOffset + 240 + previousMovement) % 320;
+                (baseScrollOffset + 240 + paintedMovement) % 320;
           } else {
             sourceY = 240 - movement;
             physicalY =
@@ -297,23 +319,17 @@ void PageTransitionRenderer::render(
           regionPainter_->paintNextRowsPhysical(
               nextPage, sourceY, rows, physicalY, contentOffsetX,
               contentOffsetY, imageCache_);
+          paintedMovement = movement;
         }
         const uint16_t nextOffset =
             selected.direction == PageTransitionDirection::Up
                 ? (baseScrollOffset + movement) % 320
                 : (baseScrollOffset + 320 - movement) % 320;
         scrollBuffer_.setOffset(nextOffset);
-        previousMovement = movement;
-      } else if (motion && frame.index == frame.count) {
-        // Release large motion scratch before loading full-quality glyphs.
-        // Final page uses normal renderer; no transition state remains visible.
-        regionPainter_.reset();
-        paintScenePage(display_, nextPage, contentOffsetX, contentOffsetY,
-                       0, 0, 240, 240, displayFontState_, &imageCache_);
       } else {
         regionPainter_->paintTransition(currentPage, nextPage, plan, previous,
             frame.index, frame.count, contentOffsetX, contentOffsetY,
-            imageCache_, motion);
+            imageCache_, false);
       }
     }
     previous = frame.index;

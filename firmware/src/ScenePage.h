@@ -37,6 +37,7 @@ struct SceneText {
   int16_t marqueeOffset = 0;
   uint16_t marqueeIntervalMs = 0;
   int16_t marqueeRepeat = 0;
+  uint8_t marqueeStepPixels = 1;
   TextEffect effect{};
   uint8_t x = 0;
   uint8_t y = 0;

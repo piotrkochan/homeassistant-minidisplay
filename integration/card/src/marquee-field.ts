@@ -14,6 +14,11 @@ export class MarqueeField extends LitElement {
     label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
     mini-display-duration-field { flex: 1 1 150px; max-width: 230px; }
     select { font:inherit; color:inherit; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:6px; padding:7px; min-height:40px; cursor:pointer; }
+    .step { display:grid; gap:6px; cursor:default; }
+    .step-field { display:flex; align-items:center; min-height:40px; border:1px solid var(--divider-color); border-radius:8px; background:var(--card-background-color); }
+    .step-field:focus-within { outline:2px solid var(--primary-color); }
+    .step input { width:54px; border:0; outline:0; padding:8px; color:inherit; background:none; font:inherit; }
+    .step-unit { padding-right:9px; color:var(--secondary-text-color); }
   `;
 
   private patch(value: Partial<Style>) {
@@ -40,7 +45,16 @@ export class MarqueeField extends LitElement {
         .seconds=${(this.value.marqueeIntervalMs ?? 100) / 1000}
         @duration-changed=${(event: CustomEvent<number>) =>
           this.patch({ marqueeIntervalMs: Math.round(event.detail * 1000) })}
-      ></mini-display-duration-field>` : nothing}
+      ></mini-display-duration-field><label class="step">Step size
+        <span class="step-field"><input type="number" inputmode="numeric" min="1" max="16" step="1"
+          aria-label="Marquee step size"
+          .value=${String(this.value.marqueeStepPixels ?? 1)}
+          @change=${(event: Event) => {
+            const input = event.target as HTMLInputElement;
+            if (!input.reportValidity()) return;
+            this.patch({ marqueeStepPixels: Math.round(input.valueAsNumber) });
+          }}><span class="step-unit">px</span></span>
+      </label>` : nothing}
     </div>`;
   }
 }

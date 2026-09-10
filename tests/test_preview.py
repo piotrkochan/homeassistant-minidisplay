@@ -217,6 +217,54 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("backgroundMode", card)
         self.assertEqual(card["style"], {"foreground": "warning"})
 
+    def test_device_compaction_preserves_disabled_default_marquees(self):
+        dashboard = {
+            "version": 1,
+            "pages": [{
+                "id": "page",
+                "layout": "free",
+                "rows": [{"cards": [{
+                    "type": "text",
+                    "text": "Long value",
+                    "title": "Long title",
+                    "titleStyle": {"marquee": False},
+                    "valueStyle": {"marquee": False},
+                }]}],
+            }],
+        }
+
+        card = module.compact_dashboard_for_device(dashboard)["pages"][0]["rows"][0]["cards"][0]
+
+        self.assertEqual(card["titleStyle"], {"marquee": False})
+        self.assertEqual(card["valueStyle"], {"marquee": False})
+
+    def test_whole_page_scroll_directions_are_vertical(self):
+        for transition_type in ("slide", "bounce"):
+            for old_direction, expected_direction in (("left", "up"), ("right", "down")):
+                dashboard = deepcopy(self.saved)
+                dashboard["pages"][0]["transition"] = {
+                    "type": transition_type,
+                    "direction": old_direction,
+                }
+
+                validated = module.validate_dashboard(dashboard)
+
+                self.assertEqual(
+                    validated["pages"][0]["transition"]["direction"],
+                    expected_direction,
+                )
+
+    def test_doors_transition_migrates_to_cascade(self):
+        dashboard = deepcopy(self.saved)
+        dashboard["pages"][0]["transition"] = {"type": "doors"}
+
+        validated = module.validate_dashboard(dashboard)
+
+        self.assertEqual(
+            validated["pages"][0]["transition"]["type"],
+            "cascade",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

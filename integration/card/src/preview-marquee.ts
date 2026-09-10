@@ -12,8 +12,9 @@ export function marqueeMotion(distance: number, style: Style | undefined, conten
   return ref((element?: Element) => {
     if (!element) return;
     const interval = Math.max(50, 1000 / Math.max(0.1, refreshRateHz), Math.min(10000, style?.marqueeIntervalMs ?? 100));
+    const step = Math.max(1, Math.min(16, Math.round(style?.marqueeStepPixels ?? 1)));
     const loop = style?.marqueeEffect === "loop";
-    const key = JSON.stringify([distance, interval, loop, content]);
+    const key = JSON.stringify([distance, interval, step, loop, content]);
     if (running.get(element)?.key === key) return;
     running.get(element)?.animation?.cancel();
     if (distance <= 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -22,11 +23,11 @@ export function marqueeMotion(distance: number, style: Style | undefined, conten
     }
     const positions: { x: number; time: number }[] = [{ x: 0, time: 0 }, { x: 0, time: 1000 }];
     let time = 1000;
-    for (let x = 8; x < distance; x += 8) positions.push({ x, time: time += interval });
+    for (let x = step; x < distance; x += step) positions.push({ x, time: time += interval });
     positions.push({ x: distance, time: time += interval });
     if (!loop) {
       positions.push({ x: distance, time: time += 700 });
-      for (let x = distance - 8; x > 0; x -= 8) positions.push({ x, time: time += interval });
+      for (let x = distance - step; x > 0; x -= step) positions.push({ x, time: time += interval });
       positions.push({ x: 0, time: time += interval });
     }
     const animation = element.animate(positions.map(point => ({

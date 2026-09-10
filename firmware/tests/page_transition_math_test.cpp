@@ -7,6 +7,9 @@ int main() {
   assert(pageTransitionFrameCount(PageTransitionSpeed::Fast) == 8);
   assert(pageTransitionFrameCount(PageTransitionSpeed::Normal) == 12);
   assert(pageTransitionFrameCount(PageTransitionSpeed::Slow) == 18);
+  assert(pageBounceFrameCount(PageTransitionSpeed::Fast) == 11);
+  assert(pageBounceFrameCount(PageTransitionSpeed::Normal) == 22);
+  assert(pageBounceFrameCount(PageTransitionSpeed::Slow) == 33);
   assert(pageTransitionDurationMs(PageTransitionSpeed::Fast) == 280);
   assert(pageTransitionDurationMs(PageTransitionSpeed::Normal) == 550);
   assert(pageTransitionDurationMs(PageTransitionSpeed::Slow) == 900);
@@ -38,13 +41,23 @@ int main() {
                       PageTransitionIntensity::Subtle);
   assert(down.currentY == 240 && down.nextY == 0);
 
-  float previous = 0.0F;
-  for (uint16_t step = 0; step <= 1000; ++step) {
-    const float progress = step / 1000.0F;
-    const float bounced = pageMotionProgress(
-        progress, true, false, PageTransitionIntensity::Strong);
-    assert(bounced >= 0.0F && bounced <= 1.0F);
-    assert(bounced >= previous);
-    previous = bounced;
-  }
+  const float strongPeak = pageMotionProgress(
+      1.0F / 2.75F, true, false, PageTransitionIntensity::Strong);
+  const float strongRebound = pageMotionProgress(
+      1.5F / 2.75F, true, false, PageTransitionIntensity::Strong);
+  assert(strongPeak > strongRebound);
+
+  const float subtlePeak = pageMotionProgress(
+      1.0F / 2.75F, true, false, PageTransitionIntensity::Subtle);
+  const float subtleRebound = pageMotionProgress(
+      1.5F / 2.75F, true, false, PageTransitionIntensity::Subtle);
+  assert(subtlePeak > subtleRebound);
+  assert(subtlePeak - subtleRebound < strongPeak - strongRebound);
+  assert(strongPeak == 1.0F);
+  assert(subtlePeak == 1.0F);
+
+  assert(pageMotionProgress(0.0F, true, false,
+                            PageTransitionIntensity::Strong) == 0.0F);
+  assert(pageMotionProgress(1.0F, true, false,
+                            PageTransitionIntensity::Strong) == 1.0F);
 }

@@ -674,6 +674,11 @@ var Ie = class extends F {
     label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
     mini-display-duration-field { flex: 1 1 150px; max-width: 230px; }
     select { font:inherit; color:inherit; background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:6px; padding:7px; min-height:40px; cursor:pointer; }
+    .step { display:grid; gap:6px; cursor:default; }
+    .step-field { display:flex; align-items:center; min-height:40px; border:1px solid var(--divider-color); border-radius:8px; background:var(--card-background-color); }
+    .step-field:focus-within { outline:2px solid var(--primary-color); }
+    .step input { width:54px; border:0; outline:0; padding:8px; color:inherit; background:none; font:inherit; }
+    .step-unit { padding-right:9px; color:var(--secondary-text-color); }
   `;
 	}
 	patch(e) {
@@ -702,7 +707,15 @@ var Ie = class extends F {
         .subsecond=${!0} .min=${.05} .max=${10}
         .seconds=${(this.value.marqueeIntervalMs ?? 100) / 1e3}
         @duration-changed=${(e) => this.patch({ marqueeIntervalMs: Math.round(e.detail * 1e3) })}
-      ></mini-display-duration-field>` : A}
+      ></mini-display-duration-field><label class="step">Step size
+        <span class="step-field"><input type="number" inputmode="numeric" min="1" max="16" step="1"
+          aria-label="Marquee step size"
+          .value=${String(this.value.marqueeStepPixels ?? 1)}
+          @change=${(e) => {
+			let t = e.target;
+			t.reportValidity() && this.patch({ marqueeStepPixels: Math.round(t.valueAsNumber) });
+		}}><span class="step-unit">px</span></span>
+      </label>` : A}
     </div>`;
 	}
 };
@@ -932,56 +945,57 @@ var rt = (e) => {
 function lt(e, t, n, r = 60) {
 	return ot((i) => {
 		if (!i) return;
-		let a = Math.max(50, 1e3 / Math.max(.1, r), Math.min(1e4, t?.marqueeIntervalMs ?? 100)), o = t?.marqueeEffect === "loop", s = JSON.stringify([
+		let a = Math.max(50, 1e3 / Math.max(.1, r), Math.min(1e4, t?.marqueeIntervalMs ?? 100)), o = Math.max(1, Math.min(16, Math.round(t?.marqueeStepPixels ?? 1))), s = t?.marqueeEffect === "loop", c = JSON.stringify([
 			e,
 			a,
 			o,
+			s,
 			n
 		]);
-		if (ct.get(i)?.key === s) return;
+		if (ct.get(i)?.key === c) return;
 		if (ct.get(i)?.animation?.cancel(), e <= 0 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
-			ct.set(i, { key: s });
+			ct.set(i, { key: c });
 			return;
 		}
-		let c = [{
+		let l = [{
 			x: 0,
 			time: 0
 		}, {
 			x: 0,
 			time: 1e3
-		}], l = 1e3;
-		for (let t = 8; t < e; t += 8) c.push({
+		}], u = 1e3;
+		for (let t = o; t < e; t += o) l.push({
 			x: t,
-			time: l += a
+			time: u += a
 		});
-		if (c.push({
+		if (l.push({
 			x: e,
-			time: l += a
-		}), !o) {
-			c.push({
+			time: u += a
+		}), !s) {
+			l.push({
 				x: e,
-				time: l += 700
+				time: u += 700
 			});
-			for (let t = e - 8; t > 0; t -= 8) c.push({
+			for (let t = e - o; t > 0; t -= o) l.push({
 				x: t,
-				time: l += a
+				time: u += a
 			});
-			c.push({
+			l.push({
 				x: 0,
-				time: l += a
+				time: u += a
 			});
 		}
-		let u = i.animate(c.map((e) => ({
+		let d = i.animate(l.map((e) => ({
 			transform: `translateX(${-e.x}px)`,
-			offset: e.time / l,
+			offset: e.time / u,
 			easing: "steps(1,end)"
 		})), {
-			duration: l,
+			duration: u,
 			iterations: Infinity
 		});
 		ct.set(i, {
-			key: s,
-			animation: u
+			key: c,
+			animation: d
 		});
 	});
 }
@@ -5398,6 +5412,16 @@ var $ = class extends F {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
+    .transition-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 12px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .transition-actions ha-icon {
+      --mdc-icon-size: 18px;
+      margin-right: 6px;
+    }
     .empty {
       display: grid;
       justify-items: center;
@@ -6376,7 +6400,13 @@ var $ = class extends F {
 		}, r = (e) => n({
 			...t,
 			...e
-		}), i = [
+		}), i = () => {
+			if (!this.dashboard) return;
+			let t = structuredClone(e.transition ?? { type: "none" });
+			this.dashboard.pages.forEach((e) => {
+				e.transition = structuredClone(t);
+			}), this.changed();
+		}, a = [
 			{
 				type: "none",
 				label: "None",
@@ -6428,21 +6458,22 @@ var $ = class extends F {
 				icon: "mdi:view-grid-plus"
 			},
 			{
-				type: "doors",
-				label: "Doors",
-				icon: "mdi:door-sliding"
+				type: "cascade",
+				label: "Cascade",
+				icon: "mdi:chart-waterfall"
 			},
 			{
 				type: "spiral",
 				label: "Spiral",
 				icon: "mdi:reload"
 			}
-		], a = (e) => e === "none" ? { type: e } : e === "random" ? {
+		], o = (e) => e === "none" ? { type: e } : e === "random" ? {
 			type: e,
 			speed: "normal"
 		} : [
 			"dissolve",
 			"mosaic",
+			"cascade",
 			"spiral"
 		].includes(e) ? {
 			type: e,
@@ -6454,30 +6485,23 @@ var $ = class extends F {
 			intensity: "strong"
 		} : e === "bounce" ? {
 			type: e,
-			direction: "left",
+			direction: "up",
 			speed: "normal",
 			intensity: "subtle"
-		} : (["curtain", "blinds"].includes(e), {
+		} : ["curtain", "blinds"].includes(e) ? {
 			type: e,
 			direction: "left",
 			speed: "normal"
-		});
-		return D`<details class="transition-settings">
-      <summary class="transition-summary">
-        Transition to next page ·
-        ${i.find((e) => e.type === t.type)?.label ?? "None"}
-      </summary>
-      <div class="effect-grid">
-        ${i.map((e) => D`<button class="effect ${t.type === e.type ? "active" : ""}" aria-pressed=${e.type === t.type} @click=${() => n(a(e.type))}><ha-icon icon=${e.icon}></ha-icon><span>${e.label}</span></button>`)}
-      </div>
-      ${t.type === "none" ? A : D`<div class="transition-options">
-              ${[
-			"slide",
-			"bounce",
-			"wipe",
-			"curtain",
-			"blinds"
-		].includes(t.type) ? this.segmented("Direction", t.direction ?? "left", [
+		} : {
+			type: e,
+			direction: e === "slide" ? "up" : "left",
+			speed: "normal"
+		}, s = [
+			{
+				value: "random",
+				label: "Random",
+				icon: "mdi:shuffle-variant"
+			},
 			{
 				value: "left",
 				label: "Left",
@@ -6498,7 +6522,7 @@ var $ = class extends F {
 				label: "Down",
 				icon: "mdi:arrow-down"
 			}
-		], (e) => r({ direction: e })) : A}${this.segmented("Speed", t.speed ?? "normal", [
+		], c = [
 			{
 				value: "slow",
 				label: "Slow"
@@ -6511,7 +6535,27 @@ var $ = class extends F {
 				value: "fast",
 				label: "Fast"
 			}
-		], (e) => r({ speed: e }))}${["bounce", "fade"].includes(t.type) ? this.segmented("Intensity", t.intensity ?? "subtle", [{
+		], l = ["slide", "bounce"].includes(t.type), u = l ? s.filter((e) => [
+			"random",
+			"up",
+			"down"
+		].includes(e.value)) : s, d = l && ["left", "right"].includes(t.direction ?? "") ? t.direction === "right" ? "down" : "up" : t.direction ?? "left";
+		return D`<details class="transition-settings">
+      <summary class="transition-summary">
+        Transition to next page ·
+        ${a.find((e) => e.type === t.type)?.label ?? "None"}
+      </summary>
+      <div class="effect-grid">
+        ${a.map((e) => D`<button class="effect ${t.type === e.type ? "active" : ""}" aria-pressed=${e.type === t.type} @click=${() => n(o(e.type))}><ha-icon icon=${e.icon}></ha-icon><span>${e.label}</span></button>`)}
+      </div>
+      ${t.type === "none" ? A : D`<div class="transition-options">
+              ${[
+			"slide",
+			"bounce",
+			"wipe",
+			"curtain",
+			"blinds"
+		].includes(t.type) ? this.segmented("Direction", d, u, (e) => r({ direction: e })) : A}${this.segmented("Speed", t.speed ?? "normal", c, (e) => r({ speed: e }))}${["bounce", "fade"].includes(t.type) ? this.segmented("Intensity", t.intensity ?? "subtle", [{
 			value: "subtle",
 			label: "Subtle"
 		}, {
@@ -6520,6 +6564,7 @@ var $ = class extends F {
 		}], (e) => r({ intensity: e })) : A}${[
 			"dissolve",
 			"mosaic",
+			"cascade",
 			"spiral"
 		].includes(t.type) ? this.segmented("Tile size", t.tileSize ?? "medium", [
 			{
@@ -6536,6 +6581,15 @@ var $ = class extends F {
 			}
 		], (e) => r({ tileSize: e })) : A}
             </div>`}
+      <div class="transition-actions">
+        <ha-button
+          .disabled=${(this.dashboard?.pages.length ?? 0) < 2}
+          @click=${i}
+        >
+          <ha-icon icon="mdi:content-copy"></ha-icon>
+          Apply to all pages
+        </ha-button>
+      </div>
     </details>`;
 	}
 	dragMapping(e, t, n) {

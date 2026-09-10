@@ -13,11 +13,11 @@ enum class PageTransitionType : uint8_t {
   Curtain,
   Blinds,
   Mosaic,
-  Doors,
+  Cascade,
   Spiral,
 };
 
-enum class PageTransitionDirection : uint8_t { Left, Right, Up, Down };
+enum class PageTransitionDirection : uint8_t { Left, Right, Up, Down, Random };
 enum class PageTransitionSpeed : uint8_t { Normal, Slow, Fast };
 enum class PageTransitionIntensity : uint8_t { Subtle, Strong };
 enum class PageTransitionTileSize : uint8_t { Medium, Small, Large };

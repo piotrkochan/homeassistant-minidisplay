@@ -16,6 +16,7 @@ export type Style = {
   textFlow?: "default" | "overflow" | "wrap";
   marquee?: boolean;
   marqueeIntervalMs?: number;
+  marqueeStepPixels?: number;
   marqueeEffect?: "bounce" | "loop";
   horizontalAlign?: "left" | "center" | "right";
   verticalAlign?: "top" | "middle" | "bottom";
@@ -38,9 +39,9 @@ export type PageTransition = {
     | "curtain"
     | "blinds"
     | "mosaic"
-    | "doors"
+    | "cascade"
     | "spiral";
-  direction?: "left" | "right" | "up" | "down";
+  direction?: "left" | "right" | "up" | "down" | "random";
   speed?: "slow" | "normal" | "fast";
   intensity?: "subtle" | "strong";
   tileSize?: "small" | "medium" | "large";

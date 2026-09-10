@@ -1149,6 +1149,16 @@ export class MiniDisplayEditor extends LitElement {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
+    .transition-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 12px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .transition-actions ha-icon {
+      --mdc-icon-size: 18px;
+      margin-right: 6px;
+    }
     .empty {
       display: grid;
       justify-items: center;
@@ -2565,6 +2575,16 @@ export class MiniDisplayEditor extends LitElement {
     };
     const patch = (values: Partial<PageTransition>) =>
       set({ ...transition, ...values });
+    const applyToAllPages = () => {
+      if (!this.dashboard) return;
+      const selected: PageTransition = structuredClone(
+        page.transition ?? { type: "none" },
+      );
+      this.dashboard.pages.forEach((item) => {
+        item.transition = structuredClone(selected);
+      });
+      this.changed();
+    };
     const effects: {
       type: PageTransition["type"];
       label: string;
@@ -2584,7 +2604,7 @@ export class MiniDisplayEditor extends LitElement {
       { type: "curtain", label: "Curtain", icon: "mdi:curtains" },
       { type: "blinds", label: "Blinds", icon: "mdi:blinds-horizontal" },
       { type: "mosaic", label: "Mosaic", icon: "mdi:view-grid-plus" },
-      { type: "doors", label: "Doors", icon: "mdi:door-sliding" },
+      { type: "cascade", label: "Cascade", icon: "mdi:chart-waterfall" },
       { type: "spiral", label: "Spiral", icon: "mdi:reload" },
     ];
     const defaults = (type: PageTransition["type"]): PageTransition =>
@@ -2592,21 +2612,22 @@ export class MiniDisplayEditor extends LitElement {
         ? { type }
         : type === "random"
           ? { type, speed: "normal" }
-          : ["dissolve", "mosaic", "spiral"].includes(type)
+          : ["dissolve", "mosaic", "cascade", "spiral"].includes(type)
             ? { type, speed: "normal", tileSize: "medium" }
             : type === "fade"
               ? { type, speed: "normal", intensity: "strong" }
               : type === "bounce"
                 ? {
                     type,
-                    direction: "left",
+                    direction: "up",
                     speed: "normal",
                     intensity: "subtle",
                   }
                 : ["curtain", "blinds"].includes(type)
                   ? { type, direction: "left", speed: "normal" }
-                  : { type, direction: "left", speed: "normal" };
+                  : { type, direction: type === "slide" ? "up" : "left", speed: "normal" };
     const directions = [
+      { value: "random" as const, label: "Random", icon: "mdi:shuffle-variant" },
       { value: "left" as const, label: "Left", icon: "mdi:arrow-left" },
       { value: "right" as const, label: "Right", icon: "mdi:arrow-right" },
       { value: "up" as const, label: "Up", icon: "mdi:arrow-up" },
@@ -2617,6 +2638,16 @@ export class MiniDisplayEditor extends LitElement {
       { value: "normal" as const, label: "Normal" },
       { value: "fast" as const, label: "Fast" },
     ];
+    const scrollsWholePage = ["slide", "bounce"].includes(transition.type);
+    const availableDirections = scrollsWholePage
+      ? directions.filter((direction) => ["random", "up", "down"].includes(direction.value))
+      : directions;
+    const selectedDirection =
+      scrollsWholePage && ["left", "right"].includes(transition.direction ?? "")
+        ? transition.direction === "right"
+          ? "down"
+          : "up"
+        : (transition.direction ?? "left");
     return html`<details class="transition-settings">
       <summary class="transition-summary">
         Transition to next page ·
@@ -2628,7 +2659,7 @@ export class MiniDisplayEditor extends LitElement {
       ${
         transition.type !== "none"
           ? html`<div class="transition-options">
-              ${["slide", "bounce", "wipe", "curtain", "blinds"].includes(transition.type) ? this.segmented("Direction", transition.direction ?? "left", directions, (value) => patch({ direction: value })) : nothing}${this.segmented("Speed", transition.speed ?? "normal", speeds, (value) => patch({ speed: value }))}${
+              ${["slide", "bounce", "wipe", "curtain", "blinds"].includes(transition.type) ? this.segmented("Direction", selectedDirection, availableDirections, (value) => patch({ direction: value })) : nothing}${this.segmented("Speed", transition.speed ?? "normal", speeds, (value) => patch({ speed: value }))}${
                 ["bounce", "fade"].includes(transition.type)
                   ? this.segmented(
                       "Intensity",
@@ -2641,7 +2672,7 @@ export class MiniDisplayEditor extends LitElement {
                     )
                   : nothing
               }${
-                ["dissolve", "mosaic", "spiral"].includes(transition.type)
+                ["dissolve", "mosaic", "cascade", "spiral"].includes(transition.type)
                   ? this.segmented(
                       "Tile size",
                       transition.tileSize ?? "medium",
@@ -2657,6 +2688,15 @@ export class MiniDisplayEditor extends LitElement {
             </div>`
           : nothing
       }
+      <div class="transition-actions">
+        <ha-button
+          .disabled=${(this.dashboard?.pages.length ?? 0) < 2}
+          @click=${applyToAllPages}
+        >
+          <ha-icon icon="mdi:content-copy"></ha-icon>
+          Apply to all pages
+        </ha-button>
+      </div>
     </details>`;
   }
 
