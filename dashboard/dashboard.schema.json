@@ -47,9 +47,9 @@
       "additionalProperties": false,
       "properties": {
         "precision": { "type": "integer", "minimum": 0, "maximum": 6 },
-        "multiply": { "type": "number" },
-        "add": { "type": "number" },
-        "absolute": { "type": "boolean" },
+        "multiply": { "type": "number", "default": 1 },
+        "add": { "type": "number", "default": 0 },
+        "absolute": { "type": "boolean", "default": false },
         "minimum": { "type": "number" },
         "maximum": { "type": "number" }
       }
@@ -278,11 +278,13 @@
         "fontFamily": {
           "description": "Default uses the device-wide font. Missing custom slots fall back to Default.",
           "enum": ["default", "font1", "font2"],
-          "default": "default"
+          "default": "default",
+          "x-wireDefault": false
         },
         "fontSize": {
           "enum": ["auto", "small", "medium", "large", "xlarge"],
-          "default": "auto"
+          "default": "auto",
+          "x-wireDefault": false
         },
         "textEffect": {
           "enum": ["none", "shadow", "outline"],
@@ -336,11 +338,13 @@
         },
         "horizontalAlign": {
           "enum": ["left", "center", "right"],
-          "default": "center"
+          "default": "center",
+          "x-wireDefault": false
         },
         "verticalAlign": {
           "enum": ["top", "middle", "bottom"],
-          "default": "middle"
+          "default": "middle",
+          "x-wireDefault": false
         }
       }
     },
@@ -365,10 +369,22 @@
             "spiral"
           ]
         },
-        "direction": { "enum": ["left", "right", "up", "down", "random"] },
-        "speed": { "enum": ["slow", "normal", "fast"] },
-        "intensity": { "enum": ["subtle", "strong"] },
-        "tileSize": { "enum": ["small", "medium", "large"] }
+        "direction": {
+          "enum": ["left", "right", "up", "down", "random"],
+          "default": "left"
+        },
+        "speed": {
+          "enum": ["slow", "normal", "fast"],
+          "default": "normal"
+        },
+        "intensity": {
+          "enum": ["subtle", "strong"],
+          "default": "subtle"
+        },
+        "tileSize": {
+          "enum": ["small", "medium", "large"],
+          "default": "medium"
+        }
       },
       "allOf": [
         {
@@ -443,14 +459,18 @@
       "required": ["cards"],
       "properties": {
         "title": { "type": "string", "maxLength": 32 },
-        "showTitle": { "type": "boolean" },
+        "showTitle": { "type": "boolean", "default": true },
         "weight": {
           "type": "integer",
           "minimum": 1,
           "maximum": 4,
           "default": 1
         },
-        "gap": { "enum": ["none", "small", "medium"], "default": "small" },
+        "gap": {
+          "enum": ["none", "small", "medium"],
+          "default": "small",
+          "x-wire": false
+        },
         "visibility": { "$ref": "#/$defs/visibility" },
         "style": { "$ref": "#/$defs/style" },
         "titleStyle": { "$ref": "#/$defs/style" },
@@ -479,7 +499,10 @@
         "titleStyle": { "$ref": "#/$defs/style" },
         "valueStyle": { "$ref": "#/$defs/style" },
         "visibility": { "$ref": "#/$defs/visibility" },
-        "backgroundImage": { "$ref": "#/$defs/assetId" },
+        "backgroundImage": {
+          "$ref": "#/$defs/assetId",
+          "x-activeWhen": { "property": "backgroundMode", "equals": "image" }
+        },
         "transparentBackground": { "type": "boolean", "default": false },
         "backgroundMode": {
           "enum": ["color", "transparent", "image"],
@@ -704,7 +727,7 @@
         "aggregation":{"enum":["mean","min","max","last"],"default":"mean"},
         "points":{"type":"integer","minimum":2,"maximum":120,"default":48},
         "intervalSeconds":{"type":"integer","minimum":30,"maximum":86400,"default":300},
-        "color":{"$ref":"#/$defs/color"},
+        "color":{"$ref":"#/$defs/color","default":"accent"},
         "opacity":{"type":"integer","minimum":0,"maximum":100,"default":50},
         "lineWidth":{"type":"integer","minimum":1,"maximum":4,"default":1},
         "fillOpacity":{"type":"integer","minimum":0,"maximum":100,"default":0},

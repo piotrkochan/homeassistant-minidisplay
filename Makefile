@@ -1,7 +1,7 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 
-.PHONY: build build-all package clean check size elf-report card-build card-check web-build web-check test-native
+.PHONY: build build-all package clean check size elf-report card-build card-check schema-sync schema-check web-build web-check test-native
 
 build: web-build
 	python3 firmware/scripts/index_smooth_fonts.py
@@ -25,7 +25,7 @@ package: web-build
 clean:
 	cd firmware && $(PIO) run --target clean
 
-check:
+check: schema-check
 	cd firmware && $(PIO) check
 
 web-build: web-check
@@ -45,12 +45,19 @@ elf-report:
 		firmware/.pio/build/sdpro/firmware.elf \
 		--toolchain $(PLATFORMIO_CORE_DIR)/packages/toolchain-xtensa/bin
 
-card-build:
+card-build: schema-sync
 	python3 firmware/scripts/export_preview_fonts.py
 	npm --prefix integration/card run build
 
-card-check:
+card-check: schema-check
 	npm --prefix integration/card run check
+
+schema-sync:
+	python3 dashboard/sync_schema.py
+
+schema-check:
+	python3 dashboard/sync_schema.py --check
+	python3 tests/test_schema_compactor.py
 
 test-native:
 	@test -d firmware/.pio/libdeps/sdpro/ArduinoJson/src || { echo "run make build first to install ArduinoJson"; exit 1; }

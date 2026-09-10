@@ -19,6 +19,7 @@ from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 from .graphs import validate_graphs
 from .history_data import HistoryData
+from .schema_compactor import compact_with_schema
 from .value_transform import validate_number_transform
 from .weather import WeatherData, validate_weather, validate_weather_budget, weather_cards
 
@@ -681,59 +682,8 @@ def render_dashboard(document: dict[str, Any], hass: HomeAssistant) -> dict[str,
 
 
 def compact_dashboard_for_device(document: dict[str, Any]) -> dict[str, Any]:
-    """Remove wire defaults without changing the editable HA document."""
-    compact = deepcopy(document)
-    for page in compact["pages"]:
-        for key, default in (
-            ("enabled", True),
-            ("showTitle", True),
-            ("titlePosition", "top"),
-            ("transparentCards", False),
-        ):
-            if page.get(key) == default:
-                page.pop(key)
-        for row in page["rows"]:
-            if row.get("weight") == 1:
-                row.pop("weight")
-            # Firmware always uses a four-pixel row/card gap.
-            row.pop("gap", None)
-            if row.get("showTitle") is True:
-                row.pop("showTitle")
-            for card in row["cards"]:
-                for key, default in (
-                    ("showTitle", True),
-                    ("transparentBackground", False),
-                    ("progress", "none"),
-                    ("imageFit", "cover"),
-                ):
-                    if card.get(key) == default:
-                        card.pop(key)
-                if card.get("backgroundMode") == "color" and not card.get(
-                    "backgroundImage"
-                ):
-                    card.pop("backgroundMode")
-                for key in ("style", "titleStyle", "valueStyle"):
-                    style = card.get(key)
-                    if not isinstance(style, dict):
-                        continue
-                    marquee_default = key == "titleStyle" or (
-                        key == "valueStyle"
-                        and page.get("layout") == "free"
-                        and card.get("type") == "text"
-                    )
-                    for name, default in (
-                        ("fontSize", "auto"),
-                        ("textFlow", "default"),
-                        ("marquee", marquee_default),
-                        ("marqueeEffect", "bounce"),
-                        ("marqueeIntervalMs", 100),
-                        ("marqueeStepPixels", 1),
-                    ):
-                        if style.get(name) == default:
-                            style.pop(name)
-                    if not style:
-                        card.pop(key)
-    return compact
+    """Remove schema defaults without changing editable HA data."""
+    return compact_with_schema(document)
 
 
 def serialize_state(state: State | None) -> dict[str, Any]:

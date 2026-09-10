@@ -215,7 +215,41 @@ class PreviewTests(unittest.IsolatedAsyncioTestCase):
         card = row["cards"][0]
         self.assertNotIn("progress", card)
         self.assertNotIn("backgroundMode", card)
-        self.assertEqual(card["style"], {"foreground": "warning"})
+        self.assertEqual(
+            card["style"], {
+                "fontSize": "auto",
+                "marquee": False,
+                "foreground": "warning",
+            }
+        )
+
+    def test_device_compaction_removes_inactive_background_image(self):
+        dashboard = deepcopy(self.saved)
+        card = dashboard["pages"][0]["rows"][0]["cards"][0]
+        card.update({
+            "backgroundMode": "color",
+            "backgroundImage": "32725098c587eae7",
+        })
+
+        compact = module.compact_dashboard_for_device(dashboard)
+        wire_card = compact["pages"][0]["rows"][0]["cards"][0]
+
+        self.assertNotIn("backgroundMode", wire_card)
+        self.assertNotIn("backgroundImage", wire_card)
+
+    def test_device_compaction_keeps_active_background_image(self):
+        dashboard = deepcopy(self.saved)
+        card = dashboard["pages"][0]["rows"][0]["cards"][0]
+        card.update({
+            "backgroundMode": "image",
+            "backgroundImage": "32725098c587eae7",
+        })
+
+        compact = module.compact_dashboard_for_device(dashboard)
+        wire_card = compact["pages"][0]["rows"][0]["cards"][0]
+
+        self.assertEqual(wire_card["backgroundMode"], "image")
+        self.assertEqual(wire_card["backgroundImage"], "32725098c587eae7")
 
     def test_device_compaction_preserves_disabled_default_marquees(self):
         dashboard = {

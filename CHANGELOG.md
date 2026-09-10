@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: compact dashboard payloads from schema
 - fix: speed up image uploads and animated frame updates
 - feature: support animated gif images
 - feature: dismiss all notifications
