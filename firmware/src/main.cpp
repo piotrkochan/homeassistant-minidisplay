@@ -1540,7 +1540,13 @@ bool compilePositionedText(ScenePage &page, String value,
                    scroll ? value.length() : wrap || overflow ? 144 : 48,
                    sourceMask, zIndex)) return false;
   if (!overflow) {
-    SceneNode &node = page.graph.node(page.graph.size() - 1);
+    const uint16_t textNodeId = 0x4000U + page.textCount - 1;
+    const int16_t textNodeIndex = page.graph.findById(textNodeId);
+    if (textNodeIndex < 0) {
+      lastSceneCompileFailure = SceneCompileFailure::TextLimit;
+      return false;
+    }
+    SceneNode &node = page.graph.node(textNodeIndex);
     node.clip = {int16_t(x + 4), y, max<int16_t>(1, width - 8), height};
     node.bounds = node.clip;
     SceneText &text = page.texts[node.payloadIndex];

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: preserve page title bounds
 - feature: show firmware update warning
 - fix: smooth fast marquee intervals
 - feature: configure marquee step size
