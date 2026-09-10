@@ -18,6 +18,7 @@ from .const import (
 )
 from .image_codec import MAX_ENCODED_BYTES
 from .data_rate import DataSendLimiter
+from .value_batches import split_value_batches
 
 
 class MiniDisplayApiError(Exception):
@@ -328,13 +329,18 @@ class MiniDisplayClient:
     async def async_patch_values(
         self, values: dict[str, Any], *, render: bool = True
     ) -> None:
-        async with self.data_limiter:
-            await self._request(
-                "PATCH",
-                "/data",
-                json={"values": values, "render": render},
-                expect_json=False,
-            )
+        batches = split_value_batches(values)
+        for index, batch in enumerate(batches):
+            async with self.data_limiter:
+                await self._request(
+                    "PATCH",
+                    "/data",
+                    json={
+                        "values": batch,
+                        "render": render and index == len(batches) - 1,
+                    },
+                    expect_json=False,
+                )
 
     async def async_patch_history(self, series: dict[str, Any], *, render: bool = True) -> None:
         """One series per request keeps the ESP JSON allocation bounded."""
