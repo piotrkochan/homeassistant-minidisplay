@@ -5465,7 +5465,8 @@ var $ = class extends F {
       }
     }
     @media (max-width: 1100px) {
-      .layout {
+      .layout,
+      .layout.schema-open {
         grid-template-columns: 200px minmax(0, 1fr);
       }
       .previews {
@@ -5480,7 +5481,8 @@ var $ = class extends F {
       }
     }
     @media (max-width: 700px) {
-      .layout {
+      .layout,
+      .layout.schema-open {
         grid-template-columns: 1fr;
       }
       .images-view {

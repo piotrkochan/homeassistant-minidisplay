@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: stack schema on mobile
 - fix: preserve page title bounds
 - feature: show firmware update warning
 - fix: smooth fast marquee intervals

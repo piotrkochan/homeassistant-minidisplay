@@ -1202,7 +1202,8 @@ export class MiniDisplayEditor extends LitElement {
       }
     }
     @media (max-width: 1100px) {
-      .layout {
+      .layout,
+      .layout.schema-open {
         grid-template-columns: 200px minmax(0, 1fr);
       }
       .previews {
@@ -1217,7 +1218,8 @@ export class MiniDisplayEditor extends LitElement {
       }
     }
     @media (max-width: 700px) {
-      .layout {
+      .layout,
+      .layout.schema-open {
         grid-template-columns: 1fr;
       }
       .images-view {
