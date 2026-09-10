@@ -14,6 +14,7 @@ import voluptuous as vol
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from custom_components.mini_display import notification as module
 from custom_components.mini_display.api import MiniDisplayClient, MiniDisplayConnectionError, MiniDisplayRequestError
+from custom_components.mini_display.button import MiniDisplayDismissNotificationsButton
 
 
 class NotificationTests(unittest.IsolatedAsyncioTestCase):
@@ -79,6 +80,15 @@ class NotificationTests(unittest.IsolatedAsyncioTestCase):
             await select.async_select_option("right")
         self.coordinator.data = {}
         self.assertFalse(select.available)
+
+    async def test_dismiss_button(self):
+        button = MiniDisplayDismissNotificationsButton(self.coordinator)
+        self.assertTrue(button.available)
+        await button.async_press()
+        self.coordinator.client.async_dismiss_notifications.assert_awaited_once()
+        self.coordinator.async_request_refresh.assert_awaited_once()
+        self.coordinator.data = {}
+        self.assertFalse(button.available)
 
     async def test_no_duplicate_after_transport_timeout(self):
         client = MiniDisplayClient(AsyncMock(), "unused.invalid", "", 80)

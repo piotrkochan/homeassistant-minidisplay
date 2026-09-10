@@ -127,6 +127,20 @@ export class NotificationsSettings extends LitElement {
           >
             Test notification
           </button>
+          <button
+            type="button"
+            class="secondary"
+            ?disabled=${this.saving}
+            @click=${() =>
+              this.submit?.(
+                "/api/v1/notifications",
+                {},
+                "All notifications dismissed.",
+                "DELETE",
+              )}
+          >
+            Dismiss all
+          </button>
         </div>
       </form>
     </section>`;

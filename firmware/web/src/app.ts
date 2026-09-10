@@ -147,7 +147,7 @@ class MiniDisplayDevice extends LitElement {
     this.error_ = "";
     try {
       await request(path, { method, body: JSON.stringify(body) });
-      if (path === "/api/v1/page") {
+      if (path === "/api/v1/page" || path === "/api/v1/notifications") {
         this.status_ = await request<DeviceStatus>("/api/v1/status");
       }
       this.message_ = success;

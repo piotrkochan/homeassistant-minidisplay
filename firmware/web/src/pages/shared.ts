@@ -2,7 +2,7 @@ export type SubmitRequest = (
   path: string,
   body: Record<string, unknown>,
   success: string,
-  method?: "PUT" | "POST",
+  method?: "PUT" | "POST" | "DELETE",
 ) => void;
 
 export type NetworkFormState = {

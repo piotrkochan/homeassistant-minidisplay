@@ -23,6 +23,7 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
                 "reload",
                 EntityCategory.CONFIG,
             ),
+            MiniDisplayDismissNotificationsButton(coordinator),
             MiniDisplayRestartButton(coordinator),
         ]
     )
@@ -56,3 +57,19 @@ class MiniDisplayRestartButton(MiniDisplayEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.client.async_restart()
+
+
+class MiniDisplayDismissNotificationsButton(MiniDisplayEntity, ButtonEntity):
+    _attr_name = "Dismiss notifications"
+    _attr_icon = "mdi:message-off-outline"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "dismiss_notifications")
+
+    @property
+    def available(self) -> bool:
+        return super().available and "notificationPositions" in self.coordinator.data
+
+    async def async_press(self) -> None:
+        await self.coordinator.client.async_dismiss_notifications()
+        await self.coordinator.async_request_refresh()
