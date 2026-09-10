@@ -42,6 +42,18 @@
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
     },
+    "numberValueTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "precision": { "type": "integer", "minimum": 0, "maximum": 6 },
+        "multiply": { "type": "number" },
+        "add": { "type": "number" },
+        "absolute": { "type": "boolean" },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" }
+      }
+    },
     "assetId": {
       "description": "Content-addressed image stored on the display.",
       "type": "string",
@@ -501,6 +513,7 @@
             },
             "source": { "$ref": "#/$defs/source" },
             "unit": { "type": "string", "maxLength": 12 },
+            "valueTransform": { "$ref": "#/$defs/numberValueTransform" },
             "decimals": {
               "type": "integer",
               "minimum": 0,

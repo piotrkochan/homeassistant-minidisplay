@@ -19,6 +19,7 @@ from .assets import ASSET_ID_PATTERN, MiniDisplayAssetManager
 from .const import DEFAULT_DATA_BATCH_INTERVAL_SECONDS
 from .graphs import validate_graphs
 from .history_data import HistoryData
+from .value_transform import validate_number_transform
 from .weather import WeatherData, validate_weather, validate_weather_budget, weather_cards
 
 STORE_VERSION = 1
@@ -197,6 +198,12 @@ def validate_dashboard(document: Any) -> dict[str, Any]:
                         raise DashboardValidationError(
                             "Progress requires minimum and maximum", card_path
                         )
+                validate_number_transform(
+                    card.get("valueTransform"),
+                    card.get("type"),
+                    f"{card_path}/valueTransform",
+                    DashboardValidationError,
+                )
                 _validate_value_mappings(
                     card.get("valueMappings"), card.get("type"), f"{card_path}/valueMappings"
                 )

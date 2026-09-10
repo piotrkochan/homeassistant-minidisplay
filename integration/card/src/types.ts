@@ -123,6 +123,15 @@ export type WeatherSettings = {
   fields?: string[];
 };
 
+export type NumberValueTransform = {
+  precision?: number;
+  multiply?: number;
+  add?: number;
+  absolute?: boolean;
+  minimum?: number;
+  maximum?: number;
+};
+
 export type DisplayCard = {
   type: "clock" | "number" | "status" | "text" | "image" | "chart" | "weather";
   weather?: WeatherSettings;
@@ -149,6 +158,7 @@ export type DisplayCard = {
   visibility?: Visibility;
   valueMappings?: NumberValueMapping[] | TextValueMapping[];
   colorMappings?: NumberColorMapping[] | TextColorMapping[];
+  valueTransform?: NumberValueTransform;
   image?: string;
   imageFit?: "cover" | "contain" | "stretch";
   backgroundImage?: string;
@@ -271,7 +281,7 @@ export const mapCardValue = (
   raw: string,
 ): { value: string; mapped: boolean } => {
   if (card.type === "number") {
-    const number = Number(raw);
+    const number = transformCardNumber(card, raw);
     if (Number.isFinite(number)) {
       for (const mapping of (card.valueMappings ??
         []) as NumberValueMapping[]) {
@@ -282,6 +292,7 @@ export const mapCardValue = (
           return { value: mapping.value, mapped: true };
         }
       }
+      return { value: formatCardNumber(card, number), mapped: false };
     }
   }
   if (card.type === "text") {
@@ -305,7 +316,7 @@ export const mapCardColors = (
   raw: string,
 ): NumberColorMapping | TextColorMapping | undefined => {
   if (card.type === "number") {
-    const number = Number(raw);
+    const number = transformCardNumber(card, raw);
     if (Number.isFinite(number)) {
       return ((card.colorMappings ?? []) as NumberColorMapping[]).find(
         (mapping) =>
@@ -326,4 +337,25 @@ export const mapCardColors = (
     );
   }
   return undefined;
+};
+
+export const transformCardNumber = (card: DisplayCard, raw: string) => {
+  let value = Number(raw);
+  if (!Number.isFinite(value)) return Number.NaN;
+  const transform = card.valueTransform;
+  if (!transform) return value;
+  value = value * (transform.multiply ?? 1) + (transform.add ?? 0);
+  if (transform.absolute) value = Math.abs(value);
+  if (transform.minimum !== undefined)
+    value = Math.max(transform.minimum, value);
+  if (transform.maximum !== undefined)
+    value = Math.min(transform.maximum, value);
+  return value;
+};
+
+export const formatCardNumber = (card: DisplayCard, value: number) => {
+  const precision = card.valueTransform?.precision;
+  if (precision !== undefined) return value.toFixed(precision);
+  if (!card.valueTransform) return String(value);
+  return Number(value.toFixed(4)).toString();
 };

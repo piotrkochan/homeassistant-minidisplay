@@ -5,7 +5,7 @@ import type { Dashboard, Hass, ImageAsset } from "./types";
 import type { HistorySeries } from "./graph-preview";
 import "./graph-preview";
 import "./weather-preview";
-import { mapCardColors, mapCardValue } from "./types";
+import { mapCardColors, mapCardValue, transformCardNumber } from "./types";
 import { visibilityMatches } from "./visibility";
 import { displayColors } from "./color-field";
 import {firmwareTextWidth} from "./firmware-text";
@@ -267,7 +267,7 @@ export class MiniDisplayPreview extends LitElement {
                   const raw = card.source
                     ? (this.hass?.states[card.source]?.state ?? "—")
                     : (card.text ?? "—");
-                  const numeric = Number(raw);
+                  const numeric = transformCardNumber(card, raw);
                   const min = card.minimum ?? 0;
                   const max = card.maximum ?? 100;
                   const progress =

@@ -29,6 +29,7 @@ import "./image-field";
 import "./image-manager";
 import "./graph-editor";
 import "./weather-editor";
+import "./value-transform-editor";
 
 @customElement("mini-display-editor")
 export class MiniDisplayEditor extends LitElement {
@@ -3296,6 +3297,20 @@ export class MiniDisplayEditor extends LitElement {
                       </section>`
                     : nothing
                 }
+                ${card.type === "number" ? html`<section class="settings-group">
+                  <div class="settings-heading">
+                    <ha-icon icon="mdi:tune-vertical"></ha-icon>
+                    <div><strong>Value transformers</strong
+                      ><small>Format or adjust the numeric value before display</small></div>
+                  </div>
+                  <mini-display-value-transform-editor
+                    .value=${card.valueTransform}
+                    @value-transform-changed=${(event: CustomEvent) => {
+                      card.valueTransform = event.detail;
+                      this.changed();
+                    }}
+                  ></mini-display-value-transform-editor>
+                </section>` : nothing}
                 <section class="settings-group"><mini-display-graph-editor .card=${card} .hass=${this.hass}
                   @graph-changed=${(event: CustomEvent) => {
                     const graphWasEnabled = card.graph !== undefined && card.graph !== null;

@@ -71,6 +71,9 @@ test-native:
 		-I firmware/src firmware/tests/display_refresh_test.cpp -o .cache/tests/display-refresh
 	.cache/tests/display-refresh
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/number_transform_test.cpp -o .cache/tests/number-transform
+	.cache/tests/number-transform
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-DSTATIC_SMOOTH_TEST -DPROGMEM= -I firmware/src firmware/tests/static_smooth_font_test.cpp \
 		firmware/src/StaticSmoothFonts.generated.cpp -o .cache/tests/static-smooth-font
 	.cache/tests/static-smooth-font
@@ -109,6 +112,7 @@ test-native:
 	python3 tests/test_history_aggregation.py
 	python3 tests/test_history_data.py
 	python3 tests/test_image_codec.py
+	python3 tests/test_value_transform.py
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
 		firmware/tests/display_data_test.cpp -o .cache/tests/display-data

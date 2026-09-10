@@ -8,6 +8,7 @@
 #include "MarqueeState.h"
 #include "DisplayRefresh.h"
 #include "NotificationRequest.h"
+#include "NumberTransform.h"
 #include "FeatureFlags.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
@@ -1234,10 +1235,53 @@ RingLayout ringLayout(int16_t x, int16_t y, int16_t width, int16_t height) {
           static_cast<int16_t>(top + diameter + 2), valueHeight};
 }
 
+NumberTransform cardNumberTransform(JsonObjectConst card) {
+  NumberTransform result;
+  JsonObjectConst source = card["valueTransform"];
+  if (source.isNull()) return result;
+  result.multiply = source["multiply"] | 1.0F;
+  result.add = source["add"] | 0.0F;
+  result.absolute = source["absolute"] | false;
+  if (!source["minimum"].isNull()) result.minimum = source["minimum"];
+  if (!source["maximum"].isNull()) result.maximum = source["maximum"];
+  if (!source["precision"].isNull()) result.precision = source["precision"];
+  return result;
+}
+
+bool transformedCardNumber(JsonObjectConst card, const char *raw,
+                           float &result) {
+  if (raw == nullptr) return false;
+  char *end = nullptr;
+  result = strtof(raw, &end);
+  if (end == raw || *end != '\0' || !isfinite(result)) return false;
+  result = cardNumberTransform(card).apply(result);
+  return isfinite(result);
+}
+
+String compactNumber(float value) {
+  String result(value, 4);
+  while (result.endsWith("0")) result.remove(result.length() - 1);
+  if (result.endsWith(".")) result.remove(result.length() - 1);
+  if (result == "-0") return String("0");
+  return result;
+}
+
+String transformedCardNumberText(JsonObjectConst card, const char *raw,
+                                 bool applyPrecision = true) {
+  float value = 0.0F;
+  if (!transformedCardNumber(card, raw, value)) return String(raw ? raw : "");
+  const NumberTransform transform = cardNumberTransform(card);
+  return applyPrecision && transform.precision >= 0
+             ? String(value, static_cast<unsigned char>(transform.precision))
+             : card["valueTransform"].isNull() ? String(raw)
+                                                : compactNumber(value);
+}
+
 float progressRatio(JsonObjectConst card, DashboardValue *value) {
   const float minimum = card["minimum"] | 0.0F;
   const float maximum = card["maximum"] | 100.0F;
-  const float current = value ? atof(value->state) : minimum;
+  float current = minimum;
+  if (value) transformedCardNumber(card, value->state, current);
   return maximum > minimum
              ? constrain((current - minimum) / (maximum - minimum), 0.0F,
                          1.0F)
@@ -1308,9 +1352,15 @@ String cardValue(JsonObjectConst card) {
   if (source != nullptr) {
     DashboardValue *value = findValue(source, false);
     if (value == nullptr || !value->available) return String("--");
-    const String raw(value->state);
+    const bool numeric = strcmp(type, "number") == 0;
+    const String raw = numeric ? transformedCardNumberText(card, value->state)
+                               : String(value->state);
+    const String mappingInput = numeric
+                                    ? transformedCardNumberText(
+                                          card, value->state, false)
+                                    : raw;
     String result;
-    const bool mapped = mappedCardValue(card, raw, result);
+    const bool mapped = mappedCardValue(card, mappingInput, result);
     if (!mapped) result = raw;
     const char *unit = card["unit"];
     if (!mapped && unit && unit[0]) result += String(unit);
@@ -1643,8 +1693,12 @@ bool compileCard(ScenePage &page, JsonObjectConst card, int16_t x, int16_t y,
   uint32_t sourceMask = 0;
   collectSceneSources(card, sourceMask);
   if (sourceValue != nullptr && sourceValue->available) {
-    findCardMapping(card, "colorMappings", String(sourceValue->state),
-                    colorMapping);
+    const char *cardType = card["type"] | "";
+    const String mappingValue = strcmp(cardType, "number") == 0
+                                    ? transformedCardNumberText(
+                                          card, sourceValue->state, false)
+                                    : String(sourceValue->state);
+    findCardMapping(card, "colorMappings", mappingValue, colorMapping);
   }
   JsonVariantConst backgroundValue = colorMapping["background"];
   if (backgroundValue.isNull()) backgroundValue = card["style"]["background"];
