@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feature: show firmware update warning
+- fix: smooth fast marquee intervals
+- feature: configure marquee step size
+- fix: batch display value updates
+- fix: grow page json memory adaptively
+- feature: replace doors with cascade
+- feature: apply transitions to all pages
+- feature: limit full page scrolling to vertical directions
+- fix: preserve disabled marquee settings
 - feature: show animated notification overlays
 - feature: send notifications from home assistant
 - feature: configure notification placement
