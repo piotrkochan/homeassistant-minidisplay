@@ -3786,6 +3786,45 @@ void finishFirmwareUpdate() {
   }
 }
 
+void showFirmwareUpdateNotice() {
+  std::unique_ptr<DisplayNotification> item(
+      new (std::nothrow) DisplayNotification());
+  if (!item) return;
+  strlcpy(item->title, "Firmware update", sizeof(item->title));
+  strlcpy(item->message, "Do not power off", sizeof(item->message));
+  item->severity = NotificationSeverity::Warning;
+  item->icon = NotificationIcon::Power;
+  item->position = NotificationPosition::Top;
+
+  NotificationCenter notice;
+  notice.setMaxVisible(1);
+  if (!notice.enqueue(std::move(item))) return;
+  notice.advance(millis(), display.width(), display.height(), false,
+                 prepareNotification);
+
+  if (!displayOn || displayBrightness == 0) {
+    displayOn = true;
+    displayBrightness = max<uint8_t>(displayBrightness, 40);
+    applyBacklight();
+  }
+#if defined(ESP8266)
+  std::unique_ptr<SceneUpdatePainter> painter(
+      new (std::nothrow) SceneUpdatePainter(display));
+  if (!painter || !painter->begin()) return;
+  for (int16_t y = 0; y < display.height(); y += kSceneUpdateBandHeight) {
+    painter->band.fillSprite(TFT_BLACK);
+    paintNotification(painter->band, notice, 0, -y);
+    displayScrollBuffer.pushLogical(
+        0, y, display.width(), kSceneUpdateBandHeight,
+        static_cast<uint16_t *>(painter->band.getPointer()));
+    yield();
+  }
+#else
+  display.fillScreen(TFT_BLACK);
+  paintNotification(display, notice, 0, 0);
+#endif
+}
+
 void prepareFirmwareUpdate() {
   pageRotationAuto = false;
   pageTransitionActive = false;
@@ -3804,6 +3843,7 @@ void prepareFirmwareUpdate() {
   if (display.fontLoaded) display.unloadFont();
   displayFontState = FontRenderState{};
 #endif
+  showFirmwareUpdateNotice();
 }
 
 void receiveFirmwareUpdate() {
