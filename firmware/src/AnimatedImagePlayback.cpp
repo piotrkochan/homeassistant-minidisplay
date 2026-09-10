@@ -2,6 +2,23 @@
 
 #include <LittleFS.h>
 
+namespace {
+
+void mergeDamage(ImageAssetFrame &target, const ImageAssetFrame &source) {
+  const uint16_t left = min(target.dirtyX, source.dirtyX);
+  const uint16_t top = min(target.dirtyY, source.dirtyY);
+  const uint16_t right = max<uint16_t>(target.dirtyX + target.dirtyWidth,
+                                       source.dirtyX + source.dirtyWidth);
+  const uint16_t bottom = max<uint16_t>(target.dirtyY + target.dirtyHeight,
+                                        source.dirtyY + source.dirtyHeight);
+  target.dirtyX = left;
+  target.dirtyY = top;
+  target.dirtyWidth = right - left;
+  target.dirtyHeight = bottom - top;
+}
+
+}  // namespace
+
 bool AnimatedImagePlayback::advance(Entry &entry, uint32_t now) const {
   File file = LittleFS.open(imageAssetPath(String(entry.id)), "r");
   if (!file) return false;
@@ -9,6 +26,8 @@ bool AnimatedImagePlayback::advance(Entry &entry, uint32_t now) const {
   if (late >= entry.info.durationMs) {
     entry.nextAt += (late / entry.info.durationMs) * entry.info.durationMs;
   }
+  bool first = true;
+  ImageAssetFrame combined;
   do {
     entry.frame = (entry.frame + 1) % entry.info.frameCount;
     ImageAssetFrame frame;
@@ -16,9 +35,15 @@ bool AnimatedImagePlayback::advance(Entry &entry, uint32_t now) const {
       file.close();
       return false;
     }
-    entry.damage = frame;
+    if (first) {
+      combined = frame;
+      first = false;
+    } else {
+      mergeDamage(combined, frame);
+    }
     entry.nextAt += frame.durationMs;
   } while (static_cast<int32_t>(now - entry.nextAt) >= 0);
+  entry.damage = combined;
   file.close();
   return true;
 }
@@ -76,6 +101,6 @@ void AnimatedImagePlayback::bind(ScenePage &page, uint32_t now,
   for (uint8_t index = 0; index < count_; ++index) {
     applyFrame(page, entries_[index].id, entries_[index].info,
                entries_[index].frame, entries_[index].damage,
-               [](const SceneRect &) {});
+               [](const SceneRect &, bool) {});
   }
 }

@@ -7,10 +7,12 @@ from typing import NamedTuple
 MAGIC = b"MDI2"
 ANIMATED_MAGIC_V1 = b"MDA1"
 ANIMATED_MAGIC = b"MDA2"
+ANIMATED_MAGIC_V3 = b"MDA3"
 HEADER_BYTES = 8
 ANIMATED_HEADER_BYTES = 16
 ANIMATED_FRAME_RECORD_BYTES_V1 = 10
 ANIMATED_FRAME_RECORD_BYTES = 18
+ANIMATED_DAMAGE_BAND_HEIGHT = 8
 MAX_ANIMATED_FRAMES = 120
 MAX_DIMENSION = 1024
 MAX_PIXELS = MAX_DIMENSION * MAX_DIMENSION
@@ -136,6 +138,7 @@ def inspect_image(content: bytes) -> ImageInfo:
     if len(content) < HEADER_BYTES + 3 or content[:4] not in {
         MAGIC,
         ANIMATED_MAGIC_V1,
+        ANIMATED_MAGIC_V3,
         ANIMATED_MAGIC,
     }:
         raise ImageCodecError("Unsupported image format")
@@ -145,11 +148,15 @@ def inspect_image(content: bytes) -> ImageInfo:
         raise ImageCodecError("Invalid image dimensions")
     if content[:4] == MAGIC:
         return ImageInfo(width, height)
-    record_bytes = (
-        ANIMATED_FRAME_RECORD_BYTES
-        if content[:4] == ANIMATED_MAGIC
-        else ANIMATED_FRAME_RECORD_BYTES_V1
-    )
+    if content[:4] == ANIMATED_MAGIC_V3:
+        record_bytes = ANIMATED_FRAME_RECORD_BYTES + 2 * (
+            (height + ANIMATED_DAMAGE_BAND_HEIGHT - 1)
+            // ANIMATED_DAMAGE_BAND_HEIGHT
+        )
+    elif content[:4] == ANIMATED_MAGIC:
+        record_bytes = ANIMATED_FRAME_RECORD_BYTES
+    else:
+        record_bytes = ANIMATED_FRAME_RECORD_BYTES_V1
     if len(content) < ANIMATED_HEADER_BYTES + 2 * record_bytes + 3:
         raise ImageCodecError("Animated image header is truncated")
     frame_count = int.from_bytes(content[8:10], "little")
@@ -170,7 +177,7 @@ def _animated_frame(content: bytes, info: ImageInfo, index: int) -> bytes:
     length = int.from_bytes(content[record + 6 : record + 10], "little")
     if not 50 <= duration_ms <= 60000 or length < 3 or offset > len(content) or length > len(content) - offset:
         raise ImageCodecError("Invalid animated image frame")
-    if info.frame_record_bytes == ANIMATED_FRAME_RECORD_BYTES:
+    if info.frame_record_bytes >= ANIMATED_FRAME_RECORD_BYTES:
         x = int.from_bytes(content[record + 10 : record + 12], "little")
         y = int.from_bytes(content[record + 12 : record + 14], "little")
         width = int.from_bytes(content[record + 14 : record + 16], "little")
@@ -182,6 +189,17 @@ def _animated_frame(content: bytes, info: ImageInfo, index: int) -> bytes:
             or y + height > info.height
         ):
             raise ImageCodecError("Invalid animated image damage bounds")
+    if info.frame_record_bytes > ANIMATED_FRAME_RECORD_BYTES:
+        band_count = (
+            info.height + ANIMATED_DAMAGE_BAND_HEIGHT - 1
+        ) // ANIMATED_DAMAGE_BAND_HEIGHT
+        for band in range(band_count):
+            left = content[record + ANIMATED_FRAME_RECORD_BYTES + band * 2]
+            right = content[record + ANIMATED_FRAME_RECORD_BYTES + band * 2 + 1]
+            if (left, right) == (0xFF, 0):
+                continue
+            if left >= right or right > info.width:
+                raise ImageCodecError("Invalid animated image damage band")
     return content[offset : offset + length]
 
 
@@ -222,40 +240,39 @@ def validate_image(content: bytes) -> ImageInfo:
 
 
 def upgrade_animated_image(content: bytes) -> bytes:
-    """Add per-frame damage bounds to legacy MDA1 animations."""
+    """Add row-band damage bounds to older animated images."""
     info = validate_image(content)
     if not info.animated or content[:4] == ANIMATED_MAGIC:
         return content
-    frames: list[tuple[int, bytes, tuple[int, int, int, int]]] = []
-    previous: bytes | None = None
+    source_frames: list[tuple[int, bytes, bytes]] = []
     for index in range(info.frame_count):
         record = ANIMATED_HEADER_BYTES + index * info.frame_record_bytes
         duration = int.from_bytes(content[record : record + 2], "little")
         payload = _animated_frame(content, info, index)
         pixels = _decode_frame(payload, info.width, info.height)
-        if previous is None:
-            bounds = (0, 0, info.width, info.height)
-        else:
-            left, top = info.width, info.height
-            right = bottom = 0
-            for pixel in range(info.width * info.height):
-                byte = pixel * 2
-                if pixels[byte : byte + 2] == previous[byte : byte + 2]:
-                    continue
-                x = pixel % info.width
-                y = pixel // info.width
-                left = min(left, x)
-                top = min(top, y)
-                right = max(right, x + 1)
-                bottom = max(bottom, y + 1)
-            bounds = (
-                left if right else 0,
-                top if bottom else 0,
-                max(1, right - left),
-                max(1, bottom - top),
-            )
+        source_frames.append((duration, payload, pixels))
+    frames: list[tuple[int, bytes, tuple[int, int, int, int]]] = []
+    for index, (duration, payload, pixels) in enumerate(source_frames):
+        previous = source_frames[index - 1][2]
+        left, top = info.width, info.height
+        right = bottom = 0
+        for pixel in range(info.width * info.height):
+            byte = pixel * 2
+            if pixels[byte : byte + 2] == previous[byte : byte + 2]:
+                continue
+            x = pixel % info.width
+            y = pixel // info.width
+            left = min(left, x)
+            top = min(top, y)
+            right = max(right, x + 1)
+            bottom = max(bottom, y + 1)
+        bounds = (
+            left if right else 0,
+            top if bottom else 0,
+            max(1, right - left),
+            max(1, bottom - top),
+        )
         frames.append((duration, payload, bounds))
-        previous = pixels
     output = bytearray(ANIMATED_MAGIC)
     output.extend(info.width.to_bytes(2, "little"))
     output.extend(info.height.to_bytes(2, "little"))

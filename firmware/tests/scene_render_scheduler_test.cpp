@@ -24,6 +24,7 @@ int main() {
   assert(scheduler.nextTile(tile));
   assert(tile.x == 10 && tile.y == 28 && tile.width == 30 && tile.height == 4);
   assert(!scheduler.nextTile(tile));
+
   assert(!scheduler.rendering());
   assert(scheduler.pending());
 

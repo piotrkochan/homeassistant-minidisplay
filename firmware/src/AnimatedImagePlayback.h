@@ -119,8 +119,8 @@ class AnimatedImagePlayback {
     if (strcmp(page.backgroundImage, id) == 0 &&
         page.backgroundImageFrame != frame) {
       page.backgroundImageFrame = frame;
-      invalidate(mapDamage(info, damage, SceneRect{0, 0, 240, 240},
-                           ImageFit::Cover));
+      invalidateDamage(info, damage, SceneRect{0, 0, 240, 240},
+                       ImageFit::Cover, invalidate);
       changed = true;
     }
     for (uint8_t nodeIndex = 0; nodeIndex < page.graph.size(); ++nodeIndex) {
@@ -129,10 +129,19 @@ class AnimatedImagePlayback {
       SceneCard &card = page.cards[node.payloadIndex];
       if (strcmp(card.image, id) != 0 || card.imageFrame == frame) continue;
       card.imageFrame = frame;
-      invalidate(mapDamage(info, damage, node.bounds, card.imageFit));
+      invalidateDamage(info, damage, node.bounds, card.imageFit, invalidate);
       changed = true;
     }
     return changed;
+  }
+
+  template <typename Invalidate>
+  static void invalidateDamage(const ImageAssetInfo &info,
+                               const ImageAssetFrame &damage,
+                               const SceneRect &target, ImageFit fit,
+                               Invalidate invalidate) {
+    const SceneRect mapped = mapDamage(info, damage, target, fit);
+    if (!mapped.empty()) invalidate(mapped, false);
   }
 
   Entry entries_[kMaximumActiveAnimatedImages]{};

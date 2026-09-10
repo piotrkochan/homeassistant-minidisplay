@@ -14,6 +14,11 @@ constexpr size_t kImageAssetHeaderBytes = 8;
 constexpr size_t kAnimatedImageAssetHeaderBytes = 16;
 constexpr size_t kAnimatedImageFrameRecordBytesV1 = 10;
 constexpr size_t kAnimatedImageFrameRecordBytesV2 = 18;
+constexpr uint8_t kAnimatedImageDamageBandHeight = 8;
+constexpr uint8_t kAnimatedImageMaximumDamageBands = 30;
+constexpr size_t kAnimatedImageFrameRecordBytesV3 =
+    kAnimatedImageFrameRecordBytesV2 +
+    kAnimatedImageMaximumDamageBands * 2;
 constexpr uint16_t kMaxAnimatedImageFrames = 120;
 constexpr size_t kMaxImageAssetBytes = 768 * 1024;
 constexpr size_t kImageStorageReserveBytes = 256 * 1024;
@@ -137,7 +142,7 @@ class ImageAssetRenderCache {
     uint32_t usedAt = 0;
   };
 
-  bool buildRowIndex(Entry &entry);
+  bool initializeRowIndex(Entry &entry);
 
   Entry entries_[kImageRenderCacheEntries];
   uint16_t rowPixels_[240];

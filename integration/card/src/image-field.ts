@@ -177,6 +177,40 @@ export const encodeAnimatedRgb565Rle = (
   return encoded;
 };
 
+const animatedDamage = (
+  pixels: Uint8Array,
+  previous: Uint8Array,
+  width: number,
+  height: number,
+) => {
+  let left = width;
+  let top = height;
+  let right = 0;
+  let bottom = 0;
+  for (let pixel = 0; pixel < width * height; pixel += 1) {
+    const byte = pixel * 2;
+    if (
+      pixels[byte] === previous[byte] &&
+      pixels[byte + 1] === previous[byte + 1]
+    )
+      continue;
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    left = Math.min(left, x);
+    top = Math.min(top, y);
+    right = Math.max(right, x + 1);
+    bottom = Math.max(bottom, y + 1);
+  }
+  return {
+    dirty: {
+      x: right ? left : 0,
+      y: bottom ? top : 0,
+      width: Math.max(1, right - left),
+      height: Math.max(1, bottom - top),
+    },
+  };
+};
+
 const isGif = async (file: File) => {
   if (file.type.toLowerCase() === "image/gif") return true;
   const signature = new Uint8Array(await file.slice(0, 6).arrayBuffer());
@@ -231,6 +265,7 @@ const encodeGifAtScale = async (
       dirty: { x: number; y: number; width: number; height: number };
     }[] = [];
     let firstFrame: Uint8Array | undefined;
+    let firstPixels: Uint8Array | undefined;
     let previousPixels: Uint8Array | undefined;
     let preview = "";
     for (let index = 0; index < sourceFrames; index += stride) {
@@ -241,6 +276,7 @@ const encodeGifAtScale = async (
       context.fillRect(0, 0, width, height);
       context.drawImage(decoded.image, 0, 0, width, height);
       const pixels = canvasRgb565(context, width, height);
+      firstPixels ??= pixels;
       const image = encodeRgb565Rle(pixels, width, height);
       firstFrame ??= image;
       const duration = Math.max(
@@ -257,44 +293,24 @@ const encodeGifAtScale = async (
       ) {
         previous.durationMs += duration;
       } else {
-        let left = 0;
-        let top = 0;
-        let right = width;
-        let bottom = height;
-        if (previousPixels) {
-          left = width;
-          top = height;
-          right = 0;
-          bottom = 0;
-          for (let pixel = 0; pixel < width * height; pixel += 1) {
-            const byte = pixel * 2;
-            if (
-              pixels[byte] === previousPixels[byte] &&
-              pixels[byte + 1] === previousPixels[byte + 1]
-            )
-              continue;
-            const x = pixel % width;
-            const y = Math.floor(pixel / width);
-            left = Math.min(left, x);
-            top = Math.min(top, y);
-            right = Math.max(right, x + 1);
-            bottom = Math.max(bottom, y + 1);
-          }
-        }
+        const damage = previousPixels
+          ? animatedDamage(pixels, previousPixels, width, height)
+          : { dirty: { x: 0, y: 0, width, height } };
         frames.push({
           durationMs: Math.min(60000, duration),
           bytes: payload,
-          dirty: {
-            x: left,
-            y: top,
-            width: Math.max(1, right - left),
-            height: Math.max(1, bottom - top),
-          },
+          ...damage,
         });
         previousPixels = pixels;
       }
       if (!preview) preview = canvas.toDataURL("image/webp", 0.82);
       decoded.image.close();
+    }
+    if (frames.length > 1 && firstPixels && previousPixels) {
+      Object.assign(
+        frames[0],
+        animatedDamage(firstPixels, previousPixels, width, height),
+      );
     }
     const animated = frames.length > 1;
     return {

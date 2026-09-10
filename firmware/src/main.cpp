@@ -55,6 +55,7 @@
 #include "SceneRenderScheduler.h"
 #include "StartupScreens.h"
 #include "TextEffect.h"
+#include "TransitionPixelTransfer.h"
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
 #include "TlsCertificateManager.h"
 #endif
@@ -242,6 +243,7 @@ void registerDashboardMarquees(JsonObjectConst, ScenePage &scene,
                                bool preserve = false);
 void updateAnimatedImages();
 void invalidateSceneBand(const SceneRect &bounds, uint8_t expansion = 0);
+void invalidateSceneRegion(const SceneRect &bounds, bool exact);
 bool renderPendingScene(const ScenePage &scene);
 void showPageWithTransition(uint8_t nextPageIndex);
 void showSetupScreen();
@@ -574,6 +576,10 @@ bool compileScenePage(JsonObjectConst source, ScenePage &page) {
 }
 
 void invalidateSceneBand(const SceneRect &bounds, uint8_t expansion) {
+  const int16_t left = max<int16_t>(
+      0, bounds.x + pixelShiftX - expansion);
+  const int16_t right = min<int16_t>(
+      240, bounds.right() + pixelShiftX + expansion);
   const int16_t top = max<int16_t>(
       0, ((bounds.y + pixelShiftY - expansion) / kSceneUpdateBandHeight) *
              kSceneUpdateBandHeight);
@@ -581,10 +587,16 @@ void invalidateSceneBand(const SceneRect &bounds, uint8_t expansion) {
       240, ((bounds.bottom() + pixelShiftY + expansion +
              kSceneUpdateBandHeight - 1) /
             kSceneUpdateBandHeight) * kSceneUpdateBandHeight);
-  if (bottom > top) {
+  if (right > left && bottom > top) {
     sceneScheduler.invalidate(
-        {0, top, 240, static_cast<int16_t>(bottom - top)});
+        {left, top, static_cast<int16_t>(right - left),
+         static_cast<int16_t>(bottom - top)});
   }
+}
+
+void invalidateSceneRegion(const SceneRect &bounds, bool exact) {
+  (void)exact;
+  invalidateSceneBand(bounds, 1);
 }
 
 bool invalidateChangedSceneSources(const ScenePage &scene,
@@ -617,23 +629,30 @@ bool renderPendingScene(const ScenePage &scene) {
   while (sceneScheduler.beginFrame() || sceneScheduler.rendering()) {
     SceneRect tile;
     while (sceneScheduler.nextTile(tile)) {
-      if (tile.x != 0 || tile.width != 240 ||
-          tile.height != kSceneUpdateBandHeight) {
+      if (tile.width <= 0 || tile.width > 240 ||
+          tile.height <= 0 || tile.height > kSceneUpdateBandHeight) {
         band.deleteSprite();
         return false;
       }
       {
         MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SceneTilePaint);
         band.fillSprite(scene.background);
-        paintScenePage(band, scene, pixelShiftX, pixelShiftY - tile.y, 0, 0,
-                       240, kSceneUpdateBandHeight, font, &images);
-        paintNotification(band, notifications, 0, -tile.y);
+        paintScenePage(band, scene, pixelShiftX - tile.x,
+                       pixelShiftY - tile.y, 0, 0, tile.width, tile.height,
+                       font, &images);
+        paintNotification(band, notifications, -tile.x, -tile.y);
       }
       {
         MINI_DISPLAY_PROFILE_SCOPE(RuntimeProfilePoint::SpiTransfer);
+        uint16_t *pixels = static_cast<uint16_t *>(band.getPointer());
+        if (!packTransitionPixels(
+                pixels, 240 * kSceneUpdateBandHeight, 240, tile.width,
+                tile.height)) {
+          band.deleteSprite();
+          return false;
+        }
         displayScrollBuffer.pushLogical(
-            0, tile.y, 240, kSceneUpdateBandHeight,
-            static_cast<uint16_t *>(band.getPointer()));
+            tile.x, tile.y, tile.width, tile.height, pixels);
       }
       if (!animatedFrameRenderActive) yield();
     }
@@ -795,8 +814,8 @@ void updateAnimatedImages() {
       sceneScheduler.pending() ||
       !displayRefresh.ready(millis())) return;
   const bool changed = animatedImages.update(
-      *activeScene, millis(), [](const SceneRect &bounds) {
-        invalidateSceneBand(bounds);
+      *activeScene, millis(), [](const SceneRect &bounds, bool exact) {
+        invalidateSceneRegion(bounds, exact);
       });
   if (!changed) return;
   // Finish one GIF frame as one uninterrupted visual operation. Yielding
