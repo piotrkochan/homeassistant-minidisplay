@@ -3530,10 +3530,7 @@ export class MiniDisplayEditor extends LitElement {
     return html`<section class="row-panel">
       <nav class="tabs" aria-label="Add item">${(["number","text","image","chart","weather","clock","status"] as const).map(type=>html`<button class="tab" @click=${()=>add(type)}><ha-icon icon="mdi:plus"></ha-icon>${type}</button>`)}</nav>
       <nav class="card-tabs" aria-label="Items">${items.map(({card,ri,ci})=>html`<button class="tab ${this.selected?.row===ri && this.selected.card===ci ? "active":""}" @click=${()=>this.selected={row:ri,card:ci}}>${this.cardName(card)}</button>`)}</nav>
-      ${selected?.frame ? html`<div class="grid compact-grid">${(["x","y","width","height"] as const).map(key=>this.numberField(key.toUpperCase()+" (%)",selected.frame![key],0,key==="x"||key==="y"?0:2,100,input=>{
-        freezeTextFrames(selected);
-        const frame=selected.frame!; frame[key]=input; frame.x=Math.min(frame.x,100-frame.width); frame.y=Math.min(frame.y,100-frame.height); this.changed();
-      }))}</div><div class="tabs"><button class="tab" @click=${()=>move(-1)}>Send backward</button><button class="tab" @click=${()=>move(1)}>Bring forward</button></div>` : nothing}
+      ${selected?.frame ? html`<div class="tabs"><button class="tab" @click=${()=>move(-1)}>Send backward</button><button class="tab" @click=${()=>move(1)}>Bring forward</button></div>` : nothing}
       ${selected && this.selected ? this.cardSettings(selected,this.selected.row,this.selected.card):nothing}
     </section>`;
   }
