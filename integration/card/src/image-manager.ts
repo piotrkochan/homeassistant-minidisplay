@@ -284,7 +284,9 @@ export class MiniDisplayImageManager extends LitElement {
         <div>
           <div class="name" title=${asset.name}>${asset.name}</div>
           <div class="meta">
-            ${asset.width}×${asset.height} · ${Math.ceil(asset.bytes / 1024)} KB
+            ${asset.width}×${asset.height} · ${Math.ceil(asset.bytes / 1024)} KB${asset.animated
+              ? ` · ${asset.frameCount} frames`
+              : ""}
           </div>
           <div class="meta ${uses.length ? "used" : ""}">
             ${uses.length ? `Used in ${uses.join(", ")}` : "Not used"}

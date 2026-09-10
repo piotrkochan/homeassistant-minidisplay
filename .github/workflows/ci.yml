@@ -83,6 +83,7 @@ jobs:
           PLAYWRIGHT_MODULE: ${{ github.workspace }}/.cache/browser/node_modules/playwright
         run: |
           node integration/card/tests/preview-interaction.cjs
+          node integration/card/tests/animated-image.cjs
           node tests/frontend_notifications.cjs
 
   integration:

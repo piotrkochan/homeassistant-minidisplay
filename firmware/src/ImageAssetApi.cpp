@@ -22,6 +22,8 @@ void ImageAssetApi::begin() {
   instance_ = this;
   server_.on("/api/v1/assets", HTTP_GET, listRoute);
   server_.on("/api/v1/assets", HTTP_PUT, uploadRoute);
+  server_.on("/api/v1/assets/upload", HTTP_POST, finishStreamUploadRoute,
+             streamUploadRoute);
   server_.on("/api/v1/assets", HTTP_DELETE, removeRoute);
 }
 
@@ -33,6 +35,10 @@ void ImageAssetApi::listRoute() {
   instance_->list();
 }
 void ImageAssetApi::uploadRoute() { instance_->uploadChunk(); }
+void ImageAssetApi::streamUploadRoute() { instance_->uploadStream(); }
+void ImageAssetApi::finishStreamUploadRoute() {
+  instance_->finishStreamUpload();
+}
 void ImageAssetApi::removeRoute() { instance_->remove(); }
 
 uint32_t ImageAssetApi::freeBytes() const {
@@ -72,17 +78,21 @@ void ImageAssetApi::list() {
       continue;
     }
     File file = directory.openFile("r");
-    uint16_t width = 0;
-    uint16_t height = 0;
-    if (!validImageAsset(file, &width, &height)) {
+    ImageAssetInfo info;
+    if (!readImageAssetInfo(file, &info)) {
       file.close();
       continue;
     }
     JsonObject asset = assets.createNestedObject();
     asset["id"] = path.substring(leadingSlash ? 5 : 4, path.length() - 4);
-    asset["width"] = width;
-    asset["height"] = height;
+    asset["width"] = info.width;
+    asset["height"] = info.height;
     asset["bytes"] = file.size();
+    if (info.animated) {
+      asset["animated"] = true;
+      asset["frameCount"] = info.frameCount;
+      asset["durationMs"] = info.durationMs;
+    }
     file.close();
   }
 #else
@@ -91,14 +101,18 @@ void ImageAssetApi::list() {
   while (file) {
     const String path = file.name();
     if (path.startsWith("/img_") && path.endsWith(".mdi")) {
-      uint16_t width = 0;
-      uint16_t height = 0;
-      if (validImageAsset(file, &width, &height)) {
+      ImageAssetInfo info;
+      if (readImageAssetInfo(file, &info)) {
         JsonObject asset = assets.createNestedObject();
         asset["id"] = path.substring(5, path.length() - 4);
-        asset["width"] = width;
-        asset["height"] = height;
+        asset["width"] = info.width;
+        asset["height"] = info.height;
         asset["bytes"] = file.size();
+        if (info.animated) {
+          asset["animated"] = true;
+          asset["frameCount"] = info.frameCount;
+          asset["durationMs"] = info.durationMs;
+        }
       }
     }
     file.close();
@@ -127,7 +141,8 @@ void ImageAssetApi::download() {
     return;
   }
   File file = LittleFS.open(imageAssetPath(id), "r");
-  if (!file || !validImageAsset(file)) {
+  ImageAssetInfo info;
+  if (!file || !readImageAssetInfo(file, &info)) {
     if (file) file.close();
     sendError(404, F("asset_not_found"), F("Image asset not found"));
     return;
@@ -204,6 +219,104 @@ void ImageAssetApi::uploadChunk() {
     return;
   }
   server_.send(204);
+}
+
+void ImageAssetApi::uploadStream() {
+  if (!authenticate_()) return;
+  HTTPUpload &upload = server_.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    if (streamFile_) streamFile_.close();
+    if (streamPath_.length()) LittleFS.remove(streamPath_);
+    streamPath_ = String();
+    streamExpectedBytes_ = 0;
+    streamWrittenBytes_ = 0;
+    streamStatus_ = 422;
+    if (!filesystemReady_) {
+      streamStatus_ = 503;
+      return;
+    }
+    const String id = server_.arg("id");
+    const String totalValue = server_.arg("total");
+    const uint32_t total = strtoul(totalValue.c_str(), nullptr, 10);
+    if (!validImageAssetId(id) || total < kImageAssetHeaderBytes ||
+        total > kMaxImageAssetBytes) {
+      return;
+    }
+    if (freeBytes() < total + kImageStorageReserveBytes) {
+      streamStatus_ = 507;
+      return;
+    }
+    streamPath_ = imageAssetPath(id) + ".tmp";
+    LittleFS.remove(streamPath_);
+    streamFile_ = LittleFS.open(streamPath_, "w");
+    if (!streamFile_) {
+      streamStatus_ = 507;
+      return;
+    }
+    streamExpectedBytes_ = total;
+    streamStatus_ = 100;
+    return;
+  }
+  if (upload.status == UPLOAD_FILE_WRITE) {
+    if (streamStatus_ != 100 || !streamFile_ ||
+        upload.currentSize > streamExpectedBytes_ - streamWrittenBytes_) {
+      streamStatus_ = 422;
+      return;
+    }
+    const size_t written = streamFile_.write(upload.buf, upload.currentSize);
+    streamWrittenBytes_ += written;
+    if (written != upload.currentSize) streamStatus_ = 507;
+    yield();
+    return;
+  }
+  if (upload.status == UPLOAD_FILE_ABORTED) {
+    if (streamFile_) streamFile_.close();
+    if (streamPath_.length()) LittleFS.remove(streamPath_);
+    streamStatus_ = 422;
+    return;
+  }
+  if (upload.status != UPLOAD_FILE_END) return;
+  if (streamFile_) streamFile_.close();
+  if (streamStatus_ != 100 || streamWrittenBytes_ != streamExpectedBytes_) {
+    if (streamPath_.length()) LittleFS.remove(streamPath_);
+    if (streamStatus_ == 100) streamStatus_ = 422;
+    return;
+  }
+  File validation = LittleFS.open(streamPath_, "r");
+  const bool valid = validImageAsset(validation);
+  if (validation) validation.close();
+  if (!valid) {
+    LittleFS.remove(streamPath_);
+    streamStatus_ = 422;
+    return;
+  }
+  const String targetPath = streamPath_.substring(0, streamPath_.length() - 4);
+  LittleFS.remove(targetPath);
+  if (!LittleFS.rename(streamPath_, targetPath)) {
+    LittleFS.remove(streamPath_);
+    streamStatus_ = 507;
+    return;
+  }
+  streamPath_ = String();
+  streamStatus_ = 204;
+}
+
+void ImageAssetApi::finishStreamUpload() {
+  if (!authenticate_()) return;
+  const int status = streamStatus_;
+  streamStatus_ = 0;
+  streamExpectedBytes_ = 0;
+  streamWrittenBytes_ = 0;
+  if (status == 204) {
+    server_.send(204);
+  } else if (status == 503) {
+    sendError(503, F("filesystem_unavailable"), F("LittleFS unavailable"));
+  } else if (status == 507) {
+    sendError(507, F("storage_reserve"),
+              F("Not enough space after safety reserve"));
+  } else {
+    sendError(422, F("invalid_asset"), F("Invalid Mini Display image"));
+  }
 }
 
 void ImageAssetApi::remove() {

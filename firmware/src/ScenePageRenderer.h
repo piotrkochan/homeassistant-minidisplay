@@ -110,7 +110,7 @@ void paintSceneCard(Canvas &canvas, const ScenePage &page,
   }
   drawImageAsset(canvas, card.image, x, y, node.bounds.width,
                  node.bounds.height, card.imageFit, clipX, clipY, clipWidth,
-                 clipHeight, imageCache);
+                 clipHeight, imageCache, card.imageFrame);
   paintGraph(
       canvas, card.graph, x + 2, y + 2, node.bounds.width - 4,
       node.bounds.height - 4, clipX, clipY, clipWidth, clipHeight,
@@ -152,7 +152,7 @@ void paintScenePage(Canvas &canvas, const ScenePage &page, int16_t offsetX,
   canvas.fillRect(offsetX, offsetY, 240, 240, page.background);
   drawImageAsset(canvas, page.backgroundImage, offsetX, offsetY, 240, 240,
                  ImageFit::Cover, clipX, clipY, clipWidth, clipHeight,
-                 imageCache);
+                 imageCache, page.backgroundImageFrame);
 
   for (uint8_t index = 0; index < page.graph.size(); ++index) {
     const SceneNode &node = page.graph.node(index);

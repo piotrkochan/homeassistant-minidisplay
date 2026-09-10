@@ -19,6 +19,20 @@ def mdi(width: int = 2, height: int = 1) -> bytes:
     return encode_rgb565(width, height, pixels)
 
 
+def animated_mdi() -> bytes:
+    """Return two tiny animated frames."""
+    payloads = [mdi(1, 1)[8:], encode_rgb565(1, 1, b"\x1f\x00")[8:]]
+    header = bytearray(b"MDA1\x01\x00\x01\x00\x02\x00\x00\x00")
+    header.extend((300).to_bytes(4, "little"))
+    offset = 36
+    for duration, payload in zip((100, 200), payloads, strict=True):
+        header.extend(duration.to_bytes(2, "little"))
+        header.extend(offset.to_bytes(4, "little"))
+        header.extend(len(payload).to_bytes(4, "little"))
+        offset += len(payload)
+    return bytes(header) + b"".join(payloads)
+
+
 class AssetTests(unittest.IsolatedAsyncioTestCase):
     def manager(self):
         manager = module.MiniDisplayAssetManager.__new__(module.MiniDisplayAssetManager)
@@ -43,6 +57,26 @@ class AssetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(base64.b64decode(asset["data"]), content)
         self.assertTrue(asset["preview"].startswith("data:image/png;base64,"))
         manager._store.async_save.assert_awaited_once()
+
+    async def test_put_preserves_animated_metadata(self):
+        manager = self.manager()
+        content = animated_mdi()
+
+        asset = await manager.async_put(
+            "0123456789abcdef",
+            "Status.gif",
+            1,
+            1,
+            base64.b64encode(content).decode(),
+            "data:image/webp;base64,preview",
+        )
+
+        self.assertTrue(asset["animated"])
+        self.assertEqual(asset["frameCount"], 2)
+        self.assertEqual(asset["durationMs"], 300)
+        manager._client.async_put_asset.assert_awaited_once_with(
+            "0123456789abcdef", module.upgrade_animated_image(content)
+        )
 
     async def test_existing_library_is_not_reimported(self):
         manager = self.manager()

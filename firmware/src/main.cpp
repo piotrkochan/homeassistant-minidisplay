@@ -34,6 +34,7 @@
 #include "DisplayScrollBuffer.h"
 #include "NotificationPainter.h"
 #include "ApiAccessPolicy.h"
+#include "AnimatedImagePlayback.h"
 #include "DashboardPageLoader.h"
 #include "CrashDiagnostics.h"
 #include "RuntimeProfiler.h"
@@ -129,6 +130,8 @@ TlsCertificateManager tlsCertificates;
 MiniDisplay display;
 DisplayScrollBuffer displayScrollBuffer(display);
 SceneRenderScheduler<> sceneScheduler(240, 240, kSceneUpdateBandHeight);
+AnimatedImagePlayback animatedImages;
+bool animatedFrameRenderActive = false;
 std::unique_ptr<ScenePage> activeScene;
 bool activeSceneReady = false;
 uint8_t activeScenePage = 0xff;
@@ -237,6 +240,7 @@ bool renderDashboardPage(const uint32_t *changedValues,
                          bool clear = true);
 void registerDashboardMarquees(JsonObjectConst, ScenePage &scene,
                                bool preserve = false);
+void updateAnimatedImages();
 void invalidateSceneBand(const SceneRect &bounds, uint8_t expansion = 0);
 bool renderPendingScene(const ScenePage &scene);
 void showPageWithTransition(uint8_t nextPageIndex);
@@ -609,6 +613,7 @@ bool renderPendingScene(const ScenePage &scene) {
   auto &band = painter->band;
   auto &font = painter->font;
   auto &images = painter->images;
+  images.setCooperativeYield(!animatedFrameRenderActive);
   while (sceneScheduler.beginFrame() || sceneScheduler.rendering()) {
     SceneRect tile;
     while (sceneScheduler.nextTile(tile)) {
@@ -630,7 +635,7 @@ bool renderPendingScene(const ScenePage &scene) {
             0, tile.y, 240, kSceneUpdateBandHeight,
             static_cast<uint16_t *>(band.getPointer()));
       }
-      yield();
+      if (!animatedFrameRenderActive) yield();
     }
   }
   if (band.fontLoaded) band.unloadFont();
@@ -740,6 +745,8 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   }
   const bool partial = changedValues != nullptr && activeSceneReady &&
                        activeScenePage == activePageIndex;
+  const bool preserveAnimations = activeSceneReady &&
+                                  activeScenePage == activePageIndex;
   const bool preserveMarquees =
       marqueeTitleCount > 0 && (changedValues != nullptr || !clear);
   {
@@ -769,6 +776,7 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   // New text can grow or move after fitting/mapping. Clear both old and new
   // bounds, not only the bounds compiled for the previous value.
   registerDashboardMarquees(page, *activeScene, preserveMarquees);
+  animatedImages.bind(*activeScene, millis(), preserveAnimations);
   if (partial) invalidateChangedSceneSources(*activeScene, *changedValues);
   }
   if (!renderPendingScene(*activeScene)) {
@@ -779,6 +787,26 @@ bool renderDashboardPage(const uint32_t *changedValues, bool clear) {
   activeSceneReady = true;
   activeScenePage = activePageIndex;
   return true;
+}
+
+void updateAnimatedImages() {
+  if (pageTransitionActive || !displayOn || !displayBrightness ||
+      !activeSceneReady || !activeScene ||
+      sceneScheduler.pending() ||
+      !displayRefresh.ready(millis())) return;
+  const bool changed = animatedImages.update(
+      *activeScene, millis(), [](const SceneRect &bounds) {
+        invalidateSceneBand(bounds);
+      });
+  if (!changed) return;
+  // Finish one GIF frame as one uninterrupted visual operation. Yielding
+  // between bands exposes a moving refresh seam and makes frame time depend on
+  // unrelated Wi-Fi work. Page transitions already pause this path entirely.
+  animatedFrameRenderActive = true;
+  const bool rendered = renderPendingScene(*activeScene);
+  animatedFrameRenderActive = false;
+  if (!rendered) requestFullRender();
+  yield();
 }
 
 void registerDashboardMarquees(JsonObjectConst page, ScenePage &scene,
@@ -914,6 +942,7 @@ void showPageWithTransition(uint8_t nextPageIndex) {
   activePageIndex = nextPageIndex;
   activeScenePage = nextPageIndex;
   activeSceneReady = true;
+  animatedImages.bind(*activeScene, millis());
   for (uint8_t index = 0; index < marqueeTitleCount; ++index) {
     marqueeTitles[index].nextActionAt = millis() + kMarqueeStartPauseMs;
   }
@@ -1138,6 +1167,7 @@ void sendApiInfo() {
   capabilities.add("page-control");
   capabilities.add("user-fonts");
   capabilities.add("image-assets");
+  capabilities.add("animated-image-assets");
   if (ScreenCapture::supported()) capabilities.add("screenshot-bmp");
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
   capabilities.add("https");
@@ -2779,6 +2809,7 @@ void loop() {
     }
   }
   updateMarqueeTitles();
+  updateAnimatedImages();
   if (activeSceneReady && activeScene && sceneScheduler.pending() && displayRefresh.ready(millis()))
     if (!renderPendingScene(*activeScene)) requestFullRender();
   if (displayPixelShift > 0 && displayRefresh.ready(millis()) &&

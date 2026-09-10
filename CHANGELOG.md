@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fix: speed up image uploads and animated frame updates
+- feature: support animated gif images
+- feature: dismiss all notifications
 - refactor: split firmware modules
 - fix: persist value transformers
 - fix: hide free layout coordinates

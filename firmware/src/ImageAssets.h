@@ -11,7 +11,11 @@
 
 constexpr size_t kImageAssetIdLength = 16;
 constexpr size_t kImageAssetHeaderBytes = 8;
-constexpr size_t kMaxImageAssetBytes = 120 * 1024;
+constexpr size_t kAnimatedImageAssetHeaderBytes = 16;
+constexpr size_t kAnimatedImageFrameRecordBytesV1 = 10;
+constexpr size_t kAnimatedImageFrameRecordBytesV2 = 18;
+constexpr uint16_t kMaxAnimatedImageFrames = 120;
+constexpr size_t kMaxImageAssetBytes = 768 * 1024;
 constexpr size_t kImageStorageReserveBytes = 256 * 1024;
 constexpr uint8_t kImageRenderCacheEntries = 4;
 constexpr uint8_t kImageRowIndexStride = 16;
@@ -27,6 +31,29 @@ inline ImageFit parseImageFit(const char *value) {
 
 bool validImageAssetId(const String &id);
 String imageAssetPath(const String &id);
+
+struct ImageAssetInfo {
+  uint16_t width = 0;
+  uint16_t height = 0;
+  uint16_t frameCount = 1;
+  uint32_t durationMs = 0;
+  uint8_t frameRecordBytes = 0;
+  bool animated = false;
+};
+
+struct ImageAssetFrame {
+  uint16_t durationMs = 0;
+  uint32_t offset = 0;
+  uint32_t length = 0;
+  uint16_t dirtyX = 0;
+  uint16_t dirtyY = 0;
+  uint16_t dirtyWidth = 0;
+  uint16_t dirtyHeight = 0;
+};
+
+bool readImageAssetInfo(File &file, ImageAssetInfo *info);
+bool readImageAssetFrame(File &file, const ImageAssetInfo &info,
+                         uint16_t index, ImageAssetFrame *frame);
 bool readImageAssetHeader(File &file, uint16_t *width, uint16_t *height);
 bool readImageAssetRowSize(File &file, uint16_t *size);
 bool validImageAsset(File &file, uint16_t *width = nullptr,
@@ -80,15 +107,18 @@ class ImageAssetRenderCache {
  public:
   ~ImageAssetRenderCache();
 
-  File *open(const char *assetId, uint16_t *width, uint16_t *height);
-  bool seekRow(const char *assetId, uint16_t row);
+  File *open(const char *assetId, uint16_t frameIndex, uint16_t *width,
+             uint16_t *height);
+  bool seekRow(const char *assetId, uint16_t frameIndex, uint16_t row);
   void enableRowCache();
   bool hasRowCache() const { return decodedRows_ != nullptr; }
   void setCooperativeYield(bool enabled) { cooperativeYield_ = enabled; }
   bool cooperativeYield() const { return cooperativeYield_; }
-  bool readRow(const char *assetId, uint16_t row, uint16_t width, uint16_t *out);
-  bool readRowWindow(const char *assetId, uint16_t row, uint16_t width,
-                     uint16_t first, uint16_t end, uint16_t *out);
+  bool readRow(const char *assetId, uint16_t frameIndex, uint16_t row,
+               uint16_t width, uint16_t *out);
+  bool readRowWindow(const char *assetId, uint16_t frameIndex, uint16_t row,
+                     uint16_t width, uint16_t first, uint16_t end,
+                     uint16_t *out);
   // Shared by sequential draw calls, never retained by a canvas.
   uint16_t *rowPixels() { return rowPixels_; }
 
@@ -98,6 +128,9 @@ class ImageAssetRenderCache {
     char id[kImageAssetIdLength + 1]{};
     uint16_t width = 0;
     uint16_t height = 0;
+    uint16_t frameIndex = 0;
+    uint32_t frameOffset = kImageAssetHeaderBytes;
+    uint32_t frameEnd = 0;
     uint32_t rowOffsets[kImageRowIndexEntries]{};
     uint32_t lastRowOffset = 0;
     uint16_t lastRow = 0;
@@ -119,7 +152,8 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
                     int16_t width, int16_t height, ImageFit fit,
                     int16_t clipX = 0, int16_t clipY = 0,
                     int16_t clipWidth = 240, int16_t clipHeight = 240,
-                    ImageAssetRenderCache *cache = nullptr) {
+                    ImageAssetRenderCache *cache = nullptr,
+                    uint16_t frameIndex = 0) {
   if (!assetId || !assetId[0] || width <= 0 || height <= 0) return false;
   File file;
   File *retainedFile = nullptr;
@@ -127,15 +161,20 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
   uint16_t sourceHeight = 0;
   const bool retained = cache != nullptr;
   if (retained) {
-    retainedFile = cache->open(assetId, &sourceWidth, &sourceHeight);
+    retainedFile = cache->open(assetId, frameIndex, &sourceWidth, &sourceHeight);
     if (!retainedFile) return false;
     file = *retainedFile;
   } else {
     file = LittleFS.open(imageAssetPath(String(assetId)), "r");
-    if (!file || !readImageAssetHeader(file, &sourceWidth, &sourceHeight)) {
+    ImageAssetInfo info;
+    ImageAssetFrame frame;
+    if (!file || !readImageAssetInfo(file, &info) ||
+        !readImageAssetFrame(file, info, frameIndex, &frame)) {
       if (file) file.close();
       return false;
     }
+    sourceWidth = info.width;
+    sourceHeight = info.height;
   }
 
   int16_t destinationX = x;
@@ -191,7 +230,19 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
           sampledWidth / destinationWidth + 1;
   ImageAssetByteReader reader(file);
   int16_t bufferedY = -1;
-  if (!retained && !file.seek(kImageAssetHeaderBytes)) {
+  uint32_t frameEnd = file.size();
+  if (!retained) {
+    ImageAssetInfo info;
+    ImageAssetFrame frame;
+    if (!readImageAssetInfo(file, &info) ||
+        !readImageAssetFrame(file, info, frameIndex, &frame) ||
+        !file.seek(frame.offset)) {
+      file.close();
+      return false;
+    }
+    frameEnd = frame.offset + frame.length;
+  }
+  if (!retained && file.position() >= frameEnd) {
     file.close();
     return false;
   }
@@ -202,7 +253,7 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
             destinationHeight;
     if (mappedY != bufferedY) {
       if (retained) {
-        if (!cache->readRowWindow(assetId, mappedY, sourceWidth,
+        if (!cache->readRowWindow(assetId, frameIndex, mappedY, sourceWidth,
                                   firstSourceColumn, endSourceColumn, line))
           return false;
         bufferedY = mappedY;
@@ -210,7 +261,7 @@ bool drawImageAsset(Canvas &canvas, const char *assetId, int16_t x, int16_t y,
         uint16_t rowBytes = 0;
         const int16_t nextRow = bufferedY + 1;
         if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
-            file.position() + rowBytes > file.size()) {
+            file.position() + rowBytes > frameEnd) {
           if (!retained) file.close();
           return false;
         }

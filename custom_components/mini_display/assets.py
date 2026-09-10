@@ -14,13 +14,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .api import MiniDisplayApiError, MiniDisplayClient
-from .image_codec import ImageCodecError, MAX_ENCODED_BYTES, decode_rgb565
+from .image_codec import (
+    ImageCodecError,
+    decode_rgb565,
+    inspect_image,
+    upgrade_animated_image,
+    validate_image,
+)
 
 STORE_VERSION = 1
 STORE_KEY_PREFIX = "mini_display.assets"
 ASSET_ID_PATTERN = re.compile(r"^[a-f0-9]{16}$")
 MAX_ASSETS = 24
-MAX_ASSET_BYTES = MAX_ENCODED_BYTES
+MAX_ASSET_BYTES = 768 * 1024
 PREVIEW_MAX_DIMENSION = 120
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,6 +64,20 @@ class MiniDisplayAssetManager:
                 and ASSET_ID_PATTERN.fullmatch(item["id"])
                 and isinstance(item.get("data"), str)
             }
+        upgraded = False
+        for asset in self._assets.values():
+            try:
+                content = base64.b64decode(asset["data"], validate=True)
+                next_content = upgrade_animated_image(content)
+            except (ValueError, TypeError, ImageCodecError):
+                continue
+            if next_content == content:
+                continue
+            asset["data"] = base64.b64encode(next_content).decode()
+            asset["bytes"] = len(next_content)
+            upgraded = True
+        if upgraded:
+            await self._async_save()
         if not self._import_complete:
             try:
                 await self._async_import_from_display()
@@ -92,7 +112,13 @@ class MiniDisplayAssetManager:
             content = base64.b64decode(encoded, validate=True)
         except (ValueError, TypeError) as err:
             raise AssetValidationError("Invalid image data") from err
+        try:
+            content = upgrade_animated_image(content)
+        except ImageCodecError as err:
+            raise AssetValidationError(str(err)) from err
+        encoded = base64.b64encode(content).decode()
         header_width, header_height, _ = _decode_mdi(content)
+        info = inspect_image(content)
         if header_width != width or header_height != height:
             raise AssetValidationError("Image metadata does not match payload")
         if len(self._assets) >= MAX_ASSETS and asset_id not in self._assets:
@@ -105,9 +131,22 @@ class MiniDisplayAssetManager:
             "bytes": len(content),
             "data": encoded,
             "preview": preview[:100000] if preview.startswith("data:image/") else "",
+            "animated": info.animated,
+            "frameCount": info.frame_count,
+            "durationMs": info.duration_ms,
         }
         self._assets[asset_id] = asset
         await self._async_save()
+        # Stage new content immediately. Save then only activates dashboard
+        # metadata instead of transferring hundreds of kilobytes first.
+        try:
+            await self._client.async_put_asset(asset_id, content)
+        except MiniDisplayApiError as err:
+            _LOGGER.debug(
+                "Mini Display image %s stored locally; device staging delayed: %s",
+                asset_id,
+                err,
+            )
         return {key: value for key, value in asset.items() if key != "data"}
 
     async def async_delete(self, asset_id: str) -> None:
@@ -171,6 +210,7 @@ class MiniDisplayAssetManager:
             try:
                 content = await self._client.async_get_asset(asset_id)
                 width, height, pixels = _decode_mdi(content)
+                info = inspect_image(content)
             except (AssetValidationError, MiniDisplayApiError) as err:
                 complete = False
                 _LOGGER.warning(
@@ -192,6 +232,9 @@ class MiniDisplayAssetManager:
                 "bytes": len(content),
                 "data": base64.b64encode(content).decode(),
                 "preview": _mdi_preview(pixels, width, height),
+                "animated": info.animated,
+                "frameCount": info.frame_count,
+                "durationMs": info.duration_ms,
             }
         self._import_complete = complete
         await self._async_save()
@@ -210,6 +253,7 @@ def _decode_mdi(content: bytes) -> tuple[int, int, bytes]:
     if len(content) > MAX_ASSET_BYTES:
         raise AssetValidationError("Optimized image is too large")
     try:
+        validate_image(content)
         return decode_rgb565(content)
     except ImageCodecError as err:
         raise AssetValidationError(str(err)) from err

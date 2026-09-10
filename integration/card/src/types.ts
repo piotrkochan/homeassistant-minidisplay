@@ -217,6 +217,9 @@ export type ImageAsset = {
   height: number;
   bytes: number;
   preview: string;
+  animated?: boolean;
+  frameCount?: number;
+  durationMs?: number;
   used_by?: string[];
 };
 

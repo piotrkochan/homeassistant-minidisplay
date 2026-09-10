@@ -12,19 +12,135 @@ bool validImageAssetId(const String &id) {
 
 String imageAssetPath(const String &id) { return "/img_" + id + ".mdi"; }
 
-bool readImageAssetHeader(File &file, uint16_t *width, uint16_t *height) {
-  if (!file || file.size() < kImageAssetHeaderBytes + 3) return false;
-  uint8_t header[kImageAssetHeaderBytes];
-  if (!file.seek(0) || file.read(header, sizeof(header)) != sizeof(header) ||
-      memcmp(header, "MDI2", 4) != 0) return false;
-  const uint16_t imageWidth = header[4] | (header[5] << 8);
-  const uint16_t imageHeight = header[6] | (header[7] << 8);
-  if (imageWidth == 0 || imageHeight == 0 || imageWidth > 240 ||
-      imageHeight > 240 || file.size() > kMaxImageAssetBytes) {
+namespace {
+
+uint16_t readLe16(const uint8_t *value) {
+  return value[0] | (static_cast<uint16_t>(value[1]) << 8);
+}
+
+uint32_t readLe32(const uint8_t *value) {
+  return value[0] | (static_cast<uint32_t>(value[1]) << 8) |
+         (static_cast<uint32_t>(value[2]) << 16) |
+         (static_cast<uint32_t>(value[3]) << 24);
+}
+
+bool validateImageFrame(File &file, const ImageAssetInfo &info,
+                        const ImageAssetFrame &frame) {
+  if (!frame.length || frame.offset > file.size() ||
+      frame.length > file.size() - frame.offset ||
+      !file.seek(frame.offset)) {
     return false;
   }
-  if (width) *width = imageWidth;
-  if (height) *height = imageHeight;
+  const uint32_t frameEnd = frame.offset + frame.length;
+  ImageAssetByteReader reader(file);
+  uint16_t color = 0;
+  for (uint16_t row = 0; row < info.height; ++row) {
+    uint16_t rowBytes = 0;
+    if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
+        file.position() + rowBytes > frameEnd ||
+        !reader.begin(file.position(), rowBytes)) {
+      return false;
+    }
+    Rgb565RleDecoder decoder;
+    for (uint16_t column = 0; column < info.width; ++column) {
+      if (!decoder.next(reader, color)) return false;
+    }
+    if (!decoder.packetComplete() || reader.remaining() != 0) return false;
+#if defined(ESP8266)
+    if ((row & 7) == 7) optimistic_yield(10000);
+#endif
+  }
+  return file.position() == frameEnd;
+}
+
+}  // namespace
+
+bool readImageAssetInfo(File &file, ImageAssetInfo *info) {
+  if (!file || !info || file.size() < kImageAssetHeaderBytes + 3 ||
+      file.size() > kMaxImageAssetBytes) {
+    return false;
+  }
+  uint8_t header[kAnimatedImageAssetHeaderBytes]{};
+  if (!file.seek(0) ||
+      file.read(header, kImageAssetHeaderBytes) != kImageAssetHeaderBytes) {
+    return false;
+  }
+  const bool animatedV1 = memcmp(header, "MDA1", 4) == 0;
+  const bool animatedV2 = memcmp(header, "MDA2", 4) == 0;
+  const bool animated = animatedV1 || animatedV2;
+  if (!animated && memcmp(header, "MDI2", 4) != 0) return false;
+  const uint16_t width = readLe16(header + 4);
+  const uint16_t height = readLe16(header + 6);
+  if (!width || !height || width > 240 || height > 240) return false;
+  *info = ImageAssetInfo{};
+  info->width = width;
+  info->height = height;
+  info->animated = animated;
+  info->frameRecordBytes = animatedV2 ? kAnimatedImageFrameRecordBytesV2
+                                      : kAnimatedImageFrameRecordBytesV1;
+  if (!animated) return true;
+  if (file.size() < kAnimatedImageAssetHeaderBytes +
+                        2 * info->frameRecordBytes + 3 ||
+      file.read(header + kImageAssetHeaderBytes,
+                kAnimatedImageAssetHeaderBytes - kImageAssetHeaderBytes) !=
+          kAnimatedImageAssetHeaderBytes - kImageAssetHeaderBytes) {
+    return false;
+  }
+  info->frameCount = readLe16(header + 8);
+  info->durationMs = readLe32(header + 12);
+  if (info->frameCount < 2 || info->frameCount > kMaxAnimatedImageFrames ||
+      !info->durationMs ||
+      kAnimatedImageAssetHeaderBytes +
+              static_cast<uint32_t>(info->frameCount) *
+                  info->frameRecordBytes >=
+          file.size()) {
+    return false;
+  }
+  return true;
+}
+
+bool readImageAssetFrame(File &file, const ImageAssetInfo &info,
+                         uint16_t index, ImageAssetFrame *frame) {
+  if (!file || !frame || index >= info.frameCount) return false;
+  if (!info.animated) {
+    if (index != 0 || file.size() <= kImageAssetHeaderBytes) return false;
+    *frame = {0, kImageAssetHeaderBytes,
+              static_cast<uint32_t>(file.size() - kImageAssetHeaderBytes)};
+    return true;
+  }
+  uint8_t record[kAnimatedImageFrameRecordBytesV2]{};
+  const uint32_t recordOffset = kAnimatedImageAssetHeaderBytes +
+      static_cast<uint32_t>(index) * info.frameRecordBytes;
+  if (!file.seek(recordOffset) ||
+      file.read(record, info.frameRecordBytes) != info.frameRecordBytes)
+    return false;
+  frame->durationMs = readLe16(record);
+  frame->offset = readLe32(record + 2);
+  frame->length = readLe32(record + 6);
+  if (info.frameRecordBytes == kAnimatedImageFrameRecordBytesV2) {
+    frame->dirtyX = readLe16(record + 10);
+    frame->dirtyY = readLe16(record + 12);
+    frame->dirtyWidth = readLe16(record + 14);
+    frame->dirtyHeight = readLe16(record + 16);
+  } else {
+    frame->dirtyX = 0;
+    frame->dirtyY = 0;
+    frame->dirtyWidth = info.width;
+    frame->dirtyHeight = info.height;
+  }
+  return frame->durationMs >= 50 && frame->durationMs <= 60000 &&
+         frame->length >= 3 && frame->offset <= file.size() &&
+         frame->length <= file.size() - frame->offset &&
+         frame->dirtyWidth && frame->dirtyHeight &&
+         frame->dirtyX + frame->dirtyWidth <= info.width &&
+         frame->dirtyY + frame->dirtyHeight <= info.height;
+}
+
+bool readImageAssetHeader(File &file, uint16_t *width, uint16_t *height) {
+  ImageAssetInfo info;
+  if (!readImageAssetInfo(file, &info)) return false;
+  if (width) *width = info.width;
+  if (height) *height = info.height;
   return true;
 }
 
@@ -69,31 +185,26 @@ bool ImageAssetByteReader::skipBytes(size_t length) {
 }
 
 bool validImageAsset(File &file, uint16_t *width, uint16_t *height) {
-  uint16_t imageWidth = 0;
-  uint16_t imageHeight = 0;
-  if (!readImageAssetHeader(file, &imageWidth, &imageHeight)) return false;
-  ImageAssetByteReader reader(file);
-  if (!file.seek(kImageAssetHeaderBytes)) return false;
-  uint16_t color = 0;
-  for (uint16_t row = 0; row < imageHeight; ++row) {
-    uint16_t rowBytes = 0;
-    if (!readImageAssetRowSize(file, &rowBytes) || rowBytes == 0 ||
-        file.position() + rowBytes > file.size() ||
-        !reader.begin(file.position(), rowBytes)) {
-      return false;
-    }
-    Rgb565RleDecoder decoder;
-    for (uint16_t column = 0; column < imageWidth; ++column) {
-      if (!decoder.next(reader, color)) return false;
-    }
-    if (!decoder.packetComplete() || reader.remaining() != 0) return false;
-#if defined(ESP8266)
-    if ((row & 7) == 7) optimistic_yield(10000);
-#endif
+  ImageAssetInfo info;
+  if (!readImageAssetInfo(file, &info)) return false;
+  uint32_t expectedOffset = info.animated
+      ? kAnimatedImageAssetHeaderBytes +
+            static_cast<uint32_t>(info.frameCount) *
+                info.frameRecordBytes
+      : kImageAssetHeaderBytes;
+  uint32_t durationMs = 0;
+  for (uint16_t index = 0; index < info.frameCount; ++index) {
+    ImageAssetFrame frame;
+    if (!readImageAssetFrame(file, info, index, &frame) ||
+        frame.offset != expectedOffset ||
+        !validateImageFrame(file, info, frame)) return false;
+    expectedOffset += frame.length;
+    durationMs += frame.durationMs;
   }
-  if (file.position() != file.size()) return false;
-  if (width) *width = imageWidth;
-  if (height) *height = imageHeight;
+  if (expectedOffset != file.size() ||
+      (info.animated && durationMs != info.durationMs)) return false;
+  if (width) *width = info.width;
+  if (height) *height = info.height;
   return true;
 }
 
@@ -112,50 +223,56 @@ void ImageAssetRenderCache::enableRowCache() {
   decodedRows_.reset(new (std::nothrow) DecodedImageRows());
 }
 
-bool ImageAssetRenderCache::readRow(const char *assetId, uint16_t row,
-                                   uint16_t width, uint16_t *out) {
+bool ImageAssetRenderCache::readRow(const char *assetId, uint16_t frameIndex,
+                                    uint16_t row, uint16_t width,
+                                    uint16_t *out) {
   if (!assetId || !out || !width || width > 240) return false;
-  if (decodedRows_ && decodedRows_->copy(assetId, row, width, out)) return true;
-  if (!readRowWindow(assetId, row, width, 0, width, out)) return false;
-  if (decodedRows_) decodedRows_->store(assetId, row, width, out);
+  if (decodedRows_ && decodedRows_->copy(assetId, frameIndex, row, width, out))
+    return true;
+  if (!readRowWindow(assetId, frameIndex, row, width, 0, width, out))
+    return false;
+  if (decodedRows_)
+    decodedRows_->store(assetId, frameIndex, row, width, out);
   return true;
 }
 
 bool ImageAssetRenderCache::readRowWindow(
-    const char *assetId, uint16_t row, uint16_t width, uint16_t first,
-    uint16_t end, uint16_t *out) {
+    const char *assetId, uint16_t frameIndex, uint16_t row, uint16_t width,
+    uint16_t first, uint16_t end, uint16_t *out) {
   if (!assetId || !out || !width || width > 240 || first >= end ||
       end > width) return false;
   if (first == 0 && end == width && decodedRows_ &&
-      decodedRows_->copy(assetId, row, width, out)) return true;
+      decodedRows_->copy(assetId, frameIndex, row, width, out)) return true;
   uint16_t actualWidth, height;
-  File *file = open(assetId, &actualWidth, &height);
-  if (!file || actualWidth != width || row >= height || !seekRow(assetId, row)) return false;
+  File *file = open(assetId, frameIndex, &actualWidth, &height);
+  if (!file || actualWidth != width || row >= height ||
+      !seekRow(assetId, frameIndex, row)) return false;
   uint16_t bytes;
   if (!readImageAssetRowSize(*file, &bytes) || !bytes ||
-      bytes > sizeof(encodedRow_) || bytes > file->size() - file->position() ||
+      bytes > sizeof(encodedRow_) ||
+      file->position() + bytes > file->size() ||
       file->read(encodedRow_, bytes) != bytes) return false;
   ImageAssetMemoryReader reader;
   if (!reader.begin(encodedRow_, bytes) ||
       !decodeRgb565Window(reader, width, first, end, out) || reader.remaining())
     return false;
   if (first == 0 && end == width && decodedRows_)
-    decodedRows_->store(assetId, row, width, out);
+    decodedRows_->store(assetId, frameIndex, row, width, out);
   return true;
 }
 
 bool ImageAssetRenderCache::buildRowIndex(Entry &entry) {
   memset(entry.rowOffsets, 0, sizeof(entry.rowOffsets));
   entry.lastRow = 0;
-  entry.lastRowOffset = kImageAssetHeaderBytes;
-  if (!entry.file.seek(kImageAssetHeaderBytes)) return false;
+  entry.lastRowOffset = entry.frameOffset;
+  if (!entry.file.seek(entry.frameOffset)) return false;
   for (uint16_t row = 0; row < entry.height; ++row) {
     if (row % kImageRowIndexStride == 0) {
       entry.rowOffsets[row / kImageRowIndexStride] = entry.file.position();
     }
     uint16_t rowBytes = 0;
     if (!readImageAssetRowSize(entry.file, &rowBytes) || rowBytes == 0 ||
-        entry.file.position() + rowBytes > entry.file.size() ||
+        entry.file.position() + rowBytes > entry.frameEnd ||
         !entry.file.seek(entry.file.position() + rowBytes)) {
       return false;
     }
@@ -163,13 +280,16 @@ bool ImageAssetRenderCache::buildRowIndex(Entry &entry) {
     if ((row & 7) == 7) optimistic_yield(10000);
 #endif
   }
-  return entry.file.seek(kImageAssetHeaderBytes);
+  return entry.file.position() == entry.frameEnd &&
+         entry.file.seek(entry.frameOffset);
 }
 
-bool ImageAssetRenderCache::seekRow(const char *assetId, uint16_t row) {
+bool ImageAssetRenderCache::seekRow(const char *assetId, uint16_t frameIndex,
+                                    uint16_t row) {
   if (!assetId || row >= 240) return false;
   for (Entry &entry : entries_) {
-    if (!entry.file || strcmp(entry.id, assetId) != 0 || row >= entry.height) {
+    if (!entry.file || strcmp(entry.id, assetId) != 0 ||
+        entry.frameIndex != frameIndex || row >= entry.height) {
       continue;
     }
     const uint16_t checkpoint = row / kImageRowIndexStride;
@@ -184,7 +304,7 @@ bool ImageAssetRenderCache::seekRow(const char *assetId, uint16_t row) {
     for (uint16_t current = indexedRow; current < row; ++current) {
       uint16_t rowBytes = 0;
       if (!readImageAssetRowSize(entry.file, &rowBytes) || rowBytes == 0 ||
-          entry.file.position() + rowBytes > entry.file.size() ||
+          entry.file.position() + rowBytes > entry.frameEnd ||
           !entry.file.seek(entry.file.position() + rowBytes)) {
         return false;
       }
@@ -196,13 +316,14 @@ bool ImageAssetRenderCache::seekRow(const char *assetId, uint16_t row) {
   return false;
 }
 
-File *ImageAssetRenderCache::open(const char *assetId, uint16_t *width,
-                                  uint16_t *height) {
+File *ImageAssetRenderCache::open(const char *assetId, uint16_t frameIndex,
+                                  uint16_t *width, uint16_t *height) {
   if (!assetId || !assetId[0]) return nullptr;
   Entry *available = nullptr;
   Entry *oldest = &entries_[0];
   for (Entry &entry : entries_) {
-    if (entry.file && strcmp(entry.id, assetId) == 0) {
+    if (entry.file && strcmp(entry.id, assetId) == 0 &&
+        entry.frameIndex == frameIndex) {
       entry.usedAt = ++useCounter_;
       if (width) *width = entry.width;
       if (height) *height = entry.height;
@@ -214,12 +335,19 @@ File *ImageAssetRenderCache::open(const char *assetId, uint16_t *width,
   Entry &entry = available != nullptr ? *available : *oldest;
   if (entry.file) entry.file.close();
   entry.file = LittleFS.open(imageAssetPath(String(assetId)), "r");
-  if (!entry.file ||
-      !readImageAssetHeader(entry.file, &entry.width, &entry.height)) {
+  ImageAssetInfo info;
+  ImageAssetFrame frame;
+  if (!entry.file || !readImageAssetInfo(entry.file, &info) ||
+      !readImageAssetFrame(entry.file, info, frameIndex, &frame)) {
     if (entry.file) entry.file.close();
     entry.id[0] = '\0';
     return nullptr;
   }
+  entry.width = info.width;
+  entry.height = info.height;
+  entry.frameIndex = frameIndex;
+  entry.frameOffset = frame.offset;
+  entry.frameEnd = frame.offset + frame.length;
   if (!buildRowIndex(entry)) {
     entry.file.close();
     entry.id[0] = '\0';

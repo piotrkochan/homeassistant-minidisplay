@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import json as json_module
 from typing import Any
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientSession, ClientTimeout, FormData
 
 from .const import (
     API_VERSION,
@@ -82,6 +82,7 @@ class MiniDisplayClient:
             {"Authorization": f"Bearer {api_token}"} if api_token else {}
         )
         self._timeout = ClientTimeout(total=REQUEST_TIMEOUT_SECONDS)
+        self._asset_timeout = ClientTimeout(total=60)
         self._request_lock = asyncio.Lock()
         self.data_limiter = DataSendLimiter()
 
@@ -121,6 +122,7 @@ class MiniDisplayClient:
         data: bytes | None,
         headers: dict[str, str] | None,
         expect_json: bool,
+        timeout: ClientTimeout | None = None,
     ) -> dict[str, Any]:
         use_ssl, port = transport
         scheme = "https" if use_ssl else "http"
@@ -131,7 +133,7 @@ class MiniDisplayClient:
             headers={**self._headers, **(headers or {})},
             json=json,
             data=data,
-            timeout=self._timeout,
+            timeout=timeout or self._timeout,
             ssl=ssl,
             allow_redirects=False,
         ) as response:
@@ -164,6 +166,7 @@ class MiniDisplayClient:
         headers: dict[str, str] | None = None,
         expect_json: bool = True,
         retry_transport: bool = True,
+        timeout: ClientTimeout | None = None,
     ) -> dict[str, Any]:
         async with self._request_lock:
             last_error: ClientError | TimeoutError | None = None
@@ -178,6 +181,7 @@ class MiniDisplayClient:
                         data=data,
                         headers=headers,
                         expect_json=expect_json,
+                        timeout=timeout,
                     )
                 except MiniDisplayApiError:
                     raise
@@ -368,7 +372,13 @@ class MiniDisplayClient:
 
     async def async_put_asset(self, asset_id: str, content: bytes) -> None:
         """Atomically upload one display-ready image asset."""
-        chunk_size = 2048
+        try:
+            await self._async_put_asset_stream(asset_id, content)
+            return
+        except MiniDisplayRequestError as err:
+            if err.status not in (404, 405):
+                raise
+        chunk_size = 4096
         for offset in range(0, len(content), chunk_size):
             await self._request(
                 "PUT",
@@ -376,7 +386,58 @@ class MiniDisplayClient:
                 data=content[offset : offset + chunk_size],
                 headers={"Content-Type": "application/octet-stream"},
                 expect_json=False,
+                timeout=self._asset_timeout
+                if offset + chunk_size >= len(content)
+                else None,
             )
+
+    async def _async_put_asset_stream(self, asset_id: str, content: bytes) -> None:
+        """Upload an asset in one bounded multipart stream."""
+        async with self._request_lock:
+            last_error: ClientError | TimeoutError | None = None
+            for use_ssl, port in self._transports():
+                scheme = "https" if use_ssl else "http"
+                form = FormData()
+                form.add_field(
+                    "file",
+                    content,
+                    filename=f"{asset_id}.mdi",
+                    content_type="application/octet-stream",
+                )
+                try:
+                    async with self._session.post(
+                        f"{scheme}://{self._host}:{port}/api/v1/assets/upload"
+                        f"?id={asset_id}&total={len(content)}",
+                        headers=self._headers,
+                        data=form,
+                        timeout=self._asset_timeout,
+                        ssl=self._verify_ssl if use_ssl else None,
+                        allow_redirects=False,
+                    ) as response:
+                        if response.status in (401, 403):
+                            raise MiniDisplayAuthError(
+                                "Display rejected API credentials"
+                            )
+                        if response.status >= 400:
+                            try:
+                                payload = await response.json(content_type=None)
+                                message = str(
+                                    payload.get("message") or payload.get("error")
+                                )
+                            except (ValueError, TypeError):
+                                message = await response.text()
+                            raise MiniDisplayRequestError(
+                                response.status,
+                                message
+                                or f"Display returned HTTP {response.status}",
+                            )
+                        self._active_transport = (use_ssl, port)
+                        return
+                except MiniDisplayApiError:
+                    raise
+                except (ClientError, TimeoutError) as err:
+                    last_error = err
+            raise MiniDisplayConnectionError(str(last_error)) from last_error
 
     async def async_delete_asset(self, asset_id: str) -> None:
         """Delete one image asset from the display."""

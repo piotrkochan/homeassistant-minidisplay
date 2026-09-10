@@ -4,6 +4,34 @@ import type { Hass, ImageAsset } from "./types";
 
 type EncodedImage = ImageAsset & { data: string };
 
+type BrowserImageDecoder = {
+  tracks: {
+    ready: Promise<void>;
+    selectedTrack?: { frameCount: number };
+  };
+  decode(options: { frameIndex: number; completeFramesOnly: boolean }): Promise<{
+    image: CanvasImageSource & {
+      displayWidth: number;
+      displayHeight: number;
+      duration?: number | null;
+      close(): void;
+    };
+  }>;
+  close(): void;
+};
+
+type BrowserImageDecoderConstructor = new (options: {
+  data: ArrayBuffer;
+  type: string;
+}) => BrowserImageDecoder;
+
+const animatedImageMagic = [77, 68, 65, 50];
+const animatedHeaderBytes = 16;
+const animatedFrameRecordBytes = 18;
+const maximumAnimatedFrames = 120;
+const maximumAnimatedBytes = 768 * 1024;
+const minimumFrameDurationMs = 100;
+
 const bytesToBase64 = (bytes: Uint8Array) => {
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 0x8000)
@@ -83,11 +111,251 @@ export const encodeRgb565Rle = (
   return encoded.slice(0, target);
 };
 
+const canvasRgb565 = (
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+) => {
+  const rgba = context.getImageData(0, 0, width, height).data;
+  const pixels = new Uint8Array(width * height * 2);
+  const view = new DataView(pixels.buffer);
+  for (
+    let source = 0, target = 0;
+    source < rgba.length;
+    source += 4, target += 2
+  ) {
+    const color =
+      ((rgba[source] & 0xf8) << 8) |
+      ((rgba[source + 1] & 0xfc) << 3) |
+      (rgba[source + 2] >> 3);
+    view.setUint16(target, color, true);
+  }
+  return pixels;
+};
+
+export const encodeAnimatedRgb565Rle = (
+  frames: {
+    durationMs: number;
+    bytes: Uint8Array;
+    dirty?: { x: number; y: number; width: number; height: number };
+  }[],
+  width: number,
+  height: number,
+) => {
+  if (frames.length < 2 || frames.length > maximumAnimatedFrames)
+    throw new Error("Animated GIF requires 2-120 optimized frames");
+  const directoryBytes = frames.length * animatedFrameRecordBytes;
+  const totalBytes =
+    animatedHeaderBytes +
+    directoryBytes +
+    frames.reduce((total, frame) => total + frame.bytes.length, 0);
+  const encoded = new Uint8Array(totalBytes);
+  const view = new DataView(encoded.buffer);
+  encoded.set(animatedImageMagic, 0);
+  view.setUint16(4, width, true);
+  view.setUint16(6, height, true);
+  view.setUint16(8, frames.length, true);
+  const totalDuration = frames.reduce(
+    (total, frame) => total + frame.durationMs,
+    0,
+  );
+  view.setUint32(12, totalDuration, true);
+  let payloadOffset = animatedHeaderBytes + directoryBytes;
+  frames.forEach((frame, index) => {
+    const record = animatedHeaderBytes + index * animatedFrameRecordBytes;
+    view.setUint16(record, frame.durationMs, true);
+    view.setUint32(record + 2, payloadOffset, true);
+    view.setUint32(record + 6, frame.bytes.length, true);
+    const dirty = frame.dirty ?? { x: 0, y: 0, width, height };
+    view.setUint16(record + 10, dirty.x, true);
+    view.setUint16(record + 12, dirty.y, true);
+    view.setUint16(record + 14, dirty.width, true);
+    view.setUint16(record + 16, dirty.height, true);
+    encoded.set(frame.bytes, payloadOffset);
+    payloadOffset += frame.bytes.length;
+  });
+  return encoded;
+};
+
+const isGif = async (file: File) => {
+  if (file.type.toLowerCase() === "image/gif") return true;
+  const signature = new Uint8Array(await file.slice(0, 6).arrayBuffer());
+  return new TextDecoder().decode(signature).startsWith("GIF8");
+};
+
+const encodeGifAtScale = async (
+  data: ArrayBuffer,
+  maximumWidth: number,
+  maximumHeight: number,
+  scaleLimit: number,
+) => {
+  const ImageDecoder = (
+    globalThis as typeof globalThis & {
+      ImageDecoder?: BrowserImageDecoderConstructor;
+    }
+  ).ImageDecoder;
+  if (!ImageDecoder)
+    throw new Error(
+      "Animated GIF upload requires a browser with ImageDecoder support",
+    );
+  const decoder = new ImageDecoder({ data: data.slice(0), type: "image/gif" });
+  try {
+    await decoder.tracks.ready;
+    const sourceFrames = decoder.tracks.selectedTrack?.frameCount ?? 0;
+    if (sourceFrames < 1) throw new Error("GIF does not contain an image");
+    const stride = Math.max(1, Math.ceil(sourceFrames / maximumAnimatedFrames));
+    const first = await decoder.decode({
+      frameIndex: 0,
+      completeFramesOnly: true,
+    });
+    const sourceWidth = first.image.displayWidth;
+    const sourceHeight = first.image.displayHeight;
+    const scale = Math.min(
+      1,
+      maximumWidth / sourceWidth,
+      maximumHeight / sourceHeight,
+      scaleLimit,
+    );
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("This browser cannot optimize images");
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    const frames: {
+      durationMs: number;
+      bytes: Uint8Array;
+      dirty: { x: number; y: number; width: number; height: number };
+    }[] = [];
+    let firstFrame: Uint8Array | undefined;
+    let previousPixels: Uint8Array | undefined;
+    let preview = "";
+    for (let index = 0; index < sourceFrames; index += stride) {
+      const decoded = index === 0
+        ? first
+        : await decoder.decode({ frameIndex: index, completeFramesOnly: true });
+      context.fillStyle = "#000";
+      context.fillRect(0, 0, width, height);
+      context.drawImage(decoded.image, 0, 0, width, height);
+      const pixels = canvasRgb565(context, width, height);
+      const image = encodeRgb565Rle(pixels, width, height);
+      firstFrame ??= image;
+      const duration = Math.max(
+        minimumFrameDurationMs,
+        Math.round((decoded.image.duration ?? 100000) / 1000) * stride,
+      );
+      const previous = frames.at(-1);
+      const payload = image.subarray(8);
+      if (
+        previous &&
+        previous.bytes.length === payload.length &&
+        previous.bytes.every((byte, offset) => byte === payload[offset]) &&
+        previous.durationMs + duration <= 60000
+      ) {
+        previous.durationMs += duration;
+      } else {
+        let left = 0;
+        let top = 0;
+        let right = width;
+        let bottom = height;
+        if (previousPixels) {
+          left = width;
+          top = height;
+          right = 0;
+          bottom = 0;
+          for (let pixel = 0; pixel < width * height; pixel += 1) {
+            const byte = pixel * 2;
+            if (
+              pixels[byte] === previousPixels[byte] &&
+              pixels[byte + 1] === previousPixels[byte + 1]
+            )
+              continue;
+            const x = pixel % width;
+            const y = Math.floor(pixel / width);
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x + 1);
+            bottom = Math.max(bottom, y + 1);
+          }
+        }
+        frames.push({
+          durationMs: Math.min(60000, duration),
+          bytes: payload,
+          dirty: {
+            x: left,
+            y: top,
+            width: Math.max(1, right - left),
+            height: Math.max(1, bottom - top),
+          },
+        });
+        previousPixels = pixels;
+      }
+      if (!preview) preview = canvas.toDataURL("image/webp", 0.82);
+      decoded.image.close();
+    }
+    const animated = frames.length > 1;
+    return {
+      width,
+      height,
+      frames,
+      preview,
+      animated,
+      bytes: animated
+        ? encodeAnimatedRgb565Rle(frames, width, height)
+        : firstFrame!,
+    };
+  } finally {
+    decoder.close();
+  }
+};
+
+const encodeGif = async (
+  file: File,
+  maximumWidth: number,
+  maximumHeight: number,
+): Promise<EncodedImage> => {
+  const data = await file.arrayBuffer();
+  let scale = 1;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const result = await encodeGifAtScale(
+      data,
+      maximumWidth,
+      maximumHeight,
+      scale,
+    );
+    if (result.bytes.length <= maximumAnimatedBytes) {
+      return {
+        id: hash64(result.bytes),
+        name: file.name,
+        width: result.width,
+        height: result.height,
+        bytes: result.bytes.length,
+        data: bytesToBase64(result.bytes),
+        preview: result.preview,
+        animated: result.animated,
+        frameCount: result.animated ? result.frames.length : 1,
+        durationMs: result.animated
+          ? result.frames.reduce((total, frame) => total + frame.durationMs, 0)
+          : 0,
+      };
+    }
+    scale *= Math.max(
+      0.5,
+      Math.min(0.82, Math.sqrt(maximumAnimatedBytes / result.bytes.length) * 0.9),
+    );
+  }
+  throw new Error("GIF is too complex for this display");
+};
+
 export const encodeImage = async (
   file: File,
   maximumWidth: number,
   maximumHeight: number,
 ): Promise<EncodedImage> => {
+  if (await isGif(file)) return encodeGif(file, maximumWidth, maximumHeight);
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(
     1,
@@ -107,20 +375,7 @@ export const encodeImage = async (
   context.imageSmoothingQuality = "high";
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const rgba = context.getImageData(0, 0, width, height).data;
-  const pixels = new Uint8Array(width * height * 2);
-  const view = new DataView(pixels.buffer);
-  for (
-    let source = 0, target = 0;
-    source < rgba.length;
-    source += 4, target += 2
-  ) {
-    const color =
-      ((rgba[source] & 0xf8) << 8) |
-      ((rgba[source + 1] & 0xfc) << 3) |
-      (rgba[source + 2] >> 3);
-    view.setUint16(target, color, true);
-  }
+  const pixels = canvasRgb565(context, width, height);
   const bytes = encodeRgb565Rle(pixels, width, height);
   return {
     id: hash64(bytes),
@@ -255,7 +510,11 @@ export class MiniDisplayImageField extends LitElement {
                   >
                     <option value="">No image</option>
                     ${this.assets.map((asset) => html`<option value=${asset.id}>${asset.name} · ${asset.width}×${asset.height}</option>`)}</select
-                  >${selected ? html`<small>${Math.ceil(selected.bytes / 1024)} KB on display</small>` : nothing}`
+                  >${selected ? html`<small
+                      >${Math.ceil(selected.bytes / 1024)} KB on display${selected.animated
+                        ? ` · ${selected.frameCount} frames`
+                        : ""}</small
+                    >` : nothing}`
           }
         </div>
         <div class="actions">
@@ -276,7 +535,7 @@ export class MiniDisplayImageField extends LitElement {
             ><ha-icon icon=${this.busy ? "mdi:loading" : "mdi:upload"}></ha-icon
             ><input
               type="file"
-              accept="image/*"
+              accept="image/*,.gif"
               ?disabled=${this.busy}
               @change=${this.upload}
           /></label>

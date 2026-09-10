@@ -5,6 +5,7 @@
 #include <memory>
 #include <new>
 
+#include "DisplayCompat.h"
 #include "GraphPainter.h"
 #include "ImageAssets.h"
 #include "SceneGraph.h"
@@ -21,6 +22,7 @@ struct SceneCard {
   uint8_t progressX = 0;
   uint8_t progressY = 0;
   uint8_t progressWidth = 0;
+  uint16_t imageFrame = 0;
   ImageFit imageFit = ImageFit::Cover;
   bool hasProgress = false;
   bool progressRing = false;
@@ -91,6 +93,7 @@ class SceneBuffer {
 struct ScenePage {
   SceneGraph graph;
   uint16_t background = 0;
+  uint16_t backgroundImageFrame = 0;
   char backgroundImage[kImageAssetIdLength + 1]{};
   bool freeLayout = false;
   bool transparentCards = false;
@@ -106,6 +109,7 @@ struct ScenePage {
   void clear() {
     graph.clear();
     background = 0;
+    backgroundImageFrame = 0;
     backgroundImage[0] = '\0';
     freeLayout = false;
     transparentCards = false;
