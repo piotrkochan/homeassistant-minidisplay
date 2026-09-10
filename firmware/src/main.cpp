@@ -3850,9 +3850,18 @@ void configureRoutes() {
 #if defined(ESP8266)
   server.prepareDashboardRequests([] {
     // HTTP parsing itself needs room for the incoming body before the handler
-    // can stage it on flash. No pixels or saved configuration are discarded.
+    // can stage it on flash. The LCD retains its pixels, so release all
+    // reproducible scene state before ESP8266WebServer allocates the body.
     if (display.fontLoaded) display.unloadFont();
     displayFontState = FontRenderState{};
+    resetMarqueeTitles();
+    sceneScheduler.reset();
+    activeScene.reset();
+    activeSceneReady = false;
+    activeScenePage = 0xff;
+    pageDefinition.clear();
+    diagnosticsLastData = String();
+    requestFullRender();
   });
 #endif
   if (routesReady) return;

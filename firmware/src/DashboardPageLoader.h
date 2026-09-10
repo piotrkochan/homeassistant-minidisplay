@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <ArduinoJson.h>
 #include "DashboardPageScanner.h"
 
@@ -16,6 +17,7 @@ class DashboardPageLoader {
 
   static constexpr size_t kMaximumPageBytes = 6 * 1024;
   static constexpr size_t kDocumentCapacity = 8 * 1024;
+  static constexpr size_t kMinimumDocumentCapacity = 3 * 1024;
 
   DashboardPageLoader() : document_(0) {}
 
@@ -56,11 +58,12 @@ class DashboardPageLoader {
     if (slice.length == 0 || slice.length > kMaximumPageBytes) {
       return fail(Error::PageTooLarge);
     }
+    const size_t estimatedCapacity = capacityFor(slice.length);
     bool freshAllocation = false;
     if (document_.capacity() == 0) {
-      document_ = DynamicJsonDocument(kDocumentCapacity);
+      document_ = DynamicJsonDocument(estimatedCapacity);
       freshAllocation = true;
-      if (document_.capacity() < kDocumentCapacity) {
+      if (document_.capacity() < estimatedCapacity) {
         return fail(Error::Allocation);
       }
     }
@@ -70,12 +73,15 @@ class DashboardPageLoader {
     if (!file.seek(slice.offset)) return fail(Error::Read);
     DeserializationError jsonError = deserializeJson(document_, file);
     ++parseCount_;
-    if (jsonError == DeserializationError::NoMemory &&
-        document_.capacity() < kDocumentCapacity) {
+    while (jsonError == DeserializationError::NoMemory &&
+           document_.capacity() < kDocumentCapacity) {
+      const size_t nextCapacity = std::min(
+          kDocumentCapacity,
+          std::max(estimatedCapacity, document_.capacity() + 1024));
       document_ = DynamicJsonDocument(0);
-      document_ = DynamicJsonDocument(kDocumentCapacity);
+      document_ = DynamicJsonDocument(nextCapacity);
       freshAllocation = true;
-      if (document_.capacity() < kDocumentCapacity || !file.seek(slice.offset)) {
+      if (document_.capacity() < nextCapacity || !file.seek(slice.offset)) {
         return fail(Error::Allocation);
       }
       jsonError = deserializeJson(document_, file);
@@ -94,6 +100,13 @@ class DashboardPageLoader {
   Error error() const { return error_; }
 
  private:
+  static size_t capacityFor(size_t pageBytes) {
+    size_t capacity = pageBytes + pageBytes / 2 + 1024;
+    capacity = std::max(capacity, kMinimumDocumentCapacity);
+    capacity = std::min(capacity, kDocumentCapacity);
+    return (capacity + 255) & ~size_t(255);
+  }
+
   bool fail(Error error) {
     clear();
     error_ = error;

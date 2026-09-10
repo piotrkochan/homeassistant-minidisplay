@@ -44,6 +44,15 @@ int main() {
   assert(cache.parseCount() == 2);
   assert(cache.allocatedBytes() == memory);
   cache.clear();
+  file.bytes = "{\"pages\":[{\"id\":\"small\"},{\"id\":\"large\",\"rows\":[{\"cards\":[{\"text\":\"" +
+      std::string(2600, 'x') + "\"}]}]}]}";
+  assert(cache.load(file, 0));
+  const size_t smallCapacity = cache.allocatedBytes();
+  assert(cache.load(file, 1));
+  assert(strcmp(cache.page()["id"], "large") == 0);
+  assert(cache.allocatedBytes() > smallCapacity);
+  assert(cache.allocatedBytes() < cache.kDocumentCapacity);
+  cache.clear();
   assert(cache.allocatedBytes() == 0);
   file.bytes = R"({"pages":[{"id":"updated"}]})";
   assert(cache.load(file, 0));
