@@ -1,5 +1,13 @@
 # Home Assistant Mini-Display
 
+> [!CAUTION]
+> **This firmware is experimental. Do not currently install it on a JUZIPi SD
+> PRO through the stock web updater.** The custom image can exceed the stock
+> updater's staging space; the stock UI may still report success after writing
+> an incomplete image, leaving the display unable to boot and requiring UART
+> recovery. The first-install procedure is being replaced with a size-safe
+> installer. Devices already running Mini-Display use a different updater.
+
 ```text
         .--------------------------.
         | .----------------------. |
