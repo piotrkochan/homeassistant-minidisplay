@@ -1,75 +1,104 @@
 # Changelog
 
-## Unreleased
+## v0.2.0
 
-- fix: compact dashboard payloads from schema
-- fix: speed up image uploads and animated frame updates
-- feature: support animated gif images
-- feature: dismiss all notifications
-- refactor: split firmware modules
-- fix: persist value transformers
-- fix: hide free layout coordinates
-- feature: transform numeric values
-- fix: stack schema on mobile
-- fix: preserve page title bounds
-- feature: show firmware update warning
-- fix: smooth fast marquee intervals
-- feature: configure marquee step size
-- fix: batch display value updates
-- fix: grow page json memory adaptively
-- feature: replace doors with cascade
-- feature: apply transitions to all pages
-- feature: limit full page scrolling to vertical directions
-- fix: preserve disabled marquee settings
-- feature: show animated notification overlays
-- feature: send notifications from home assistant
-- feature: configure notification placement
-- feature: stack independently timed notifications
-- feature: configure notification api protection
-- fix: compact dashboard transfers
-- fix: protect wifi memory during notifications
-- feature: pace data with display refresh
-- feature: configure display refresh rate
-- feature: configure marquee effects and timing
-- fix: size scrolling text by height
-- fix: scroll values in both layouts
-- fix: avoid font reloads between animation bands
-- fix: share animation frame scheduling
-- fix: reuse decoded animation image rows
-- fix: block marquee during transitions
-- fix: transfer cropped animation tiles together
-- fix: advance curtain edges together
-- fix: move rendering buffers off stack
-- fix: compose moving transition scenes
-- fix: clip glyph work before rasterizing
-- fix: clip chart fills before rasterizing
-- fix: reuse image row seek positions
-- fix: decode visible image columns
-- feature: control automatic page rotation
-- fix: preserve rotation during navigation
-- fix: align animation tiles and timing
-- fix: preserve cropped image pixels
-- fix: compose animation strips before transfer
-- fix: recompose marquee through scene tiles
-- fix: refresh old and new text bounds
-- feature: cache parsed page definitions
-- feature: step marquee every 100ms
-- fix: preserve display spi configuration
-- fix: defer navigation rendering
-- feature: replace legacy rendering with retained scenes
-- feature: animate retained scenes
-- feature: redraw changed scene regions only
-- fix: index compressed image rows
-- fix: apply mapped text color to titles
-- fix: smooth marquee updates
-- feature: compress image assets
-- feature: synchronize display images
-- fix: restore device panel reactivity
-- fix: add preview schema tabs
-- fix: remove disabled chart containers
-- fix: preserve unit spacing
-- fix: hide graph entity selection for card data
-- feature: align free layout text
-- feature: add conditional page visibility
-- feature: add chart appearance controls
-- feature: choose background chart style
+Changes since v0.1.1.
+
+### Features
+
+- support animated gif images
+- add temporary notification overlays with titles, messages, icons, severity
+  levels, configurable placement, stacking and independent timeouts
+- send and dismiss notifications through Home Assistant or the local API, with
+  configurable API protection
+- transform numeric values
+- show firmware update warning
+- configure marquee step size
+- replace doors with cascade
+- apply transitions to all pages
+- limit full page scrolling to vertical directions
+- pace data with display refresh
+- configure display refresh rate
+- configure marquee effects and timing
+- control automatic page rotation
+- compress image assets
+- synchronize display images
+- align free layout text
+- add conditional page visibility
+- add chart appearance controls
+- choose background chart style
+
+### Fixes
+
+- stage image assets transactionally and restore evicted assets when dashboard activation fails
+- reclaim obsolete display images when storage is too low for a dashboard update
+- compact dashboard payloads from schema
+- reduce gif artifacts
+- speed up image uploads and animated frame updates
+- persist value transformers
+- hide free layout coordinates
+- stack schema on mobile
+- preserve page title bounds
+- smooth fast marquee intervals
+- batch display value updates
+- grow page json memory adaptively
+- accelerate push transitions
+- preserve disabled marquee settings
+- compact dashboard transfers
+- protect wifi memory during notifications
+- size scrolling text by height
+- scroll values in both layouts
+- block marquee during transitions
+- advance curtain edges together
+- preserve rotation during navigation
+- align animation tiles and timing
+- preserve cropped image pixels
+- refresh old and new text bounds
+- preserve display spi configuration
+- defer navigation rendering
+- apply mapped text color to titles
+- smooth marquee updates
+- restore device panel reactivity
+- add preview schema tabs
+- remove disabled chart containers
+- preserve unit spacing
+- hide graph entity selection for card data
+
+### Refactoring
+
+- replace the legacy immediate renderer with one retained scene graph shared by
+  row and free layouts, screenshots, live updates and page transitions
+- compile cards into bounded render nodes with source dependency indexes, then
+  redraw only merged dirty regions instead of rebuilding the complete page
+- compose scenes through a reusable RGB565 tile buffer and windowed SPI writes,
+  without a full framebuffer or display memory readback
+- move page transitions, marquee text and animated images onto one frame
+  scheduler and animation timeline
+- retain both scenes during motion transitions and transfer complete cropped
+  strips, keeping moving layers correctly composed
+- cache the active page definition in a right-sized JSON arena and stream page
+  discovery instead of repeatedly parsing the complete dashboard
+- rework image rendering around sparse RLE row indexes, visible-region decoding
+  and reusable decoded rows
+- index bundled smooth-font glyphs in flash and render them directly, avoiding
+  repeated font allocations between animation bands
+- move reusable rendering buffers off the stack and keep repeated drawing paths
+  bounded and allocation-free
+- split the monolithic firmware entry point into focused modules for scene and
+  text compilation, values, settings, fonts, startup screens and diagnostics
+- centralize the dashboard schema, generate the integration copy and compact
+  device payloads from schema metadata
+- extract Home Assistant data pacing, value batching, numeric transforms and
+  asset synchronization into dedicated components
+
+### Diagnostics and testing
+
+- capture ESP8266 crash details in RTC memory without storing raw stack data
+- add optional cycle, frame, heap, stack and fragmentation profiling for the
+  rendering and API paths
+- add sanitizer-backed native coverage for scene composition, dirty regions,
+  transitions, marquee, fonts, notifications and image decoding
+- build the device web panel and run animated-image and notification browser
+  regressions in CI
+- verify that the canonical dashboard schema and generated integration schema
+  remain synchronized
