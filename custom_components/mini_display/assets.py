@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+from dataclasses import dataclass
 import logging
 import re
 import struct
@@ -13,7 +14,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .api import MiniDisplayApiError, MiniDisplayClient
+from .api import MiniDisplayApiError, MiniDisplayClient, MiniDisplayRequestError
 from .image_codec import (
     ImageCodecError,
     decode_rgb565,
@@ -34,6 +35,15 @@ _LOGGER = logging.getLogger(__name__)
 
 class AssetValidationError(ValueError):
     """An image asset is invalid."""
+
+
+@dataclass(frozen=True, slots=True)
+class AssetSyncTransaction:
+    """Remote image state retained for rollback until dashboard activation."""
+
+    remote_ids: set[str]
+    original_ids: set[str]
+    reclaimed: bool = False
 
 
 class MiniDisplayAssetManager:
@@ -177,6 +187,91 @@ class MiniDisplayAssetManager:
             )
             remote_assets[asset_id] = self._assets[asset_id]["bytes"]
         return set(remote_assets)
+
+    async def async_stage(
+        self, asset_ids: set[str], protected_ids: set[str]
+    ) -> AssetSyncTransaction:
+        """Stage required images, reclaiming obsolete images only when needed."""
+        missing = asset_ids - self._assets.keys()
+        if missing:
+            raise AssetValidationError(
+                f"Missing image asset: {sorted(missing)[0]}"
+            )
+        remote = await self._client.async_get_assets()
+        remote_assets = {
+            str(item.get("id")): int(item.get("bytes", 0))
+            for item in remote.get("assets", [])
+            if isinstance(item, dict)
+            and ASSET_ID_PATTERN.fullmatch(str(item.get("id", "")))
+        }
+        original_ids = set(remote_assets)
+        free_bytes = int(remote.get("freeBytes", 0))
+        reserve_bytes = int(remote.get("reserveBytes", 0))
+        upload_ids = [
+            asset_id
+            for asset_id in asset_ids
+            if remote_assets.get(asset_id) != self._assets[asset_id]["bytes"]
+        ]
+        # Replacing an asset with the same id releases its old file after upload.
+        upload_ids.sort(key=lambda asset_id: asset_id not in remote_assets)
+        reclaimable = sorted(
+            original_ids - asset_ids,
+            key=lambda asset_id: (
+                asset_id in protected_ids,
+                -remote_assets.get(asset_id, 0),
+            ),
+        )
+        reclaimed = False
+        uploaded: set[str] = set()
+        try:
+            for asset_id in upload_ids:
+                content = base64.b64decode(self._assets[asset_id]["data"])
+                required_free = len(content) + reserve_bytes
+                while free_bytes < required_free and reclaimable:
+                    stale_id = reclaimable.pop(0)
+                    await self._client.async_delete_asset(stale_id)
+                    free_bytes += remote_assets.pop(stale_id, 0)
+                    reclaimed = True
+                if free_bytes < required_free:
+                    raise MiniDisplayRequestError(
+                        507, "Not enough space after safety reserve"
+                    )
+                previous_bytes = remote_assets.get(asset_id, 0)
+                await self._client.async_put_asset(asset_id, content)
+                remote_assets[asset_id] = len(content)
+                free_bytes += previous_bytes - len(content)
+                uploaded.add(asset_id)
+        except MiniDisplayApiError:
+            if reclaimed:
+                await self._async_restore(original_ids, uploaded)
+            raise
+        return AssetSyncTransaction(set(remote_assets), original_ids, reclaimed)
+
+    async def async_rollback(self, transaction: AssetSyncTransaction) -> None:
+        """Restore images evicted while staging a rejected dashboard."""
+        if transaction.reclaimed:
+            await self._async_restore(transaction.original_ids, set())
+
+    async def _async_restore(
+        self, original_ids: set[str], uploaded_ids: set[str]
+    ) -> None:
+        """Best-effort restore of remote image state after a failed swap."""
+        try:
+            remote = await self._client.async_get_assets()
+            remote_ids = {
+                str(item.get("id"))
+                for item in remote.get("assets", [])
+                if isinstance(item, dict)
+                and ASSET_ID_PATTERN.fullmatch(str(item.get("id", "")))
+            }
+            for asset_id in sorted((remote_ids - original_ids) | uploaded_ids):
+                await self._client.async_delete_asset(asset_id)
+            restorable = original_ids & self._assets.keys()
+            await self.async_sync(restorable)
+        except MiniDisplayApiError as err:
+            _LOGGER.error(
+                "Could not restore Mini Display images after failed swap: %s", err
+            )
 
     async def async_prune(self, keep: set[str], remote_ids: set[str]) -> None:
         """Remove images not used by the dashboard currently on the display."""

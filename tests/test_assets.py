@@ -129,11 +129,17 @@ class AssetTests(unittest.IsolatedAsyncioTestCase):
         )
         manager.hass = SimpleNamespace(states={})
         manager.weather = SimpleNamespace(values=AsyncMock(return_value={}))
+        manager._last_rendered_dashboard = None
         manager.assets = SimpleNamespace(
-            async_sync=AsyncMock(
-                return_value={"0123456789abcdef", "unused0000000000"}
+            async_stage=AsyncMock(
+                return_value=module.AssetSyncTransaction(
+                    {"0123456789abcdef", "unused0000000000"},
+                    {"unused0000000000"},
+                    True,
+                )
             ),
             async_prune=AsyncMock(),
+            async_rollback=AsyncMock(),
         )
         manager.client = SimpleNamespace(
             async_patch_values=AsyncMock(),
@@ -170,6 +176,40 @@ class AssetTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(RuntimeError):
             await manager._async_send_dashboard(document)
         manager.assets.async_prune.assert_not_awaited()
+        manager.assets.async_rollback.assert_awaited_once()
+
+    async def test_stage_reclaims_old_image_before_large_replacement(self):
+        manager = self.manager()
+        old = mdi(40, 20)
+        new = mdi(60, 20)
+        manager._assets = {
+            "aaaaaaaaaaaaaaaa": {
+                "bytes": len(old),
+                "data": base64.b64encode(old).decode(),
+            },
+            "bbbbbbbbbbbbbbbb": {
+                "bytes": len(new),
+                "data": base64.b64encode(new).decode(),
+            },
+        }
+        manager._client.async_get_assets.return_value = {
+            "assets": [{"id": "aaaaaaaaaaaaaaaa", "bytes": len(old)}],
+            "freeBytes": len(new) - 1,
+            "reserveBytes": 0,
+        }
+
+        transaction = await manager.async_stage(
+            {"bbbbbbbbbbbbbbbb"}, {"aaaaaaaaaaaaaaaa"}
+        )
+
+        manager._client.async_delete_asset.assert_awaited_once_with(
+            "aaaaaaaaaaaaaaaa"
+        )
+        manager._client.async_put_asset.assert_awaited_once_with(
+            "bbbbbbbbbbbbbbbb", new
+        )
+        self.assertTrue(transaction.reclaimed)
+        self.assertEqual(transaction.remote_ids, {"bbbbbbbbbbbbbbbb"})
 
 
 if __name__ == "__main__":

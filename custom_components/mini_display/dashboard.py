@@ -1100,12 +1100,21 @@ class MiniDisplayDashboardManager:
         if values:
             await self.client.async_patch_values(values, render=False)
         required_assets = extract_assets(rendered)
-        remote_assets = await self.assets.async_sync(required_assets)
-        await self.client.async_put_dashboard(
-            compact_dashboard_for_device(rendered), render=active_page_id is None
+        previous_assets = (
+            extract_assets(self._last_rendered_dashboard)
+            if self._last_rendered_dashboard is not None
+            else set()
         )
+        transaction = await self.assets.async_stage(required_assets, previous_assets)
+        try:
+            await self.client.async_put_dashboard(
+                compact_dashboard_for_device(rendered), render=active_page_id is None
+            )
+        except Exception:
+            await self.assets.async_rollback(transaction)
+            raise
         if prune_assets:
-            await self.assets.async_prune(required_assets, remote_assets)
+            await self.assets.async_prune(required_assets, transaction.remote_ids)
         await self._async_send_history(rendered)
         self._last_rendered_dashboard = canonical_rendered
         if active_page_id is not None:
