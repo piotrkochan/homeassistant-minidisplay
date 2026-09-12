@@ -4,8 +4,9 @@
 
 ### Features
 
-- add an SD PRO first-stage installer that provisions Wi-Fi, offers verified
-  firmware releases and installs the selected image directly from GitHub
+- add a version-pinned SD PRO bootstrap that provisions Wi-Fi and installs its
+  SHA-256-verified firmware image directly from GitHub
+- build and attach a matching bootstrap image to every firmware release
 
 ### Fixes
 

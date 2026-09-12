@@ -12,14 +12,20 @@
 
 namespace {
 
-constexpr char kInstallerVersion[] = "0.2.0";
-constexpr char kFirmwareUrl[] =
-    "https://github.com/piotrkochan/homeassistant-minidisplay/releases/"
-    "download/v0.2.0/home-assistant-mini-display-sdpro-0.2.0.bin";
-constexpr size_t kFirmwareSize = 1039920;
-constexpr char kFirmwareSha256[] =
-    "509e555601b6aecd53decb3c4ea0df3ddf83b65157ef8559494ffc84159e4ca0";
-constexpr char kFirmwareMd5[] = "e4915d589e98437dc86b89ed78577836";
+#ifndef MINI_DISPLAY_BOOTSTRAP_VERSION
+#error "MINI_DISPLAY_BOOTSTRAP_VERSION is required"
+#endif
+#ifndef MINI_DISPLAY_BOOTSTRAP_FIRMWARE_SHA256
+#error "MINI_DISPLAY_BOOTSTRAP_FIRMWARE_SHA256 is required"
+#endif
+
+constexpr char kInstallerVersion[] = MINI_DISPLAY_BOOTSTRAP_VERSION;
+constexpr char kFirmwareRepositoryUrl[] =
+    "https://github.com/piotrkochan/homeassistant-minidisplay/releases/download/v";
+constexpr char kFirmwareAssetPrefix[] = "home-assistant-mini-display-sdpro-";
+constexpr char kFirmwareSha256[] = MINI_DISPLAY_BOOTSTRAP_FIRMWARE_SHA256;
+static_assert(sizeof(kFirmwareSha256) == 65,
+              "Firmware SHA-256 must contain 64 hexadecimal characters");
 constexpr uint32_t kConfigMagic = 0x53445034;
 constexpr size_t kEepromSize = 512;
 constexpr uint32_t kConnectTimeoutMs = 30000;
@@ -99,26 +105,27 @@ button:disabled{opacity:.45;cursor:default}.card{border:1px solid #34465c;border
 <button>Connect</button>
 </form>
 <div id="release" class="card hidden">
-<span class="tag">v0.2.0</span>
+<span id="targetVersion" class="tag"></span>
 <h2>Home Assistant Mini-Display</h2>
-<p>Verified SD PRO image, 1,039,920 bytes.</p>
+<p>SHA-256 verified SD PRO image.</p>
 <p class="danger">Installation erases stock filesystem data. Do not disconnect power.</p>
-<button id="install" type="button">Install v0.2.0</button>
+<button id="install" type="button"></button>
 </div>
 <p id="status">Loading status...</p>
 <button id="retry" type="button" class="hidden">Try again</button>
 <script>
-const form=document.querySelector('#wifi'),release=document.querySelector('#release'),statusText=document.querySelector('#status'),formError=document.querySelector('#formError'),install=document.querySelector('#install'),retry=document.querySelector('#retry'),scan=document.querySelector('#scan'),ssid=form.elements.ssid,devicePassword=form.elements.devicePassword,devicePasswordRepeat=form.elements.devicePasswordRepeat;
+const form=document.querySelector('#wifi'),release=document.querySelector('#release'),statusText=document.querySelector('#status'),formError=document.querySelector('#formError'),install=document.querySelector('#install'),retry=document.querySelector('#retry'),scan=document.querySelector('#scan'),ssid=form.elements.ssid,devicePassword=form.elements.devicePassword,devicePasswordRepeat=form.elements.devicePasswordRepeat,targetVersionText=document.querySelector('#targetVersion');
 let scanning=false;
+let targetVersion='';
 async function post(path,body=''){const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});const text=await response.text();if(!response.ok)throw new Error(text);return text}
 async function readScan(){try{const response=await fetch('/networks',{cache:'no-store'});if(response.status===202){setTimeout(readScan,700);return}if(!response.ok)throw new Error();const names=await response.json(),placeholder=Object.assign(document.createElement('option'),{value:'',textContent:names.length?'Select Wi-Fi':'No networks found'});ssid.replaceChildren(placeholder,...names.map(name=>Object.assign(document.createElement('option'),{value:name,textContent:name})));statusText.textContent=names.length?'Select a network':'No networks found'}catch(error){statusText.textContent='Scan failed'}scanning=false;scan.disabled=false}
 scan.addEventListener('click',async()=>{scanning=true;scan.disabled=true;statusText.textContent='Scanning...';try{await post('/scan');setTimeout(readScan,700)}catch(error){scanning=false;statusText.textContent='Scan failed';scan.disabled=false}});
 function validatePasswords(){const mismatch=devicePassword.value!==devicePasswordRepeat.value;devicePasswordRepeat.setCustomValidity(mismatch?'Interface passwords do not match':'');formError.textContent=mismatch?'Interface passwords do not match':'';return !mismatch}
 devicePassword.addEventListener('input',validatePasswords);devicePasswordRepeat.addEventListener('input',validatePasswords);
 form.addEventListener('submit',async event=>{event.preventDefault();if(!validatePasswords()||!form.reportValidity())return;scanning=false;formError.textContent='';statusText.textContent='Connecting...';try{await post('/connect',new URLSearchParams(new FormData(form)));}catch(error){formError.textContent=error.message}});
-install.addEventListener('click',async()=>{install.disabled=true;statusText.textContent='Starting installation...';try{await post('/install','version=0.2.0')}catch(error){statusText.textContent=error.message;install.disabled=false}});
+install.addEventListener('click',async()=>{install.disabled=true;statusText.textContent='Starting installation...';try{await post('/install','version='+encodeURIComponent(targetVersion))}catch(error){statusText.textContent=error.message;install.disabled=false}});
 retry.addEventListener('click',()=>location.reload());
-async function poll(){try{const state=await fetch('/status',{cache:'no-store'}).then(response=>response.json());if(!scanning)statusText.textContent=state.message+(state.progress>=0?' ('+state.progress+'%)':'');const ready=state.phase==='ready';release.classList.toggle('hidden',!ready);form.classList.toggle('hidden',ready);retry.classList.toggle('hidden',state.phase!=='failed');}catch(error){}setTimeout(poll,1000)}poll();
+async function poll(){try{const state=await fetch('/status',{cache:'no-store'}).then(response=>response.json());targetVersion=state.targetVersion;targetVersionText.textContent='v'+targetVersion;install.textContent='Install v'+targetVersion;if(!scanning)statusText.textContent=state.message+(state.progress>=0?' ('+state.progress+'%)':'');const ready=state.phase==='ready';release.classList.toggle('hidden',!ready);form.classList.toggle('hidden',ready);retry.classList.toggle('hidden',state.phase!=='failed');}catch(error){}setTimeout(poll,1000)}poll();
 </script>
 </main></body></html>
 )HTML";
@@ -174,7 +181,7 @@ void drawFrame(uint16_t accent) {
   display.setTextColor(TFT_WHITE, panel);
   display.drawString("HA MINI-DISPLAY", 120, 38, 4);
   display.setTextColor(accent, panel);
-  display.drawString("INSTALLER v0.2.0", 120, 66, 2);
+  display.drawString(String("INSTALLER v") + kInstallerVersion, 120, 66, 2);
 }
 
 void drawStatus() {
@@ -234,7 +241,7 @@ String jsonEscape(const String &value) {
 
 void sendStatus() {
   String body;
-  body.reserve(180);
+  body.reserve(240);
   body += F("{\"phase\":\"");
   body += phaseName();
   body += F("\",\"message\":\"");
@@ -243,6 +250,9 @@ void sendStatus() {
   body += progressPercent;
   body += F(",\"wifiConnected\":");
   body += WiFi.status() == WL_CONNECTED ? F("true") : F("false");
+  body += F(",\"targetVersion\":\"");
+  body += kInstallerVersion;
+  body += '"';
   body += '}';
   server.sendHeader(F("Cache-Control"), F("no-store"));
   server.send(200, F("application/json"), body);
@@ -430,7 +440,8 @@ void restorePortalAfterFailure(const String &message) {
 
 bool downloadAndStageFirmware() {
   stopPortal();
-  setStatus(Phase::Downloading, "Downloading v0.2.0", 0);
+  const String downloadMessage = String("Downloading v") + kInstallerVersion;
+  setStatus(Phase::Downloading, downloadMessage, 0);
 
   BearSSL::WiFiClientSecure client;
   // Authenticity is enforced by the compiled SHA-256 below. Insecure TLS can
@@ -443,8 +454,11 @@ bool downloadAndStageFirmware() {
   http.setTimeout(kDownloadTimeoutMs);
   http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setRedirectLimit(4);
-  http.setUserAgent(F("Mini-Display-Installer/0.2.0"));
-  if (!http.begin(client, kFirmwareUrl)) {
+  http.setUserAgent(String("Mini-Display-Bootstrap/") + kInstallerVersion);
+  const String firmwareUrl = String(kFirmwareRepositoryUrl) +
+                             kInstallerVersion + "/" +
+                             kFirmwareAssetPrefix + kInstallerVersion + ".bin";
+  if (!http.begin(client, firmwareUrl)) {
     restorePortalAfterFailure("Cannot open GitHub URL");
     return false;
   }
@@ -456,12 +470,14 @@ bool downloadAndStageFirmware() {
     restorePortalAfterFailure(message);
     return false;
   }
-  if (http.getSize() != static_cast<int>(kFirmwareSize)) {
+  const int contentLength = http.getSize();
+  if (contentLength <= 0) {
     http.end();
-    restorePortalAfterFailure("Firmware size mismatch");
+    restorePortalAfterFailure("Firmware size unavailable");
     return false;
   }
-  if (!Update.begin(kFirmwareSize, U_FLASH) || !Update.setMD5(kFirmwareMd5)) {
+  const size_t firmwareSize = static_cast<size_t>(contentLength);
+  if (!Update.begin(firmwareSize, U_FLASH)) {
     const String message = "OTA space: " + Update.getErrorString();
     http.end();
     restorePortalAfterFailure(message);
@@ -477,7 +493,7 @@ bool downloadAndStageFirmware() {
   uint32_t lastDataAt = millis();
   int shownProgress = 0;
 
-  while (received < kFirmwareSize) {
+  while (received < firmwareSize) {
     const size_t available = stream->available();
     if (!available) {
       if (!http.connected() || millis() - lastDataAt > kDownloadTimeoutMs) {
@@ -490,7 +506,7 @@ bool downloadAndStageFirmware() {
     }
 
     const size_t wanted = min(
-        min(available, sizeof(buffer)), static_cast<size_t>(kFirmwareSize - received));
+        min(available, sizeof(buffer)), firmwareSize - received);
     const int count = stream->read(buffer, wanted);
     if (count <= 0) {
       delay(1);
@@ -500,7 +516,7 @@ bool downloadAndStageFirmware() {
     br_sha256_update(&hash, buffer, count);
 
     size_t writable = count;
-    if (received + count == kFirmwareSize) {
+    if (received + count == firmwareSize) {
       finalByte = buffer[count - 1];
       --writable;
     }
@@ -512,10 +528,10 @@ bool downloadAndStageFirmware() {
     }
     received += count;
 
-    const int nextProgress = static_cast<int>(received * 100 / kFirmwareSize);
+    const int nextProgress = static_cast<int>(received * 100 / firmwareSize);
     if (nextProgress >= shownProgress + 5) {
       shownProgress = nextProgress;
-      setStatus(Phase::Downloading, "Downloading v0.2.0", shownProgress);
+      setStatus(Phase::Downloading, downloadMessage, shownProgress);
     }
     yield();
   }
@@ -558,7 +574,7 @@ void setup() {
   // Leave time for a UART monitor to attach after esptool releases the port.
   delay(2000);
   Serial.println();
-  Serial.println(F("Mini-Display SD PRO installer for v0.2.0"));
+  Serial.printf("Mini-Display SD PRO bootstrap for v%s\n", kInstallerVersion);
   Serial.printf("[installer] sketch=%u freeSketch=%u flash=%u\n",
                 ESP.getSketchSize(), ESP.getFreeSketchSpace(),
                 ESP.getFlashChipRealSize());

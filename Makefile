@@ -26,7 +26,12 @@ clean:
 	cd firmware && $(PIO) run --target clean
 
 bootstrap-build:
-	cd firmware-bootstrap && $(PIO) run
+	@printf '%s' "$(BOOTSTRAP_VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc(\.[0-9]+)?)?$$' || { echo "BOOTSTRAP_VERSION must be a supported release version without v prefix"; exit 1; }
+	@printf '%s' "$(BOOTSTRAP_SHA256)" | grep -Eq '^[0-9a-f]{64}$$' || { echo "BOOTSTRAP_SHA256 must be 64 lowercase hex characters"; exit 1; }
+	cd firmware-bootstrap && \
+		BOOTSTRAP_VERSION="$(BOOTSTRAP_VERSION)" \
+		BOOTSTRAP_SHA256="$(BOOTSTRAP_SHA256)" \
+		$(PIO) run
 
 bootstrap-clean:
 	cd firmware-bootstrap && $(PIO) run --target clean

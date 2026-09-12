@@ -55,10 +55,21 @@ jobs:
           sed -i "s/#define MINI_DISPLAY_VERSION \"0.3.0-dev\"/#define MINI_DISPLAY_VERSION \"${VERSION}\"/" firmware/src/main.cpp
 
       - name: Build SD PRO firmware
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
         run: |
+          VERSION="${RELEASE_VERSION#v}"
+          FIRMWARE_NAME="home-assistant-mini-display-sdpro-${VERSION}.bin"
           make PIO=pio build
           mkdir -p dist
-          cp firmware/.pio/build/sdpro/firmware.bin dist/home-assistant-mini-display-sdpro.bin
+          cp firmware/.pio/build/sdpro/firmware.bin "dist/${FIRMWARE_NAME}"
+
+          FIRMWARE_SHA256="$(sha256sum "dist/${FIRMWARE_NAME}" | cut -d' ' -f1)"
+          make PIO=pio bootstrap-build \
+            BOOTSTRAP_VERSION="${VERSION}" \
+            BOOTSTRAP_SHA256="${FIRMWARE_SHA256}"
+          cp firmware-bootstrap/.pio/build/sdpro_bootstrap/firmware.bin \
+            "dist/SDP-home-assistant-mini-display-bootstrap-${VERSION}.bin"
 
           # Other display profiles are not supported yet. Keep their release
           # builds disabled until their hardware support is ready.
@@ -69,15 +80,6 @@ jobs:
 
       - name: Package build sources and dependency licenses
         run: python firmware/scripts/package_release_sources.py
-
-      - name: Add version to artifact names
-        env:
-          RELEASE_VERSION: ${{ github.ref_name }}
-        run: |
-          VERSION="${RELEASE_VERSION#v}"
-          for FILE in dist/*.bin; do
-            mv "$FILE" "${FILE%.bin}-${VERSION}.bin"
-          done
 
       - name: Store build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
