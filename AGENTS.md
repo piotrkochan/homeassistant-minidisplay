@@ -44,6 +44,35 @@ make size
 Use PlatformIO with the pinned `espressif8266` platform. Keep generated files
 out of Git.
 
+## Changelog
+
+- Keep `CHANGELOG.md` complete for every material change since the most recent
+  released tag. Use `Unreleased` while the target version is unknown, then
+  rename that section when preparing a release and state the previous version
+  used as its baseline.
+- Before finalizing a release section, audit both `git log <previous-tag>..HEAD`
+  and the corresponding diff. Do not rely only on commit subjects: one commit
+  may contain several important changes or hide a large refactor behind a
+  `fix:` prefix.
+- Order sections with `Features` first, followed by `Fixes`, `Refactoring`, and
+  any relevant diagnostics or testing/tooling section.
+- Describe complete user-facing capabilities at a useful level. Combine a set
+  of related commits into one primary feature entry with concise supporting
+  details instead of listing every implementation step as a separate feature.
+- Give substantial architectural work its own explicit `Refactoring` entries.
+  Name the affected subsystem and summarize the new design and practical
+  impact; never bury a renderer, storage, protocol, or data-flow rewrite among
+  small fixes.
+- Include important reliability, performance, memory, migration, diagnostics,
+  and build/test changes even when they are not directly visible in the UI.
+- Avoid duplicates between sections, but do not remove meaningful coverage when
+  consolidating entries. Every material change in the release range must remain
+  represented somewhere.
+- Use concise present-tense fragments without Conventional Commit prefixes.
+  Prefer product language such as "notifications" or "scene renderer" over
+  internal function and class names unless those names help users understand
+  compatibility or migration impact.
+
 ## Firmware requirements
 
 Before first custom OTA image, firmware must provide:
@@ -94,4 +123,3 @@ control. Store device secrets outside tracked files.
 - Yield during long ESP8266 operations.
 - Comments explain hardware constraints and recovery rationale, not syntax.
 - Treat compiler warnings as defects.
-
