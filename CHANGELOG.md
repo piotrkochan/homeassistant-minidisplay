@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- add an SD PRO first-stage installer that provisions Wi-Fi, offers verified
+  firmware releases and installs the selected image directly from GitHub
+
+### Fixes
+
+- pause first-time SD PRO installation through the stock web updater after
+  confirming that oversized images may be accepted but written incompletely
+
 ## v0.2.0
 
 Changes since v0.1.1.

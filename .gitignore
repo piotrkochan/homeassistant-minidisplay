@@ -4,6 +4,8 @@
 .pio/
 firmware/.pio/
 firmware/.vscode/
+firmware-bootstrap/.pio/
+firmware-bootstrap/.vscode/
 firmware/.dummy/
 firmware/managed_components/
 firmware/sdkconfig.defaults

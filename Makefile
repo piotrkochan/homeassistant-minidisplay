@@ -1,7 +1,7 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
 
-.PHONY: build build-all package clean check size elf-report card-build card-check schema-sync schema-check web-build web-check test-native
+.PHONY: build build-all package clean check size elf-report bootstrap-build bootstrap-clean card-build card-check schema-sync schema-check web-build web-check test-native
 
 build: web-build
 	python3 firmware/scripts/index_smooth_fonts.py
@@ -24,6 +24,12 @@ package: web-build
 
 clean:
 	cd firmware && $(PIO) run --target clean
+
+bootstrap-build:
+	cd firmware-bootstrap && $(PIO) run
+
+bootstrap-clean:
+	cd firmware-bootstrap && $(PIO) run --target clean
 
 check: schema-check
 	cd firmware && $(PIO) check
