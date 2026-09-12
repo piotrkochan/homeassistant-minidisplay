@@ -24,22 +24,52 @@ Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
 
 | Energy and live power | Free layout and backgrounds |
 | :---: | :---: |
-| ![Energy prices, power and history](docs/screenshots/pstryk_energy.png) | ![Battery and charging on a custom background](docs/screenshots/page_1.png) |
+| [![Energy prices, power and history](docs/screenshots/device/page1.png)](docs/screenshots/device/page1.png) | [![Battery and charging on a custom background](docs/screenshots/device/page2.png)](docs/screenshots/device/page2.png) |
 | **Home conditions** | **Car status** |
-| ![Temperature and humidity](docs/screenshots/home_status.png) | ![Fuel and trip information](docs/screenshots/skoda_status.png) |
+| [![Temperature and humidity](docs/screenshots/device/page3.png)](docs/screenshots/device/page3.png) | [![Fuel and trip information](docs/screenshots/device/page4.png)](docs/screenshots/device/page4.png) |
+| **Notification over a live dashboard** | **Live weather and scrolling text** |
+| [![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)](docs/screenshots/device/notification.gif) | [![Weather dashboard with smoothly scrolling text](docs/screenshots/device/page5.gif)](docs/screenshots/device/page5.gif) |
 
 ## Tiny screen, lots of possibilities
 
-- **Layouts:** structured rows or free placement, with independent title and value sizing.
-- **Content:** entities, text, clocks, weather, images, progress bars and rings.
-- **Charts:** lines and bars, standalone or behind a live value.
-- **Customization:** conditional visibility, value/color mappings, fonts and backgrounds.
-- **Scenes:** multiple pages, timed rotation, transitions and temporary device preview.
-- **Device settings:** a local web UI for brightness, fonts, Wi-Fi, time and updates.
+- **Flexible layouts:** keep things tidy with automatic rows, or place every
+  element exactly where you want it on a free-form canvas.
+- **Rich content:** bring together live entities, text, clocks, weather, images,
+  progress bars and rings on one tiny screen.
+- **Powerful charts:** turn history into line or bar charts, show them on their
+  own or behind a live value, and fine-tune their scale, colors and appearance.
+- **Conditional visibility:** show or hide complete pages, rows and individual
+  cards using live entity values and reusable AND/OR rules.
+- **Value mappings:** turn raw entity states into clear, friendly labels and
+  transform or clamp numeric values before they reach the screen.
+- **Color mappings:** make changing conditions easy to spot by switching text,
+  chart and background colors as live values move.
+- **Deep styling:** mix custom fonts, animated backgrounds, transparent cards,
+  text effects and independent title and value sizing.
+- **Lively scenes:** build multi-page dashboards with timed rotation, animated
+  transitions and instant on-device previews while editing.
+- **Useful notifications:** place temporary, severity-aware messages above any
+  dashboard without interrupting its live updates or background animations.
+- **Full local control:** tune brightness, refresh rate, fonts, Wi-Fi, time and
+  firmware updates from the device's own web interface.
 
-Images and animated GIFs are resized in the browser for the selected display,
-converted to RGB565 and RLE-compressed before upload. Firmware decodes one
-scanline at a time and never keeps full animation frames in RAM.
+Even animated GIFs fit comfortably: the browser resizes them for the selected
+display and converts them to compact RGB565 data before upload. The firmware
+decodes one scanline at a time, so smooth animation does not require holding
+complete frames in precious display memory.
+
+## Device web panel
+
+Every tab below comes from the device itself. Select any screenshot to open the
+complete page at full size.
+
+| Overview | Display |
+| :---: | :---: |
+| [![Device overview](docs/screenshots/web-panel/web-panel-overview.png)](docs/screenshots/web-panel/web-panel-overview-full.png) | [![Display controls](docs/screenshots/web-panel/web-panel-display.png)](docs/screenshots/web-panel/web-panel-display-full.png) |
+| **Network** | **Security** |
+| [![Network settings](docs/screenshots/web-panel/web-panel-network.png)](docs/screenshots/web-panel/web-panel-network-full.png) | [![Security settings](docs/screenshots/web-panel/web-panel-security.png)](docs/screenshots/web-panel/web-panel-security-full.png) |
+| **Diagnostics** | **Firmware** |
+| [![Device diagnostics](docs/screenshots/web-panel/web-panel-diagnostics.png)](docs/screenshots/web-panel/web-panel-diagnostics-full.png) | [![Firmware update](docs/screenshots/web-panel/web-panel-firmware.png)](docs/screenshots/web-panel/web-panel-firmware-full.png) |
 
 ## Home Assistant editor
 
@@ -47,7 +77,7 @@ The dedicated integration adds a visual editor in HA's sidebar. Manage multiple
 displays and scenes, drag and resize content, and preview changes on the device.
 HA supplies entity values, weather forecasts and Recorder history.
 
-![Home Assistant editor with scenes, card settings and live display preview](docs/screenshots/home-assistant-panel.png)
+![Home Assistant editor with scenes, card settings and live display preview](docs/screenshots/home-assistant/home-assistant-panel.png)
 
 Prefer another data source? Home Assistant is optional. Send layouts and values
 directly through the [local API](#json-schema-powered).
@@ -116,6 +146,8 @@ styles, visibility and data bindings. The device also serves it at
 | `GET /api/v1/assets` | List images or download one by id |
 | `PUT /api/v1/assets` | Upload an optimized image |
 | `DELETE /api/v1/assets` | Delete an image |
+| `POST /api/v1/notifications` | Show a temporary notification overlay |
+| `DELETE /api/v1/notifications` | Dismiss all visible and queued notifications |
 | `GET /api/v1/screenshot` | Capture the display as BMP |
 
 Data keys need not be HA entity IDs. Your own application can send, for example:
@@ -130,6 +162,105 @@ or Home Assistant automations, with a title, message, icon and severity.
 
 Protected endpoints use the configured panel/API credentials. **Keep the display
 on a trusted LAN; HTTPS is currently disabled in the default build.**
+
+## Notifications
+
+Notifications are temporary overlays displayed above the current dashboard.
+They do not replace the saved scene, and entity updates and automatic page
+rotation continue underneath. The queue holds three messages in total. A device
+setting controls whether one, two or three are visible at once, and each visible
+notification has its own timeout.
+
+![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)
+
+Send a notification directly through the local API:
+
+```bash
+curl --request POST \
+  --header 'Authorization: Bearer YOUR_PANEL_API_PASSWORD' \
+  --header 'Content-Type: application/json' \
+  --data '{"title":"Charging complete","message":"The battery is ready","icon":"check","severity":"success","durationSeconds":12}' \
+  http://DISPLAY_IP/api/v1/notifications
+```
+
+`title` or `message` is required. Supported severities are `info`, `success`,
+`warning`, `error` and `critical`; built-in icons include `bell`, `info`,
+`check`, `warning`, `error`, `power` and `door`. Duration can be 1–300 seconds.
+Omit `icon`, `severity`, `durationSeconds` or `position` to use their defaults.
+
+Dismiss every visible and queued notification:
+
+```bash
+curl --request DELETE \
+  --header 'Authorization: Bearer YOUR_PANEL_API_PASSWORD' \
+  http://DISPLAY_IP/api/v1/notifications
+```
+
+HTTP Basic authentication with the configured panel/API username and password
+is also supported. Notification API protection is enabled by default and is
+configured independently under **Display → Notifications**. Set the panel/API
+credentials under **Security**. Because the default build uses HTTP, credentials
+are not encrypted in transit; keep the display on a trusted LAN.
+
+Home Assistant automations can use the integration actions instead of calling
+the endpoint directly:
+
+```yaml
+action: mini_display.notify
+data:
+  device_id: your_display_device_id
+  title: Charging complete
+  message: The battery is ready
+  icon: check
+  severity: success
+  duration: 12
+```
+
+To dismiss all notifications from Home Assistant:
+
+```yaml
+action: mini_display.dismiss_notifications
+data:
+  device_id: your_display_device_id
+```
+
+These are the integration's two custom actions. Other display commands are
+exposed as Home Assistant entities and use standard Home Assistant actions.
+
+<details>
+<summary>Other Home Assistant controls</summary>
+
+| Standard action | Mini-Display entities | Purpose |
+| --- | --- | --- |
+| `button.press` | Next page, Previous page | Navigate without changing the automatic rotation setting |
+| `button.press` | Reload dashboard | Send the active scene to the display again |
+| `button.press` | Dismiss notifications | Clear visible and queued notifications |
+| `button.press` | Restart | Restart the display |
+| `select.select_option` | Active page | Select a page or return to automatic rotation |
+| `select.select_option` | Scene | Activate a configured dashboard scene |
+| `select.select_option` | Notification position | Change the default overlay position |
+| `select.select_option` | Time zone | Change the display clock time zone |
+| `switch.turn_on`, `switch.turn_off` | Automatic page rotation | Enable or pause timed page changes |
+| `switch.turn_on`, `switch.turn_off` | Periodic data updates | Enable or pause entity-state forwarding |
+| `number.set_value` | Brightness | Set display brightness as a percentage and turn the display on |
+| `number.set_value` | Pixel shift | Configure periodic content movement to reduce image retention |
+| `number.set_value` | Maximum refresh rate | Limit physical display refreshes |
+| `light.turn_on`, `light.turn_off` | Display | Control display power and brightness |
+
+Use the entity ID generated for your display. For example:
+
+```yaml
+action: button.press
+target:
+  entity_id: button.kitchen_display_next_page
+```
+
+</details>
+
+The device web panel provides notification placement, visible-count and test
+controls under **Display → Notifications**. See the
+[notification reference](docs/notifications.md) for positions, limits, response
+codes and rendering behavior.
 
 ## Build
 
