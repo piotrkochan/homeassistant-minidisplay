@@ -22,7 +22,7 @@ namespace {
 constexpr char kInstallerVersion[] = MINI_DISPLAY_BOOTSTRAP_VERSION;
 constexpr char kFirmwareRepositoryUrl[] =
     "https://github.com/piotrkochan/homeassistant-minidisplay/releases/download/v";
-constexpr char kFirmwareAssetPrefix[] = "home-assistant-mini-display-sdpro-";
+constexpr char kFirmwareAssetPrefix[] = "SDP-HomeAssistant-MiniDisplay-";
 constexpr char kFirmwareSha256[] = MINI_DISPLAY_BOOTSTRAP_FIRMWARE_SHA256;
 static_assert(sizeof(kFirmwareSha256) == 65,
               "Firmware SHA-256 must contain 64 hexadecimal characters");

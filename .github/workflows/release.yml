@@ -59,7 +59,7 @@ jobs:
           RELEASE_VERSION: ${{ github.ref_name }}
         run: |
           VERSION="${RELEASE_VERSION#v}"
-          FIRMWARE_NAME="home-assistant-mini-display-sdpro-${VERSION}.bin"
+          FIRMWARE_NAME="SDP-HomeAssistant-MiniDisplay-${VERSION}.bin"
           make PIO=pio build
           mkdir -p dist
           cp firmware/.pio/build/sdpro/firmware.bin "dist/${FIRMWARE_NAME}"
@@ -69,7 +69,7 @@ jobs:
             BOOTSTRAP_VERSION="${VERSION}" \
             BOOTSTRAP_SHA256="${FIRMWARE_SHA256}"
           cp firmware-bootstrap/.pio/build/sdpro_bootstrap/firmware.bin \
-            "dist/SDP-home-assistant-mini-display-bootstrap-${VERSION}.bin"
+            "dist/SDP-HomeAssistant-MiniDisplay-Bootstrap-${VERSION}.bin"
 
           # Other display profiles are not supported yet. Keep their release
           # builds disabled until their hardware support is ready.

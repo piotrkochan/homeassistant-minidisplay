@@ -1,12 +1,11 @@
 # Home Assistant Mini-Display
 
 > [!CAUTION]
-> **This firmware is experimental. Do not currently install it on a JUZIPi SD
-> PRO through the stock web updater.** The custom image can exceed the stock
-> updater's staging space; the stock UI may still report success after writing
-> an incomplete image, leaving the display unable to boot and requiring UART
-> recovery. The first-install procedure is being replaced with a size-safe
-> installer. Devices already running Mini-Display use a different updater.
+> **This firmware is experimental.** For a first-time installation from the
+> original JUZIPi firmware, upload the release's
+> `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin`. Never upload the
+> larger `SDP-HomeAssistant-MiniDisplay-<VERSION>.bin` through the
+> stock updater; an incomplete write can leave the display unable to boot.
 
 ```text
         .--------------------------.
@@ -96,13 +95,13 @@ Tested hardware: **JUZIPi SD PRO, ESP8266/ESP-12F, 4 MB flash, 240 × 240 ST7789
 Check the [pinout](notes/pinout-sdpro.md) before flashing. Keep a stock firmware
 backup and a recovery method; matching cases do not guarantee matching hardware.
 
-1. Use the **sdpro** firmware from a [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases),
-   when available, or build it below. Rename it to `SDP-MiniDisplay.bin`.
-2. Open the device's stock web UI and upload it through the firmware update page.
-   The stock uploader requires a filename beginning with `SDP`.
-3. After reboot, join `SDPRO-Setup-XXXXXX` and open `http://192.168.4.1/`.
-4. Configure Wi-Fi. The screen shows its new IP address; open that address to
-   configure the display and panel/API protection.
+1. For a first-time installation from the original firmware, download
+   `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the matching
+   [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases).
+2. Upload that file unchanged through the original firmware update page.
+3. Join the installer Wi-Fi shown on the display, open `http://192.168.4.1/`,
+   select your home Wi-Fi and install the offered firmware version.
+4. After reboot, open the IP address shown on the display.
 
 Subsequent updates use the device's **Firmware** page. Direct OTA uses `/update`,
 not the stock `/update_ota`, and has a separate, configurable password.
