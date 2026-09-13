@@ -2,7 +2,7 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { type FirmwareSettings, request, uploadFirmware } from "../api";
 import {
-  compareVersions,
+  compareInstalledVersion,
   downloadFirmwareRelease,
   type FirmwareRelease,
   newestStableRelease,
@@ -91,7 +91,7 @@ export class FirmwarePage extends LitElement {
     return (
       !!this.currentVersion &&
       !!this.selectedVersion_ &&
-      compareVersions(this.selectedVersion_, this.currentVersion) < 0
+      compareInstalledVersion(this.selectedVersion_, this.currentVersion) < 0
     );
   }
 
@@ -176,7 +176,8 @@ export class FirmwarePage extends LitElement {
     }
     const latest = newestStableRelease(this.releases);
     const updateAvailable =
-      latest && compareVersions(latest.version, this.currentVersion) > 0;
+      latest &&
+      compareInstalledVersion(latest.version, this.currentVersion) > 0;
     const downgrade = this.isDowngrade_();
     return html`<section class="card">
       <h2>Install from GitHub</h2>
@@ -214,19 +215,24 @@ export class FirmwarePage extends LitElement {
                           this.downgradeConfirmed_ = false;
                         }}
                       >
-                        ${this.releases.map(
-                          (release, index) =>
-                            html`<option
-                              value=${release.version}
-                              ?selected=${release.version === this.selectedVersion_}
-                            >
-                              ${release.version}${index === 0 ? " — latest" : ""}${
-                                release.version === this.currentVersion
-                                  ? " — installed"
-                                  : ""
-                              }${release.prerelease ? " — pre-release" : ""}
-                            </option>`,
-                        )}
+                        ${this.releases.map((release, index) => {
+                          const older =
+                            compareInstalledVersion(
+                              release.version,
+                              this.currentVersion,
+                            ) < 0;
+                          return html`<option
+                            value=${release.version}
+                            class=${older ? "older-version" : nothing}
+                            ?selected=${release.version === this.selectedVersion_}
+                          >
+                            ${release.version}${index === 0 ? " - latest" : ""}${
+                              release.version === this.currentVersion
+                                ? " - installed"
+                                : ""
+                            }${release.prerelease ? " - pre-release" : ""}
+                          </option>`;
+                        })}
                       </select></label
                     >
                     ${
@@ -272,7 +278,7 @@ export class FirmwarePage extends LitElement {
     const percent = this.transferPercent_;
     return html`<div class="transfer-progress" role="status" aria-live="polite">
       <span
-        >${this.transferStage_}${percent === undefined ? "" : ` — ${percent}%`}</span
+        >${this.transferStage_}${percent === undefined ? "" : ` - ${percent}%`}</span
       >
       ${
         percent === undefined

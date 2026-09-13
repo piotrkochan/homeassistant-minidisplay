@@ -13,7 +13,7 @@ import {
 import {
   fetchFirmwareReleases,
   type FirmwareRelease,
-  compareVersions,
+  compareInstalledVersion,
   newestStableRelease,
 } from "./firmware-releases";
 import "./pages/display";
@@ -175,7 +175,7 @@ class MiniDisplayDevice extends LitElement {
             ...this.firmwareSettings_,
             availableVersion: latest.version,
             updateAvailable:
-              compareVersions(
+              compareInstalledVersion(
                 latest.version,
                 this.info_?.firmwareVersion ?? "",
               ) > 0,

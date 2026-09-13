@@ -51,7 +51,7 @@ waking the screen. This is a display feature, not a guaranteed alarm channel.
 Device web panel: **Display > Notifications > Default position**. Save to persist
 the setting. **Test notification** previews the selected position without saving it.
 
-**Visible at once** sets a limit of 1–3 messages, with 3 as the default. Each visible
+**Visible at once** sets a limit of 1-3 messages, with 3 as the default. Each visible
 message has its own timer and disappears independently. At a limit of 1, messages
 are displayed sequentially. Waiting time does not consume their visible duration.
 Remaining messages move into the available space. Text wraps or uses an ellipsis
@@ -67,7 +67,7 @@ regardless of this toggle. HTTP does not encrypt credentials on the network.
 
 Save settings to persist placement, visible count and protection across restarts.
 The API equivalent is `PUT /api/v1/display` with `notificationPosition`,
-`notificationMaxVisible` (integer 1–3) and `notificationAuthEnabled` (boolean).
+`notificationMaxVisible` (integer 1-3) and `notificationAuthEnabled` (boolean).
 These non-secret settings are also exposed in `GET /api/v1/status`.
 
 Small displays support `top` and `bottom`. Screens at least 320 pixels wide and

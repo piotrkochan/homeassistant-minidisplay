@@ -250,6 +250,9 @@ export const pageStyles = css`
     width: 100%;
     accent-color: var(--accent);
   }
+  option.older-version {
+    color: var(--muted);
+  }
   .check {
     display: flex;
     align-items: center;

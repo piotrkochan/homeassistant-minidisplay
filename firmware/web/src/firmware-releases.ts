@@ -73,6 +73,15 @@ export const compareVersions = (left: string, right: string): number => {
   return 0;
 };
 
+export const compareInstalledVersion = (
+  candidate: string,
+  installed: string,
+): number =>
+  compareVersions(
+    candidate,
+    installed.endsWith("-dev") ? installed.slice(0, -4) : installed,
+  );
+
 export async function fetchFirmwareReleases(): Promise<FirmwareRelease[]> {
   const response = await fetch(releasesUrl, {
     cache: "no-store",

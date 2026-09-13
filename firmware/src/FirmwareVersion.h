@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <stdint.h>
+#include <string.h>
 
 struct FirmwareVersion {
   uint32_t major = 0;
@@ -60,5 +61,7 @@ inline bool newerFirmwareVersion(const char *available, const char *current) {
   if (next.major != installed.major) return next.major > installed.major;
   if (next.minor != installed.minor) return next.minor > installed.minor;
   if (next.patch != installed.patch) return next.patch > installed.patch;
+  const char *currentSuffix = strchr(current, '-');
+  if (currentSuffix && strcmp(currentSuffix, "-dev") == 0) return false;
   return installed.prerelease && !next.prerelease;
 }
