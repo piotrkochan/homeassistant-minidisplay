@@ -2,7 +2,7 @@ import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { DeviceInfo, DeviceStatus } from "../api";
 import type { FirmwareRelease } from "../firmware-releases";
-import { compareVersions } from "../firmware-releases";
+import { compareInstalledVersion } from "../firmware-releases";
 import { formatMemory, formatUptime, lastUpdateAge } from "../format";
 import { pageStyles } from "../styles";
 
@@ -22,7 +22,7 @@ export class OverviewPage extends LitElement {
     const currentVersion = this.info?.firmwareVersion ?? "";
     const updateAvailable =
       this.latestRelease &&
-      compareVersions(this.latestRelease.version, currentVersion) > 0;
+      compareInstalledVersion(this.latestRelease.version, currentVersion) > 0;
     return html`<div class="grid">
       <section class="card">
         <h2>Connection</h2>

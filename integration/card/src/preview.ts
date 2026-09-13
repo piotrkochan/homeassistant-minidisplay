@@ -86,8 +86,8 @@ export class MiniDisplayPreview extends LitElement {
         hour12: card.format === "12h",
       });
     const raw = card.source
-      ? (this.hass?.states[card.source]?.state ?? "—")
-      : (card.text ?? "—");
+      ? (this.hass?.states[card.source]?.state ?? "-")
+      : (card.text ?? "-");
     if (card.type === "status")
       return ["on", "true", "1", "open", "home"].includes(raw.toLowerCase())
         ? (card.onText ?? "On")
@@ -265,8 +265,8 @@ export class MiniDisplayPreview extends LitElement {
                   const cardWidth=free?(frame?.width??50)*this.width/100:(contentWidth-4*Math.max(0,cards.length-1))/cards.length;
                   const cardHeight=free?(frame?.height??25)*this.height/100:rowHeight-(row.title && row.showTitle!==false && rowHeight>=24?17:0);
                   const raw = card.source
-                    ? (this.hass?.states[card.source]?.state ?? "—")
-                    : (card.text ?? "—");
+                    ? (this.hass?.states[card.source]?.state ?? "-")
+                    : (card.text ?? "-");
                   const numeric = transformCardNumber(card, raw);
                   const min = card.minimum ?? 0;
                   const max = card.maximum ?? 100;
