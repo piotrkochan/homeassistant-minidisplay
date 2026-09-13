@@ -1,28 +1,5 @@
 # Home Assistant Mini-Display
 
-> [!CAUTION]
-> **This firmware is experimental. Do not currently install it on a JUZIPi SD
-> PRO through the stock web updater.** The custom image can exceed the stock
-> updater's staging space; the stock UI may still report success after writing
-> an incomplete image, leaving the display unable to boot and requiring UART
-> recovery. The first-install procedure is being replaced with a size-safe
-> installer. Devices already running Mini-Display use a different updater.
-
-```text
-        .--------------------------.
-        | .----------------------. |
-        | |                      | |
-        | |   Over engineered    | |
-        | |    home assistant    | |
-        | |     mini display     | |
-        | |                      | |
-        | |        156 W         | |
-        | |     __/\___/\__      | |
-        | |                      | |
-        | '----------------------' |
-        '--------------------------'
-```
-
 Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
 **JSON Schema powered. Local. No cloud required. Home Assistant optional.**
 
@@ -30,13 +7,11 @@ Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
 
 Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
 
-| Energy and live power | Free layout and backgrounds |
-| :---: | :---: |
-| [![Energy prices, power and history](docs/screenshots/device/page1.png)](docs/screenshots/device/page1.png) | [![Battery and charging on a custom background](docs/screenshots/device/page2.png)](docs/screenshots/device/page2.png) |
-| **Home conditions** | **Car status** |
-| [![Temperature and humidity](docs/screenshots/device/page3.png)](docs/screenshots/device/page3.png) | [![Fuel and trip information](docs/screenshots/device/page4.png)](docs/screenshots/device/page4.png) |
-| **Notification over a live dashboard** | **Live weather and scrolling text** |
-| [![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)](docs/screenshots/device/notification.gif) | [![Weather dashboard with smoothly scrolling text](docs/screenshots/device/page5.gif)](docs/screenshots/device/page5.gif) |
+| Energy and live power | Free layout and backgrounds | Home conditions |
+| :---: | :---: | :---: |
+| [![Energy prices, power and history](docs/screenshots/device/page1.png)](docs/screenshots/device/page1.png) | [![Battery and charging on a custom background](docs/screenshots/device/page2.png)](docs/screenshots/device/page2.png) | [![Temperature and humidity](docs/screenshots/device/page3.png)](docs/screenshots/device/page3.png) |
+| **Car status** | **Notification over a live dashboard** | **Live weather and scrolling text** |
+| [![Fuel and trip information](docs/screenshots/device/page4.png)](docs/screenshots/device/page4.png) | [![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)](docs/screenshots/device/notification.gif) | [![Weather dashboard with smoothly scrolling text](docs/screenshots/device/page5.gif)](docs/screenshots/device/page5.gif) |
 
 ## Tiny screen, lots of possibilities
 
@@ -92,22 +67,23 @@ directly through the [local API](#json-schema-powered).
 
 ## Install on JUZIPi SD PRO
 
+> [!WARNING]
+> A first-time installation on JUZIPi SD PRO requires the matching
+> `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the release.
+> Do not upload the full firmware through the original updater.
+
 Tested hardware: **JUZIPi SD PRO, ESP8266/ESP-12F, 4 MB flash, 240 × 240 ST7789**.
-Check the [pinout](notes/pinout-sdpro.md) before flashing. Keep a stock firmware
-backup and a recovery method; matching cases do not guarantee matching hardware.
 
-1. Use the **sdpro** firmware from a [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases),
-   when available, or build it below. Rename it to `SDP-MiniDisplay.bin`.
-2. Open the device's stock web UI and upload it through the firmware update page.
-   The stock uploader requires a filename beginning with `SDP`.
-3. After reboot, join `SDPRO-Setup-XXXXXX` and open `http://192.168.4.1/`.
-4. Configure Wi-Fi. The screen shows its new IP address; open that address to
-   configure the display and panel/API protection.
+The full firmware is too large for the original updater, so the first install
+uses a small bootstrap firmware. It downloads one specific release from GitHub, verifies
+it and safely installs it. Internet access is needed only during this download.
 
-Subsequent updates use the device's **Firmware** page. Direct OTA uses `/update`,
-not the stock `/update_ota`, and has a separate, configurable password.
-If USB does not expose a serial port, recovery needs a **3.3 V USB-to-TTL adapter**,
-not just a USB cable. Check the pinout before connecting anything.
+1. Download `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the
+   matching [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases).
+2. Upload it unchanged through the original firmware update page.
+3. Follow the instructions shown on the display.
+
+Subsequent updates use the device's **Firmware** page.
 
 ### Add Home Assistant
 
@@ -125,20 +101,74 @@ Manual installation: copy `custom_components/mini_display` into HA's
 
 ## Hardware profiles
 
-Only SD PRO is hardware-tested here. **Testers wanted for every other profile.**
-These are build targets, not a promise that any similarly named device will work.
+The code is prepared for several GeekMagic SmallTV variants, with separate
+build profiles for their MCUs, flash layouts and known display wiring. I
+currently own only a **JUZIPi SD PRO**, so that is the only device tested on
+real hardware. The other profiles compile, but still need hardware validation.
+
+**Have one of the untested models?** [Open an issue](https://github.com/piotrkochan/homeassistant-minidisplay/issues/new)
+with the exact model, MCU and board photos. I can provide a matching test build
+and help verify the display, buttons, Wi-Fi and recovery path.
 
 | Model / variant | PlatformIO target | Status |
 | --- | --- | --- |
-| JUZIPi SD PRO | `sdpro` | Tested on hardware |
-| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | Not tested; testers needed |
-| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | Not tested; testers needed |
-| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | Not tested; testers needed |
-| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | Not tested; testers needed |
+| JUZIPi SD PRO | `sdpro` | ✅ Tested on hardware |
+| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | ⚠️ Builds, tester needed |
 
-ESP32 builds provide separate `factory.bin` and `ota.bin` images. Do not interchange
-them or use the SD PRO installation procedure for another model. See the
-[hardware notes](notes/) and report your exact board, MCU and wiring when testing.
+<details>
+<summary>Build firmware locally</summary>
+
+Requires Python 3, Node.js 24, npm and Make. From the repository root:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install platformio==6.1.19
+npm ci --prefix firmware/web
+```
+
+Build the tested JUZIPi SD PRO firmware:
+
+```bash
+make build
+```
+
+Output: `firmware/.pio/build/sdpro/firmware.bin`.
+
+Or build the shared web interface and the profile matching another SmallTV:
+
+```bash
+# GeekMagic SmallTV with no display CS pin
+make profile-build PROFILE=geekmagic_smalltv_nocs
+
+# Original GeekMagic SmallTV / Ultra with display CS on GPIO15
+make profile-build PROFILE=geekmagic_smalltv_cs15
+
+# GeekMagic SmallTV with ESP32-C2 / ESP8684
+make profile-build PROFILE=geekmagic_smalltv_esp32c2
+
+# GeekMagic SmallTV Pro with classic ESP32 and 8 MB flash
+make profile-build PROFILE=geekmagic_smalltv_pro
+```
+
+Outputs appear under `firmware/.pio/build/<PROFILE>/`. Run `make build-all` to
+build every profile and copy the packaged binaries into `dist/`.
+
+For HA frontend development: `npm ci --prefix integration/card`, then
+`make card-check card-build`. Native firmware tests: `make test-native`
+(requires a C++17 compiler). Memory report: `make elf-report` after building.
+
+</details>
+
+ESP32 profiles produce two different images: use `firmware.factory.bin` only
+for the initial full flash over a serial connection, and use `firmware.bin`
+only for an OTA update from compatible firmware. They are not interchangeable.
+The SD PRO bootstrap and installation steps are exclusively for JUZIPi SD PRO;
+other SmallTV models can have different MCUs, partitions and pin wiring. Check
+the [hardware notes](notes/) and keep a serial recovery method ready before
+testing an unverified profile.
 
 ## JSON Schema powered
 
@@ -269,24 +299,6 @@ The device web panel provides notification placement, visible-count and test
 controls under **Display → Notifications**. See the
 [notification reference](docs/notifications.md) for positions, limits, response
 codes and rendering behavior.
-
-## Build
-
-Requires Python 3, Node.js 24, npm and Make.
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install platformio==6.1.19
-npm ci --prefix firmware/web
-make build
-```
-
-SD PRO output: `firmware/.pio/build/sdpro/firmware.bin`.
-`make build-all` packages all profiles into `dist/`.
-
-For HA frontend development: `npm ci --prefix integration/card`, then
-`make card-check card-build`. Native firmware tests: `make test-native`
-(requires a C++17 compiler). Memory report: `make elf-report` after building.
 
 GitHub CI checks firmware, native tests, the HA integration and browser interactions
 on code changes. Releases require passing checks. HACS validation runs separately

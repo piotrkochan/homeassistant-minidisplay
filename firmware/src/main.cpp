@@ -66,7 +66,7 @@ namespace {
 
 constexpr uint32_t kConnectTimeoutMs = 20000;
 #ifndef MINI_DISPLAY_VERSION
-#define MINI_DISPLAY_VERSION "0.3.0-dev"
+#error "MINI_DISPLAY_VERSION must be supplied by the build"
 #endif
 constexpr char kFirmwareVersion[] = MINI_DISPLAY_VERSION;
 #if defined(HARDWARE_PROFILE_GEEKMAGIC_ESP32C2)

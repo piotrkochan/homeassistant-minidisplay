@@ -33,6 +33,8 @@ def main():
         (core / "platforms", Path("project/.platformio/platforms")),
         (ROOT / "firmware/.pio/libdeps", Path("project/firmware/.pio/libdeps")),
         (ROOT / "firmware/.pio/build", Path("project/firmware/.pio/build")),
+        (ROOT / "firmware-bootstrap/.pio/libdeps", Path("project/firmware-bootstrap/.pio/libdeps")),
+        (ROOT / "firmware-bootstrap/.pio/build", Path("project/firmware-bootstrap/.pio/build")),
     ]:
         if not directory.is_dir():
             raise SystemExit(f"Missing build input: {directory}; build firmware first")

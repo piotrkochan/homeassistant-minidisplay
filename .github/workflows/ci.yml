@@ -5,6 +5,7 @@ on:
     paths: &code-paths
       - '.github/workflows/**'
       - 'firmware/**'
+      - 'firmware-bootstrap/**'
       - 'custom_components/**'
       - 'integration/card/**'
       - 'dashboard/**'
@@ -45,8 +46,13 @@ jobs:
           cache-dependency-path: firmware/web/package-lock.json
       - run: python -m pip install platformio==6.1.19
       - run: npm ci --prefix firmware/web
-      - name: Build SD PRO and check device UI
-        run: make PIO=pio build
+      - name: Build SD PRO, bootstrap and check device UI
+        run: |
+          make PIO=pio build
+          FIRMWARE_SHA256="$(sha256sum firmware/.pio/build/sdpro/firmware.bin | cut -d' ' -f1)"
+          make PIO=pio bootstrap-build \
+            BOOTSTRAP_VERSION=0.0.0 \
+            BOOTSTRAP_SHA256="${FIRMWARE_SHA256}"
       - name: Native tests with address and undefined-behavior sanitizers
         run: make test-native
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

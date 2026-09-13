@@ -1,7 +1,9 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
+FIRMWARE_VERSION ?= 0.0.0-dev
+export MINI_DISPLAY_BUILD_VERSION := $(FIRMWARE_VERSION)
 
-.PHONY: build build-all package clean check size elf-report card-build card-check schema-sync schema-check web-build web-check test-native
+.PHONY: build build-all package profile-build clean check size elf-report bootstrap-build bootstrap-clean card-build card-check schema-sync schema-check web-build web-check test-native
 
 build: web-build
 	python3 firmware/scripts/index_smooth_fonts.py
@@ -9,10 +11,14 @@ build: web-build
 
 build-all: package
 
+profile-build: web-build
+	@test -n "$(PROFILE)" || { echo "PROFILE is required"; exit 1; }
+	cd firmware && $(PIO) run --environment "$(PROFILE)"
+
 package: web-build
 	mkdir -p dist
 	cd firmware && $(PIO) run -e sdpro -e geekmagic_smalltv_nocs -e geekmagic_smalltv_cs15
-	cp firmware/.pio/build/sdpro/firmware.bin dist/home-assistant-mini-display-sdpro.bin
+	cp firmware/.pio/build/sdpro/firmware.bin dist/SDP-HomeAssistant-MiniDisplay.bin
 	cp firmware/.pio/build/geekmagic_smalltv_nocs/firmware.bin dist/home-assistant-mini-display-geekmagic-smalltv-nocs.bin
 	cp firmware/.pio/build/geekmagic_smalltv_cs15/firmware.bin dist/home-assistant-mini-display-geekmagic-smalltv-cs15.bin
 	cd firmware && $(PIO) run -e geekmagic_smalltv_esp32c2
@@ -24,6 +30,17 @@ package: web-build
 
 clean:
 	cd firmware && $(PIO) run --target clean
+
+bootstrap-build:
+	@printf '%s' "$(BOOTSTRAP_VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc(\.[0-9]+)?)?$$' || { echo "BOOTSTRAP_VERSION must be a supported release version without v prefix"; exit 1; }
+	@printf '%s' "$(BOOTSTRAP_SHA256)" | grep -Eq '^[0-9a-f]{64}$$' || { echo "BOOTSTRAP_SHA256 must be 64 lowercase hex characters"; exit 1; }
+	cd firmware-bootstrap && \
+		BOOTSTRAP_VERSION="$(BOOTSTRAP_VERSION)" \
+		BOOTSTRAP_SHA256="$(BOOTSTRAP_SHA256)" \
+		$(PIO) run
+
+bootstrap-clean:
+	cd firmware-bootstrap && $(PIO) run --target clean
 
 check: schema-check
 	cd firmware && $(PIO) check

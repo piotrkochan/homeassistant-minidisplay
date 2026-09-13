@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- add a version-pinned SD PRO bootstrap that provisions Wi-Fi and installs its
+  SHA-256-verified firmware image directly from GitHub
+- build and attach a matching bootstrap image to every firmware release
+
+### Fixes
+
+- pause first-time SD PRO installation through the stock web updater after
+  confirming that oversized images may be accepted but written incompletely
+
 ## v0.2.0
 
 Changes since v0.1.1.
