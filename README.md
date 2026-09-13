@@ -125,7 +125,7 @@ Requires Python 3, Node.js 24, npm and Make. From the repository root:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install platformio==6.1.19
+.venv/bin/pip install platformio==6.1.19 zopfli==0.4.1
 npm ci --prefix firmware/web
 ```
 

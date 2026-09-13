@@ -130,8 +130,14 @@ void paintGraph(Canvas &canvas, const GraphPaintConfig &graph, int16_t x, int16_
              py <= min<int16_t>(max(top, baseline), visibleBottom - 1); ++py) pixel(px, py);
     }
     if (graph.labels && i % graph.labelEvery == 0) {
-      char text[20];
+      char text[48];
+#if defined(ESP8266)
+      // dtostrf is already used by Arduino String and avoids linking newlib's
+      // much larger generic printf float formatter.
+      dtostrf(value, 0, graph.decimals, text);
+#else
       snprintf(text, sizeof(text), "%.*f", graph.decimals, static_cast<double>(value));
+#endif
       // Tiny fixed 3x5 numerals keep graph labels independent of loaded fonts.
       static constexpr uint16_t digits[] = {0x7B6F,0x2492,0x73E7,0x73CF,0x5BC9,0x79CF,0x79EF,0x7249,0x7BEF,0x7BCF};
       const int16_t origin = max<int16_t>(0, min<int16_t>(center - static_cast<int16_t>(strlen(text)) * 2, width - static_cast<int16_t>(strlen(text)) * 4));

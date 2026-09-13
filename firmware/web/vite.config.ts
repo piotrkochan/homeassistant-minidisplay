@@ -16,9 +16,19 @@ export default defineConfig({
     }),
   ],
   build: {
+    modulePreload: { polyfill: false },
     target: "es2020",
     cssMinify: "esbuild",
-    minify: "esbuild",
+    minify: "terser",
+    terserOptions: {
+      ecma: 2020,
+      module: true,
+      compress: {
+        passes: 3,
+        pure_getters: "strict",
+      },
+      format: { comments: false },
+    },
     sourcemap: false,
     rollupOptions: {
       output: {

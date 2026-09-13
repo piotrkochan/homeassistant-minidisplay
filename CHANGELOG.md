@@ -27,6 +27,12 @@
 - pause first-time SD PRO installation through the stock web updater after
   confirming that oversized images may be accepted but written incompletely
 
+### Performance
+
+- recover about 19 KB of SD PRO firmware space by tightening the embedded web
+  bundle and schema compression, and by replacing unused generic float helpers
+  with bounded firmware-specific number handling
+
 ## v0.2.0
 
 Changes since v0.1.1.
