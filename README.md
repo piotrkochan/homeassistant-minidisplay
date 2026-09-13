@@ -223,7 +223,7 @@ curl --request POST \
 
 `title` or `message` is required. Supported severities are `info`, `success`,
 `warning`, `error` and `critical`; built-in icons include `bell`, `info`,
-`check`, `warning`, `error`, `power` and `door`. Duration can be 1–300 seconds.
+`check`, `warning`, `error`, `power` and `door`. Duration can be 1-300 seconds.
 Omit `icon`, `severity`, `durationSeconds` or `position` to use their defaults.
 
 Dismiss every visible and queued notification:

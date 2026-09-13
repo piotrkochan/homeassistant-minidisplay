@@ -1,6 +1,7 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
-FIRMWARE_VERSION ?= 0.0.0-dev
+REPOSITORY_VERSION := $(patsubst v%,%,$(shell git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null))
+FIRMWARE_VERSION ?= $(if $(REPOSITORY_VERSION),$(REPOSITORY_VERSION)-dev,0.0.0-dev)
 export MINI_DISPLAY_BUILD_VERSION := $(FIRMWARE_VERSION)
 
 .PHONY: build build-all package profile-build clean check size elf-report bootstrap-build bootstrap-clean card-build card-check schema-sync schema-check web-build web-check test-native
@@ -94,6 +95,9 @@ test-native:
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/display_refresh_test.cpp -o .cache/tests/display-refresh
 	.cache/tests/display-refresh
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/firmware_version_test.cpp -o .cache/tests/firmware-version
+	.cache/tests/firmware-version
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/number_transform_test.cpp -o .cache/tests/number-transform
 	.cache/tests/number-transform

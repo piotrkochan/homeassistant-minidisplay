@@ -9,6 +9,7 @@
 #include "DisplayRefresh.h"
 #include "NotificationRequest.h"
 #include "FeatureFlags.h"
+#include "FirmwareVersion.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
 #include "RequestBodyWebServer.h"
@@ -90,6 +91,10 @@ constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
 constexpr char kDisplaySettingsPath[] = "/display.json";
 constexpr char kDisplaySettingsTempPath[] = "/display.tmp";
+constexpr uint16_t kDefaultFirmwareNoticeDurationSeconds = 60;
+constexpr uint16_t kDefaultFirmwareReminderHours = 24;
+constexpr uint16_t kMaximumFirmwareReminderHours = 24 * 30;
+constexpr uint32_t kFirmwareNoticeRetryMs = 60000;
 constexpr size_t kMaxDashboardBytes = 12 * 1024;
 constexpr size_t kMaxDataBytes = 8 * 1024;
 constexpr uint8_t kMaxPages = 16;
@@ -155,6 +160,13 @@ DisplayRefresh displayRefresh;
 NotificationCenter notifications;
 NotificationPosition notificationPosition = NotificationPosition::Top;
 bool notificationAuthEnabled = true;
+bool firmwareNotificationsEnabled = true;
+uint16_t firmwareNoticeDurationSeconds =
+    kDefaultFirmwareNoticeDurationSeconds;
+uint16_t firmwareReminderHours = kDefaultFirmwareReminderHours;
+char firmwareAvailableVersion[24]{};
+uint32_t firmwareLastNoticeEpoch = 0;
+uint32_t firmwareNoticeRetryAt = 30000;
 SceneRect notificationPaintedBounds{};
 uint32_t notificationPaintedRevision = 0;
 uint32_t notificationFrameAt = 0;
@@ -279,7 +291,7 @@ void loadDisplaySettings() {
   if (!filesystemReady || !LittleFS.exists(kDisplaySettingsPath)) return;
   File file = LittleFS.open(kDisplaySettingsPath, "r");
   if (!file) return;
-  StaticJsonDocument<320> document;
+  StaticJsonDocument<512> document;
   const auto error = deserializeJson(document, file);
   file.close();
   if (error) return;
@@ -290,6 +302,28 @@ void loadDisplaySettings() {
       notificationPosition, display.width(), display.height());
   notifications.setMaxVisible(document["notificationMaxVisible"] | 3);
   notificationAuthEnabled = document["notificationAuthEnabled"] | true;
+  firmwareNotificationsEnabled =
+      document["firmwareNotificationsEnabled"] | true;
+  const int firmwareDuration =
+      document["firmwareNoticeDurationSeconds"] |
+      static_cast<int>(kDefaultFirmwareNoticeDurationSeconds);
+  const int firmwareReminder =
+      document["firmwareReminderHours"] |
+      static_cast<int>(kDefaultFirmwareReminderHours);
+  if (firmwareDuration >= 5 && firmwareDuration <= 300) {
+    firmwareNoticeDurationSeconds = firmwareDuration;
+  }
+  if (firmwareReminder >= 1 &&
+      firmwareReminder <= kMaximumFirmwareReminderHours) {
+    firmwareReminderHours = firmwareReminder;
+  }
+  FirmwareVersion available;
+  const char *availableVersion = document["firmwareAvailableVersion"] | "";
+  if (parseFirmwareVersion(availableVersion, available)) {
+    strlcpy(firmwareAvailableVersion, availableVersion,
+            sizeof(firmwareAvailableVersion));
+  }
+  firmwareLastNoticeEpoch = document["firmwareLastNoticeEpoch"] | 0U;
   strlcpy(displayTimezone, document["timezone"] | kDefaultTimezone,
           sizeof(displayTimezone));
   if (brightness >= 0 && brightness <= 100) displayBrightness = brightness;
@@ -304,13 +338,19 @@ void saveDisplaySettings() {
   if (!filesystemReady) return;
   File file = LittleFS.open(kDisplaySettingsTempPath, "w");
   if (!file) return;
-  StaticJsonDocument<320> document;
+  StaticJsonDocument<512> document;
   document["brightness"] = displayBrightness;
   document["pixelShift"] = displayPixelShift;
   document["refreshRateHz"] = displayRefresh.rate();
   document["notificationPosition"] = notificationPositionName(notificationPosition);
   document["notificationMaxVisible"] = notifications.maxVisible();
   document["notificationAuthEnabled"] = notificationAuthEnabled;
+  document["firmwareNotificationsEnabled"] = firmwareNotificationsEnabled;
+  document["firmwareNoticeDurationSeconds"] =
+      firmwareNoticeDurationSeconds;
+  document["firmwareReminderHours"] = firmwareReminderHours;
+  document["firmwareAvailableVersion"] = firmwareAvailableVersion;
+  document["firmwareLastNoticeEpoch"] = firmwareLastNoticeEpoch;
   document["timezone"] = displayTimezone;
   if (serializeJson(document, file) == 0) {
     file.close();
@@ -743,6 +783,57 @@ void updateNotifications() {
     }
   }
   notificationFrameAt = millis();
+}
+
+void updateFirmwareNotificationReminder() {
+  const uint32_t nowMs = millis();
+  if (static_cast<int32_t>(nowMs - firmwareNoticeRetryAt) < 0 ||
+      !firmwareNotificationsEnabled ||
+      strcmp(kHardwareProfile, "juzipi-sd-pro") != 0 ||
+      !newerFirmwareVersion(firmwareAvailableVersion, kFirmwareVersion) ||
+      !displayOn || !displayBrightness ||
+      notifications.count() == NotificationCenter::kCapacity) {
+    return;
+  }
+  const time_t now = time(nullptr);
+  if (now <= 1000000000) {
+    firmwareNoticeRetryAt = nowMs + kFirmwareNoticeRetryMs;
+    return;
+  }
+  const uint32_t nowEpoch = static_cast<uint32_t>(now);
+  const uint32_t reminderSeconds =
+      static_cast<uint32_t>(firmwareReminderHours) * 60U * 60U;
+  if (firmwareLastNoticeEpoch && nowEpoch >= firmwareLastNoticeEpoch &&
+      nowEpoch - firmwareLastNoticeEpoch < reminderSeconds) {
+    firmwareNoticeRetryAt =
+        nowMs + min<uint32_t>(kFirmwareNoticeRetryMs,
+                              (reminderSeconds -
+                               (nowEpoch - firmwareLastNoticeEpoch)) *
+                                  1000U);
+    return;
+  }
+  std::unique_ptr<DisplayNotification> item(
+      new (std::nothrow) DisplayNotification());
+  if (!item) {
+    firmwareNoticeRetryAt = nowMs + kFirmwareNoticeRetryMs;
+    return;
+  }
+  strlcpy(item->title, "Firmware update", sizeof(item->title));
+  snprintf(item->message, sizeof(item->message), "Version %s is available",
+           firmwareAvailableVersion);
+  item->durationMs =
+      static_cast<uint32_t>(firmwareNoticeDurationSeconds) * 1000U;
+  item->position = notificationPosition;
+  item->severity = NotificationSeverity::Info;
+  item->icon = NotificationIcon::Info;
+  prepareNotification(*item, display.width(), display.height());
+  if (!notifications.enqueue(std::move(item))) {
+    firmwareNoticeRetryAt = nowMs + kFirmwareNoticeRetryMs;
+    return;
+  }
+  firmwareLastNoticeEpoch = nowEpoch;
+  firmwareNoticeRetryAt = nowMs + kFirmwareNoticeRetryMs;
+  saveDisplaySettings();
 }
 
 bool renderDashboardPage() { return renderDashboardPage(nullptr); }
@@ -2396,6 +2487,94 @@ void generateApiTlsCertificate() {
 }
 #endif
 
+void sendApiFirmwareSettings() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<256> document;
+  document["notificationsEnabled"] = firmwareNotificationsEnabled;
+  document["notificationDurationSeconds"] =
+      firmwareNoticeDurationSeconds;
+  document["reminderHours"] = firmwareReminderHours;
+  document["availableVersion"] = firmwareAvailableVersion;
+  document["updateAvailable"] =
+      newerFirmwareVersion(firmwareAvailableVersion, kFirmwareVersion);
+  String body;
+  body.reserve(192);
+  serializeJson(document, body);
+  server.send(200, "application/json", body);
+}
+
+void receiveApiFirmwareSettings() {
+  if (!apiAuthenticated()) return;
+  StaticJsonDocument<256> document;
+  if (deserializeJson(document, server.arg("plain"))) {
+    sendJsonError(400, F("invalid_json"), F("Expected JSON object"));
+    return;
+  }
+  if (document.containsKey("notificationsEnabled") &&
+      !document["notificationsEnabled"].is<bool>()) {
+    sendJsonError(422, F("invalid_firmware_notifications"),
+                  F("Notification setting must be true or false"));
+    return;
+  }
+  if (document.containsKey("notificationDurationSeconds") &&
+      (!document["notificationDurationSeconds"].is<unsigned>() ||
+       document["notificationDurationSeconds"].as<unsigned>() < 5 ||
+       document["notificationDurationSeconds"].as<unsigned>() > 300)) {
+    sendJsonError(422, F("invalid_firmware_notification_duration"),
+                  F("Notification duration must be 5-300 seconds"));
+    return;
+  }
+  if (document.containsKey("reminderHours") &&
+      (!document["reminderHours"].is<unsigned>() ||
+       document["reminderHours"].as<unsigned>() < 1 ||
+       document["reminderHours"].as<unsigned>() >
+           kMaximumFirmwareReminderHours)) {
+    sendJsonError(422, F("invalid_firmware_reminder"),
+                  F("Reminder interval must be 1-720 hours"));
+    return;
+  }
+  FirmwareVersion parsed;
+  const char *availableVersion = nullptr;
+  if (document.containsKey("availableVersion")) {
+    availableVersion = document["availableVersion"].as<const char *>();
+    if (!availableVersion || strlen(availableVersion) >=
+                                 sizeof(firmwareAvailableVersion) ||
+        !parseFirmwareVersion(availableVersion, parsed)) {
+      sendJsonError(422, F("invalid_firmware_version"),
+                    F("Expected a semantic firmware version"));
+      return;
+    }
+  }
+  bool changed = false;
+  if (document.containsKey("notificationsEnabled")) {
+    const bool value = document["notificationsEnabled"].as<bool>();
+    if (value && !firmwareNotificationsEnabled) firmwareNoticeRetryAt = millis();
+    changed = changed || firmwareNotificationsEnabled != value;
+    firmwareNotificationsEnabled = value;
+  }
+  if (document.containsKey("notificationDurationSeconds")) {
+    const uint16_t value =
+        document["notificationDurationSeconds"].as<uint16_t>();
+    changed = changed || firmwareNoticeDurationSeconds != value;
+    firmwareNoticeDurationSeconds = value;
+  }
+  if (document.containsKey("reminderHours")) {
+    const uint16_t value = document["reminderHours"].as<uint16_t>();
+    changed = changed || firmwareReminderHours != value;
+    firmwareReminderHours = value;
+  }
+  if (availableVersion &&
+      strcmp(firmwareAvailableVersion, availableVersion) != 0) {
+    strlcpy(firmwareAvailableVersion, availableVersion,
+            sizeof(firmwareAvailableVersion));
+    firmwareLastNoticeEpoch = 0;
+    firmwareNoticeRetryAt = millis();
+    changed = true;
+  }
+  if (changed) saveDisplaySettings();
+  server.send(204);
+}
+
 void finishFirmwareUpdate() {
   const bool success = !Update.hasError();
   server.send(success ? 200 : 500, "text/plain",
@@ -2474,7 +2653,11 @@ void receiveFirmwareUpdate() {
     prepareFirmwareUpdate();
 #if defined(ESP8266)
     WiFiUDP::stopAll();
-    Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000);
+    // getFreeSketchSpace() already excludes the running sketch and rounds its
+    // end to a flash-sector boundary. Keeping the final sector available lets
+    // two maximum-sized images alternate without progressively shrinking the
+    // next OTA slot.
+    Update.begin(ESP.getFreeSketchSpace() & 0xFFFFF000);
 #else
     Update.begin(UPDATE_SIZE_UNKNOWN);
 #endif
@@ -2535,6 +2718,8 @@ void configureRoutes() {
   server.on("/update", HTTP_GET, sendWebApp);
   server.on("/schema/dashboard.schema.json", HTTP_GET, sendDashboardSchema);
   server.on("/update", HTTP_POST, finishDirectUpdate, receiveDirectUpdate);
+  server.on("/api/v1/firmware", HTTP_GET, sendApiFirmwareSettings);
+  server.on("/api/v1/firmware", HTTP_PUT, receiveApiFirmwareSettings);
   server.on("/api/v1/firmware", HTTP_POST, finishPanelUpdate,
             receivePanelUpdate);
   server.on("/api/v1/setup", HTTP_GET, sendApiSetup);
@@ -2790,6 +2975,7 @@ void loop() {
 
   // Rendering here releases the HTTP handler's stack and request buffers
   // first. Never compile a scene or run an animation inside a page request.
+  updateFirmwareNotificationReminder();
   updateNotifications();
   if (pendingPageIndex >= 0 && displayRefresh.ready(millis())) {
     const uint8_t nextPage = pendingPageIndex;

@@ -4,11 +4,18 @@ import {
   DeviceApiError,
   type DeviceInfo,
   type DeviceStatus,
+  type FirmwareSettings,
   type NetworkStatus,
   type SecurityStatus,
   type SetupStatus,
   request,
 } from "./api";
+import {
+  fetchFirmwareReleases,
+  type FirmwareRelease,
+  compareInstalledVersion,
+  newestStableRelease,
+} from "./firmware-releases";
 import "./pages/display";
 import "./pages/diagnostics";
 import "./pages/firmware";
@@ -40,6 +47,7 @@ class MiniDisplayDevice extends LitElement {
   @state() private configured_ = true;
   @state() private loading_ = true;
   @state() private saving_ = false;
+  @state() private firmwareUpdating_ = false;
   @state() private message_ = "";
   @state() private error_ = "";
   @state() private info_?: DeviceInfo;
@@ -47,6 +55,10 @@ class MiniDisplayDevice extends LitElement {
   @state() private network_?: NetworkStatus;
   @state() private security_?: SecurityStatus;
   @state() private setup_?: SetupStatus;
+  @state() private firmwareSettings_?: FirmwareSettings;
+  @state() private releases_: FirmwareRelease[] = [];
+  @state() private releasesLoading_ = false;
+  @state() private releasesError_ = "";
   @state() private networkState_: NetworkFormState = {
     recoveryProtected: false,
     staticIp: false,
@@ -60,6 +72,7 @@ class MiniDisplayDevice extends LitElement {
 
   private readonly page_ = pageFromPath();
   private statusTimer_?: number;
+  private releasesTimer_?: number;
 
   static styles = shellStyles;
 
@@ -70,11 +83,17 @@ class MiniDisplayDevice extends LitElement {
       () => void this.refreshStatus_(),
       5000,
     );
+    this.releasesTimer_ = window.setInterval(
+      () => void this.refreshReleases_(),
+      6 * 60 * 60 * 1000,
+    );
   }
 
   disconnectedCallback() {
     if (this.statusTimer_ !== undefined)
       window.clearInterval(this.statusTimer_);
+    if (this.releasesTimer_ !== undefined)
+      window.clearInterval(this.releasesTimer_);
     super.disconnectedCallback();
   }
 
@@ -106,6 +125,9 @@ class MiniDisplayDevice extends LitElement {
       }
       if (this.page_ === "security")
         this.security_ = await request<SecurityStatus>("/api/v1/security");
+      if (this.page_ === "firmware")
+        this.firmwareSettings_ =
+          await request<FirmwareSettings>("/api/v1/firmware");
     } catch (error) {
       if (error instanceof DeviceApiError && error.status === 403) {
         try {
@@ -133,6 +155,37 @@ class MiniDisplayDevice extends LitElement {
       }
     } finally {
       this.loading_ = false;
+    }
+    if (this.configured_) void this.refreshReleases_();
+  }
+
+  private async refreshReleases_() {
+    this.releasesLoading_ = true;
+    this.releasesError_ = "";
+    try {
+      this.releases_ = await fetchFirmwareReleases();
+      const latest = newestStableRelease(this.releases_);
+      if (latest && this.info_?.hardwareProfile === "juzipi-sd-pro") {
+        await request("/api/v1/firmware", {
+          method: "PUT",
+          body: JSON.stringify({ availableVersion: latest.version }),
+        });
+        if (this.firmwareSettings_)
+          this.firmwareSettings_ = {
+            ...this.firmwareSettings_,
+            availableVersion: latest.version,
+            updateAvailable:
+              compareInstalledVersion(
+                latest.version,
+                this.info_?.firmwareVersion ?? "",
+              ) > 0,
+          };
+      }
+    } catch (error) {
+      this.releasesError_ =
+        error instanceof Error ? error.message : "Could not check releases";
+    } finally {
+      this.releasesLoading_ = false;
     }
   }
 
@@ -174,6 +227,31 @@ class MiniDisplayDevice extends LitElement {
     this.error_ = message;
   };
 
+  private firmwareUpdateStart_ = () => {
+    this.firmwareUpdating_ = true;
+    this.saving_ = true;
+    this.message_ = "";
+    this.error_ = "";
+  };
+
+  private firmwareUpdateSuccess_ = (message: string) => {
+    this.message_ = message;
+  };
+
+  private firmwareUpdateError_ = (message: string) => {
+    this.firmwareUpdating_ = false;
+    this.saving_ = false;
+    this.error_ = message;
+  };
+
+  private firmwareSettingsSuccess_ = (
+    message: string,
+    settings: FirmwareSettings,
+  ) => {
+    this.firmwareSettings_ = settings;
+    this.uploadSuccess_(message);
+  };
+
   private navigation_() {
     const items: [Page, string, string][] = [
       ["overview", "/", "Overview"],
@@ -196,7 +274,7 @@ class MiniDisplayDevice extends LitElement {
   }
 
   private shell_(content: unknown) {
-    return html`<header>
+    return html`<header ?inert=${this.firmwareUpdating_}>
         <div class="head">
           <div>
             <h1>Mini Display</h1>
@@ -213,12 +291,26 @@ class MiniDisplayDevice extends LitElement {
       </header>
       <main>
         ${
-          this.message_
-            ? html`<div class="notice">${this.message_}</div>`
+          this.firmwareUpdating_
+            ? html`<div
+                class="update-warning"
+                role="status"
+                aria-live="assertive"
+              >
+                <strong>Firmware update in progress</strong>
+                <span>Do not disconnect the display from power.</span>
+              </div>`
             : nothing
         }
-        ${this.error_ ? html`<div class="error">${this.error_}</div>` : nothing}
-        ${content}
+        <div ?inert=${this.firmwareUpdating_}>
+          ${
+            this.message_
+              ? html`<div class="notice">${this.message_}</div>`
+              : nothing
+          }
+          ${this.error_ ? html`<div class="error">${this.error_}</div>` : nothing}
+          ${content}
+        </div>
       </main>`;
   }
 
@@ -254,9 +346,19 @@ class MiniDisplayDevice extends LitElement {
     if (this.page_ === "firmware")
       return html`<mini-display-firmware-page
         .saving=${this.saving_}
-        .onStart=${this.uploadStart_}
-        .onSuccess=${this.uploadSuccess_}
-        .onError=${this.uploadError_}
+        .currentVersion=${this.info_?.firmwareVersion ?? ""}
+        .hardwareProfile=${this.info_?.hardwareProfile ?? ""}
+        .releases=${this.releases_}
+        .releasesLoading=${this.releasesLoading_}
+        .releasesError=${this.releasesError_}
+        .settings=${this.firmwareSettings_}
+        .onRefreshReleases=${() => void this.refreshReleases_()}
+        .onStart=${this.firmwareUpdateStart_}
+        .onSuccess=${this.firmwareUpdateSuccess_}
+        .onError=${this.firmwareUpdateError_}
+        .onSettingsStart=${this.uploadStart_}
+        .onSettingsSuccess=${this.firmwareSettingsSuccess_}
+        .onSettingsError=${this.uploadError_}
       ></mini-display-firmware-page>`;
     if (this.page_ === "diagnostics")
       return html`<mini-display-diagnostics-page
@@ -266,6 +368,11 @@ class MiniDisplayDevice extends LitElement {
     return html`<mini-display-overview
       .info=${this.info_}
       .status=${this.status_}
+      .latestRelease=${
+        this.info_?.hardwareProfile === "juzipi-sd-pro"
+          ? newestStableRelease(this.releases_)
+          : undefined
+      }
     ></mini-display-overview>`;
   }
 
@@ -284,9 +391,9 @@ class MiniDisplayDevice extends LitElement {
           (this.networkState_ = state)}
         .onSecurityState=${(state: SecurityFormState) =>
           (this.securityState_ = state)}
-        .onUploadStart=${this.uploadStart_}
-        .onUploadSuccess=${this.uploadSuccess_}
-        .onUploadError=${this.uploadError_}
+        .onUploadStart=${this.firmwareUpdateStart_}
+        .onUploadSuccess=${this.firmwareUpdateSuccess_}
+        .onUploadError=${this.firmwareUpdateError_}
       ></mini-display-setup-page>`;
     return this.shell_(this.pageContent_());
   }
