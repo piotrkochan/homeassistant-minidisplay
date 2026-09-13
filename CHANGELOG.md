@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.3.0
+
+Changes since v0.2.0.
 
 ### Features
 
