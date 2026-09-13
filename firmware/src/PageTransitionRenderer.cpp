@@ -246,6 +246,11 @@ void PageTransitionRenderer::render(
   if (!regionPainter_ || !regionPainter_->begin(motion)) {
     regionPainter_.reset();
     lastType_ = PageTransitionType::None;
+    // Direct TFT_eSPI coordinates address physical GRAM. Normalize the
+    // hardware viewport before using that emergency path, otherwise a prior
+    // hardware scroll leaves the new page split at the old rolling offset.
+    scrollBuffer_.setOffset(0);
+    display_.fillScreen(nextPage.background);
     paintScenePage(display_, nextPage, contentOffsetX, contentOffsetY,
                    0, 0, 240, 240, displayFontState_, &imageCache_);
     lastDurationMs_ = millis() - startedAt;
