@@ -67,6 +67,8 @@ The SD PRO OTA slot is small. Preserve the existing size work and check
 - Preserve compact smooth-font VLW version 12. Its glyph metadata is 7 bytes
   instead of the standard 28 bytes and is used by embedded smooth fonts and
   newly uploaded custom fonts. Continue accepting legacy version 11 uploads.
+  Store version 12 user fonts only under the distinct `font-v12-*` paths;
+  older firmware assumes every `font1-*` and `font2-*` file is version 11.
 - Keep static smooth-font offset indexes 16-bit. Regeneration must fail if an
   indexed font grows beyond the 64 KiB addressable range.
 - Preserve RLE encoding for the large built-in coverage fonts. Rendering must
