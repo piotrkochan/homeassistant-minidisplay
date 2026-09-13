@@ -17,6 +17,8 @@ int main() {
   assert(newerFirmwareVersion("0.2.0", "0.0.0-dev"));
   assert(newerFirmwareVersion("0.2.0", "0.1.1"));
   assert(newerFirmwareVersion("0.2.0", "0.2.0-rc.1"));
+  assert(!newerFirmwareVersion("0.2.0", "0.2.0-dev"));
+  assert(newerFirmwareVersion("0.2.1", "0.2.0-dev"));
   assert(!newerFirmwareVersion("0.2.0", "0.2.0"));
   assert(!newerFirmwareVersion("0.1.1", "0.2.0"));
   assert(!newerFirmwareVersion("0.2.0-rc.1", "0.2.0"));
