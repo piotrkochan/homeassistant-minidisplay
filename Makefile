@@ -107,6 +107,14 @@ test-native:
 		-I firmware/src firmware/tests/number_transform_test.cpp -o .cache/tests/number-transform
 	.cache/tests/number-transform
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/decimal_parser_test.cpp firmware/src/DecimalParser.cpp \
+		-o .cache/tests/decimal-parser
+	.cache/tests/decimal-parser
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/time_format_test.cpp \
+		-o .cache/tests/time-format
+	.cache/tests/time-format
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-DSTATIC_SMOOTH_TEST -DPROGMEM= -I firmware/src firmware/tests/static_smooth_font_test.cpp \
 		firmware/src/StaticSmoothFonts.generated.cpp -o .cache/tests/static-smooth-font
 	.cache/tests/static-smooth-font

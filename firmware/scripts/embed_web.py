@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-import gzip
 import json
 from pathlib import Path
 import re
+
+import zopfli.gzip
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,12 +50,12 @@ def array(name: str, payload: bytes) -> str:
 
 
 def main() -> None:
-    web = gzip.compress(build_document(), compresslevel=9, mtime=0)
     schema_document = json.loads(SCHEMA.read_text())
     schema_json = json.dumps(
         schema_document, ensure_ascii=False, separators=(",", ":")
     ).encode()
-    schema = gzip.compress(schema_json, compresslevel=9, mtime=0)
+    web = zopfli.gzip.compress(build_document(), numiterations=15)
+    schema = zopfli.gzip.compress(schema_json, numiterations=15)
     OUTPUT.write_text(
         "#pragma once\n\n"
         "#include <Arduino.h>\n\n"

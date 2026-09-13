@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 POLISH = "ĄĆĘŁŃÓŚŹŻąćęłńóśźż"
 SYMBOLS = "€–—…←↑→↓•✓✕"
+COMPACT_VLW_VERSION = 12
 
 
 def sharpen_alpha(value: int) -> int:
@@ -50,13 +51,30 @@ def vlw(font_path: Path, size: int, codepoints: list[int]) -> bytes:
     ascent, descent = font.getmetrics()
     glyphs = [rasterize(font, codepoint) for codepoint in codepoints]
     result = bytearray()
-    for value in (len(codepoints), 11, size, 0, ascent, descent):
+    for value in (
+        len(codepoints),
+        COMPACT_VLW_VERSION,
+        size,
+        0,
+        ascent,
+        descent,
+    ):
         result.extend(struct.pack(">I", value))
     for codepoint, (width, height, advance, dy, dx, _) in zip(
         codepoints, glyphs
     ):
-        for value in (codepoint, height, width, advance, dy, dx, 0):
-            result.extend(struct.pack(">i", value))
+        if not (
+            codepoint <= 0xFFFF
+            and height <= 0xFF
+            and width <= 0xFF
+            and advance <= 0xFF
+            and -128 <= dy <= 127
+            and -128 <= dx <= 127
+        ):
+            raise ValueError(f"glyph U+{codepoint:04X} exceeds compact VLW limits")
+        result.extend(
+            struct.pack(">HBBBbb", codepoint, height, width, advance, dy, dx)
+        )
     for *_, pixels in glyphs:
         result.extend(pixels)
     return bytes(result)

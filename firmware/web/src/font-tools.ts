@@ -36,6 +36,9 @@ const writeInt32 = (view: DataView, offset: number, value: number) => {
   view.setUint32(offset, value >>> 0, false);
 };
 
+const compactVlwVersion = 12;
+const compactMetricBytes = 7;
+
 const uniqueCodepoints = (characters: string, limit: number) => {
   const values = new Set<number>();
   for (const character of characters) {
@@ -135,37 +138,48 @@ const buildVlw = (family: string, size: number, codepoints: number[]): Blob => {
   const glyphs = codepoints.map((codepoint) =>
     rasterize(context, canvas, family, size, codepoint),
   );
+  for (const glyph of glyphs) {
+    if (
+      glyph.width > 64 ||
+      glyph.height > 64 ||
+      glyph.advance > 96 ||
+      glyph.dy < -128 ||
+      glyph.dy > 127 ||
+      glyph.dx < -128 ||
+      glyph.dx > 127
+    )
+      throw new Error(
+        `Glyph U+${glyph.codepoint.toString(16).toUpperCase().padStart(4, "0")} exceeds device font limits.`,
+      );
+  }
   const ascent = Math.max(1, ...glyphs.map((glyph) => glyph.dy));
   const descent = Math.max(
     1,
     ...glyphs.map((glyph) => glyph.height - glyph.dy),
   );
+  if (ascent > 64 || descent > 32)
+    throw new Error(`${size} px font metrics exceed device limits.`);
   const bitmapBytes = glyphs.reduce(
     (total, glyph) => total + glyph.pixels.length,
     0,
   );
   const headerBytes = 24;
-  const metricsBytes = glyphs.length * 28;
+  const metricsBytes = glyphs.length * compactMetricBytes;
   const output = new Uint8Array(headerBytes + metricsBytes + bitmapBytes);
   const view = new DataView(output.buffer);
-  [glyphs.length, 11, size, 0, ascent, descent].forEach((value, index) =>
-    writeInt32(view, index * 4, value),
+  [glyphs.length, compactVlwVersion, size, 0, ascent, descent].forEach(
+    (value, index) => writeInt32(view, index * 4, value),
   );
   let metricsOffset = headerBytes;
   let bitmapOffset = headerBytes + metricsBytes;
   for (const glyph of glyphs) {
-    [
-      glyph.codepoint,
-      glyph.height,
-      glyph.width,
-      glyph.advance,
-      glyph.dy,
-      glyph.dx,
-      0,
-    ].forEach((value) => {
-      writeInt32(view, metricsOffset, value);
-      metricsOffset += 4;
-    });
+    view.setUint16(metricsOffset, glyph.codepoint, false);
+    view.setUint8(metricsOffset + 2, glyph.height);
+    view.setUint8(metricsOffset + 3, glyph.width);
+    view.setUint8(metricsOffset + 4, glyph.advance);
+    view.setInt8(metricsOffset + 5, glyph.dy);
+    view.setInt8(metricsOffset + 6, glyph.dx);
+    metricsOffset += compactMetricBytes;
     output.set(glyph.pixels, bitmapOffset);
     bitmapOffset += glyph.pixels.length;
   }

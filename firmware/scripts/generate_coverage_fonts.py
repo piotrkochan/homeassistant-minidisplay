@@ -1,4 +1,4 @@
-"""Generate four-level glyph coverage in flash, with no runtime decompression."""
+"""Generate run-length encoded four-level glyph coverage in flash."""
 import argparse
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -20,8 +20,14 @@ def generate(source, destination):
                 image = Image.new('L', (width, height))
                 ImageDraw.Draw(image).text((-left,-top), character, font=font, fill=255, anchor='ls')
                 coverage = [round(value/85) for value in image.tobytes()]
-                coverage += [0] * (-len(coverage) % 4)
-                pixels.extend(sum(coverage[i+j] << (6-2*j) for j in range(4)) for i in range(0,len(coverage),4))
+                position = 0
+                while position < len(coverage):
+                    value = coverage[position]
+                    end = position + 1
+                    while end < len(coverage) and coverage[end] == value and end - position < 64:
+                        end += 1
+                    pixels.append((value << 6) | (end - position - 1))
+                    position = end
             glyphs.append((offset,code,width,height,max(1,round(font.getlength(character))),left,top))
         # Match the existing GFX font datum metrics, including extended Latin.
         boxes = [font.getbbox(chr(code), anchor='ls') for code in range(32,383)]

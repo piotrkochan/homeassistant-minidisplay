@@ -58,12 +58,15 @@ class UserFontStore {
   bool load();
   bool save();
   bool validateVlw(const char *path, uint16_t *glyphCount,
-                   uint32_t *bytes) const;
-  const char *fontPath(uint8_t slot, uint8_t size, bool temporary) const;
+                   uint32_t *bytes, uint8_t *version = nullptr) const;
+  bool validatePack(uint8_t slot, bool compact, uint8_t expectedVersion,
+                    uint16_t *glyphCount, uint32_t *bytes) const;
+  bool migrateLegacyCompactPack(uint8_t slot);
 
   bool filesystemReady_ = false;
   int8_t activeSlot_ = -1;
   UserFontSlotInfo slots_[kUserFontSlots]{};
+  bool compactSlots_[kUserFontSlots]{};
   File uploadFile_;
   uint8_t uploadSlot_ = 0;
   uint8_t uploadSize_ = 0;

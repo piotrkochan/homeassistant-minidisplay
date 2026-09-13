@@ -4,6 +4,9 @@
 #include <cstring>
 #include <time.h>
 
+#include "DecimalParser.h"
+#include "TimeFormat.h"
+
 namespace {
 
 String compactNumber(float value) {
@@ -33,9 +36,7 @@ bool CardValueResolver::transformedNumber(JsonObjectConst card,
                                           const char *raw,
                                           float &result) const {
   if (raw == nullptr) return false;
-  char *end = nullptr;
-  result = strtof(raw, &end);
-  if (end == raw || *end != '\0' || !isfinite(result)) return false;
+  if (!parseDecimalFloat(raw, result)) return false;
   result = numberTransform(card).apply(result);
   return isfinite(result);
 }
@@ -67,9 +68,8 @@ float CardValueResolver::progressRatio(JsonObjectConst card,
 bool CardValueResolver::mappingMatches(const char *type, JsonObjectConst rule,
                                        const String &raw) const {
   if (strcmp(type, "number") == 0) {
-    char *end = nullptr;
-    const float number = strtof(raw.c_str(), &end);
-    if (end == raw.c_str() || *end != '\0') return false;
+    float number = 0.0F;
+    if (!parseDecimalFloat(raw.c_str(), number)) return false;
     const bool hasMinimum = !rule["minimum"].isNull();
     const bool hasMaximum = !rule["maximum"].isNull();
     return (!hasMinimum || number >= rule["minimum"].as<float>()) &&
@@ -121,11 +121,7 @@ String CardValueResolver::value(JsonObjectConst card) const {
     char buffer[24];
     const bool seconds = card["showSeconds"] | false;
     const char *format = card["format"] | "24h";
-    strftime(buffer, sizeof(buffer),
-             strcmp(format, "12h") == 0
-                 ? (seconds ? "%I:%M:%S" : "%I:%M")
-                 : (seconds ? "%H:%M:%S" : "%H:%M"),
-             &localTime);
+    formatClockTime(buffer, localTime, seconds, strcmp(format, "12h") == 0);
     return String(buffer);
   }
   const char *source = card["source"];

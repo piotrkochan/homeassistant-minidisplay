@@ -26,8 +26,21 @@
 - derive development firmware versions from the latest repository tag
 - use the complete ESP8266 OTA slot so similarly sized near-limit firmware
   images can update each other repeatedly
+- keep compact custom-font files separate from legacy VLW paths so older
+  firmware safely falls back to built-in fonts after a downgrade
 - pause first-time SD PRO installation through the stock web updater after
   confirming that oversized images may be accepted but written incompletely
+
+### Performance
+
+- reduce SD PRO firmware and font storage without sacrificing rendering quality
+  or animation speed:
+  - recover about 104 KiB of firmware space with tighter web and schema
+    compression, RLE-compressed coverage fonts and compact bundled font metadata
+  - store newly uploaded custom fonts with 7-byte glyph metadata instead of
+    28-byte records while continuing to support existing font packs
+  - keep one filesystem backend and replace heavyweight generic number and time
+    conversion paths with bounded firmware-specific implementations
 
 ## v0.2.0
 

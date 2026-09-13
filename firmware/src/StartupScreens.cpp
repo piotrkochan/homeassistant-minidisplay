@@ -145,56 +145,50 @@ void StartupScreens::showSetup(const DeviceConfig &config,
   display_.fillRoundRect(12, 12, 216, 6, 3, accent);
 
   display_.setTextDatum(MC_DATUM);
-  display_.setTextColor(TFT_WHITE, panel);
-  display_.drawString("SETUP MODE", kScreenCenter, 32, 4);
+  drawCenteredBold("SETUP MODE", 32, 4, TFT_WHITE);
   const uint8_t retryLimit = config.wifiRetryLimit
                                  ? config.wifiRetryLimit
                                  : kDefaultWifiRetryLimit;
   const bool connectionFailed =
       wifiConfigured(config) && connectionAttempt >= retryLimit;
   if (connectionFailed) {
-    display_.setTextColor(TFT_RED, panel);
-    display_.drawString("WI-FI CONNECTION FAILED", kScreenCenter, 52, 1);
+    drawCenteredBold("WI-FI CONNECTION FAILED", 52, 1, TFT_RED);
   }
-  display_.setTextColor(muted, panel);
-  display_.drawString("CONNECT TO", kScreenCenter, connectionFailed ? 69 : 60,
-                      2);
-  display_.setTextColor(TFT_WHITE, panel);
-  display_.drawString("SDPRO-Setup-" + deviceSuffix, kScreenCenter,
-                      connectionFailed ? 87 : 78, 2);
+  drawCenteredBold("CONNECT TO", connectionFailed ? 69 : 60, 2, muted);
+  drawCenteredBold("SDPRO-Setup-" + deviceSuffix,
+                   connectionFailed ? 87 : 78, 2, TFT_WHITE);
 
-  display_.setTextColor(muted, panel);
-  display_.drawString("OPEN IN BROWSER", kScreenCenter,
-                      connectionFailed ? 107 : 100, 2);
-  display_.setTextColor(accent, panel);
-  display_.drawString("http://" + WiFi.softAPIP().toString(), kScreenCenter,
-                      connectionFailed ? 125 : 118, 2);
+  drawCenteredBold("OPEN IN BROWSER", connectionFailed ? 107 : 100, 2,
+                   muted);
+  drawCenteredBold("http://" + WiFi.softAPIP().toString(),
+                   connectionFailed ? 125 : 118, 2, accent);
 
   if (networkSettings.recoveryPassword[0]) {
-    display_.setTextColor(muted, panel);
-    display_.drawString("PASSWORD", kScreenCenter,
-                        connectionFailed ? 145 : 140, 2);
-    display_.setTextColor(TFT_WHITE, panel);
+    drawCenteredBold("PASSWORD", connectionFailed ? 145 : 140, 2, muted);
     const String password = networkSettings.recoveryPassword;
     const int16_t passwordY = connectionFailed ? 162 : 158;
     if (password.length() <= 24) {
-      display_.drawString(password, kScreenCenter, passwordY, 2);
+      drawCenteredBold(password, passwordY, 2, TFT_WHITE);
     } else if (password.length() <= 36) {
+      display_.setFreeFont(nullptr);
+      display_.setTextColor(TFT_WHITE, panel);
       display_.drawString(password, kScreenCenter, passwordY, 1);
     } else {
       const size_t split = (password.length() + 1) / 2;
+      display_.setFreeFont(nullptr);
+      display_.setTextColor(TFT_WHITE, panel);
       display_.drawString(password.substring(0, split), kScreenCenter,
                           passwordY - 5, 1);
       display_.drawString(password.substring(split), kScreenCenter,
                           passwordY + 7, 1);
     }
   }
-  display_.setTextColor(muted, panel);
-  display_.drawString("CONNECTED DEVICES", kScreenCenter,
-                      networkSettings.recoveryPassword[0] ? 188 : 151, 2);
-  display_.setTextColor(accent, panel);
-  display_.drawString(String(setupStationCount_), kScreenCenter,
-                      networkSettings.recoveryPassword[0] ? 211 : 184, 4);
+  drawCenteredBold("CONNECTED DEVICES",
+                   networkSettings.recoveryPassword[0] ? 188 : 151, 2,
+                   muted);
+  drawCenteredBold(String(setupStationCount_),
+                   networkSettings.recoveryPassword[0] ? 211 : 184, 4,
+                   accent);
 
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);

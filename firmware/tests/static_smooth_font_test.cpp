@@ -49,17 +49,27 @@ int main() {
   for (const auto *data : {InterTightSmooth18, InterTightSmooth24}) {
     const auto font = indexedSmoothFont(data);
     assert(font.data && font.offsets);
-    uint32_t offset = 24 + font.count * 28;
+    uint32_t offset = 24 + font.count * font.metricBytes;
     for (unsigned i = 0; i < font.count; ++i) {
-      const auto *record = data + 24 + i * 28;
+      const auto *record = data + 24 + i * font.metricBytes;
+      const uint32_t code = font.metricBytes == 7 ? smoothHalf(record)
+                                                   : smoothWord(record);
       StaticSmoothGlyph glyph;
-      assert(font.find(smoothWord(record), glyph));
+      assert(font.find(code, glyph));
       assert(glyph.offset == offset);
-      assert(glyph.height == int(smoothWord(record + 4)));
-      assert(glyph.width == int(smoothWord(record + 8)));
-      assert(glyph.advance == int(smoothWord(record + 12)));
-      assert(glyph.dy == int32_t(smoothWord(record + 16)));
-      assert(glyph.dx == int32_t(smoothWord(record + 20)));
+      if (font.metricBytes == 7) {
+        assert(glyph.height == coverageByte(record + 2));
+        assert(glyph.width == coverageByte(record + 3));
+        assert(glyph.advance == coverageByte(record + 4));
+        assert(glyph.dy == int8_t(coverageByte(record + 5)));
+        assert(glyph.dx == int8_t(coverageByte(record + 6)));
+      } else {
+        assert(glyph.height == int(smoothWord(record + 4)));
+        assert(glyph.width == int(smoothWord(record + 8)));
+        assert(glyph.advance == int(smoothWord(record + 12)));
+        assert(glyph.dy == int32_t(smoothWord(record + 16)));
+        assert(glyph.dx == int32_t(smoothWord(record + 20)));
+      }
       offset += glyph.width * glyph.height;
     }
     assert(font.width("") == 0);
