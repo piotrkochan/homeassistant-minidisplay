@@ -7,7 +7,7 @@
 #include "TransitionPixelTransfer.h"
 
 #if defined(ESP8266)
-constexpr int16_t kMinimumTransitionBandHeight = 6;
+constexpr int16_t kMinimumTransitionBandHeight = 2;
 constexpr uint32_t kTransitionHeapReserve = 11000;
 
 // All effects traverse the same bounded bands with the same frozen progress.
@@ -43,14 +43,21 @@ class SceneRegionPainter {
         return true;
       }
     }
-    // Last-resort band matches previous stable memory use. Full-quality fonts
-    // still decide independently whether enough heap remains for glyph tables.
-    if (ESP.getFreeHeap() >= 240U * kMinimumTransitionBandHeight * 2U + 8192U &&
-        ESP.getMaxFreeBlockSize() >=
-            240U * kMinimumTransitionBandHeight * 2U + 256U &&
-        tile_.createSprite(240, kMinimumTransitionBandHeight) != nullptr) {
-      bandHeight_ = kMinimumTransitionBandHeight;
-      return true;
+    // Fragmented heaps may not have one 2880-byte block even though enough
+    // total memory remains. Smaller bands keep the hardware-scroll path alive;
+    // they cost more paint calls, but never require a software animation.
+    constexpr int16_t fallbackHeights[] = {
+        6, 4, kMinimumTransitionBandHeight};
+    for (const int16_t height : fallbackHeights) {
+      const uint32_t bytes = 240U * height * 2U + 32U;
+      if (ESP.getFreeHeap() < bytes + 8192U ||
+          ESP.getMaxFreeBlockSize() < bytes + 256U) {
+        continue;
+      }
+      if (tile_.createSprite(240, height) != nullptr) {
+        bandHeight_ = height;
+        return true;
+      }
     }
     return false;
   }

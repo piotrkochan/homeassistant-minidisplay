@@ -17,6 +17,8 @@
 
 ### Fixes
 
+- keep hardware-accelerated slide and bounce transitions correctly aligned
+  during fragmented or low-memory rendering ([#6](https://github.com/piotrkochan/homeassistant-minidisplay/pull/6/changes))
 - treat a stable release matching the base development version as current
   instead of reporting an update
 - derive development firmware versions from the latest repository tag

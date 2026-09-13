@@ -24,10 +24,12 @@ class DisplayScrollBuffer {
   void begin() {
     if (configured_) return;
 #if defined(ESP8266)
+    display_.startWrite();
     display_.writecommand(ST7789_VSCRDEF);
     write16(0);
     write16(kGramHeight);
     write16(0);
+    display_.endWrite();
     configured_ = true;
     setOffset(offset_);
 #else
@@ -40,8 +42,10 @@ class DisplayScrollBuffer {
   void setOffset(uint16_t value) {
     offset_ = value % kGramHeight;
 #if defined(ESP8266)
+    display_.startWrite();
     display_.writecommand(ST7789_VSCRSADD);
     write16(offset_);
+    display_.endWrite();
 #endif
   }
 
@@ -73,6 +77,11 @@ class DisplayScrollBuffer {
         x + width > kWidth) return;
     const bool swapped = display_.getSwapBytes();
     display_.setSwapBytes(false);
+    // TFT_eSPI::setAddrWindow() normally closes its transaction, while
+    // pushPixels() assumes one is still active. Keep address selection and the
+    // pixel payload atomic: the no-CS SD PRO panel otherwise sees occasional
+    // incomplete bands and its physical scroll position diverges from offset_.
+    display_.startWrite();
     int16_t row = 0;
     while (row < height) {
       const uint16_t physicalY = (y + row) % kGramHeight;
@@ -83,6 +92,7 @@ class DisplayScrollBuffer {
                           static_cast<uint32_t>(width) * rows);
       row += rows;
     }
+    display_.endWrite();
     display_.setSwapBytes(swapped);
 #else
     display_.pushImage(x, y, width, height, pixels);
