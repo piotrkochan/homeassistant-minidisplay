@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "DecimalParser.h"
+#include "TimeFormat.h"
 
 namespace {
 
@@ -120,11 +121,7 @@ String CardValueResolver::value(JsonObjectConst card) const {
     char buffer[24];
     const bool seconds = card["showSeconds"] | false;
     const char *format = card["format"] | "24h";
-    strftime(buffer, sizeof(buffer),
-             strcmp(format, "12h") == 0
-                 ? (seconds ? "%I:%M:%S" : "%I:%M")
-                 : (seconds ? "%H:%M:%S" : "%H:%M"),
-             &localTime);
+    formatClockTime(buffer, localTime, seconds, strcmp(format, "12h") == 0);
     return String(buffer);
   }
   const char *source = card["source"];

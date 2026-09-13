@@ -29,9 +29,14 @@
 
 ### Performance
 
-- recover about 89 KiB of SD PRO firmware space through tighter web and schema
-  compression, RLE-compressed antialiased glyphs, compact font metadata, one
-  filesystem backend and bounded firmware-specific number handling
+- reduce SD PRO firmware and font storage without sacrificing rendering quality
+  or animation speed:
+  - recover about 106 KiB of firmware space with tighter web and schema
+    compression, RLE-compressed coverage fonts and compact bundled font metadata
+  - store newly uploaded custom fonts with 7-byte glyph metadata instead of
+    28-byte records while continuing to support existing font packs
+  - keep one filesystem backend and replace heavyweight generic number and time
+    conversion paths with bounded firmware-specific implementations
 
 ## v0.2.0
 

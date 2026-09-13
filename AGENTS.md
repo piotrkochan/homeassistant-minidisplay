@@ -44,6 +44,46 @@ make size
 Use PlatformIO with the pinned `espressif8266` platform. Keep generated files
 out of Git.
 
+## Firmware size guardrails
+
+The SD PRO OTA slot is small. Preserve the existing size work and check
+`make size` after changes that can affect linked code or embedded assets.
+
+- Do not use `strftime` for the fixed clock and status formats. Use the bounded
+  helpers in `TimeFormat.h`; `strftime` pulls several KiB of locale code and
+  static RAM into the ESP8266 image.
+- Do not use `strtof`, floating-point `scanf`, or generic floating-point
+  formatting on ESP8266. Use `DecimalParser` for input and the existing bounded
+  number formatting paths. Keep `_printf_float` and `_scanf_float` out of the
+  linker flags.
+- Use LittleFS only. Do not add SPIFFS calls or restore TFT_eSPI's SPIFFS
+  defaults, because that links a second filesystem implementation.
+- Keep unused TFT_eSPI built-in fonts disabled. The startup screens reuse the
+  project fonts; do not restore `LOAD_FONT2` or `LOAD_FONT4` without measuring
+  the cost and proving they are required.
+- Preserve the 16-bit `GFXglyph` bitmap offsets applied by
+  `scripts/patch_tft_espi.py`. Every bundled GFX bitmap must remain below
+  64 KiB; the pre-build check intentionally fails if that assumption changes.
+- Preserve compact smooth-font VLW version 12. Its glyph metadata is 7 bytes
+  instead of the standard 28 bytes and is used by embedded smooth fonts and
+  newly uploaded custom fonts. Continue accepting legacy version 11 uploads.
+- Keep static smooth-font offset indexes 16-bit. Regeneration must fail if an
+  indexed font grows beyond the 64 KiB addressable range.
+- Preserve RLE encoding for the large built-in coverage fonts. Rendering must
+  stay streaming and allocation-free; do not expand a complete glyph or font
+  into RAM.
+- Build the web UI with the existing Terser settings and embed the web/schema
+  gzip streams with Zopfli. Do not commit or embed unminified assets.
+- Do not add decompression or allocation to repeated drawing and animation
+  paths merely to reduce flash. Any further bitmap compression needs native
+  equivalence tests and physical-device timing before adoption.
+
+Previously tested compiler shortcuts are not useful here: full LTO is
+incompatible with the pinned prebuilt ESP8266 libraries, tighter function
+alignment increased the image, `-fno-threadsafe-statics` saved almost nothing
+while weakening initialization, and JavaScript private-property mangling is
+unsafe for Lit reactivity.
+
 ## Changelog
 
 - Keep `CHANGELOG.md` complete for every material change since the most recent

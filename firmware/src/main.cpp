@@ -60,6 +60,7 @@
 #if defined(ESP8266) && MINI_DISPLAY_FEATURE_TLS
 #include "TlsCertificateManager.h"
 #endif
+#include "TimeFormat.h"
 #include "UserFonts.h"
 #include "WebAssets.generated.h"
 
@@ -1400,8 +1401,8 @@ void sendApiStatus() {
     localtime_r(&now, &localTime);
     char timeBuffer[9];
     char dateBuffer[11];
-    strftime(timeBuffer, sizeof(timeBuffer), "%H:%M:%S", &localTime);
-    strftime(dateBuffer, sizeof(dateBuffer), "%Y-%m-%d", &localTime);
+    formatClockTime(timeBuffer, localTime, true);
+    formatIsoDate(dateBuffer, localTime);
     response.field("localTime", timeBuffer);
     response.field("localDate", dateBuffer);
   } else {

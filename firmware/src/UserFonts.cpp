@@ -32,6 +32,13 @@ uint32_t readBigEndian32(File &file) {
   return value;
 }
 
+uint16_t readBigEndian16(File &file) {
+  const int high = file.read();
+  const int low = file.read();
+  if (high < 0 || low < 0) return UINT16_MAX;
+  return (static_cast<uint16_t>(high) << 8) | static_cast<uint8_t>(low);
+}
+
 }  // namespace
 
 UserFontStore userFonts;
@@ -235,24 +242,36 @@ bool UserFontStore::validateVlw(const char *path, uint16_t *glyphCount,
   readBigEndian32(file);
   const uint32_t ascent = readBigEndian32(file);
   const uint32_t descent = readBigEndian32(file);
-  if (count == 0 || count > kMaxUserFontGlyphs || version != 11 ||
+  const bool compact = version == 12;
+  const uint8_t metricBytes = compact ? 7 : 28;
+  if (count == 0 || count > kMaxUserFontGlyphs ||
+      (!compact && version != 11) ||
       fontSize < 8 || fontSize > 48 || ascent > 64 || descent > 32 ||
-      fileBytes < 24 + count * 28) {
+      fileBytes < 24 + count * metricBytes) {
     file.close();
     return false;
   }
   uint32_t bitmapBytes = 0;
   uint32_t previousCodepoint = 0;
   for (uint16_t index = 0; index < count; ++index) {
-    const uint32_t codepoint = readBigEndian32(file);
-    const uint32_t height = readBigEndian32(file);
-    const uint32_t width = readBigEndian32(file);
-    const uint32_t advance = readBigEndian32(file);
-    readBigEndian32(file);
-    readBigEndian32(file);
-    readBigEndian32(file);
+    const uint32_t codepoint =
+        compact ? readBigEndian16(file) : readBigEndian32(file);
+    const uint32_t height = compact ? file.read() : readBigEndian32(file);
+    const uint32_t width = compact ? file.read() : readBigEndian32(file);
+    const uint32_t advance = compact ? file.read() : readBigEndian32(file);
+    if (compact) {
+      if (file.read() < 0 || file.read() < 0) {
+        file.close();
+        return false;
+      }
+    } else {
+      readBigEndian32(file);
+      readBigEndian32(file);
+      readBigEndian32(file);
+    }
     if (codepoint > 0xffff || (index > 0 && codepoint <= previousCodepoint) ||
-        height > 64 || width > 64 || advance > 96 ||
+        height > 64 || width > 64 || advance > 96 || height == UINT32_MAX ||
+        width == UINT32_MAX || advance == UINT32_MAX ||
         bitmapBytes > UINT32_MAX - width * height) {
       file.close();
       return false;
@@ -260,7 +279,7 @@ bool UserFontStore::validateVlw(const char *path, uint16_t *glyphCount,
     previousCodepoint = codepoint;
     bitmapBytes += width * height;
   }
-  const bool valid = 24 + count * 28 + bitmapBytes <= fileBytes;
+  const bool valid = 24 + count * metricBytes + bitmapBytes <= fileBytes;
   file.close();
   if (!valid) return false;
   *glyphCount = count;

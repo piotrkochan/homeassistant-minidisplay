@@ -7,6 +7,10 @@ inline uint32_t smoothWord(const uint8_t *data) {
          uint32_t(coverageByte(data + 2)) << 8 | coverageByte(data + 3);
 }
 
+inline uint16_t smoothHalf(const uint8_t *data) {
+  return uint16_t(coverageByte(data)) << 8 | coverageByte(data + 1);
+}
+
 struct StaticSmoothGlyph {
   uint32_t offset;
   int16_t width, height, advance, dx, dy;
@@ -15,28 +19,38 @@ struct StaticSmoothGlyph {
 // Index lives in flash. Original 8-bit VLW alpha pixels are not converted.
 struct StaticSmoothFont {
   const uint8_t *data = nullptr;
-  const uint32_t *offsets = nullptr;
+  const uint16_t *offsets = nullptr;
   uint16_t count = 0;
+  uint8_t metricBytes = 28;
   uint16_t ascent = 0, descent = 0, lineHeight = 0, spaceWidth = 0;
 
   bool find(uint32_t code, StaticSmoothGlyph &glyph) const {
     size_t low = 0, high = count;
     while (low < high) {
       const size_t index = (low + high) / 2;
-      const uint8_t *entry = data + 24 + index * 28;
-      const uint32_t found = smoothWord(entry);
+      const uint8_t *entry = data + 24 + index * metricBytes;
+      const uint32_t found =
+          metricBytes == 7 ? smoothHalf(entry) : smoothWord(entry);
       if (found < code) { low = index + 1; continue; }
       if (found > code) { high = index; continue; }
 #if defined(ESP8266)
-      glyph.offset = pgm_read_dword(offsets + index);
+      glyph.offset = pgm_read_word(offsets + index);
 #else
       glyph.offset = offsets[index];
 #endif
-      glyph.height = smoothWord(entry + 4);
-      glyph.width = smoothWord(entry + 8);
-      glyph.advance = smoothWord(entry + 12);
-      glyph.dy = static_cast<int32_t>(smoothWord(entry + 16));
-      glyph.dx = static_cast<int32_t>(smoothWord(entry + 20));
+      if (metricBytes == 7) {
+        glyph.height = coverageByte(entry + 2);
+        glyph.width = coverageByte(entry + 3);
+        glyph.advance = coverageByte(entry + 4);
+        glyph.dy = static_cast<int8_t>(coverageByte(entry + 5));
+        glyph.dx = static_cast<int8_t>(coverageByte(entry + 6));
+      } else {
+        glyph.height = smoothWord(entry + 4);
+        glyph.width = smoothWord(entry + 8);
+        glyph.advance = smoothWord(entry + 12);
+        glyph.dy = static_cast<int32_t>(smoothWord(entry + 16));
+        glyph.dx = static_cast<int32_t>(smoothWord(entry + 20));
+      }
       return true;
     }
     return false;
