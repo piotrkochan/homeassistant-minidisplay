@@ -2,12 +2,15 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <cstddef>
 
 inline constexpr uint8_t kDefaultWifiRetryLimit = 3;
 inline constexpr char kDefaultTimezone[] = "CET-1CEST,M3.5.0,M10.5.0/3";
 inline constexpr char kDefaultNtpServer[] = "pool.ntp.org";
 
 struct DeviceConfig {
+  // Persistent compatibility boundary. Do not resize, reorder or repurpose
+  // fields. Store future settings in independently versioned LittleFS files.
   uint32_t magic;
   char ssid[33];
   char wifiPassword[65];
@@ -23,6 +26,11 @@ struct DeviceConfig {
   uint8_t reserved[3];
   uint32_t checksum;
 };
+
+static_assert(sizeof(DeviceConfig) == 248,
+              "DeviceConfig EEPROM layout must remain stable");
+static_assert(offsetof(DeviceConfig, checksum) == 244,
+              "DeviceConfig checksum offset must remain stable");
 
 struct NetworkSettings {
   char recoveryPassword[64];

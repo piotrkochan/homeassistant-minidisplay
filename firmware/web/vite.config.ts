@@ -16,6 +16,7 @@ export default defineConfig({
     }),
   ],
   build: {
+    modulePreload: { polyfill: false },
     target: "es2020",
     cssMinify: "esbuild",
     minify: "esbuild",
