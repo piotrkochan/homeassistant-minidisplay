@@ -17,12 +17,28 @@ for size in (13, 18, 24, 36, 48):
     if size <= 24:
         source = re.search(rf"InterTightSmooth{size}\[\].*?\{{(.*?)\}};", smooth, re.S)[1]
         data = bytes(int(value, 16) for value in re.findall(r"0x([0-9A-Fa-f]{2})", source))
-        count, _, _, _, ascent, descent = struct.unpack_from(">6I", data)
-        offset = 24 + count * 28
+        count, version, _, _, ascent, descent = struct.unpack_from(">6I", data)
+        if version not in (11, 12) or count > 4096:
+            raise ValueError(f"Unsupported smooth font header for size {size}")
+        metric_bytes = 7 if version == 12 else 28
+        offset = 24 + count * metric_bytes
+        if offset > len(data):
+            raise ValueError(f"Truncated smooth font metrics for size {size}")
         for index in range(count):
-            code, h, w, advance, dy, dx, _ = struct.unpack_from(">7i", data, 24 + index * 28)
-            alpha = data[offset:offset + w * h]
-            offset += w * h
+            metric_offset = 24 + index * metric_bytes
+            if version == 12:
+                code, h, w, advance, dy, dx = struct.unpack_from(
+                    ">HBBBbb", data, metric_offset
+                )
+            else:
+                code, h, w, advance, dy, dx, _ = struct.unpack_from(
+                    ">7i", data, metric_offset
+                )
+            pixel_count = w * h
+            if min(w, h, advance) < 0 or offset + pixel_count > len(data):
+                raise ValueError(f"Invalid smooth font glyph for size {size}")
+            alpha = data[offset:offset + pixel_count]
+            offset += pixel_count
             glyphs.append((code, w, h, advance, dx, -dy, bytes(alpha)))
             if (32 < code < 160 and code != 127) or code > 255:
                 descent = max(descent, h - dy)
