@@ -4,6 +4,9 @@
 #include <LittleFS.h>
 #include <ctype.h>
 
+#include "StoredConfig.h"
+#include "StoredConfigFile.h"
+
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <sntp.h>
@@ -19,8 +22,10 @@ constexpr uint32_t kV2ConfigMagic = 0x53445032;
 constexpr uint32_t kV3ConfigMagic = 0x53445033;
 constexpr uint32_t kConfigMagic = 0x53445034;
 constexpr size_t kEepromSize = 512;
+constexpr uint16_t kNetworkSettingsSchemaVersion = 1;
 constexpr char kNetworkSettingsPath[] = "/network.json";
 constexpr char kNetworkSettingsTempPath[] = "/network.tmp";
+constexpr char kNetworkSettingsInvalidPath[] = "/network.invalid";
 
 struct LegacyDeviceConfig {
   uint32_t magic;
@@ -104,6 +109,16 @@ bool ntpServerValid(const char *value, size_t capacity) {
     }
   }
   return true;
+}
+
+void resetStoredNetworkSettings(NetworkSettings &settings,
+                                const __FlashStringHelper *reason) {
+  Serial.print(F("Stored network settings reset: "));
+  Serial.println(reason);
+  quarantineStoredConfigFile(kNetworkSettingsPath,
+                             kNetworkSettingsInvalidPath);
+  settings = NetworkSettings{};
+  saveNetworkSettings(settings, true);
 }
 
 }  // namespace
@@ -193,6 +208,7 @@ void loadDeviceConfig(DeviceConfig &config) {
     saveDeviceConfig(config);
     return;
   }
+  Serial.println(F("Stored device settings invalid; using setup defaults"));
   memset(&config, 0, sizeof(config));
 }
 
@@ -203,21 +219,67 @@ void loadNetworkSettings(NetworkSettings &settings, bool filesystemReady) {
   StaticJsonDocument<512> document;
   const auto error = deserializeJson(document, file);
   file.close();
-  if (error) return;
-  strlcpy(settings.recoveryPassword, document["recoveryPassword"] | "",
-          sizeof(settings.recoveryPassword));
-  strlcpy(settings.ntpServer, document["ntpServer"] | kDefaultNtpServer,
-          sizeof(settings.ntpServer));
-  strlcpy(settings.staticIp, document["staticIp"] | "",
-          sizeof(settings.staticIp));
-  strlcpy(settings.gateway, document["gateway"] | "",
-          sizeof(settings.gateway));
-  strlcpy(settings.subnet, document["subnet"] | "",
-          sizeof(settings.subnet));
-  strlcpy(settings.dns1, document["dns1"] | "", sizeof(settings.dns1));
-  strlcpy(settings.dns2, document["dns2"] | "", sizeof(settings.dns2));
-  settings.staticIpEnabled = document["staticIpEnabled"] | false;
-  settings.ntpFromDhcp = document["ntpFromDhcp"] | false;
+  if (error || !document.is<JsonObject>()) {
+    resetStoredNetworkSettings(settings, F("malformed JSON"));
+    return;
+  }
+
+  JsonObjectConst root = document.as<JsonObjectConst>();
+  const StoredConfigSchema schema = inspectStoredConfigSchema(
+      root, kNetworkSettingsSchemaVersion);
+  if (schema.state == StoredConfigSchemaState::Newer) {
+    resetStoredNetworkSettings(settings, F("newer schema"));
+    return;
+  }
+  if (schema.state == StoredConfigSchemaState::Older) {
+    resetStoredNetworkSettings(settings, F("unsupported older schema"));
+    return;
+  }
+  if (schema.state == StoredConfigSchemaState::Invalid) {
+    resetStoredNetworkSettings(settings, F("invalid schema"));
+    return;
+  }
+
+  NetworkSettings loaded{};
+  const char *recoveryPassword = root["recoveryPassword"] | "";
+  const size_t recoveryPasswordLength = strlen(recoveryPassword);
+  if (recoveryPasswordLength >= 8 &&
+      recoveryPasswordLength < sizeof(loaded.recoveryPassword)) {
+    strlcpy(loaded.recoveryPassword, recoveryPassword,
+            sizeof(loaded.recoveryPassword));
+  }
+  const char *ntpServer = root["ntpServer"] | kDefaultNtpServer;
+  if (ntpServerValid(ntpServer, sizeof(loaded.ntpServer))) {
+    strlcpy(loaded.ntpServer, ntpServer, sizeof(loaded.ntpServer));
+  }
+  strlcpy(loaded.staticIp, root["staticIp"] | "", sizeof(loaded.staticIp));
+  strlcpy(loaded.gateway, root["gateway"] | "", sizeof(loaded.gateway));
+  strlcpy(loaded.subnet, root["subnet"] | "", sizeof(loaded.subnet));
+  strlcpy(loaded.dns1, root["dns1"] | "", sizeof(loaded.dns1));
+  strlcpy(loaded.dns2, root["dns2"] | "", sizeof(loaded.dns2));
+  loaded.staticIpEnabled = root["staticIpEnabled"] | false;
+  loaded.ntpFromDhcp = root["ntpFromDhcp"] | false;
+
+  if (!ipv4Valid(loaded.dns1, false)) {
+    loaded.dns1[0] = '\0';
+  }
+  if (!ipv4Valid(loaded.dns2, false)) {
+    loaded.dns2[0] = '\0';
+  }
+  if (loaded.staticIpEnabled &&
+      (!ipv4Valid(loaded.staticIp, true) ||
+       !ipv4Valid(loaded.gateway, true) ||
+       !ipv4Valid(loaded.subnet, true))) {
+    loaded.staticIpEnabled = false;
+    loaded.staticIp[0] = '\0';
+    loaded.gateway[0] = '\0';
+    loaded.subnet[0] = '\0';
+  }
+  if (loaded.staticIpEnabled && loaded.ntpFromDhcp) {
+    loaded.ntpFromDhcp = false;
+  }
+  settings = loaded;
+  if (schema.legacy) saveNetworkSettings(settings, true);
 }
 
 bool saveNetworkSettings(const NetworkSettings &settings,
@@ -226,6 +288,7 @@ bool saveNetworkSettings(const NetworkSettings &settings,
   File file = LittleFS.open(kNetworkSettingsTempPath, "w");
   if (!file) return false;
   StaticJsonDocument<512> document;
+  document["schemaVersion"] = kNetworkSettingsSchemaVersion;
   document["recoveryPassword"] = settings.recoveryPassword;
   document["ntpServer"] = settings.ntpServer;
   document["ntpFromDhcp"] = settings.ntpFromDhcp;

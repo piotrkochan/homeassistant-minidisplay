@@ -17,6 +17,8 @@
 
 ### Fixes
 
+- recover each persisted configuration area independently when stored fields
+  are invalid or use an unsupported schema, without resetting valid settings
 - keep hardware-accelerated slide and bounce transitions correctly aligned
   during fragmented or low-memory rendering ([#6](https://github.com/piotrkochan/homeassistant-minidisplay/pull/6/changes))
 - treat a stable release matching the base development version as current
