@@ -112,17 +112,32 @@ and help verify the display, buttons, Wi-Fi and recovery path.
 
 | Model / variant | PlatformIO target | Status |
 | --- | --- | --- |
-| JUZIPi SD PRO | `sdpro` | Tested on hardware |
-| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | Builds; tester needed |
-| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | Builds; tester needed |
-| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | Builds; tester needed |
-| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | Builds; tester needed |
+| JUZIPi SD PRO | `sdpro` | ✅ Tested on hardware |
+| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | ⚠️ Builds, tester needed |
+| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | ⚠️ Builds, tester needed |
 
 <details>
-<summary>Build firmware for another SmallTV profile</summary>
+<summary>Build firmware locally</summary>
 
-Install the dependencies from the [Build](#build) section first, then build the
-shared web interface and the profile matching your hardware:
+Requires Python 3, Node.js 24, npm and Make. From the repository root:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install platformio==6.1.19
+npm ci --prefix firmware/web
+```
+
+Build the tested JUZIPi SD PRO firmware:
+
+```bash
+make build
+```
+
+Output: `firmware/.pio/build/sdpro/firmware.bin`.
+
+Or build the shared web interface and the profile matching another SmallTV:
 
 ```bash
 # GeekMagic SmallTV with no display CS pin
@@ -140,6 +155,10 @@ make profile-build PROFILE=geekmagic_smalltv_pro
 
 Outputs appear under `firmware/.pio/build/<PROFILE>/`. Run `make build-all` to
 build every profile and copy the packaged binaries into `dist/`.
+
+For HA frontend development: `npm ci --prefix integration/card`, then
+`make card-check card-build`. Native firmware tests: `make test-native`
+(requires a C++17 compiler). Memory report: `make elf-report` after building.
 
 </details>
 
@@ -280,24 +299,6 @@ The device web panel provides notification placement, visible-count and test
 controls under **Display → Notifications**. See the
 [notification reference](docs/notifications.md) for positions, limits, response
 codes and rendering behavior.
-
-## Build
-
-Requires Python 3, Node.js 24, npm and Make.
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install platformio==6.1.19
-npm ci --prefix firmware/web
-make build
-```
-
-SD PRO output: `firmware/.pio/build/sdpro/firmware.bin`.
-`make build-all` packages all profiles into `dist/`.
-
-For HA frontend development: `npm ci --prefix integration/card`, then
-`make card-check card-build`. Native firmware tests: `make test-native`
-(requires a C++17 compiler). Memory report: `make elf-report` after building.
 
 GitHub CI checks firmware, native tests, the HA integration and browser interactions
 on code changes. Releases require passing checks. HACS validation runs separately
