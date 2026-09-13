@@ -1,13 +1,19 @@
 PIO := $(CURDIR)/.venv/bin/pio
 export PLATFORMIO_CORE_DIR := $(CURDIR)/.platformio
+FIRMWARE_VERSION ?= 0.0.0-dev
+export MINI_DISPLAY_BUILD_VERSION := $(FIRMWARE_VERSION)
 
-.PHONY: build build-all package clean check size elf-report bootstrap-build bootstrap-clean card-build card-check schema-sync schema-check web-build web-check test-native
+.PHONY: build build-all package profile-build clean check size elf-report bootstrap-build bootstrap-clean card-build card-check schema-sync schema-check web-build web-check test-native
 
 build: web-build
 	python3 firmware/scripts/index_smooth_fonts.py
 	cd firmware && $(PIO) run
 
 build-all: package
+
+profile-build: web-build
+	@test -n "$(PROFILE)" || { echo "PROFILE is required"; exit 1; }
+	cd firmware && $(PIO) run --environment "$(PROFILE)"
 
 package: web-build
 	mkdir -p dist

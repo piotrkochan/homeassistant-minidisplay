@@ -125,19 +125,17 @@ Install the dependencies from the [Build](#build) section first, then build the
 shared web interface and the profile matching your hardware:
 
 ```bash
-make web-build
-
 # GeekMagic SmallTV with no display CS pin
-.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_nocs
+make profile-build PROFILE=geekmagic_smalltv_nocs
 
 # Original GeekMagic SmallTV / Ultra with display CS on GPIO15
-.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_cs15
+make profile-build PROFILE=geekmagic_smalltv_cs15
 
 # GeekMagic SmallTV with ESP32-C2 / ESP8684
-.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_esp32c2
+make profile-build PROFILE=geekmagic_smalltv_esp32c2
 
 # GeekMagic SmallTV Pro with classic ESP32 and 8 MB flash
-.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_pro
+make profile-build PROFILE=geekmagic_smalltv_pro
 ```
 
 Outputs appear under `firmware/.pio/build/<PROFILE>/`. Run `make build-all` to

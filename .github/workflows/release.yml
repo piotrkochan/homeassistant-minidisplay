@@ -47,20 +47,13 @@ jobs:
           npm ci --prefix firmware/web
           npm ci --prefix integration/card
 
-      - name: Set firmware version
-        env:
-          RELEASE_VERSION: ${{ github.ref_name }}
-        run: |
-          VERSION="${RELEASE_VERSION#v}"
-          sed -i "s/#define MINI_DISPLAY_VERSION \"0.3.0-dev\"/#define MINI_DISPLAY_VERSION \"${VERSION}\"/" firmware/src/main.cpp
-
       - name: Build SD PRO firmware
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
         run: |
           VERSION="${RELEASE_VERSION#v}"
           FIRMWARE_NAME="SDP-HomeAssistant-MiniDisplay-${VERSION}.bin"
-          make PIO=pio build
+          make PIO=pio FIRMWARE_VERSION="${VERSION}" build
           mkdir -p dist
           cp firmware/.pio/build/sdpro/firmware.bin "dist/${FIRMWARE_NAME}"
 

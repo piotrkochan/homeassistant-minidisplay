@@ -49,9 +49,10 @@ jobs:
       - name: Build SD PRO, bootstrap and check device UI
         run: |
           make PIO=pio build
+          FIRMWARE_SHA256="$(sha256sum firmware/.pio/build/sdpro/firmware.bin | cut -d' ' -f1)"
           make PIO=pio bootstrap-build \
-            BOOTSTRAP_VERSION=0.2.0 \
-            BOOTSTRAP_SHA256=509e555601b6aecd53decb3c4ea0df3ddf83b65157ef8559494ffc84159e4ca0
+            BOOTSTRAP_VERSION=0.0.0 \
+            BOOTSTRAP_SHA256="${FIRMWARE_SHA256}"
       - name: Native tests with address and undefined-behavior sanitizers
         run: make test-native
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
