@@ -2,10 +2,15 @@
 
 #include <ArduinoJson.h>
 
+#include "StoredConfig.h"
+#include "StoredConfigFile.h"
+
 namespace {
 
+constexpr uint16_t kFontMetadataSchemaVersion = 1;
 constexpr char kMetadataPath[] = "/fonts.json";
 constexpr char kMetadataTempPath[] = "/fonts.tmp";
+constexpr char kMetadataInvalidPath[] = "/fonts.invalid";
 
 const char *const kFontPaths[kUserFontSlots][kUserFontSizes] = {
     {"/font1-0.vlw", "/font1-1.vlw", "/font1-2.vlw", "/font1-3.vlw"},
@@ -183,19 +188,64 @@ bool UserFontStore::load() {
   StaticJsonDocument<384> document;
   const auto error = deserializeJson(document, file);
   file.close();
-  if (error) return false;
-  activeSlot_ = document["active"] | -1;
-  JsonArray slots = document["slots"].as<JsonArray>();
-  for (uint8_t index = 0; index < kUserFontSlots; ++index) {
-    JsonObject value = slots[index];
-    slots_[index].installed = value["installed"] | false;
-    strlcpy(slots_[index].name, value["name"] | "",
-            sizeof(slots_[index].name));
-    slots_[index].glyphCount = value["glyphs"] | 0;
-    slots_[index].bytes = value["bytes"] | 0;
-  }
-  if (activeSlot_ < -1 || activeSlot_ >= static_cast<int8_t>(kUserFontSlots)) {
+  const auto reset = [&](const __FlashStringHelper *reason) {
+    Serial.print(F("Stored font metadata reset: "));
+    Serial.println(reason);
+    quarantineStoredConfigFile(kMetadataPath, kMetadataInvalidPath);
     activeSlot_ = -1;
+    for (UserFontSlotInfo &info : slots_) info = UserFontSlotInfo{};
+    save();
+    return true;
+  };
+  if (error || !document.is<JsonObject>()) return reset(F("malformed JSON"));
+
+  JsonObjectConst root = document.as<JsonObjectConst>();
+  const StoredConfigSchema schema = inspectStoredConfigSchema(
+      root, kFontMetadataSchemaVersion);
+  if (schema.state == StoredConfigSchemaState::Newer) {
+    return reset(F("newer schema"));
+  }
+  if (schema.state == StoredConfigSchemaState::Older) {
+    return reset(F("unsupported older schema"));
+  }
+  if (schema.state == StoredConfigSchemaState::Invalid) {
+    return reset(F("invalid schema"));
+  }
+
+  bool repaired = schema.legacy;
+  const int active = root["active"] | -1;
+  activeSlot_ = active >= -1 && active < kUserFontSlots ? active : -1;
+  repaired = repaired || activeSlot_ != active;
+  JsonArrayConst slots = root["slots"].as<JsonArrayConst>();
+  if (slots.isNull() || slots.size() < kUserFontSlots) repaired = true;
+  for (uint8_t index = 0; index < kUserFontSlots; ++index) {
+    slots_[index] = UserFontSlotInfo{};
+    JsonObjectConst value = slots[index].as<JsonObjectConst>();
+    if (value.isNull()) {
+      repaired = true;
+      continue;
+    }
+    if (!(value["installed"] | false)) continue;
+    const char *name = value["name"] | "";
+    const int glyphs = value["glyphs"] | 0;
+    const uint32_t bytes = value["bytes"] | 0U;
+    if (!name[0] || strlen(name) > 32 || glyphs < 1 ||
+        glyphs > kMaxUserFontGlyphs || !bytes ||
+        bytes > kMaxUserFontPackBytes) {
+      repaired = true;
+      continue;
+    }
+    slots_[index].installed = true;
+    strlcpy(slots_[index].name, name, sizeof(slots_[index].name));
+    slots_[index].glyphCount = glyphs;
+    slots_[index].bytes = bytes;
+  }
+  if (activeSlot_ >= 0 && !slots_[activeSlot_].installed) {
+    activeSlot_ = -1;
+    repaired = true;
+  }
+  if (repaired) {
+    save();
   }
   return true;
 }
@@ -205,6 +255,7 @@ bool UserFontStore::save() {
   File file = LittleFS.open(kMetadataTempPath, "w");
   if (!file) return false;
   StaticJsonDocument<384> document;
+  document["schemaVersion"] = kFontMetadataSchemaVersion;
   document["active"] = activeSlot_;
   JsonArray slots = document.createNestedArray("slots");
   for (const UserFontSlotInfo &info : slots_) {

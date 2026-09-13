@@ -89,6 +89,27 @@ Home Assistant data should use a local API, preferably MQTT or constrained REST
 polling. Never embed a long-lived Home Assistant administrator token in source
 control. Store device secrets outside tracked files.
 
+## Persistent configuration compatibility
+
+- Give every independently stored JSON document its own positive integer
+  `schemaVersion`. A missing version means schema 1 for files created before
+  versioning was introduced. The dashboard keeps its existing `version` field.
+- Keep additive changes within the current schema and ignore unknown fields.
+  Increment the schema before changing the type, meaning or required structure
+  of an existing field.
+- Add explicit step-by-step migrations before increasing a firmware's supported
+  schema version. Never guess how to interpret a newer schema.
+- Parse into defaults, validate every known field and only then apply settings.
+  Repair invalid fields independently and rewrite the normalized document.
+- Quarantine a malformed or unsupported document and replace only that
+  configuration area with defaults. Never turn a single-file failure into a
+  full LittleFS or device reset.
+- Treat `DeviceConfig` as a fixed EEPROM compatibility boundary. Do not resize,
+  reorder or repurpose its fields; store future settings in versioned LittleFS
+  documents.
+- Log recovery reasons without logging Wi-Fi passwords, API credentials or
+  other stored secrets.
+
 ## Safety rules
 
 - Preserve stock firmware and its SHA-256 before custom flashing.

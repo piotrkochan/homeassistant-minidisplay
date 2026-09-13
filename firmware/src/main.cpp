@@ -10,6 +10,8 @@
 #include "NotificationRequest.h"
 #include "FeatureFlags.h"
 #include "FirmwareVersion.h"
+#include "StoredConfig.h"
+#include "StoredConfigFile.h"
 #if defined(ESP8266)
 #include <ESP8266mDNS.h>
 #include "RequestBodyWebServer.h"
@@ -89,8 +91,11 @@ constexpr char kHardwareModel[] = "JUZIPi SD PRO";
 constexpr char kDashboardPath[] = "/dashboard.json";
 constexpr char kDashboardTempPath[] = "/dashboard.tmp";
 constexpr char kDashboardBackupPath[] = "/dashboard.bak";
+constexpr char kDashboardInvalidPath[] = "/dashboard.invalid";
 constexpr char kDisplaySettingsPath[] = "/display.json";
 constexpr char kDisplaySettingsTempPath[] = "/display.tmp";
+constexpr char kDisplaySettingsInvalidPath[] = "/display.invalid";
+constexpr uint16_t kDisplaySettingsSchemaVersion = 1;
 constexpr uint16_t kDefaultFirmwareNoticeDurationSeconds = 60;
 constexpr uint16_t kDefaultFirmwareReminderHours = 24;
 constexpr uint16_t kMaximumFirmwareReminderHours = 24 * 30;
@@ -287,6 +292,16 @@ void updatePixelShift() {
   pixelShiftY = nextY;
 }
 
+bool saveDisplaySettings();
+
+void resetStoredDisplaySettings(const __FlashStringHelper *reason) {
+  Serial.print(F("Stored display settings reset: "));
+  Serial.println(reason);
+  quarantineStoredConfigFile(kDisplaySettingsPath,
+                             kDisplaySettingsInvalidPath);
+  saveDisplaySettings();
+}
+
 void loadDisplaySettings() {
   if (!filesystemReady || !LittleFS.exists(kDisplaySettingsPath)) return;
   File file = LittleFS.open(kDisplaySettingsPath, "r");
@@ -294,51 +309,118 @@ void loadDisplaySettings() {
   StaticJsonDocument<512> document;
   const auto error = deserializeJson(document, file);
   file.close();
-  if (error) return;
-  const int brightness = document["brightness"] | 100;
-  const int pixelShift = document["pixelShift"] | 0;
-  displayRefresh.setRate(document["refreshRateHz"] | 60.0F);
-  parseNotificationPosition(document["notificationPosition"] | "top",
-      notificationPosition, display.width(), display.height());
-  notifications.setMaxVisible(document["notificationMaxVisible"] | 3);
-  notificationAuthEnabled = document["notificationAuthEnabled"] | true;
-  firmwareNotificationsEnabled =
-      document["firmwareNotificationsEnabled"] | true;
-  const int firmwareDuration =
-      document["firmwareNoticeDurationSeconds"] |
-      static_cast<int>(kDefaultFirmwareNoticeDurationSeconds);
-  const int firmwareReminder =
-      document["firmwareReminderHours"] |
-      static_cast<int>(kDefaultFirmwareReminderHours);
-  if (firmwareDuration >= 5 && firmwareDuration <= 300) {
-    firmwareNoticeDurationSeconds = firmwareDuration;
+  if (error || !document.is<JsonObject>()) {
+    resetStoredDisplaySettings(F("malformed JSON"));
+    return;
   }
-  if (firmwareReminder >= 1 &&
-      firmwareReminder <= kMaximumFirmwareReminderHours) {
-    firmwareReminderHours = firmwareReminder;
+
+  JsonObjectConst root = document.as<JsonObjectConst>();
+  const StoredConfigSchema schema = inspectStoredConfigSchema(
+      root, kDisplaySettingsSchemaVersion);
+  if (schema.state == StoredConfigSchemaState::Newer) {
+    resetStoredDisplaySettings(F("newer schema"));
+    return;
   }
+  if (schema.state == StoredConfigSchemaState::Older) {
+    resetStoredDisplaySettings(F("unsupported older schema"));
+    return;
+  }
+  if (schema.state == StoredConfigSchemaState::Invalid) {
+    resetStoredDisplaySettings(F("invalid schema"));
+    return;
+  }
+  bool repaired = schema.legacy;
+  const int brightness = root["brightness"] | 100;
+  if (root["brightness"].is<int>() && brightness >= 0 && brightness <= 100) {
+    displayBrightness = brightness;
+  } else {
+    repaired = true;
+  }
+  const int pixelShift = root["pixelShift"] | 0;
+  if (root["pixelShift"].is<int>() && pixelShift >= 0 &&
+      pixelShift <= kMaxPixelShift) {
+    displayPixelShift = pixelShift;
+  } else {
+    repaired = true;
+  }
+  const float refreshRate = root["refreshRateHz"] | 60.0F;
+  if (root["refreshRateHz"].is<float>() &&
+      DisplayRefresh::valid(refreshRate)) {
+    displayRefresh.setRate(refreshRate);
+  } else {
+    repaired = true;
+  }
+  if (!root["notificationPosition"].is<const char *>() ||
+      !parseNotificationPosition(root["notificationPosition"],
+                                 notificationPosition, display.width(),
+                                 display.height())) {
+    repaired = true;
+  }
+  const int maxVisible = root["notificationMaxVisible"] |
+                         static_cast<int>(NotificationCenter::kCapacity);
+  if (!root["notificationMaxVisible"].is<int>() ||
+      !notifications.setMaxVisible(maxVisible)) {
+    repaired = true;
+  }
+  if (root["notificationAuthEnabled"].is<bool>()) {
+    notificationAuthEnabled = root["notificationAuthEnabled"];
+  } else {
+    repaired = true;
+  }
+  if (root["firmwareNotificationsEnabled"].is<bool>()) {
+    firmwareNotificationsEnabled = root["firmwareNotificationsEnabled"];
+  } else {
+    repaired = true;
+  }
+  const int duration = root["firmwareNoticeDurationSeconds"] |
+                       static_cast<int>(kDefaultFirmwareNoticeDurationSeconds);
+  if (root["firmwareNoticeDurationSeconds"].is<int>() && duration >= 5 &&
+      duration <= 300) {
+    firmwareNoticeDurationSeconds = duration;
+  } else {
+    repaired = true;
+  }
+  const int reminder = root["firmwareReminderHours"] |
+                       static_cast<int>(kDefaultFirmwareReminderHours);
+  if (root["firmwareReminderHours"].is<int>() && reminder >= 1 &&
+      reminder <= kMaximumFirmwareReminderHours) {
+    firmwareReminderHours = reminder;
+  } else {
+    repaired = true;
+  }
+  const char *availableVersion = root["firmwareAvailableVersion"] | "";
   FirmwareVersion available;
-  const char *availableVersion = document["firmwareAvailableVersion"] | "";
-  if (parseFirmwareVersion(availableVersion, available)) {
+  if ((!availableVersion[0] ||
+       parseFirmwareVersion(availableVersion, available)) &&
+      strlen(availableVersion) < sizeof(firmwareAvailableVersion)) {
     strlcpy(firmwareAvailableVersion, availableVersion,
             sizeof(firmwareAvailableVersion));
+  } else {
+    repaired = true;
   }
-  firmwareLastNoticeEpoch = document["firmwareLastNoticeEpoch"] | 0U;
-  strlcpy(displayTimezone, document["timezone"] | kDefaultTimezone,
-          sizeof(displayTimezone));
-  if (brightness >= 0 && brightness <= 100) displayBrightness = brightness;
-  if (pixelShift >= 0 && pixelShift <= kMaxPixelShift) {
-    displayPixelShift = pixelShift;
+  if (root["firmwareLastNoticeEpoch"].is<uint32_t>()) {
+    firmwareLastNoticeEpoch = root["firmwareLastNoticeEpoch"];
+  } else {
+    repaired = true;
+  }
+  const char *timezone = root["timezone"] | kDefaultTimezone;
+  if (root["timezone"].is<const char *>() &&
+      ::timezoneValid(timezone, sizeof(displayTimezone))) {
+    strlcpy(displayTimezone, timezone, sizeof(displayTimezone));
+  } else {
+    repaired = true;
   }
   updatePixelShift();
   pixelShiftAt = millis();
+  if (repaired) saveDisplaySettings();
 }
 
-void saveDisplaySettings() {
-  if (!filesystemReady) return;
+bool saveDisplaySettings() {
+  if (!filesystemReady) return false;
   File file = LittleFS.open(kDisplaySettingsTempPath, "w");
-  if (!file) return;
+  if (!file) return false;
   StaticJsonDocument<512> document;
+  document["schemaVersion"] = kDisplaySettingsSchemaVersion;
   document["brightness"] = displayBrightness;
   document["pixelShift"] = displayPixelShift;
   document["refreshRateHz"] = displayRefresh.rate();
@@ -355,11 +437,11 @@ void saveDisplaySettings() {
   if (serializeJson(document, file) == 0) {
     file.close();
     LittleFS.remove(kDisplaySettingsTempPath);
-    return;
+    return false;
   }
   file.close();
   LittleFS.remove(kDisplaySettingsPath);
-  LittleFS.rename(kDisplaySettingsTempPath, kDisplaySettingsPath);
+  return LittleFS.rename(kDisplaySettingsTempPath, kDisplaySettingsPath);
 }
 
 bool timezoneValid(const char *value) {
@@ -1106,8 +1188,18 @@ bool loadDashboardMetadata(Stream &stream, DashboardLoadFailure *failure = nullp
     }
     return reject(F("Malformed dashboard JSON"));
   }
-  if (document["version"].as<int>() != 1 ||
-      !document["pages"].is<JsonArray>()) {
+  const StoredConfigSchema schema = inspectStoredConfigSchema(
+      document.as<JsonObjectConst>(), 1, "version");
+  if (schema.state == StoredConfigSchemaState::Newer) {
+    return reject(F("Dashboard schema is newer than this firmware"));
+  }
+  if (schema.state == StoredConfigSchemaState::Older) {
+    return reject(F("Dashboard schema migration is unavailable"));
+  }
+  if (schema.state == StoredConfigSchemaState::Invalid || schema.legacy) {
+    return reject(F("Invalid dashboard schema version"));
+  }
+  if (!document["pages"].is<JsonArray>()) {
     return false;
   }
 
@@ -1254,9 +1346,22 @@ void loadStoredDashboard() {
   if (!filesystemReady || !LittleFS.exists(kDashboardPath)) return;
   File file = LittleFS.open(kDashboardPath, "r");
   if (!file) return;
-  const bool valid = loadDashboardMetadata(file);
+  DashboardLoadFailure failure;
+  const bool valid = loadDashboardMetadata(file, &failure);
   file.close();
-  if (!valid) Serial.println(F("Stored dashboard metadata invalid"));
+  if (valid) return;
+  Serial.print(F("Stored dashboard rejected: "));
+  Serial.println(failure.message ? failure.message
+                                 : F("invalid dashboard metadata"));
+  if (failure.retryable) return;
+  pageDefinition.clear();
+  graphHistory.reset();
+  activeScene.reset();
+  activeSceneReady = false;
+  activeScenePage = 0xff;
+  dashboardPageCount = 0;
+  activePageIndex = 0;
+  quarantineStoredConfigFile(kDashboardPath, kDashboardInvalidPath);
 }
 
 void sendApiInfo() {

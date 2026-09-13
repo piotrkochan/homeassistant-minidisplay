@@ -85,6 +85,11 @@ test-native:
 		firmware/tests/notification_test.cpp -o .cache/tests/notifications
 	.cache/tests/notifications
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src -I firmware/.pio/libdeps/sdpro/ArduinoJson/src \
+		firmware/tests/stored_config_test.cpp firmware/src/StoredConfig.cpp \
+		-o .cache/tests/stored-config
+	.cache/tests/stored-config
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-DSTATIC_SMOOTH_TEST -DPROGMEM= -DTL_DATUM=0 -I firmware/src \
 		firmware/tests/notification_painter_test.cpp firmware/src/StaticSmoothFonts.generated.cpp \
 		-o .cache/tests/notification-painter
