@@ -129,6 +129,14 @@ export type SetupStatus = {
   dns2: string;
 };
 
+export type FirmwareSettings = {
+  notificationsEnabled: boolean;
+  notificationDurationSeconds: number;
+  reminderHours: number;
+  availableVersion: string;
+  updateAvailable: boolean;
+};
+
 export class DeviceApiError extends Error {
   constructor(
     readonly status: number,

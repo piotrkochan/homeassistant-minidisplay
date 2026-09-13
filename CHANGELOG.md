@@ -4,12 +4,22 @@
 
 ### Features
 
+- detect newer firmware in the device panel, browse released versions and
+  install a selected SD PRO image from GitHub without a manual download
+- add optional on-display update reminders with configurable duration and
+  interval, while keeping every firmware installation explicitly user-started
+- show firmware download progress, lock panel controls and keep a
+  do-not-disconnect warning visible throughout downloads and OTA writes
+- require explicit risk confirmation before installing an older firmware
+  version
 - add a version-pinned SD PRO bootstrap that provisions Wi-Fi and installs its
   SHA-256-verified firmware image directly from GitHub
 - build and attach a matching bootstrap image to every firmware release
 
 ### Fixes
 
+- use the complete ESP8266 OTA slot so similarly sized near-limit firmware
+  images can update each other repeatedly
 - pause first-time SD PRO installation through the stock web updater after
   confirming that oversized images may be accepted but written incompletely
 

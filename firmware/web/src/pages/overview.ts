@@ -1,6 +1,8 @@
 import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { DeviceInfo, DeviceStatus } from "../api";
+import type { FirmwareRelease } from "../firmware-releases";
+import { compareVersions } from "../firmware-releases";
 import { formatMemory, formatUptime, lastUpdateAge } from "../format";
 import { pageStyles } from "../styles";
 
@@ -8,6 +10,7 @@ import { pageStyles } from "../styles";
 export class OverviewPage extends LitElement {
   @property({ attribute: false }) info?: DeviceInfo;
   @property({ attribute: false }) status?: DeviceStatus;
+  @property({ attribute: false }) latestRelease?: FirmwareRelease;
 
   static styles = pageStyles;
 
@@ -16,6 +19,10 @@ export class OverviewPage extends LitElement {
     if (!status)
       return html`<section class="card">Device data is unavailable.</section>`;
     const updateAge = lastUpdateAge(status.lastValueUpdateAgeSeconds);
+    const currentVersion = this.info?.firmwareVersion ?? "";
+    const updateAvailable =
+      this.latestRelease &&
+      compareVersions(this.latestRelease.version, currentVersion) > 0;
     return html`<div class="grid">
       <section class="card">
         <h2>Connection</h2>
@@ -71,7 +78,14 @@ export class OverviewPage extends LitElement {
       </section>
       <section class="card">
         <h2>Firmware</h2>
-        <div class="metric">${this.info?.firmwareVersion}</div>
+        <div class="metric">${currentVersion}</div>
+        ${
+          updateAvailable
+            ? html`<div class="age-warning">
+                Update available: ${this.latestRelease?.version}
+              </div>`
+            : ""
+        }
         <div class="muted">Uptime ${formatUptime(status.uptimeSeconds)}</div>
       </section>
     </div>`;
