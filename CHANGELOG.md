@@ -10,6 +10,8 @@
 
 ### Fixes
 
+- keep hardware-accelerated slide and bounce transitions correctly aligned
+  during fragmented or low-memory rendering ([#6](https://github.com/piotrkochan/homeassistant-minidisplay/pull/6/changes))
 - pause first-time SD PRO installation through the stock web updater after
   confirming that oversized images may be accepted but written incompletely
 
