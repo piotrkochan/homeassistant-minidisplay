@@ -1,27 +1,5 @@
 # Home Assistant Mini-Display
 
-> [!CAUTION]
-> **This firmware is experimental.** For a first-time installation from the
-> original JUZIPi firmware, upload the release's
-> `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin`. Never upload the
-> larger `SDP-HomeAssistant-MiniDisplay-<VERSION>.bin` through the
-> stock updater; an incomplete write can leave the display unable to boot.
-
-```text
-        .--------------------------.
-        | .----------------------. |
-        | |                      | |
-        | |   Over engineered    | |
-        | |    home assistant    | |
-        | |     mini display     | |
-        | |                      | |
-        | |        156 W         | |
-        | |     __/\___/\__      | |
-        | |                      | |
-        | '----------------------' |
-        '--------------------------'
-```
-
 Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
 **JSON Schema powered. Local. No cloud required. Home Assistant optional.**
 
@@ -29,13 +7,11 @@ Turn a tiny Wi-Fi display into a ridiculously configurable dashboard.
 
 Actual 240 × 240 screenshots from a JUZIPi SD PRO, not browser mockups.
 
-| Energy and live power | Free layout and backgrounds |
-| :---: | :---: |
-| [![Energy prices, power and history](docs/screenshots/device/page1.png)](docs/screenshots/device/page1.png) | [![Battery and charging on a custom background](docs/screenshots/device/page2.png)](docs/screenshots/device/page2.png) |
-| **Home conditions** | **Car status** |
-| [![Temperature and humidity](docs/screenshots/device/page3.png)](docs/screenshots/device/page3.png) | [![Fuel and trip information](docs/screenshots/device/page4.png)](docs/screenshots/device/page4.png) |
-| **Notification over a live dashboard** | **Live weather and scrolling text** |
-| [![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)](docs/screenshots/device/notification.gif) | [![Weather dashboard with smoothly scrolling text](docs/screenshots/device/page5.gif)](docs/screenshots/device/page5.gif) |
+| Energy and live power | Free layout and backgrounds | Home conditions |
+| :---: | :---: | :---: |
+| [![Energy prices, power and history](docs/screenshots/device/page1.png)](docs/screenshots/device/page1.png) | [![Battery and charging on a custom background](docs/screenshots/device/page2.png)](docs/screenshots/device/page2.png) | [![Temperature and humidity](docs/screenshots/device/page3.png)](docs/screenshots/device/page3.png) |
+| **Car status** | **Notification over a live dashboard** | **Live weather and scrolling text** |
+| [![Fuel and trip information](docs/screenshots/device/page4.png)](docs/screenshots/device/page4.png) | [![Notification overlay above an animated dashboard](docs/screenshots/device/notification.gif)](docs/screenshots/device/notification.gif) | [![Weather dashboard with smoothly scrolling text](docs/screenshots/device/page5.gif)](docs/screenshots/device/page5.gif) |
 
 ## Tiny screen, lots of possibilities
 
@@ -91,22 +67,23 @@ directly through the [local API](#json-schema-powered).
 
 ## Install on JUZIPi SD PRO
 
+> [!WARNING]
+> A first-time installation on JUZIPi SD PRO requires the matching
+> `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the release.
+> Do not upload the full firmware through the original updater.
+
 Tested hardware: **JUZIPi SD PRO, ESP8266/ESP-12F, 4 MB flash, 240 × 240 ST7789**.
-Check the [pinout](notes/pinout-sdpro.md) before flashing. Keep a stock firmware
-backup and a recovery method; matching cases do not guarantee matching hardware.
 
-1. For a first-time installation from the original firmware, download
-   `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the matching
-   [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases).
-2. Upload that file unchanged through the original firmware update page.
-3. Join the installer Wi-Fi shown on the display, open `http://192.168.4.1/`,
-   select your home Wi-Fi and install the offered firmware version.
-4. After reboot, open the IP address shown on the display.
+The full firmware is too large for the original updater, so the first install
+uses a small bootstrap firmware. It downloads one specific release from GitHub, verifies
+it and safely installs it. Internet access is needed only during this download.
 
-Subsequent updates use the device's **Firmware** page. Direct OTA uses `/update`,
-not the stock `/update_ota`, and has a separate, configurable password.
-If USB does not expose a serial port, recovery needs a **3.3 V USB-to-TTL adapter**,
-not just a USB cable. Check the pinout before connecting anything.
+1. Download `SDP-HomeAssistant-MiniDisplay-Bootstrap-<VERSION>.bin` from the
+   matching [release](https://github.com/piotrkochan/homeassistant-minidisplay/releases).
+2. Upload it unchanged through the original firmware update page.
+3. Follow the instructions shown on the display.
+
+Subsequent updates use the device's **Firmware** page.
 
 ### Add Home Assistant
 
@@ -124,20 +101,57 @@ Manual installation: copy `custom_components/mini_display` into HA's
 
 ## Hardware profiles
 
-Only SD PRO is hardware-tested here. **Testers wanted for every other profile.**
-These are build targets, not a promise that any similarly named device will work.
+The code is prepared for several GeekMagic SmallTV variants, with separate
+build profiles for their MCUs, flash layouts and known display wiring. I
+currently own only a **JUZIPi SD PRO**, so that is the only device tested on
+real hardware. The other profiles compile, but still need hardware validation.
+
+**Have one of the untested models?** [Open an issue](https://github.com/piotrkochan/homeassistant-minidisplay/issues/new)
+with the exact model, MCU and board photos. I can provide a matching test build
+and help verify the display, buttons, Wi-Fi and recovery path.
 
 | Model / variant | PlatformIO target | Status |
 | --- | --- | --- |
 | JUZIPi SD PRO | `sdpro` | Tested on hardware |
-| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | Not tested; testers needed |
-| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | Not tested; testers needed |
-| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | Not tested; testers needed |
-| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | Not tested; testers needed |
+| GeekMagic SmallTV, no-CS wiring | `geekmagic_smalltv_nocs` | Builds; tester needed |
+| GeekMagic SmallTV / Ultra, CS on GPIO15 | `geekmagic_smalltv_cs15` | Builds; tester needed |
+| GeekMagic SmallTV ESP32-C2 / ESP8684 | `geekmagic_smalltv_esp32c2` | Builds; tester needed |
+| GeekMagic SmallTV Pro, ESP32 / 8 MB | `geekmagic_smalltv_pro` | Builds; tester needed |
 
-ESP32 builds provide separate `factory.bin` and `ota.bin` images. Do not interchange
-them or use the SD PRO installation procedure for another model. See the
-[hardware notes](notes/) and report your exact board, MCU and wiring when testing.
+<details>
+<summary>Build firmware for another SmallTV profile</summary>
+
+Install the dependencies from the [Build](#build) section first, then build the
+shared web interface and the profile matching your hardware:
+
+```bash
+make web-build
+
+# GeekMagic SmallTV with no display CS pin
+.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_nocs
+
+# Original GeekMagic SmallTV / Ultra with display CS on GPIO15
+.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_cs15
+
+# GeekMagic SmallTV with ESP32-C2 / ESP8684
+.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_esp32c2
+
+# GeekMagic SmallTV Pro with classic ESP32 and 8 MB flash
+.venv/bin/pio run --project-dir firmware --environment geekmagic_smalltv_pro
+```
+
+Outputs appear under `firmware/.pio/build/<PROFILE>/`. Run `make build-all` to
+build every profile and copy the packaged binaries into `dist/`.
+
+</details>
+
+ESP32 profiles produce two different images: use `firmware.factory.bin` only
+for the initial full flash over a serial connection, and use `firmware.bin`
+only for an OTA update from compatible firmware. They are not interchangeable.
+The SD PRO bootstrap and installation steps are exclusively for JUZIPi SD PRO;
+other SmallTV models can have different MCUs, partitions and pin wiring. Check
+the [hardware notes](notes/) and keep a serial recovery method ready before
+testing an unverified profile.
 
 ## JSON Schema powered
 
