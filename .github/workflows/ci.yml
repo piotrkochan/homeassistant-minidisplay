@@ -76,7 +76,7 @@ jobs:
           cache: npm
           cache-dependency-path: integration/card/package-lock.json
       - run: npm ci --prefix integration/card
-      - run: python -m pip install Pillow==11.3.0
+      - run: python -m pip install Pillow==11.3.0 zopfli==0.4.1
       - run: make card-check card-build
       - run: npm ci --prefix firmware/web
       - run: make web-build
