@@ -27,6 +27,37 @@ inline uint8_t coverageByte(const uint8_t *data) {
   return *data;
 #endif
 }
+
+class CoverageCursor {
+ public:
+  explicit CoverageCursor(const uint8_t *data) : data_(data) {}
+
+  uint8_t next() {
+    if (remaining_ == 0) refill();
+    --remaining_;
+    return value_;
+  }
+
+  void skip(uint32_t count) {
+    while (count) {
+      if (remaining_ == 0) refill();
+      const uint8_t step = count < remaining_ ? count : remaining_;
+      remaining_ -= step;
+      count -= step;
+    }
+  }
+
+ private:
+  void refill() {
+    const uint8_t encoded = coverageByte(data_++);
+    value_ = encoded >> 6;
+    remaining_ = (encoded & 0x3f) + 1;
+  }
+
+  const uint8_t *data_;
+  uint8_t value_ = 0;
+  uint8_t remaining_ = 0;
+};
 inline CoverageGlyph coverageGlyph(const CoverageFont &font, size_t index) {
   CoverageGlyph glyph;
 #if defined(ESP8266)
@@ -100,19 +131,19 @@ void paintCoverageText(Canvas &canvas, const CoverageFont &font, const char *tex
 #if defined(ESP8266)
     optimistic_yield(10000);
 #endif
+    CoverageCursor coverage(font.pixels + glyph.offset);
+    coverage.skip(uint32_t(firstRow) * glyph.width);
     for (int16_t row = firstRow; row < lastRow; ++row) {
+      coverage.skip(firstColumn);
       int16_t run = 0;
       for (int16_t column = firstColumn; column <= lastColumn; ++column) {
-        uint8_t alpha = 0;
-        if (column < lastColumn) {
-          const uint32_t pixel = uint32_t(row) * glyph.width + column;
-          alpha = (coverageByte(font.pixels + glyph.offset + pixel / 4) >> (6 - 2 * (pixel % 4))) & 3;
-        }
+        const uint8_t alpha = column < lastColumn ? coverage.next() : 0;
         if (alpha == 3) { ++run; continue; }
         if (run) { canvas.drawFastHLine(left + column - run, top + row, run, color); run = 0; }
         if (alpha) canvas.drawPixel(left + column, top + row,
             blendCoverage(color, background(left + column, top + row), alpha));
       }
+      coverage.skip(glyph.width - lastColumn);
     }
     x += glyph.advance;
   }

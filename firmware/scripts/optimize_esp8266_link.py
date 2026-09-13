@@ -1,7 +1,7 @@
 """Drop unused newlib float formatters from ESP8266 firmware.
 
-The firmware parses floats with strtof and formats graph labels with dtostrf.
-Neither path needs newlib's generic printf or scanf float extensions.
+The firmware uses its bounded decimal parser and dtostrf graph labels, so it
+does not need newlib's generic printf or scanf float extensions.
 """
 
 Import("env")  # noqa: F821 - PlatformIO/SCons build environment

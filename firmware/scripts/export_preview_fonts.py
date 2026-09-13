@@ -46,7 +46,13 @@ for size in (13, 18, 24, 36, 48):
         covered = {}
         for record in re.findall(r"\{([^{}]+)\}", table):
             offset, code, w, h, advance, dx, dy = map(int, record.split(','))
-            alpha = bytes(((packed[offset + index // 4] >> (6 - 2*(index % 4))) & 3)*85 for index in range(w*h))
+            alpha = bytearray()
+            position = offset
+            while len(alpha) < w * h:
+                encoded = packed[position]
+                position += 1
+                alpha.extend([encoded >> 6] * ((encoded & 63) + 1))
+            alpha = bytes(value * 85 for value in alpha[:w * h])
             covered[code] = (code,w,h,advance,dx,dy,alpha)
         glyphs = [covered.get(glyph[0], glyph) for glyph in glyphs]
     atlas = Image.new("RGBA", (512, 4096))

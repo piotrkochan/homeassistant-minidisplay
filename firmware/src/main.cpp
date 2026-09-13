@@ -546,11 +546,15 @@ void showCurrentPage() {
     return;
   }
   display.fillScreen(TFT_BLACK);
+  if (display.fontLoaded) display.unloadFont();
+  displayFontState = FontRenderState{};
   display.setTextDatum(MC_DATUM);
+  display.setFreeFont(builtInFontFor("sans-bold", 1));
   display.setTextColor(TFT_WHITE, TFT_BLACK);
-  display.drawString("MINI-DISPLAY", 120, 92, 4);
+  display.drawString("MINI-DISPLAY", 120, 92);
+  display.setFreeFont(builtInFontFor("sans-bold", 0));
   display.setTextColor(TFT_YELLOW, TFT_BLACK);
-  display.drawString("WAITING FOR DASHBOARD", 120, 135, 2);
+  display.drawString("WAITING FOR DASHBOARD", 120, 135);
   paintNotification(display, notifications, 0, 0);
 }
 
@@ -753,10 +757,12 @@ void updateNotifications() {
             painter->band.fillSprite(TFT_BLACK);
             if (!dashboardPageCount) {
               painter->band.setTextDatum(MC_DATUM);
+              painter->band.setFreeFont(builtInFontFor("sans-bold", 1));
               painter->band.setTextColor(TFT_WHITE, TFT_BLACK);
-              painter->band.drawString("MINI-DISPLAY", 120, 92 - y, 4);
+              painter->band.drawString("MINI-DISPLAY", 120, 92 - y);
+              painter->band.setFreeFont(builtInFontFor("sans-bold", 0));
               painter->band.setTextColor(TFT_YELLOW, TFT_BLACK);
-              painter->band.drawString("WAITING FOR DASHBOARD", 120, 135 - y, 2);
+              painter->band.drawString("WAITING FOR DASHBOARD", 120, 135 - y);
             }
             paintNotification(painter->band, notifications, 0, -y);
             displayScrollBuffer.pushLogical(

@@ -29,9 +29,9 @@
 
 ### Performance
 
-- recover about 19 KB of SD PRO firmware space by tightening the embedded web
-  bundle and schema compression, and by replacing unused generic float helpers
-  with bounded firmware-specific number handling
+- recover about 89 KiB of SD PRO firmware space through tighter web and schema
+  compression, RLE-compressed antialiased glyphs, compact font metadata, one
+  filesystem backend and bounded firmware-specific number handling
 
 ## v0.2.0
 
