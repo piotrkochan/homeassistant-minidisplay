@@ -7,7 +7,7 @@ on:
       - 'custom_components/**'
       - '.github/workflows/hacs.yml'
   push:
-    branches: ['**']
+    branches: [master]
     paths: *hacs-paths
   workflow_dispatch:
   schedule:

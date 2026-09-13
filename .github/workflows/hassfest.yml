@@ -6,7 +6,7 @@ on:
       - 'custom_components/**'
       - '.github/workflows/hassfest.yml'
   push:
-    branches: ['**']
+    branches: [master]
     paths: *hassfest-paths
   workflow_dispatch:
 

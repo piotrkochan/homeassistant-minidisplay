@@ -13,7 +13,7 @@ on:
       - 'Makefile'
       - 'hacs.json'
   push:
-    branches: ['**']
+    branches: [master]
     paths: *code-paths
   workflow_dispatch:
   workflow_call:
