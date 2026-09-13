@@ -80,6 +80,7 @@ export const shellStyles = css`
     padding: 0 16px 32px;
   }
   .notice,
+  .warning,
   .error {
     padding: 10px 12px;
     border-left: 4px solid var(--good);
@@ -87,9 +88,33 @@ export const shellStyles = css`
     border-radius: 6px;
     margin-bottom: 14px;
   }
+  .update-warning {
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+    display: grid;
+    gap: 2px;
+    padding: 14px 16px;
+    border: 1px solid var(--warning);
+    border-left-width: 5px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    background: color-mix(in srgb, var(--warning) 18%, var(--panel));
+    box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  }
+  [inert] {
+    opacity: 0.55;
+  }
   .error {
     border-color: var(--danger);
     background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+  }
+  .warning {
+    border-color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 12%, var(--panel));
+  }
+  .warning .check {
+    margin-top: 10px;
   }
   .loading {
     color: var(--muted);
@@ -173,6 +198,17 @@ export const pageStyles = css`
   .stack {
     display: grid;
     gap: 14px;
+  }
+  .transfer-progress {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  progress {
+    width: 100%;
+    height: 12px;
+    accent-color: var(--accent);
   }
   .dependent {
     display: grid;

@@ -95,6 +95,9 @@ test-native:
 		-I firmware/src firmware/tests/display_refresh_test.cpp -o .cache/tests/display-refresh
 	.cache/tests/display-refresh
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
+		-I firmware/src firmware/tests/firmware_version_test.cpp -o .cache/tests/firmware-version
+	.cache/tests/firmware-version
+	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
 		-I firmware/src firmware/tests/number_transform_test.cpp -o .cache/tests/number-transform
 	.cache/tests/number-transform
 	$(CXX) -std=c++17 -Wall -Wextra -Werror -fsanitize=address,undefined -g \
